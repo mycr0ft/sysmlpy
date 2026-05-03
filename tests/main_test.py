@@ -10,7 +10,7 @@ import pytest
 from sysml2py import load, loads, load_grammar
 from sysml2py.formatting import classtree
 
-from textx import TextXSyntaxError
+from sysml2py.antlr_parser import SysMLSyntaxError
 
 from .functions import strip_ws
 
@@ -56,5 +56,5 @@ def test_load_fromstr_error(single_package):
 
 
 def test_invalid_sysml():
-    with pytest.raises(TextXSyntaxError):
+    with pytest.raises(SysMLSyntaxError):
         loads("error")

@@ -1,0 +1,33 @@
+//Owning type conformance: For a redefinition, the owningType of the subsettingFeature shall not be to the owningType of the subsettedFeature
+
+// XPECT noErrors ---> ""
+package 'Redefinition Example' {
+	
+	part wheel : Wheel;
+
+	part def Vehicle {
+		part eng : Engine;
+		
+		// A feature owned by a package is treated as if it was owned by Anything.
+		part redefines wheel;
+	}
+	part def SmallVehicle :> Vehicle {
+		part smallEng : SmallEngine redefines eng;
+	}
+	part def BigVehicle :> Vehicle {
+		part bigEng : BigEngine :>> eng;
+	}
+
+	part def Engine {
+		part cyl : Cylinder[4..6];
+	}
+	part def SmallEngine :> Engine {
+		part redefines cyl[4];
+	}
+	part def BigEngine :> Engine {
+		part redefines cyl[6];
+	}
+
+	part def Cylinder;
+	part def Wheel;
+}

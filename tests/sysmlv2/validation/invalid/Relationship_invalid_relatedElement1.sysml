@@ -1,0 +1,56 @@
+//* XPECT_SETUP org.omg.sysml.xpect.tests.validation.invalid.SysMLTests
+	ResourceSet {
+		ThisFile {}
+		File {from ="/library.kernel/Base.kerml"}
+		File {from ="/library.kernel/Links.kerml"}
+       	File {from ="/library.kernel/Occurrences.kerml"}
+       	File {from ="/library.kernel/Objects.kerml"}
+       	File {from ="/library.kernel/Performances.kerml"}
+		File {from ="/library.kernel/BaseFunctions.kerml"}
+		File {from ="/library.kernel/Transfers.kerml"}
+		File {from ="/library.systems/Items.sysml"}
+		File {from ="/library.systems/Parts.sysml"}
+		File {from ="/library.systems/Ports.sysml"}
+		File {from ="/library.systems/Flows.sysml"}
+		File {from ="/library.systems/Actions.sysml"}
+	}
+	Workspace {
+		JavaProject {
+			SrcFolder {
+				ThisFile {}
+				File {from ="/library.kernel/Base.kerml"}
+        		File {from ="/library.kernel/Links.kerml"}
+       			File {from ="/library.kernel/Occurrences.kerml"}
+ 		      	File {from ="/library.kernel/Objects.kerml"}
+ 		      	File {from ="/library.kernel/Performances.kerml"}
+				File {from ="/library.kernel/BaseFunctions.kerml"}
+				File {from ="/library.kernel/Transfers.kerml"}
+				File {from ="/library.systems/Items.sysml"}
+				File {from ="/library.systems/Parts.sysml"}
+				File {from ="/library.systems/Ports.sysml"}
+				File {from ="/library.systems/Flows.sysml"}
+				File {from ="/library.systems/Actions.sysml"}
+			}
+		}
+	}
+END_SETUP 
+*/
+package 'Streaming Example' {
+	
+	part def  A {
+		part def B {
+			out ref myOut;
+		}
+		part def C {
+			in ref myIn;
+		}
+		//* XPECT errors ---
+			"Cannot identify flow end (use dot notation)" at "B::myOut"
+			"Cannot identify flow end (use dot notation)" at "C::myIn"
+			"Must be an accessible feature (use dot notation for nesting)" at "B::myOut"
+			"Must be an accessible feature (use dot notation for nesting)" at "C::myIn"
+			"Must have at least two related elements" at "flow XXX from B::myOut to C::myIn;"
+		    --- */
+		flow XXX from B::myOut to C::myIn;	
+	} 
+}
