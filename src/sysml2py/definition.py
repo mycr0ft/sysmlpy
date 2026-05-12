@@ -19,7 +19,7 @@ from sysml2py.grammar.classes import (
 )
 from sysml2py.grammar.classes import Package as PackageGrammar
 
-from sysml2py import Part, Item, Port, Requirement, UseCase, Attribute, Action
+from sysml2py import Part, Item, Port, Requirement, UseCase, Attribute, Action, Case, AnalysisCase, VerificationCase
 from sysml2py.usage import (
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
@@ -77,19 +77,20 @@ class Model:
 
         # Add each sub-element to children.
         member_grammar = []
+        found_package = False
         for member in definition:
             if member["ownedRelatedElement"]["name"] == "DefinitionElement":
                 de = member["ownedRelatedElement"]
                 if de["ownedRelatedElement"]["name"] == "Package":
+                    found_package = True
                     p = Package().load_from_grammar(
                         PackageGrammar(de["ownedRelatedElement"])
                     )
                     self.children.append(p)
                     member_grammar.append(p._get_definition(child="PackageBody"))
-                else:
-                    raise ValueError("Base Model must be encapsulated by a package.")
-            else:
-                raise ValueError("Base Model must be encapsulated by a package.")
+
+        if not found_package:
+            raise ValueError("Base Model must be encapsulated by a package.")
 
         self.grammar = RootNamespace(
             {"name": "PackageBodyElement", "ownedRelationship": member_grammar}
@@ -634,6 +635,36 @@ class Package:
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             c.name = feat_decl.identification.declaredName
                 self.children.append(c)
+            elif inner_class == "CaseDefinition":
+                c = Case(definition=True)
+                c.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'identification') and decl.identification:
+                        c.name = decl.identification.declaredName
+                self.children.append(c)
+            elif inner_class == "AnalysisCaseDefinition":
+                c = AnalysisCase(definition=True)
+                c.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'identification') and decl.identification:
+                        c.name = decl.identification.declaredName
+                self.children.append(c)
+            elif inner_class == "VerificationCaseDefinition":
+                c = VerificationCase(definition=True)
+                c.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'identification') and decl.identification:
+                        c.name = decl.identification.declaredName
+                self.children.append(c)
+            elif inner_class == "AnnotatingElement":
+                self.children.append(_GrammarAnnotationWrapper(inner_element))
+            elif inner_class == "InterfaceDefinition":
+                self.children.append(_GrammarAnnotationWrapper(inner_element))
+            elif inner_class == "InterfaceUsage":
+                self.children.append(_GrammarAnnotationWrapper(inner_element))
             else:
                 print(f"Unknown class: {inner_class}")
                 raise NotImplementedError
@@ -644,3 +675,24 @@ class Package:
         # Force updates to grammar if something has changed.
         self._ensure_body()
         return self.grammar
+
+
+class _GrammarAnnotationWrapper:
+    """Minimal wrapper for grammar-only elements (doc/comment) that need _get_definition."""
+    def __init__(self, grammar_obj):
+        self.grammar = grammar_obj
+        self.name = None
+
+    def _get_definition(self, child=None):
+        if hasattr(self.grammar, 'get_definition'):
+            inner = self.grammar.get_definition()
+        else:
+            inner = {"name": type(self.grammar).__name__}
+        return {
+            "name": "PackageMember",
+            "prefix": None,
+            "ownedRelatedElement": {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": inner
+            }
+        }

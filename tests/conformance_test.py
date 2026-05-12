@@ -36,6 +36,9 @@ SYSMLV2_DIR = pathlib.Path(__file__).parent / "sysmlv2"
 def _collect():
     """Yield pytest.param objects for every .sysml file under SYSMLV2_DIR."""
     for sysml_file in sorted(SYSMLV2_DIR.rglob("*.sysml")):
+        # Skip Jupyter checkpoint files
+        if ".ipynb_checkpoints" in str(sysml_file):
+            continue
         rel = str(sysml_file.relative_to(SYSMLV2_DIR))
         yield pytest.param(sysml_file, id=rel)
 

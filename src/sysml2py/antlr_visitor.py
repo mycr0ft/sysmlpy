@@ -94,6 +94,123 @@ def _get_definition_identification(ctx):
     return name, shortname
 
 
+def _build_identification_dict(ident_ctx):
+    """Build an identification dictionary from an ANTLR IdentificationContext.
+    
+    Returns a dict like {"name": "Identification", "declaredName": ..., "declaredShortName": ...}
+    or None if there is no identification.
+    """
+    if ident_ctx is None:
+        return None
+    
+    name = None
+    shortname = None
+    
+    if hasattr(ident_ctx, 'name'):
+        name_list = ident_ctx.name()
+        if name_list and isinstance(name_list, list):
+            if len(name_list) == 2:
+                shortname = name_list[0].getText()
+                name = name_list[1].getText()
+            elif len(name_list) == 1:
+                name_text = name_list[0].getText()
+                if name_text.startswith("'") or name_text.startswith('"'):
+                    shortname = name_text
+                else:
+                    name = name_text
+    
+    if name is None and shortname is None:
+        return None
+    
+    return {
+        "name": "Identification",
+        "declaredShortName": shortname,
+        "declaredName": name
+    }
+
+
+def _visit_documentation_dict(ctx):
+    """Visit a documentation context and return a Documentation dictionary.
+    
+    Grammar: DOC identification? (LOCALE DOUBLE_STRING)? REGULAR_COMMENT
+    """
+    body = None
+    if ctx.REGULAR_COMMENT():
+        body = ctx.REGULAR_COMMENT().getText()
+    
+    identification = None
+    if ctx.identification():
+        identification = _build_identification_dict(ctx.identification())
+    
+    return {
+        "name": "Documentation",
+        "body": body,
+        "identification": identification,
+        "ownedRelationship": []
+    }
+
+
+def _visit_comment_dict(ctx):
+    """Visit a comment context and return a CommentSysML dictionary.
+    
+    Grammar: (COMMENT identification? ( ABOUT annotation ( COMMA annotation)*)?)? (LOCALE DOUBLE_STRING)? REGULAR_COMMENT
+    """
+    body = None
+    if ctx.REGULAR_COMMENT():
+        body = ctx.REGULAR_COMMENT().getText()
+    
+    identification = None
+    if ctx.identification():
+        identification = _build_identification_dict(ctx.identification())
+    
+    annotations = []
+    if ctx.ABOUT():
+        for i in range(ctx.getChildCount()):
+            ann_ctx = ctx.annotation(i) if i < len(ctx.annotation()) else None
+            # annotation(i) returns None for out-of-range; iterate properly
+        for ann_idx in range(len(ctx.annotation())):
+            ann_ctx = ctx.annotation(ann_idx)
+            if ann_ctx and ann_ctx.qualifiedName():
+                qn_text = ann_ctx.qualifiedName().getText()
+                annotations.append({
+                    "name": "Annotation",
+                    "annotatedElement": {
+                        "name": "QualifiedName",
+                        "names": qn_text.split("::")
+                    }
+                })
+    
+    return {
+        "name": "CommentSysML",
+        "body": body,
+        "identification": identification,
+        "ownedRelationship": annotations
+    }
+
+
+def _visit_annotating_element_dict(annot_elem_ctx):
+    """Visit an annotating element context and return an AnnotatingElement dictionary.
+    
+    Dispatches to documentation or comment based on the context.
+    """
+    if annot_elem_ctx is None:
+        return None
+    
+    inner = None
+    if hasattr(annot_elem_ctx, 'documentation') and annot_elem_ctx.documentation():
+        inner = _visit_documentation_dict(annot_elem_ctx.documentation())
+    elif hasattr(annot_elem_ctx, 'comment') and annot_elem_ctx.comment():
+        inner = _visit_comment_dict(annot_elem_ctx.comment())
+    
+    if inner is None:
+        return None
+    
+    return {
+        "name": "AnnotatingElement",
+        "ownedRelatedElement": inner
+    }
+
+
 def parse_to_dict(source, library=None):
     """Parse SysML source and return a dictionary.
     
@@ -323,6 +440,19 @@ def _visit_definition_element_dict(def_elem_ctx, prefix=None):
     elif hasattr(def_elem_ctx, 'verificationCaseDefinition') and def_elem_ctx.verificationCaseDefinition():
         ctx = def_elem_ctx.verificationCaseDefinition()
         return _make_verification_case_definition_dict(ctx, prefix)
+    elif hasattr(def_elem_ctx, 'annotatingElement') and def_elem_ctx.annotatingElement():
+        ann_ctx = def_elem_ctx.annotatingElement()
+        ann_dict = _visit_annotating_element_dict(ann_ctx)
+        if ann_dict is None:
+            return None
+        return {
+            "name": "PackageMember",
+            "prefix": prefix,
+            "ownedRelatedElement": {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": ann_dict
+            }
+        }
     
     return None
 
@@ -1374,6 +1504,111 @@ def _make_concern_definition_dict(ctx, prefix=None):
     }
 
 
+def _make_case_definition_dict(ctx, prefix=None):
+    """Create a CaseDefinition dictionary.
+    
+    caseDefinition: occurrenceDefinitionPrefix CASE DEF definitionDeclaration caseBody
+    """
+    name, shortname = _get_definition_identification(ctx)
+    if not name and not shortname:
+        name = "Case_" + str(uuid.uuid4())[:8]
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": {
+                "name": "CaseDefinition",
+                "prefix": prefix,
+                "declaration": {
+                    "name": "DefinitionDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "subclassificationpart": None
+                },
+                "body": {
+                    "name": "CaseBody",
+                    "item": [],
+                    "ownedRelationship": None
+                }
+            }
+        }
+    }
+
+
+def _make_analysis_case_definition_dict(ctx, prefix=None):
+    """Create an AnalysisCaseDefinition dictionary.
+    
+    analysisCaseDefinition: occurrenceDefinitionPrefix ANALYSIS DEF definitionDeclaration caseBody
+    """
+    name, shortname = _get_definition_identification(ctx)
+    if not name and not shortname:
+        name = "AnalysisCase_" + str(uuid.uuid4())[:8]
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": {
+                "name": "AnalysisCaseDefinition",
+                "prefix": prefix,
+                "declaration": {
+                    "name": "DefinitionDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "subclassificationpart": None
+                },
+                "body": {
+                    "name": "CaseBody",
+                    "item": [],
+                    "ownedRelationship": None
+                }
+            }
+        }
+    }
+
+
+def _make_verification_case_definition_dict(ctx, prefix=None):
+    """Create a VerificationCaseDefinition dictionary.
+    
+    verificationCaseDefinition: occurrenceDefinitionPrefix VERIFICATION DEF definitionDeclaration caseBody
+    """
+    name, shortname = _get_definition_identification(ctx)
+    if not name and not shortname:
+        name = "VerificationCase_" + str(uuid.uuid4())[:8]
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": {
+                "name": "VerificationCaseDefinition",
+                "prefix": prefix,
+                "declaration": {
+                    "name": "DefinitionDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "subclassificationpart": None
+                },
+                "body": {
+                    "name": "CaseBody",
+                    "item": [],
+                    "ownedRelationship": None
+                }
+            }
+        }
+    }
+
+
 def _make_view_usage_dict(ctx, prefix=None):
     """Create a ViewUsage dictionary.
     
@@ -2155,9 +2390,16 @@ def _visit_nested_non_occurrence_usage(non_occ):
                             "specialization": None
                         }
                     },
-                    "body": {
-                        "name": "UsageBody",
-                        "ownedRelationship": []
+                    "completion": {
+                        "name": "UsageCompletion",
+                        "valuepart": None,
+                        "body": {
+                            "name": "UsageBody",
+                            "body": {
+                                "name": "DefinitionBody",
+                                "ownedRelatedElement": []
+                            }
+                        }
                     }
                 }
             }
@@ -2609,6 +2851,19 @@ def _visit_nested_definition_element(def_elem):
         return _make_attribute_definition_dict(def_elem.attributeDefinition(), None)
     elif hasattr(def_elem, 'portDefinition') and def_elem.portDefinition():
         return _make_port_definition_dict(def_elem.portDefinition(), None)
+    elif hasattr(def_elem, 'annotatingElement') and def_elem.annotatingElement():
+        ann_ctx = def_elem.annotatingElement()
+        ann_dict = _visit_annotating_element_dict(ann_ctx)
+        if ann_dict is None:
+            return None
+        return {
+            "name": "PackageMember",
+            "prefix": None,
+            "ownedRelatedElement": {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": ann_dict
+            }
+        }
     
     return None
 
@@ -2900,9 +3155,16 @@ def _visit_nested_usage(usage_elem_ctx):
                                 "specialization": None
                             }
                         },
-                        "body": {
-                            "name": "UsageBody",
-                            "ownedRelationship": []
+                        "completion": {
+                            "name": "UsageCompletion",
+                            "valuepart": None,
+                            "body": {
+                                "name": "UsageBody",
+                                "body": {
+                                    "name": "DefinitionBody",
+                                    "ownedRelatedElement": []
+                                }
+                            }
                         }
                     }
                 }

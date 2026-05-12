@@ -470,16 +470,18 @@ class RequirementDefinition:
     # 	prefix=OccurrenceDefinitionPrefix RequirementDefKeyword
     #   declaration=DefinitionDeclaration body=RequirementBody
     # ;
-    def __init__(self, definition):
+    def __init__(self, definition=None):
         self.prefix = None
         self.keyword = "requirement def"
         self.declaration = None
-        if valid_definition(definition, self.__class__.__name__):
+        self.body = RequirementBody(None)
+        if definition is not None and valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = OccurrenceDefinitionPrefix(definition["prefix"])
             if definition["declaration"] is not None:
                 self.declaration = DefinitionDeclaration(definition["declaration"])
-            self.body = RequirementBody(definition["body"])
+            if definition.get("body") is not None:
+                self.body = RequirementBody(definition["body"])
 
     def dump(self):
         output = []
@@ -2342,6 +2344,14 @@ class ActionUsage:
         output.append(self.body.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "prefix": None}
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        output["declaration"] = self.declaration.get_definition()
+        output["body"] = self.body.get_definition()
+        return output
+
 
 class ActionUsageDeclaration:
     def __init__(self, definition=None):
@@ -2414,11 +2424,23 @@ class InterfaceDefinition:
             if definition["prefix"] is not None:
                 self.prefix = OccurrenceDefinitionPrefix(definition["prefix"])
 
-            if definition["declaration"] is not None:
-                self.declaration = DefinitionDeclaration(definition["declaration"])
-
-            if definition["body"] is not None:
-                self.body = InterfaceBody(definition["body"])
+            # Handle both flat format (declaration/body at top level)
+            # and nested format (declaration/body inside "definition" key)
+            if "definition" in definition and definition["definition"] is not None:
+                def_dict = definition["definition"]
+                if isinstance(def_dict, dict) and def_dict.get("declaration") is not None:
+                    self.declaration = DefinitionDeclaration(def_dict["declaration"])
+                if isinstance(def_dict, dict) and def_dict.get("body") is not None:
+                    body_dict = def_dict["body"]
+                    if isinstance(body_dict, dict) and body_dict.get("name") in ("DefinitionBody", "InterfaceBody"):
+                        self.body = InterfaceBody({"name": "InterfaceBody", "item": body_dict.get("ownedRelatedElement", [])})
+                    else:
+                        self.body = InterfaceBody(body_dict)
+            else:
+                if definition.get("declaration") is not None:
+                    self.declaration = DefinitionDeclaration(definition["declaration"])
+                if definition.get("body") is not None:
+                    self.body = InterfaceBody(definition["body"])
 
     def dump(self):
         output = []
@@ -2430,6 +2452,17 @@ class InterfaceDefinition:
         if self.body is not None:
             output.append(self.body.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "prefix": None}
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        output["definition"] = {
+            "name": "Definition",
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "body": self.body.get_definition() if self.body else None
+        }
+        return output
 
 
 class InterfaceBody:
@@ -2444,6 +2477,12 @@ class InterfaceBody:
             return ";"
         else:
             return "{\n" + "\n".join([child.dump() for child in self.items]) + "\n}"
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "ownedRelatedElement": []}
+        for item in self.items:
+            output["ownedRelatedElement"].append(item.get_definition())
+        return output
 
 
 class InterfaceBodyItem:
@@ -2468,6 +2507,14 @@ class InterfaceBodyItem:
 
     def dump(self):
         return "\n".join([child.dump() for child in self.children])
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__}
+        items = []
+        for child in self.children:
+            items.append(child.get_definition())
+        output["ownedRelationship"] = items
+        return output
 
 
 class InterfaceOccurrenceUsageMember:
@@ -2798,6 +2845,12 @@ class AnnotatingElement:
     def dump(self):
         return self.children.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.children.get_definition()
+        }
+
 
 class CommentSysML:
     def __init__(self, definition):
@@ -2815,15 +2868,15 @@ class CommentSysML:
     def dump(self):
         if len(self.children) > 0:
             if self.identification is not None:
-                id_str = self.identification.dump()
+                id_part = self.identification.dump() + " "
             else:
-                id_str = ""
+                id_part = ""
             return (
                 "comment "
-                + id_str
+                + id_part
                 + "about "
                 + ", ".join([child.dump() for child in self.children])
-                + self.body
+                + " " + self.body
             )
         else:
             if self.identification is not None:
@@ -2831,7 +2884,20 @@ class CommentSysML:
             else:
                 import re
 
-                return re.sub(r"\n[\s]*", "\n", self.body)
+                return "comment " + re.sub(r"\n[\s]*", "\n", self.body)
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__}
+        output["body"] = self.body
+        if self.identification is not None:
+            output["identification"] = self.identification.get_definition()
+        else:
+            output["identification"] = None
+        owned_rel = []
+        for child in self.children:
+            owned_rel.append(child.get_definition())
+        output["ownedRelationship"] = owned_rel
+        return output
 
 
 class Annotation:
@@ -2841,6 +2907,12 @@ class Annotation:
 
     def dump(self):
         return self.annotation.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "annotatedElement": self.annotation.get_definition()
+        }
 
 
 class Documentation:
@@ -2859,6 +2931,16 @@ class Documentation:
             return " ".join([self.keyword, self.identification.dump(), self.body])
         else:
             return " ".join([self.keyword, self.body])
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__}
+        output["body"] = self.body
+        if self.identification is not None:
+            output["identification"] = self.identification.get_definition()
+        else:
+            output["identification"] = None
+        output["ownedRelationship"] = []
+        return output
 
 
 class AttributeDefinition:
@@ -5050,11 +5132,21 @@ class InterfaceUsage:
             if definition["prefix"] is not None:
                 self.prefix = OccurrenceUsagePrefix(definition["prefix"])
 
-            if definition["declaration"] is not None:
-                self.declaration = InterfaceUsageDeclaration(definition["declaration"])
+            # Handle both flat and nested formats
+            if "usage" in definition and definition["usage"] is not None:
+                usage_dict = definition["usage"]
+                if isinstance(usage_dict, dict) and usage_dict.get("declaration") is not None:
+                    self.declaration = InterfaceUsageDeclaration(usage_dict["declaration"])
+            else:
+                if definition.get("declaration") is not None:
+                    self.declaration = InterfaceUsageDeclaration(definition["declaration"])
 
-            if definition["body"] is not None:
-                self.body = InterfaceBody(definition["body"])
+            if definition.get("body") is not None:
+                body_dict = definition["body"]
+                if isinstance(body_dict, dict) and body_dict.get("name") == "DefinitionBody":
+                    self.body = InterfaceBody({"name": "InterfaceBody", "item": body_dict.get("ownedRelatedElement", [])})
+                else:
+                    self.body = InterfaceBody(body_dict)
 
     def dump(self):
         output = []
@@ -5067,6 +5159,17 @@ class InterfaceUsage:
             output.append(self.body.dump())
 
         return " ".join(output)
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "prefix": None}
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        output["usage"] = {
+            "name": "Usage",
+            "declaration": self.declaration.get_definition() if self.declaration else None
+        }
+        output["body"] = self.body.get_definition() if self.body else None
+        return output
 
 
 class InterfaceUsageDeclaration:
@@ -5855,6 +5958,9 @@ class LiteralString:
     def dump(self):
         return self.element
 
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "value": self.element}
+
 
 class LiteralInteger:
     def __init__(self, definition):
@@ -5876,6 +5982,9 @@ class LiteralReal:
     def dump(self):
         return self.element
 
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "value": self.element}
+
 
 class LiteralInfinity:
     def __init__(self, definition):
@@ -5884,6 +5993,9 @@ class LiteralInfinity:
 
     def dump(self):
         return self.element
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "value": self.element}
 
 
 class FeatureSpecialization:

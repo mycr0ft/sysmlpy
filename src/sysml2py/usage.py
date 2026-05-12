@@ -95,9 +95,15 @@ class Usage:
             )
 
         if len(body) > 0:
-            getattr(self.grammar, subgrammar).completion.body.body = DefinitionBody(
-                {"name": "DefinitionBody", "ownedRelatedElement": body}
-            )
+            target = getattr(self.grammar, subgrammar)
+            if hasattr(target, 'completion'):
+                target.completion.body.body = DefinitionBody(
+                    {"name": "DefinitionBody", "ownedRelatedElement": body}
+                )
+            else:
+                target.body = DefinitionBody(
+                    {"name": "DefinitionBody", "ownedRelatedElement": body}
+                )
         return self
 
     def usage_dump(self, child):
@@ -617,7 +623,7 @@ class Attribute(Usage):
             "ownedRelatedElement": self.grammar.get_definition(),
         }
 
-        if child:
+        if child == "DefinitionBody":
             package = {
                 "name": "NonOccurrenceUsageMember",
                 "prefix": None,
@@ -1237,24 +1243,46 @@ class Action(Usage):
             # Fallback - shouldn't happen now
             grammar_def = {"name": "ActionDefinition", "declaration": {}, "body": {}}
         
-        package = {
-            "name": "DefinitionElement",
-            "ownedRelatedElement": grammar_def,
-        }
+        if self.is_definition:
+            package = {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": grammar_def,
+            }
+        else:
+            package = {
+                "name": "BehaviorUsageElement",
+                "ownedRelationship": grammar_def,
+            }
+            package = {"name": "OccurrenceUsageElement", "ownedRelatedElement": package}
 
         if child == "DefinitionBody":
-            package = {
-                "name": "DefinitionMember",
-                "prefix": None,
-                "ownedRelatedElement": [package],
-            }
+            if self.is_definition:
+                package = {
+                    "name": "DefinitionMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [package],
+                }
+            else:
+                package = {
+                    "name": "OccurrenceUsageMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [package],
+                }
             package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
         elif child == "PackageBody" or child == None:
-            package = {
-                "name": "PackageMember",
-                "ownedRelatedElement": package,
-                "prefix": None,
-            }
+            if self.is_definition:
+                package = {
+                    "name": "PackageMember",
+                    "ownedRelatedElement": package,
+                    "prefix": None,
+                }
+            else:
+                package = {"name": "UsageElement", "ownedRelatedElement": package}
+                package = {
+                    "name": "PackageMember",
+                    "ownedRelatedElement": package,
+                    "prefix": None,
+                }
 
         return package
 
@@ -1439,7 +1467,8 @@ class Requirement(Usage):
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = RequirementDefinition(None)
-            self.grammar.declaration.identification.declaredName = name if name else None
+            if self.grammar.declaration is not None and hasattr(self.grammar.declaration, 'identification'):
+                self.grammar.declaration.identification.declaredName = name if name else None
         else:
             self.grammar = True
         
