@@ -99,8 +99,8 @@ Of the 319 internal grammar classes in `grammar/classes.py`, approximately 130 h
 ### ANTLR4 Migration
 
 - ANTLR4 is now the default parser
-- textX grammar files (`SysML.tx`, `KerML.tx`, `KerMLExpressions.tx`, `SysML_compiled.tx`) and the full `classes.py` hierarchy remain in active use as the intermediate representation
-- Goal is to eventually remove the textX runtime dependency; migration is not complete
+- textX has been removed; only ANTLR4 is used for parsing
+- The `grammar/classes.py` hierarchy remains as the intermediate representation, populated by the ANTLR visitor
 
 ### Other Incomplete Items
 
@@ -151,7 +151,7 @@ Of the 319 internal grammar classes in `grammar/classes.py`, approximately 130 h
 | Use case objectives | `ObjectiveRequirementUsage` |
 | Connector internals | `ConnectorEnd`, `FlowFeature`, `BindingConnector` serialization |
 | Activity nodes | `ActionNode`, `AssignmentNode`, `ControlNode`, `DecisionNode` |
-| Remove textX runtime | Complete ANTLR4 migration and drop `textx` as a dependency |
+| ~~Remove textX runtime~~ | **Done** — textX tooling, grammar files, and CI references removed |
 | Grammar auto-update pipeline | Automated refresh from the OMG KEBNF spec when new releases drop |
 
 ---

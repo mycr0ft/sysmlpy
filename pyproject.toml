@@ -6,10 +6,10 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sysml2py"
-version = "0.5.3"
+version = "0.6.0"
 description = "SysML v2.0 Parser"
 authors = [
-  { name="Jon Fox and Christopher Cox", email="jon.fox@drfox.com" },
+  { name="Jon R. Fox (mycr0ft)", email="jon.fox@drfox.com" },
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -107,9 +107,9 @@ build_command = "pip install poetry && poetry build"
 
 [tool.poetry]
 name = "sysml2py"
-version = "0.5.3"
+version = "0.6.0"
 description = ""
-authors = ["Christopher Cox <chris.cox@westfall.io>"]
+authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
 readme = "README.md"
 packages = [{ include = "sysml2py", from = "src" }]
 
