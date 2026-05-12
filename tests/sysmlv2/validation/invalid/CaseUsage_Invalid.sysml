@@ -1,0 +1,58 @@
+package pkg {
+	case def C1;
+	case def C2;
+	
+	analysis def AC1;
+	analysis def AC2;
+	
+	use case def UC1;
+	use case def UC2;
+	
+	part def A;
+	part def B {
+		// XPECT errors ---> "A case must be typed by one case definition." at "case c1: C1, C2;"
+	 	case c1: C1, C2;
+	 	// XPECT errors ---> "A case must be typed by one case definition." at "case c2: A;"
+		//* XPECT warnings ---
+		   "Duplicate of inherited member name 'self' from Case, Part" at "case c2: A;"
+		   "Duplicate of inherited member name 'start' from Action, Part" at "case c2: A;"
+		   "Duplicate of inherited member name 'done' from Action, Part" at "case c2: A;"
+		--- */
+    	case c2: A;
+    	
+ 	 	// XPECT errors ---> "An analysis case must be typed by one analysis case definition." at "analysis ac1: C1;"
+    	analysis ac1: C1;
+ 	 	// XPECT errors ---> "An analysis case must be typed by one analysis case definition." at "analysis ac2: AC1, AC2;"
+    	analysis ac2: AC1, AC2;
+ 	 	// XPECT errors ---> "An analysis case must be typed by one analysis case definition." at "analysis ac3: B;"
+		//* XPECT warnings ---
+		   "Duplicate of inherited member name 'self' from AnalysisCase, Part" at "analysis ac3: B;"
+		   "Duplicate of inherited member name 'start' from Action, Part" at "analysis ac3: B;"
+		   "Duplicate of inherited member name 'done' from Action, Part" at "analysis ac3: B;"
+		--- */
+    	analysis ac3: B;
+    	
+ 	 	// XPECT errors ---> "A use case must be typed by one use case definition." at "use case uc1: C1;"
+    	use case uc1: C1;
+ 	 	// XPECT errors ---> "A use case must be typed by one use case definition." at "use case uc2: UC1, UC2;"
+    	use case uc2: UC1, UC2;
+ 	 	// XPECT errors ---> "A use case must be typed by one use case definition." at "use case uc3: B;"
+		//* XPECT warnings ---
+		   "Duplicate of inherited member name 'self' from Part, UseCase" at "use case uc3: B;"
+		   "Duplicate of inherited member name 'start' from Part, UseCase" at "use case uc3: B;"
+		   "Duplicate of inherited member name 'done' from Part, UseCase" at "use case uc3: B;"
+		--- */
+    	use case uc3: B;
+   	}
+   	
+   	part b : B;
+   	ref u;
+   	
+   	use case uc4 {
+   		// XPECT errors ---> "Must reference a use case." at "u"
+   		include u;
+   		
+   		// XPECT errors ---> "A use case must be typed by one use case definition." at "include b.uc1;"
+   		include b.uc1;
+   	}
+}

@@ -41,6 +41,40 @@ from sysml2py.grammar.classes import (
     RefPrefix,
     ActionUsage,
     ActionDefinition,
+    RequirementDefinition,
+    UseCaseDefinition,
+    StateUsage,
+    StateDefinition,
+    ConstraintUsage,
+    ConstraintDefinition,
+    ConnectionUsage,
+    ConnectionDefinition,
+    FlowConnectionUsage,
+    FlowConnectionDefinition,
+    CalculationUsage,
+    CalculationDefinition,
+    EnumerationDefinition,
+    AllocationDefinition,
+    AllocationUsage,
+    MetadataDefinition,
+    MetadataUsage,
+    RenderingDefinition,
+    RenderingUsage,
+    IndividualDefinition,
+    IndividualUsageSimple,
+    FlowDefinition,
+    ViewDefinition,
+    ViewUsage,
+    ViewpointDefinition,
+    ViewpointUsage,
+    ConcernDefinition,
+    ConcernUsage,
+    CaseDefinition,
+    CaseUsage,
+    AnalysisCaseDefinition,
+    AnalysisCaseUsage,
+    VerificationCaseDefinition,
+    VerificationCaseUsage,
 )
 
 
@@ -49,7 +83,6 @@ class Usage:
         self.name = str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
-        return self
 
     def _ensure_body(self, subgrammar="usage"):
         # Add children
@@ -62,9 +95,15 @@ class Usage:
             )
 
         if len(body) > 0:
-            getattr(self.grammar, subgrammar).completion.body.body = DefinitionBody(
-                {"name": "DefinitionBody", "ownedRelatedElement": body}
-            )
+            target = getattr(self.grammar, subgrammar)
+            if hasattr(target, 'completion'):
+                target.completion.body.body = DefinitionBody(
+                    {"name": "DefinitionBody", "ownedRelatedElement": body}
+                )
+            else:
+                target.body = DefinitionBody(
+                    {"name": "DefinitionBody", "ownedRelatedElement": body}
+                )
         return self
 
     def usage_dump(self, child):
@@ -128,10 +167,14 @@ class Usage:
         return package
 
     def _get_definition(self, child=None):
-        if "usage" in self.grammar.__dict__:
-            package = self.usage_dump(child)
-        else:
+        # Determine if this is a usage or definition based on grammar class name
+        grammar_cls_name = type(self.grammar).__name__
+        is_def = grammar_cls_name.endswith('Definition')
+        
+        if is_def:
             package = self.definition_dump(child)
+        else:
+            package = self.usage_dump(child)
 
         if child is None:
             package = {
@@ -208,10 +251,10 @@ class Usage:
         elif hasattr(self.grammar, "definition"):
             path = self.grammar.definition.declaration
         else:
-            if hasattr(self.grammar.declaration, "declaration"):
-                path = self.grammar.declaration.declaration
-            else:
-                path = self.grammar.declaration
+            # Navigate recursively through .declaration chain to find identification
+            path = self.grammar.declaration
+            while hasattr(path, "declaration") and not hasattr(path, "identification"):
+                path = path.declaration
 
         if path.identification is None:
             path.identification = Identification()
@@ -427,45 +470,114 @@ class Usage:
         # Check if this is a definition or usage
         # Some definition types use 'definition' (PartDefinition, AttributeDefinition)
         # Others use 'declaration' directly (RequirementDefinition, UseCaseDefinition)
+        # PartDefinition: has .definition which is a Definition object
+        # Usage: has .declaration directly
+        
+        # First check if grammar has 'definition' (for definitions like PartDefinition)
         defn = getattr(grammar, 'definition', None)
         if defn:
             # This type uses 'definition' (PartDefinition, etc.)
+            # Get name from definition.declaration.identification.declaredName
             u_name = defn.declaration.identification.declaredName
-            a_children = defn.body.children
-            if len(a_children) > 0:
-                children = a_children[0]
-        else:
-            # This type uses 'declaration' directly (RequirementDefinition, UseCaseDefinition)
-            decl = getattr(grammar, 'declaration', None)
-            if decl:
-                u_name = decl.identification.declaredName
+            
+            # Get body from definition.body
+            body = defn.body if hasattr(defn, 'body') else None
+            
+            # body is DefinitionBody with .children
+            if body and hasattr(body, 'children') and body.children:
+                children_list = []
+                for body_item in body.children:
+                    if hasattr(body_item, 'children') and body_item.children:
+                        member = body_item.children[0]
+                        if hasattr(member, 'children') and member.children:
+                            inner = member.children[0]
+                            # Handle DefinitionElement wrapping
+                            if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
+                                inner = inner.children[0]
+                            if hasattr(inner, 'children'):
+                                children_list.append(inner)
+                            else:
+                                children_list.append(inner)
+                    elif hasattr(body_item, 'ownedRelatedElement'):
+                        children_list.append(body_item)
+                children = children_list
+            else:
+                children = []
+        elif hasattr(grammar, 'usage'):
+            # This is a usage (like PartUsage, ItemUsage)
+            # Get name from grammar.usage.declaration.declaration.identification.declaredName
+            usage = grammar.usage
+            if hasattr(usage, 'declaration') and hasattr(usage.declaration, 'declaration'):
+                decl = usage.declaration.declaration
+                if hasattr(decl, 'identification') and decl.identification:
+                    u_name = decl.identification.declaredName
+                else:
+                    u_name = None
             else:
                 u_name = None
+            children = []
+        elif hasattr(grammar, 'declaration'):
+            # This type uses 'declaration' directly (RequirementDefinition, UseCaseDefinition, some usages)
+            decl = grammar.declaration
+            u_name = None
+            
+            # Check nested declaration for Usage (UsageDeclaration -> FeatureDeclaration)
+            nested_decl = getattr(decl, 'declaration', None)
+            if nested_decl and hasattr(nested_decl, 'identification') and nested_decl.identification:
+                u_name = nested_decl.identification.declaredName
+            # Check direct identification (for RequirementDefinition, UseCaseDefinition)
+            elif hasattr(decl, 'identification') and decl.identification:
+                u_name = decl.identification.declaredName
+            children = []
+        else:
+            u_name = None
+            children = []
 
         if u_name is not None:
             self.name = u_name
 
         for child in children:
-            sc = child.children
-            if isinstance(sc, list):
-                if len(sc) == 1:
-                    sc = sc[0]
-
-            if sc.__class__.__name__ == "AttributeUsage":
-                self.children.append(Attribute().load_from_grammar(sc))
-            elif sc.__class__.__name__ == "ItemDefinition":
-                self.children.append(Item().load_from_grammar(sc))
-            elif sc.__class__.__name__ == "StructureUsageElement":
-                if sc.children.__class__.__name__ == "PartUsage":
-                    self.children.append(Part().load_from_grammar(sc.children))
-                elif sc.children.__class__.__name__ == "ItemUsage":
-                    self.children.append(Item().load_from_grammar(sc.children))
-                else:
-                    print(child.children.children.__class__.__name__)
-                    raise NotImplementedError
+            # Handle different child types
+            if hasattr(child, 'definition') and hasattr(child, 'body'):
+                # It's a Definition (PartDefinition, ItemDefinition, etc.)
+                sc = child
+            elif hasattr(child, 'children'):
+                # It's a StructureUsageElement or similar
+                sc = child.children if hasattr(child, 'children') else child
             else:
-                print(sc.__class__.__name__)
-                raise NotImplementedError
+                continue
+                
+            # Process the child
+            class_name = sc.__class__.__name__ if not hasattr(sc, '__class__') else sc.__class__.__name__
+            
+            if class_name == "PartDefinition":
+                self.children.append(Part(definition=True).load_from_grammar(sc))
+            elif class_name == "ItemDefinition":
+                self.children.append(Item(definition=True).load_from_grammar(sc))
+            elif class_name == "PartUsage":
+                self.children.append(Part().load_from_grammar(sc))
+            elif class_name == "ItemUsage":
+                self.children.append(Item().load_from_grammar(sc))
+            elif class_name == "AttributeUsage":
+                self.children.append(Attribute().load_from_grammar(sc))
+            elif class_name == "AttributeDefinition":
+                self.children.append(Attribute(definition=True).load_from_grammar(sc))
+            elif class_name == "StructureUsageElement":
+                if hasattr(sc, 'children'):
+                    inner = sc.children
+                    if inner.__class__.__name__ == "PartUsage":
+                        self.children.append(Part().load_from_grammar(inner))
+                    elif inner.__class__.__name__ == "ItemUsage":
+                        self.children.append(Item().load_from_grammar(inner))
+            elif class_name == "Definition":
+                # Unwrap Definition to get the inner type
+                if hasattr(sc, 'body') and hasattr(sc.body, 'children') and sc.body.children:
+                    for body_item in sc.body.children:
+                        if hasattr(body_item, 'children') and body_item.children:
+                            inner = body_item.children[0]
+                            if hasattr(inner, 'children'):
+                                inner = inner.children
+                            self.children.append(Part(definition=True).load_from_grammar(inner) if inner.__class__.__name__ == 'PartDefinition' else Item(definition=True).load_from_grammar(inner))
 
         return self
 
@@ -511,7 +623,7 @@ class Attribute(Usage):
             "ownedRelatedElement": self.grammar.get_definition(),
         }
 
-        if child:
+        if child == "DefinitionBody":
             package = {
                 "name": "NonOccurrenceUsageMember",
                 "prefix": None,
@@ -996,14 +1108,20 @@ class Interface(Usage):
 
 
 class Action(Usage):
-    def __init__(self, definition=False, name=None, shortname=None):
-        # Initialize grammar properly (like Part does)
-        if definition:
-            self.grammar = ActionDefinition()
-            self.grammar.declaration.identification.declaredName = name if name else None
+    def __init__(self, definition=False, name=None, shortname=None, grammar=None):
+        # If grammar is provided (from load_from_grammar), use it
+        if grammar is not None:
+            self.grammar = grammar
         else:
-            self.grammar = ActionUsage()
-            self.grammar.declaration.identification.declaredName = name if name else None
+            # Initialize grammar properly (like Part does)
+            if definition:
+                self.grammar = ActionDefinition()
+                self.grammar.declaration.identification.declaredName = name if name else None
+            else:
+                # Create ActionUsage with an empty dict to handle default initialization
+                self.grammar = ActionUsage({} if name else None)
+                if self.grammar.declaration and hasattr(self.grammar.declaration, 'identification'):
+                    self.grammar.declaration.identification.declaredName = name if name else None
         
         self.is_definition = definition
         self.action_shortname = shortname
@@ -1096,12 +1214,17 @@ class Action(Usage):
             self.name = decl.identification.declaredName
             self.is_definition = True
             self.keyword = "action def"
-        elif getattr(grammar, 'usage', None):
-            # Check for 'usage' (for usages like ActionUsage)
-            usage = getattr(grammar, 'usage', None)
-            if usage and hasattr(usage, 'declaration'):
-                decl = getattr(usage.declaration, 'declaration', None)
-                if decl and hasattr(decl, 'identification') and decl.identification:
+        elif hasattr(grammar, 'declaration') and grammar.declaration:
+            # Handle nested declaration structure (ActionUsageDeclaration -> UsageDeclaration -> FeatureDeclaration)
+            decl = getattr(grammar.declaration, 'declaration', None)
+            if decl:
+                # Try nested: declaration.declaration.declaration.identification (for ANTLR)
+                nested_decl = getattr(decl, 'declaration', None)
+                if nested_decl and hasattr(nested_decl, 'identification') and nested_decl.identification:
+                    self.name = nested_decl.identification.declaredName
+                    self.is_definition = False
+                    self.keyword = "action"
+                elif hasattr(decl, 'identification') and decl.identification:
                     self.name = decl.identification.declaredName
                     self.is_definition = False
                     self.keyword = "action"
@@ -1120,24 +1243,46 @@ class Action(Usage):
             # Fallback - shouldn't happen now
             grammar_def = {"name": "ActionDefinition", "declaration": {}, "body": {}}
         
-        package = {
-            "name": "DefinitionElement",
-            "ownedRelatedElement": grammar_def,
-        }
+        if self.is_definition:
+            package = {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": grammar_def,
+            }
+        else:
+            package = {
+                "name": "BehaviorUsageElement",
+                "ownedRelationship": grammar_def,
+            }
+            package = {"name": "OccurrenceUsageElement", "ownedRelatedElement": package}
 
         if child == "DefinitionBody":
-            package = {
-                "name": "DefinitionMember",
-                "prefix": None,
-                "ownedRelatedElement": [package],
-            }
+            if self.is_definition:
+                package = {
+                    "name": "DefinitionMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [package],
+                }
+            else:
+                package = {
+                    "name": "OccurrenceUsageMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [package],
+                }
             package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
         elif child == "PackageBody" or child == None:
-            package = {
-                "name": "PackageMember",
-                "ownedRelatedElement": package,
-                "prefix": None,
-            }
+            if self.is_definition:
+                package = {
+                    "name": "PackageMember",
+                    "ownedRelatedElement": package,
+                    "prefix": None,
+                }
+            else:
+                package = {"name": "UsageElement", "ownedRelatedElement": package}
+                package = {
+                    "name": "PackageMember",
+                    "ownedRelatedElement": package,
+                    "prefix": None,
+                }
 
         return package
 
@@ -1189,11 +1334,16 @@ class Action(Usage):
 
 class UseCase(Usage):
     def __init__(self, definition=False, name=None, shortname=None):
+        if definition:
+            self.grammar = UseCaseDefinition()
+            self.grammar.declaration.identification.declaredName = name if name else None
+        else:
+            self.grammar = True
+        
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
-        self.grammar = True
         self.subject = None  # (name, type_name)
         self.actors = []  # list of (name, type_name)
         self.includes = []  # list of use case names
@@ -1202,6 +1352,37 @@ class UseCase(Usage):
             self.keyword = "use case def"
         else:
             self.keyword = "use case"
+
+    def _get_definition(self, child=None):
+        # Sync name to grammar
+        if hasattr(self.grammar, 'declaration') and hasattr(self.grammar.declaration, 'identification'):
+            self.grammar.declaration.identification.declaredName = self.name
+        
+        if hasattr(self.grammar, 'get_definition'):
+            grammar_def = self.grammar.get_definition()
+        else:
+            grammar_def = {"name": "UseCaseDefinition", "declaration": {}, "body": {}}
+        
+        package = {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": grammar_def,
+        }
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "DefinitionMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        elif child == "PackageBody" or child == None:
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+
+        return package
 
     def set_subject(self, name, type_name=None):
         """Set the subject of the use case.
@@ -1284,23 +1465,60 @@ class UseCase(Usage):
 
 class Requirement(Usage):
     def __init__(self, definition=False, name=None, shortname=None):
+        if definition:
+            self.grammar = RequirementDefinition(None)
+            if self.grammar.declaration is not None and hasattr(self.grammar.declaration, 'identification'):
+                self.grammar.declaration.identification.declaredName = name if name else None
+        else:
+            self.grammar = True
+        
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
-        self.grammar = True
         self.req_shortname = shortname
-        self.subject = None  # (name, type_name)
-        self.actors = []  # list of (name, type_name)
-        self.doc = None  # doc string
-        self.attributes = []  # list of (name, type_name)
-        self.constraints = []  # list of constraint strings
-        self.assume_constraints = []  # list of assume constraint strings
+        self.subject = None
+        self.actors = []
+        self.doc = None
+        self.attributes = []
+        self.constraints = []
+        self.assume_constraints = []
 
         if definition:
             self.keyword = "requirement def"
         else:
             self.keyword = "requirement"
+
+    def _get_definition(self, child=None):
+        # Sync name to grammar
+        if hasattr(self.grammar, 'declaration') and hasattr(self.grammar.declaration, 'identification'):
+            self.grammar.declaration.identification.declaredName = self.name
+        
+        if hasattr(self.grammar, 'get_definition'):
+            grammar_def = self.grammar.get_definition()
+        else:
+            grammar_def = {"name": "RequirementDefinition", "declaration": {}, "body": {}}
+        
+        package = {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": grammar_def,
+        }
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "DefinitionMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        elif child == "PackageBody" or child == None:
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+
+        return package
 
     def set_subject(self, name, type_name=None):
         """Set the subject of the requirement.
@@ -1491,6 +1709,518 @@ class Message(Usage):
             parts.append(f"to {self.to_port}")
 
         return " ".join(parts) + ";"
+
+
+class _BehaviorUsage(Usage):
+    """Base class for behavior-style usages (state, action, etc.).
+    
+    These get wrapped in BehaviorUsageElement rather than StructureUsageElement.
+    """
+    # Subclasses should set _is_definition_grammar based on grammar class
+    _is_definition_grammar = False
+    
+    def _get_definition(self, child=None):
+        # Determine if this is a definition or usage based on grammar class name
+        grammar_cls_name = type(self.grammar).__name__
+        is_def = grammar_cls_name.endswith('Definition')
+        
+        if is_def:
+            package = self.behavior_definition_dump(child)
+        else:
+            package = self.usage_dump(child)
+
+        if child is None:
+            package = {
+                "name": "PackageBodyElement",
+                "ownedRelationship": [package],
+                "prefix": None,
+            }
+        return package
+    
+    def usage_dump(self, child):
+        # This is a behavior usage, not a structure usage.
+        package = {
+            "name": "BehaviorUsageElement",
+            "ownedRelationship": self.grammar.get_definition(),
+        }
+        package = {"name": "OccurrenceUsageElement", "ownedRelatedElement": package}
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "OccurrenceUsageMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        else:
+            package = {"name": "UsageElement", "ownedRelatedElement": package}
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+        return package
+
+    def behavior_definition_dump(self, child):
+        package = {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": self.grammar.get_definition(),
+        }
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "DefinitionMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        else:
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+        return package
+
+
+class _NonOccurrenceUsage(Usage):
+    """Base class for non-occurrence usages (attribute, calculation, constraint, etc.).
+    
+    These get wrapped in NonOccurrenceUsageElement rather than StructureUsageElement.
+    """
+    def _get_definition(self, child=None):
+        grammar_cls_name = type(self.grammar).__name__
+        is_def = grammar_cls_name.endswith('Definition')
+        
+        if is_def:
+            package = self.nonocc_definition_dump(child)
+        else:
+            package = self.usage_dump(child)
+
+        if child is None:
+            package = {
+                "name": "PackageBodyElement",
+                "ownedRelationship": [package],
+                "prefix": None,
+            }
+        return package
+    
+    def usage_dump(self, child):
+        # Add packaging for non-occurrence usage
+        package = {
+            "name": "NonOccurrenceUsageElement",
+            "ownedRelatedElement": self.grammar.get_definition(),
+        }
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "NonOccurrenceUsageMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        else:
+            package = {"name": "UsageElement", "ownedRelatedElement": package}
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+        return package
+
+    def nonocc_definition_dump(self, child):
+        package = {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": self.grammar.get_definition(),
+        }
+
+        if child == "DefinitionBody":
+            package = {
+                "name": "DefinitionMember",
+                "prefix": None,
+                "ownedRelatedElement": [package],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        else:
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+        return package
+
+
+class State(_BehaviorUsage):
+    """SysML v2 State Machine state usage/definition.
+    
+    Usage:
+        State()                              # state ;
+        State(name='Idle')                   # state Idle;
+        State(definition=True, name='Mode')  # state def Mode;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = StateDefinition()
+        else:
+            self.grammar = StateUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Constraint(_NonOccurrenceUsage):
+    """SysML v2 Constraint usage/definition.
+    
+    Usage:
+        Constraint()                              # constraint ;
+        Constraint(name='PowerLimit')             # constraint PowerLimit;
+        Constraint(definition=True, name='Limit') # constraint def Limit;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = ConstraintDefinition()
+        else:
+            self.grammar = ConstraintUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Connection(Usage):
+    """SysML v2 Connection usage/definition.
+    
+    Usage:
+        Connection()                                  # connection ;
+        Connection(name='wire')                       # connection wire;
+        Connection(definition=True, name='DataLink')  # connection def DataLink;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = ConnectionDefinition()
+        else:
+            self.grammar = ConnectionUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Flow(Usage):
+    """SysML v2 Flow connection usage/definition.
+    
+    Usage:
+        Flow()                                       # flow ;
+        Flow(name='fuelFlow')                        # flow fuelFlow;
+        Flow(definition=True, name='WaterFlow')      # flow def WaterFlow;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = FlowConnectionDefinition()
+        else:
+            self.grammar = FlowConnectionUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Calculation(_NonOccurrenceUsage):
+    """SysML v2 Calculation usage/definition.
+    
+    Usage:
+        Calculation()                                   # calc ;
+        Calculation(name='computeArea')                 # calc computeArea;
+        Calculation(definition=True, name='Distance')   # calc def Distance;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = CalculationDefinition()
+        else:
+            self.grammar = CalculationUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Enumeration(Usage):
+    """SysML v2 Enumeration definition.
+    
+    Note: SysML v2 only has EnumerationDefinition, no EnumerationUsage.
+    
+    Usage:
+        Enumeration(name='Color')  # enum def Color;
+    """
+    def __init__(self, definition=True, name=None, shortname=None):
+        Usage.__init__(self)
+        # EnumerationDefinition is the only form
+        self.grammar = EnumerationDefinition()
+        
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Allocation(Usage):
+    """SysML v2 Allocation usage/definition.
+    
+    Allocation represents mapping from one model element to another.
+    
+    Usage:
+        Allocation()                                  # allocation ;
+        Allocation(name='alloc1')                     # allocation alloc1;
+        Allocation(definition=True, name='AllocSpec') # allocation def AllocSpec;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = AllocationDefinition()
+        else:
+            self.grammar = AllocationUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Metadata(_NonOccurrenceUsage):
+    """SysML v2 Metadata usage/definition.
+    
+    Metadata attaches additional information to model elements.
+    
+    Usage:
+        Metadata()                                       # metadata ;
+        Metadata(name='tag1')                            # metadata tag1;
+        Metadata(definition=True, name='AuthorMeta')     # metadata def AuthorMeta;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = MetadataDefinition()
+        else:
+            self.grammar = MetadataUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Rendering(Usage):
+    """SysML v2 Rendering usage/definition.
+    
+    Rendering specifies how views should be rendered.
+    
+    Usage:
+        Rendering()                                    # rendering ;
+        Rendering(name='myRender')                     # rendering myRender;
+        Rendering(definition=True, name='DefRender')   # rendering def DefRender;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = RenderingDefinition()
+        else:
+            self.grammar = RenderingUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Individual(Usage):
+    """SysML v2 Individual usage/definition.
+    
+    Individual represents a specific instance or occurrence.
+    
+    Usage:
+        Individual()                                     # individual ;
+        Individual(name='instance1')                     # individual instance1;
+        Individual(definition=True, name='DefIndiv')     # individual def DefIndiv;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = IndividualDefinition()
+        else:
+            self.grammar = IndividualUsageSimple()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class FlowDef(Usage):
+    """SysML v2 FlowDefinition alternate form.
+    
+    Note: This is the simpler 'flow def' form (distinct from FlowConnectionDefinition).
+    Usage already provides Flow class for flowConnectionUsage/Definition.
+    
+    Usage:
+        FlowDef(name='DataStream')   # flow def DataStream;
+    """
+    def __init__(self, name=None, shortname=None):
+        Usage.__init__(self)
+        self.grammar = FlowDefinition()
+        
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class View(Usage):
+    """SysML v2 View usage/definition.
+    
+    Views define how models are presented and filtered.
+    
+    Usage:
+        View()                                  # view ;
+        View(name='systemOverview')             # view systemOverview;
+        View(definition=True, name='SysView')   # view def SysView;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = ViewDefinition()
+        else:
+            self.grammar = ViewUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Viewpoint(_BehaviorUsage):
+    """SysML v2 Viewpoint usage/definition.
+    
+    Viewpoints specify viewing perspectives with stakeholder concerns.
+    
+    Usage:
+        Viewpoint()                                   # viewpoint ;
+        Viewpoint(name='stakeholderVP')               # viewpoint stakeholderVP;
+        Viewpoint(definition=True, name='VPDef')      # viewpoint def VPDef;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = ViewpointDefinition()
+        else:
+            self.grammar = ViewpointUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Concern(_BehaviorUsage):
+    """SysML v2 Concern usage/definition.
+    
+    Concerns represent stakeholder concerns for viewpoints.
+    
+    Usage:
+        Concern()                                  # concern ;
+        Concern(name='security')                   # concern security;
+        Concern(definition=True, name='Safety')    # concern def Safety;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = ConcernDefinition()
+        else:
+            self.grammar = ConcernUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class Case(_BehaviorUsage):
+    """SysML v2 Case usage/definition.
+    
+    A case is a broad classifier for analysis, verification, and use cases.
+    
+    Usage:
+        Case()                                  # case ;
+        Case(name='scenario1')                  # case scenario1;
+        Case(definition=True, name='CaseSpec')  # case def CaseSpec;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = CaseDefinition()
+        else:
+            self.grammar = CaseUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class AnalysisCase(_BehaviorUsage):
+    """SysML v2 AnalysisCase usage/definition.
+    
+    Analysis cases represent analytical scenarios or studies.
+    
+    Usage:
+        AnalysisCase()                                  # analysis ;
+        AnalysisCase(name='thermal1')                   # analysis thermal1;
+        AnalysisCase(definition=True, name='Thermal')   # analysis def Thermal;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = AnalysisCaseDefinition()
+        else:
+            self.grammar = AnalysisCaseUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
+
+
+class VerificationCase(_BehaviorUsage):
+    """SysML v2 VerificationCase usage/definition.
+    
+    Verification cases represent verification scenarios or tests.
+    
+    Usage:
+        VerificationCase()                                    # verification ;
+        VerificationCase(name='test1')                        # verification test1;
+        VerificationCase(definition=True, name='Verify1')     # verification case def Verify1;
+    """
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = VerificationCaseDefinition()
+        else:
+            self.grammar = VerificationCaseUsage()
+
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
 
 
 class Reference(Usage):

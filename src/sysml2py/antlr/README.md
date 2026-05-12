@@ -35,14 +35,14 @@ src/sysml2py/
 ### Using the ANTLR4 Parser
 
 ```python
-from sysml2py import load_antlr, loads_antlr, load_grammar_antlr
+from sysml2py import load_antlr, loads, load_grammar
 
 # Load from file
 with open('model.sysml', 'r') as f:
     model = load_antlr(f)
 
 # Load from string
-model = loads_antlr('''
+model = loads('''
 package VehicleModel {
     part def Vehicle {
         attribute mass : Real;
@@ -51,7 +51,7 @@ package VehicleModel {
 ''')
 
 # Get raw grammar dictionary
-grammar_dict = load_grammar_antlr('package Test;')
+grammar_dict = load_grammar('package Test;')
 
 # Print the model
 print(model.dump())
@@ -62,29 +62,25 @@ print(model.dump())
 The ANTLR4 parser supports round-trip parsing:
 
 ```python
-from sysml2py import loads_antlr
+from sysml2py import loads
 
 # Parse SysML
-model = loads_antlr('package Test { part def Vehicle; }')
+model = loads('package Test { part def Vehicle; }')
 
 # Dump to string
 output = model.dump()
 
 # Parse again - should produce identical output
-model2 = loads_antlr(output)
+model2 = loads(output)
 assert output == model2.dump()
 ```
 
 ### Choosing the Parser
 
-The default parser is still textX for backwards compatibility. To use ANTLR4:
+All public API functions now use the ANTLR4 parser:
 
 ```python
-from sysml2py import loads_antlr  # ANTLR4-based
-
-# vs
-
-from sysml2py import loads  # textX-based (default)
+from sysml2py import loads  # ANTLR4-based (default)
 ```
 
 ## Grammar Sources

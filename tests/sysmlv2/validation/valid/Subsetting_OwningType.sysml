@@ -1,0 +1,36 @@
+// XPECT noErrors ---> ""
+package 'Subsetting Example' {
+	
+	part def Vehicle {
+		part parts : VehiclePart[*];
+		//checking A conforms to B (same)		
+		part eng : Engine subsets parts;
+		part trans : Transmission subsets parts;
+		part wheels : Wheel[4] :> parts;
+	}
+	
+	abstract part def VehiclePart;
+	part def Engine :> VehiclePart;
+	part def Transmission :> VehiclePart;
+	part def Wheel :> VehiclePart;
+	
+	part def SmallVehicle :> Vehicle {
+		//checking A conforms to B (direct specialization)
+		part smallEng : SmallEngine subsets eng;
+	}
+	part def SmallEngine :> Engine {}
+	
+	part def SmallSmallVehicle :> SmallVehicle {
+		//checking A conforms to B (indirect specialization)
+		part smallsmallEng : SmallSmallEngine subsets eng;
+	}
+	part def SmallSmallEngine :> Engine {}
+	
+	
+}
+
+//part eng: Engine subsets parts 
+//	subsettingFeature = eng , its owningType = Vehicle
+// 	subsettedFeature = parts, its owningType = Vechicle
+//part smallEng : SmallEngine subsets eng;
+//	The owningType of smallEng (subsettingFeature) shall conform to the owningType of eng (subsettedFeature)

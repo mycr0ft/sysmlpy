@@ -39,13 +39,15 @@ class ANTLRErrorListener(ErrorListener):
         pass
 
 
-def parse(source):
+def parse(source, library=None):
     """Parse SysML v2.0 source and return a parse tree.
     
     Parameters
     ----------
     source : str or file-like
         Either a string containing SysML v2.0 code, or a file object.
+    library : str or Path, optional
+        Path to SysML v2 library files for resolving imports.
     
     Returns
     -------
@@ -62,6 +64,11 @@ def parse(source):
         content = source.read()
     else:
         content = source
+    
+    # TODO: If library path is provided, load library files and prepend to content
+    # For now, just parse the source directly
+    # Library loading would involve reading .sysml files from the library path
+    # and making them available for import resolution
     
     # Create input stream
     input_stream = InputStream(content)
@@ -82,8 +89,8 @@ def parse(source):
     parser.removeErrorListeners()
     parser.addErrorListener(error_listener)
     
-    # Parse the source
-    tree = parser.package()
+    # Parse the source - use rootNamespace to support multiple top-level packages
+    tree = parser.rootNamespace()
     
     # Check for errors
     if error_listener.errors:

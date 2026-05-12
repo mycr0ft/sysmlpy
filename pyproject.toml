@@ -6,10 +6,10 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sysml2py"
-version = "0.5.3"
+version = "0.6.0"
 description = "SysML v2.0 Parser"
 authors = [
-  { name="Christopher Cox", email="chris.cox@westfall.io" },
+  { name="Jon R. Fox (mycr0ft)", email="jon.fox@drfox.com" },
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -29,10 +29,18 @@ where = ["src/sysml2py", "src"]
 
 [tool.setuptools.package-data]
 grammar = ["*.tx"]
+"sysml2py" = [
+    "library/**/*.sysml",
+    "library/**/*.kerml",
+    "library/LICENSE",
+]
 
 [tool.pytest.ini_options]
 pythonpath = [
   "src"
+]
+markers = [
+    "conformance: SysML v2 Pilot Implementation 2026-03 parse conformance tests (deselect with '-m not conformance')",
 ]
 
 [tool.semantic_release]
@@ -99,15 +107,21 @@ build_command = "pip install poetry && poetry build"
 
 [tool.poetry]
 name = "sysml2py"
-version = "0.5.3"
+version = "0.6.0"
 description = ""
-authors = ["Christopher Cox <chris.cox@westfall.io>"]
+authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
 readme = "README.md"
 packages = [{ include = "sysml2py", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-textx = ">=4.0"
 pint = ">=0.24"
 pyyaml = ">=6.0"
 antlr4-python3-runtime = ">=4.13"
+
+[tool.poetry.scripts]
+sysml2py = "sysml2py.__main__:main"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0,<9.0"
+

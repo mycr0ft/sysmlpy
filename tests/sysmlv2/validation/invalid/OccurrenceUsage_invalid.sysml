@@ -1,0 +1,28 @@
+package pkg {
+	public import ScalarValues::*;
+	occurrence def A {
+		// XPECT errors --> "An occurrence, item or part must be typed by occurrence definitions." at "occurrence areal: Real;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from DataValue, Occurrence" at "occurrence areal: Real;"
+		occurrence areal: Real;
+		// XPECT errors --> "An occurrence, item or part must be typed by occurrence definitions." at "occurrence avalue :> aValue;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from DataValue, Occurrence" at "occurrence avalue :> aValue;"
+		occurrence avalue:> aValue;
+		// XPECT errors --> "An occurrence, item or part must be typed by occurrence definitions." at "occurrence twoTypes: PartDef, Real;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from DataValue, Part" at "occurrence twoTypes: PartDef, Real;"
+		occurrence twoTypes: PartDef, Real;
+	}
+	attribute aValue: Real;
+	part def PartDef;
+	part aPart: PartDef;	
+	ref a : A;
+
+	// XPECT errors --> "Must reference an occurrence." at "a"
+	event a;
+
+	// XPECT errors --> "An occurrence, item or part must be typed by occurrence definitions." at "event a.areal;"
+	//* XPECT warnings ---
+	   "Duplicate of inherited member name 'self' from DataValue, Occurrence" at "event a.areal;"
+	   "Duplicate of inherited member name 'self' from DataValue, Occurrence" at "a.areal"
+	--- */
+	event a.areal;	
+}

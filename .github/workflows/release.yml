@@ -41,7 +41,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        python -m pip install coveralls pytest pyyaml textx
+        python -m pip install coveralls pytest pyyaml
         python -m coverage run --source=src -m pytest tests/ && coverage report
         coveralls
 

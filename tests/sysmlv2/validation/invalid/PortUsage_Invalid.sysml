@@ -1,0 +1,43 @@
+package 'Port Example' {
+	attribute def Vt;
+	part def B;
+	port def pd1 {
+		port p1 : pd1;
+		ref b1 : B;
+		// XPECT errors --> "Owned usages of a port definition (other than ports) must be referential." at "part b2 : B;"
+		part b2 : B;		
+	}
+	port def pd2;
+	part def FA {
+		// XPECT errors --> "A port must be typed by port definitions." at "port p1 : B;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from Part, Port" at "port p1 : B;"
+		port p1 : B;
+		// XPECT errors --> "A port must be typed by port definitions." at "port p2 : Vt;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from DataValue, Port" at "port p2 : Vt;"
+		port p2 : Vt;
+
+		port two_port_def_types: pd1, pd2 {
+			port p2 : pd2;
+			ref b3 : B;		
+			// XPECT errors --> "Nested usages in a port usage (other than ports) must be referential." at "part b4 : B;"
+			part b4 : B;		
+		}
+	}
+	part f: FA {
+		// XPECT errors --> "A port must be typed by port definitions." at "port pp redefines p1;"
+		// XPECT warnings --> "Duplicate of inherited member name 'self' from Part, Port" at "port pp redefines p1;"
+		port pp redefines p1;
+	}
+	port def OutPort {
+		out ref anout;
+		in ref anin;
+	}
+	part p {
+		port aport : OutPort {
+			// XPECT errors ---> "Redefining feature must have a compatible direction" at "anout"
+			in ref redefines anout;
+			// XPECT errors ---> "Redefining feature must have a compatible direction" at "anin"
+			out ref redefines anin;
+		}	
+	}
+}

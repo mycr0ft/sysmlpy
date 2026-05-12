@@ -1,6 +1,43 @@
 # CHANGELOG
 
+## v0.6.0 (2026-05-12)
 
+### :rocket: Major Changes
+
+* **ANTLR4 as default parser** — textX runtime removed; OMG grammar v2026.03.0 is now the only parser
+* **Conformance suite** — 123 OMG XPect tests: **120 passing (98%)**, up from 50 (41%)
+* **New public API classes** — `Requirement`, `UseCase`, `Interface`, `Message`, `Reference`
+* **New grammar serialization** — `get_definition()` added to `InterfaceDefinition`, `InterfaceBody`, `InterfaceBodyItem`, `InterfaceUsage`, `AnnotatingElement`, `CommentSysML`, `Annotation`, `Documentation`, `ActionUsage`, `LiteralString`, `LiteralReal`, `LiteralInfinity`
+
+### :sparkles: Features
+
+* :sparkles: ANTLR4 visitor support for comments, documentation blocks, and annotating elements
+* :sparkles: Case, AnalysisCase, and VerificationCase definition visitors
+* :sparkles: Auto-wrap bare top-level definitions in synthetic package
+* :sparkles: `RequirementDefinition(None)` handling for programmatic construction
+
+### :bug: Fixes
+
+* :bug: `Model.load()` now correctly skips non-Package `DefinitionElement`s (e.g., `AnnotatingElement`)
+* :bug: `InterfaceBody` and `InterfaceBodyItem` `get_definition()` methods added
+* :bug: `InterfaceDefinition` and `InterfaceUsage` handle both flat and nested body formats
+* :bug: `UsageBody` nesting fixed in ANTLR visitor output
+* :bug: `Requirement` constructor guards against `None` declaration access
+* :bug: `Usage._get_definition()` handles missing `completion` attribute
+* :bug: `Attribute._get_definition()` child parameter check fixed
+* :bug: `Action._get_definition()` correctly distinguishes usage vs definition modes
+
+### :white_check_mark: Conformance
+
+* :white_check_mark: `simpletests/`: 10/37 → 35/37 passing
+* :white_check_mark: `validation/valid/`: 17/34 → 33/34 passing
+* :white_check_mark: `validation/invalid/`: 22/47 → 46/47 passing
+* :white_check_mark: `expression/`: 0/4 → 3/4 passing
+* :white_check_mark: `linking/`: 1/1 → 1/1 passing
+
+### :memo:
+
+* :memo: Updated STATUS.md, TODO.md, CHANGELOG.md with current conformance results
 
 ## v0.5.3 (2024-05-30)
 
