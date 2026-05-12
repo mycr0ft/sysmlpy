@@ -90,7 +90,43 @@ class Model:
                     member_grammar.append(p._get_definition(child="PackageBody"))
 
         if not found_package:
-            raise ValueError("Base Model must be encapsulated by a package.")
+            # Wrap bare top-level definitions in a synthetic package
+            synthetic_relationships = []
+            for member in definition:
+                if member["ownedRelatedElement"]["name"] == "DefinitionElement":
+                    de = member["ownedRelatedElement"]
+                    if de["ownedRelatedElement"]["name"] == "AnnotatingElement":
+                        continue
+                    synthetic_relationships.append({
+                        "name": "PackageMember",
+                        "prefix": None,
+                        "ownedRelatedElement": de
+                    })
+
+            if synthetic_relationships:
+                synthetic_definition = {
+                    "name": "Package",
+                    "declaration": {
+                        "name": "PackageDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredName": None,
+                            "declaredShortName": None,
+                        }
+                    },
+                    "body": {
+                        "name": "PackageBody",
+                        "ownedRelationship": synthetic_relationships
+                    },
+                    "ownedRelationship": []
+                }
+                p = Package().load_from_grammar(
+                    PackageGrammar(synthetic_definition)
+                )
+                self.children.append(p)
+                member_grammar.append(p._get_definition(child="PackageBody"))
+            else:
+                raise ValueError("Base Model must be encapsulated by a package.")
 
         self.grammar = RootNamespace(
             {"name": "PackageBodyElement", "ownedRelationship": member_grammar}
