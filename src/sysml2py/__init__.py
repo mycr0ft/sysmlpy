@@ -12,11 +12,33 @@ __author__ = "Jon Fox"
 __version__ = "0.6.0"
 
 from sysml2py.usage import (
-    Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
-    State, Constraint, Connection, Flow, Calculation, Enumeration,
-    Allocation, Metadata, Rendering, Individual, FlowDef,
-    View, Viewpoint, Concern,
-    Case, AnalysisCase, VerificationCase,
+    Item,
+    Attribute,
+    Part,
+    Port,
+    Action,
+    Reference,
+    UseCase,
+    Requirement,
+    Interface,
+    Message,
+    State,
+    Constraint,
+    Connection,
+    Flow,
+    Calculation,
+    Enumeration,
+    Allocation,
+    Metadata,
+    Rendering,
+    Individual,
+    FlowDef,
+    View,
+    Viewpoint,
+    Concern,
+    Case,
+    AnalysisCase,
+    VerificationCase,
 )
 
 from sysml2py.definition import Model, Package
@@ -58,28 +80,28 @@ def load_grammar(s, debug=False):
 
     # Wrap in package if not starting with 'package' for parsing
     s_stripped = s.strip()
-    needs_unwrap = not s_stripped.startswith('package')
+    needs_unwrap = not s_stripped.startswith("package")
     if needs_unwrap:
-        s = f'package __implicit__ {{ {s_stripped} }}'
+        s = f"package __implicit__ {{ {s_stripped} }}"
 
     try:
         result = antlr_visitor.parse_to_dict(s)
-        
+
         # If we wrapped, we need to return a format compatible with what the tests expect
         # The grammar classes expect "PackageBodyElement" as the top-level name
         if needs_unwrap:
             # Navigate to Package body ownedRelationship
-            pkg_member = result['ownedRelationship'][0]
-            pkg_elem = pkg_member['ownedRelatedElement']
-            pkg = pkg_elem['ownedRelatedElement']
-            body = pkg['body']
-            
+            pkg_member = result["ownedRelationship"][0]
+            pkg_elem = pkg_member["ownedRelatedElement"]
+            pkg = pkg_elem["ownedRelatedElement"]
+            body = pkg["body"]
+
             # Return in PackageBodyElement format (no Package wrapper)
             return {
                 "name": "PackageBodyElement",
-                "ownedRelationship": body['ownedRelationship']
+                "ownedRelationship": body["ownedRelationship"],
             }
-        
+
         return result
     except antlr_parser.SysMLSyntaxError as e:
         print("ANTLR4 returned the following error: {}".format(e))
@@ -216,5 +238,3 @@ def load_antlr(fp):
         )
 
     return loads(fp.read())
-
-

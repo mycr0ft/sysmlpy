@@ -6,7 +6,6 @@ Created on Fri Jun 30 23:23:31 2023
 @author: christophercox
 """
 
-
 # import os
 
 # os.chdir(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -163,8 +162,8 @@ class Usage:
     def _get_definition(self, child=None):
         # Determine if this is a usage or definition based on grammar class name
         grammar_cls_name = type(self.grammar).__name__
-        is_def = grammar_cls_name.endswith('Definition')
-        
+        is_def = grammar_cls_name.endswith("Definition")
+
         if is_def:
             package = self.definition_dump(child)
         else:
@@ -198,32 +197,34 @@ class Usage:
     def __repr__(self):
         # Safely get name
         try:
-            name = getattr(self, 'name', None)
+            name = getattr(self, "name", None)
             if not name:
-                id_obj = getattr(self.grammar, 'usage', None)
+                id_obj = getattr(self.grammar, "usage", None)
                 if id_obj:
-                    id_obj = getattr(id_obj.declaration, 'declaration', None)
+                    id_obj = getattr(id_obj.declaration, "declaration", None)
                     if id_obj:
-                        name = getattr(id_obj.identification, 'declaredName', None)
+                        name = getattr(id_obj.identification, "declaredName", None)
         except (AttributeError, TypeError):
             name = None
-        
+
         # Safely get shortname
         try:
             shortname = None
-            id_obj = getattr(self.grammar, 'usage', None)
+            id_obj = getattr(self.grammar, "usage", None)
             if id_obj:
-                id_obj = getattr(id_obj.declaration, 'declaration', None)
+                id_obj = getattr(id_obj.declaration, "declaration", None)
                 if id_obj:
-                    shortname = getattr(id_obj.identification, 'declaredShortName', None)
+                    shortname = getattr(
+                        id_obj.identification, "declaredShortName", None
+                    )
             if shortname:
-                shortname = shortname.strip('<').strip('>')
+                shortname = shortname.strip("<").strip(">")
         except (AttributeError, TypeError):
             shortname = None
-            
-        is_def = hasattr(self.grammar, 'definition')
+
+        is_def = hasattr(self.grammar, "definition")
         cls_name = self.__class__.__name__
-        
+
         if is_def:
             if name and shortname:
                 return f"{cls_name}(definition=True, name={name!r}, shortname={shortname!r})"
@@ -332,9 +333,9 @@ class Usage:
 
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for definitions.
-        
+
         In SysML v2: `part def Car :> Vehicle;`
-        
+
         Args:
             *parents: One or more definition elements to specialize.
         """
@@ -343,18 +344,20 @@ class Usage:
                 "Only definition elements can use specializes. "
                 "Use _set_subsets() for usage elements."
             )
-        
+
         names = [p.name for p in parents]
         relationships = []
         for name in names:
-            relationships.append({
-                "name": "OwnedSubclassification",
-                "superclassifier": {
-                    "name": "QualifiedName",
-                    "names": [name],
-                },
-            })
-        
+            relationships.append(
+                {
+                    "name": "OwnedSubclassification",
+                    "superclassifier": {
+                        "name": "QualifiedName",
+                        "names": [name],
+                    },
+                }
+            )
+
         package = {
             "name": "SubclassificationPart",
             "ownedRelationship": relationships,
@@ -366,9 +369,9 @@ class Usage:
 
     def _set_subsets(self, *parents):
         """Set subsetting (`:>`) for usage elements.
-        
+
         In SysML v2: `part myEng :> eng;`
-        
+
         Args:
             *parents: One or more elements to subset.
         """
@@ -377,19 +380,21 @@ class Usage:
                 "Definition elements cannot use subsets. "
                 "Use _set_specializes() for definitions."
             )
-        
-        names = [p.name if hasattr(p, 'name') else str(p) for p in parents]
+
+        names = [p.name if hasattr(p, "name") else str(p) for p in parents]
         relationships = []
         for name in names:
-            relationships.append({
-                "name": "OwnedSubsetting",
-                "subsettedFeature": {
-                    "name": "QualifiedName",
-                    "names": [name],
-                },
-                "ownedRelatedElement": [],
-            })
-        
+            relationships.append(
+                {
+                    "name": "OwnedSubsetting",
+                    "subsettedFeature": {
+                        "name": "QualifiedName",
+                        "names": [name],
+                    },
+                    "ownedRelatedElement": [],
+                }
+            )
+
         package = {
             "name": "Subsettings",
             "ownedRelationship": relationships,
@@ -412,17 +417,17 @@ class Usage:
 
     def _set_redefines(self, parent):
         """Set redefinition (`:>>`) for usage elements.
-        
+
         In SysML v2: `attribute :>> mass = 100;`
-        
+
         Args:
             parent: The element being redefined.
         """
         if "definition" in self.grammar.__dict__:
             raise ValueError("Definition elements cannot use redefines.")
-        
-        name = parent.name if hasattr(parent, 'name') else str(parent)
-        
+
+        name = parent.name if hasattr(parent, "name") else str(parent)
+
         package = {
             "name": "OwnedRedefinition",
             "redefinedFeature": {
@@ -460,67 +465,77 @@ class Usage:
         self.__init__()
         self.grammar = grammar
         children = []
-        
+
         # Check if this is a definition or usage
         # Some definition types use 'definition' (PartDefinition, AttributeDefinition)
         # Others use 'declaration' directly (RequirementDefinition, UseCaseDefinition)
         # PartDefinition: has .definition which is a Definition object
         # Usage: has .declaration directly
-        
+
         # First check if grammar has 'definition' (for definitions like PartDefinition)
-        defn = getattr(grammar, 'definition', None)
+        defn = getattr(grammar, "definition", None)
         if defn:
             # This type uses 'definition' (PartDefinition, etc.)
             # Get name from definition.declaration.identification.declaredName
             u_name = defn.declaration.identification.declaredName
-            
+
             # Get body from definition.body
-            body = defn.body if hasattr(defn, 'body') else None
-            
+            body = defn.body if hasattr(defn, "body") else None
+
             # body is DefinitionBody with .children
-            if body and hasattr(body, 'children') and body.children:
+            if body and hasattr(body, "children") and body.children:
                 children_list = []
                 for body_item in body.children:
-                    if hasattr(body_item, 'children') and body_item.children:
+                    if hasattr(body_item, "children") and body_item.children:
                         member = body_item.children[0]
-                        if hasattr(member, 'children') and member.children:
+                        if hasattr(member, "children") and member.children:
                             inner = member.children[0]
                             # Handle DefinitionElement wrapping
-                            if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
+                            if (
+                                inner.__class__.__name__ == "DefinitionElement"
+                                and hasattr(inner, "children")
+                                and inner.children
+                            ):
                                 inner = inner.children[0]
-                            if hasattr(inner, 'children'):
+                            if hasattr(inner, "children"):
                                 children_list.append(inner)
                             else:
                                 children_list.append(inner)
-                    elif hasattr(body_item, 'ownedRelatedElement'):
+                    elif hasattr(body_item, "ownedRelatedElement"):
                         children_list.append(body_item)
                 children = children_list
             else:
                 children = []
-        elif hasattr(grammar, 'usage'):
+        elif hasattr(grammar, "usage"):
             # This is a usage (like PartUsage, ItemUsage)
             # Get name from grammar.usage.declaration.declaration.identification.declaredName
             usage = grammar.usage
-            if hasattr(usage, 'declaration') and hasattr(usage.declaration, 'declaration'):
+            if hasattr(usage, "declaration") and hasattr(
+                usage.declaration, "declaration"
+            ):
                 decl = usage.declaration.declaration
-                if hasattr(decl, 'identification') and decl.identification:
+                if hasattr(decl, "identification") and decl.identification:
                     u_name = decl.identification.declaredName
                 else:
                     u_name = None
             else:
                 u_name = None
             children = []
-        elif hasattr(grammar, 'declaration'):
+        elif hasattr(grammar, "declaration"):
             # This type uses 'declaration' directly (RequirementDefinition, UseCaseDefinition, some usages)
             decl = grammar.declaration
             u_name = None
-            
+
             # Check nested declaration for Usage (UsageDeclaration -> FeatureDeclaration)
-            nested_decl = getattr(decl, 'declaration', None)
-            if nested_decl and hasattr(nested_decl, 'identification') and nested_decl.identification:
+            nested_decl = getattr(decl, "declaration", None)
+            if (
+                nested_decl
+                and hasattr(nested_decl, "identification")
+                and nested_decl.identification
+            ):
                 u_name = nested_decl.identification.declaredName
             # Check direct identification (for RequirementDefinition, UseCaseDefinition)
-            elif hasattr(decl, 'identification') and decl.identification:
+            elif hasattr(decl, "identification") and decl.identification:
                 u_name = decl.identification.declaredName
             children = []
         else:
@@ -532,18 +547,22 @@ class Usage:
 
         for child in children:
             # Handle different child types
-            if hasattr(child, 'definition') and hasattr(child, 'body'):
+            if hasattr(child, "definition") and hasattr(child, "body"):
                 # It's a Definition (PartDefinition, ItemDefinition, etc.)
                 sc = child
-            elif hasattr(child, 'children'):
+            elif hasattr(child, "children"):
                 # It's a StructureUsageElement or similar
-                sc = child.children if hasattr(child, 'children') else child
+                sc = child.children if hasattr(child, "children") else child
             else:
                 continue
-                
+
             # Process the child
-            class_name = sc.__class__.__name__ if not hasattr(sc, '__class__') else sc.__class__.__name__
-            
+            class_name = (
+                sc.__class__.__name__
+                if not hasattr(sc, "__class__")
+                else sc.__class__.__name__
+            )
+
             if class_name == "PartDefinition":
                 self.children.append(Part(definition=True).load_from_grammar(sc))
             elif class_name == "ItemDefinition":
@@ -557,7 +576,7 @@ class Usage:
             elif class_name == "AttributeDefinition":
                 self.children.append(Attribute(definition=True).load_from_grammar(sc))
             elif class_name == "StructureUsageElement":
-                if hasattr(sc, 'children'):
+                if hasattr(sc, "children"):
                     inner = sc.children
                     if inner.__class__.__name__ == "PartUsage":
                         self.children.append(Part().load_from_grammar(inner))
@@ -565,13 +584,21 @@ class Usage:
                         self.children.append(Item().load_from_grammar(inner))
             elif class_name == "Definition":
                 # Unwrap Definition to get the inner type
-                if hasattr(sc, 'body') and hasattr(sc.body, 'children') and sc.body.children:
+                if (
+                    hasattr(sc, "body")
+                    and hasattr(sc.body, "children")
+                    and sc.body.children
+                ):
                     for body_item in sc.body.children:
-                        if hasattr(body_item, 'children') and body_item.children:
+                        if hasattr(body_item, "children") and body_item.children:
                             inner = body_item.children[0]
-                            if hasattr(inner, 'children'):
+                            if hasattr(inner, "children"):
                                 inner = inner.children
-                            self.children.append(Part(definition=True).load_from_grammar(inner) if inner.__class__.__name__ == 'PartDefinition' else Item(definition=True).load_from_grammar(inner))
+                            self.children.append(
+                                Part(definition=True).load_from_grammar(inner)
+                                if inner.__class__.__name__ == "PartDefinition"
+                                else Item(definition=True).load_from_grammar(inner)
+                            )
 
         return self
 
@@ -982,8 +1009,10 @@ class Port(Usage):
     def dump(self, child=None):
         # Check if we have enhanced features
         has_port_features = (
-            self.port_attributes or self.port_in_items
-            or self.port_out_items or self.port_inout_items
+            self.port_attributes
+            or self.port_in_items
+            or self.port_out_items
+            or self.port_inout_items
         )
 
         if not has_port_features:
@@ -992,7 +1021,7 @@ class Port(Usage):
 
         # Enhanced dump with in/out items
         keyword = "port def" if self.is_definition else "port"
-        name_str = getattr(self, 'name', "") or ""
+        name_str = getattr(self, "name", "") or ""
 
         body_items = []
         for attr_name, attr_type in self.port_attributes:
@@ -1061,25 +1090,25 @@ class Interface(Usage):
 
     def _set_typed_by(self, typed):
         """Set typing (`:`) for interface usage."""
-        self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
+        self._typed_by_name = typed.name if hasattr(typed, "name") else str(typed)
         return self
 
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for interface definitions."""
         self._specializes_names = [
-            p.name if hasattr(p, 'name') else str(p) for p in parents
+            p.name if hasattr(p, "name") else str(p) for p in parents
         ]
         return self
 
     def dump(self):
-        name_str = getattr(self, 'name', "") or ""
-        keyword = getattr(self, 'keyword', 'interface')
+        name_str = getattr(self, "name", "") or ""
+        keyword = getattr(self, "keyword", "interface")
 
         # Build type/specialization suffix
         type_suffix = ""
-        if hasattr(self, '_typed_by_name') and self._typed_by_name:
+        if hasattr(self, "_typed_by_name") and self._typed_by_name:
             type_suffix = f" : {self._typed_by_name}"
-        elif hasattr(self, '_specializes_names') and self._specializes_names:
+        elif hasattr(self, "_specializes_names") and self._specializes_names:
             type_suffix = " :> " + ", ".join(self._specializes_names)
 
         body_items = []
@@ -1110,13 +1139,19 @@ class Action(Usage):
             # Initialize grammar properly (like Part does)
             if definition:
                 self.grammar = ActionDefinition()
-                self.grammar.declaration.identification.declaredName = name if name else None
+                self.grammar.declaration.identification.declaredName = (
+                    name if name else None
+                )
             else:
                 # Create ActionUsage with an empty dict to handle default initialization
                 self.grammar = ActionUsage({} if name else None)
-                if self.grammar.declaration and hasattr(self.grammar.declaration, 'identification'):
-                    self.grammar.declaration.identification.declaredName = name if name else None
-        
+                if self.grammar.declaration and hasattr(
+                    self.grammar.declaration, "identification"
+                ):
+                    self.grammar.declaration.identification.declaredName = (
+                        name if name else None
+                    )
+
         self.is_definition = definition
         self.action_shortname = shortname
         self.name = name if name else str(uuidlib.uuid4())
@@ -1124,7 +1159,7 @@ class Action(Usage):
         self.typedby = None
         self.action_inputs = []  # List of (name, type_name)
         self.action_outputs = []
-        
+
         if definition:
             self.keyword = "action def"
         else:
@@ -1132,19 +1167,19 @@ class Action(Usage):
 
     def add_input(self, name, type_name=None):
         """Add an input parameter (in) to the action.
-        
+
         Args:
             name: Name of the input
             type_name: Optional type (e.g., 'Scene')
         """
         self.action_inputs.append((name, type_name))
         return self
-    
+
     def add_output(self, name, type_name=None):
         """Add an output parameter (out) to the action.
-        
+
         Args:
-            name: Name of the output  
+            name: Name of the output
             type_name: Optional type (e.g., 'Image')
         """
         self.action_outputs.append((name, type_name))
@@ -1155,19 +1190,19 @@ class Action(Usage):
             keyword = "action def"
         else:
             keyword = "action"
-        
+
         decl = {
             "name": "UsageDeclaration",
             "identification": {
                 "name": "Identification",
                 "declaredName": self.name if self.name else "",
-                "declaredShortName": None
-            }
+                "declaredShortName": None,
+            },
         }
-        
+
         # Build action body with in/out parameters
         body_items = []
-        
+
         # Add inputs
         for inp_name, inp_type in self.action_inputs:
             if inp_type:
@@ -1175,68 +1210,70 @@ class Action(Usage):
             else:
                 item = f"in {inp_name};"
             body_items.append(item)
-        
-        # Add outputs  
+
+        # Add outputs
         for out_name, out_type in self.action_outputs:
             if out_type:
                 item = f"out {out_name} : {out_type};"
             else:
                 item = f"out {out_name};"
             body_items.append(item)
-        
+
         body = {"name": "ActionBody", "items": body_items}
-        
+
         if self.is_definition:
             grammar_type = "ActionDefinition"
         else:
             grammar_type = "ActionUsage"
-        
-        return {
-            "name": grammar_type,
-            "declaration": decl,
-            "body": body
-        }
+
+        return {"name": grammar_type, "declaration": decl, "body": body}
 
     def load_from_grammar(self, grammar):
         self.is_definition = False
         self.action_inputs = []
         self.action_outputs = []
-        
+
         # Check for 'declaration' directly (for definitions like ActionDefinition, RequirementDefinition)
-        decl = getattr(grammar, 'declaration', None)
-        if decl and hasattr(decl, 'identification') and decl.identification:
+        decl = getattr(grammar, "declaration", None)
+        if decl and hasattr(decl, "identification") and decl.identification:
             self.name = decl.identification.declaredName
             self.is_definition = True
             self.keyword = "action def"
-        elif hasattr(grammar, 'declaration') and grammar.declaration:
+        elif hasattr(grammar, "declaration") and grammar.declaration:
             # Handle nested declaration structure (ActionUsageDeclaration -> UsageDeclaration -> FeatureDeclaration)
-            decl = getattr(grammar.declaration, 'declaration', None)
+            decl = getattr(grammar.declaration, "declaration", None)
             if decl:
                 # Try nested: declaration.declaration.declaration.identification (for ANTLR)
-                nested_decl = getattr(decl, 'declaration', None)
-                if nested_decl and hasattr(nested_decl, 'identification') and nested_decl.identification:
+                nested_decl = getattr(decl, "declaration", None)
+                if (
+                    nested_decl
+                    and hasattr(nested_decl, "identification")
+                    and nested_decl.identification
+                ):
                     self.name = nested_decl.identification.declaredName
                     self.is_definition = False
                     self.keyword = "action"
-                elif hasattr(decl, 'identification') and decl.identification:
+                elif hasattr(decl, "identification") and decl.identification:
                     self.name = decl.identification.declaredName
                     self.is_definition = False
                     self.keyword = "action"
-        
+
         return self
-    
+
     def _get_definition(self, child=None):
         # Sync self.name to grammar before getting definition
-        if hasattr(self.grammar, 'declaration') and hasattr(self.grammar.declaration, 'identification'):
+        if hasattr(self.grammar, "declaration") and hasattr(
+            self.grammar.declaration, "identification"
+        ):
             self.grammar.declaration.identification.declaredName = self.name
-        
+
         # Get the grammar's get_definition output
-        if hasattr(self.grammar, 'get_definition'):
+        if hasattr(self.grammar, "get_definition"):
             grammar_def = self.grammar.get_definition()
         else:
             # Fallback - shouldn't happen now
             grammar_def = {"name": "ActionDefinition", "declaration": {}, "body": {}}
-        
+
         package = {
             "name": "DefinitionElement",
             "ownedRelatedElement": grammar_def,
@@ -1259,12 +1296,12 @@ class Action(Usage):
         return package
 
     def dump(self):
-        name_str = getattr(self, 'name', "") or ""
-        keyword = getattr(self, 'keyword', 'action')
-        
+        name_str = getattr(self, "name", "") or ""
+        keyword = getattr(self, "keyword", "action")
+
         # Build output with in/out parameters
         parts = [keyword, name_str]
-        
+
         # Add in/out parameters
         params = []
         for inp_name, inp_type in self.action_inputs:
@@ -1272,20 +1309,20 @@ class Action(Usage):
                 params.append(f"in {inp_name} : {inp_type}")
             else:
                 params.append(f"in {inp_name}")
-        
+
         for out_name, out_type in self.action_outputs:
             if out_type:
                 params.append(f"out {out_name} : {out_type}")
             else:
                 params.append(f"out {out_name}")
-        
+
         # Build type/specialization suffix
         type_suffix = ""
-        if hasattr(self, '_typed_by_name') and self._typed_by_name:
+        if hasattr(self, "_typed_by_name") and self._typed_by_name:
             type_suffix = f" : {self._typed_by_name}"
-        elif hasattr(self, '_specializes_names') and self._specializes_names:
+        elif hasattr(self, "_specializes_names") and self._specializes_names:
             type_suffix = " :> " + ", ".join(self._specializes_names)
-        
+
         if params:
             return f"{keyword} {name_str}{type_suffix} {{ " + "; ".join(params) + "; }"
         else:
@@ -1293,13 +1330,13 @@ class Action(Usage):
 
     def _set_typed_by(self, typed):
         """Set typing (`:`) for action usage typed by action definition."""
-        self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
+        self._typed_by_name = typed.name if hasattr(typed, "name") else str(typed)
         return self
 
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for action definitions."""
         self._specializes_names = [
-            p.name if hasattr(p, 'name') else str(p) for p in parents
+            p.name if hasattr(p, "name") else str(p) for p in parents
         ]
         return self
 
@@ -1308,10 +1345,12 @@ class UseCase(Usage):
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = UseCaseDefinition()
-            self.grammar.declaration.identification.declaredName = name if name else None
+            self.grammar.declaration.identification.declaredName = (
+                name if name else None
+            )
         else:
             self.grammar = True
-        
+
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
@@ -1319,7 +1358,7 @@ class UseCase(Usage):
         self.subject = None  # (name, type_name)
         self.actors = []  # list of (name, type_name)
         self.includes = []  # list of use case names
-        
+
         if definition:
             self.keyword = "use case def"
         else:
@@ -1327,14 +1366,16 @@ class UseCase(Usage):
 
     def _get_definition(self, child=None):
         # Sync name to grammar
-        if hasattr(self.grammar, 'declaration') and hasattr(self.grammar.declaration, 'identification'):
+        if hasattr(self.grammar, "declaration") and hasattr(
+            self.grammar.declaration, "identification"
+        ):
             self.grammar.declaration.identification.declaredName = self.name
-        
-        if hasattr(self.grammar, 'get_definition'):
+
+        if hasattr(self.grammar, "get_definition"):
             grammar_def = self.grammar.get_definition()
         else:
             grammar_def = {"name": "UseCaseDefinition", "declaration": {}, "body": {}}
-        
+
         package = {
             "name": "DefinitionElement",
             "ownedRelatedElement": grammar_def,
@@ -1358,7 +1399,7 @@ class UseCase(Usage):
 
     def set_subject(self, name, type_name=None):
         """Set the subject of the use case.
-        
+
         Args:
             name: Name of the subject
             type_name: Optional type (e.g., 'Vehicle')
@@ -1368,7 +1409,7 @@ class UseCase(Usage):
 
     def add_actor(self, name, type_name=None):
         """Add an actor to the use case.
-        
+
         Args:
             name: Name of the actor
             type_name: Optional type (e.g., 'Driver')
@@ -1378,56 +1419,56 @@ class UseCase(Usage):
 
     def add_include(self, use_case):
         """Add an included use case.
-        
+
         Args:
             use_case: UseCase object or name string to include
         """
-        name = use_case.name if hasattr(use_case, 'name') else str(use_case)
+        name = use_case.name if hasattr(use_case, "name") else str(use_case)
         self.includes.append(name)
         return self
 
     def _set_typed_by(self, typed):
         """Set typing (`:`) for use case usage."""
-        self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
+        self._typed_by_name = typed.name if hasattr(typed, "name") else str(typed)
         return self
 
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for use case definitions."""
         self._specializes_names = [
-            p.name if hasattr(p, 'name') else str(p) for p in parents
+            p.name if hasattr(p, "name") else str(p) for p in parents
         ]
         return self
 
     def dump(self):
-        name_str = getattr(self, 'name', "") or ""
-        keyword = getattr(self, 'keyword', 'use case')
-        
+        name_str = getattr(self, "name", "") or ""
+        keyword = getattr(self, "keyword", "use case")
+
         # Build type/specialization suffix
         type_suffix = ""
-        if hasattr(self, '_typed_by_name') and self._typed_by_name:
+        if hasattr(self, "_typed_by_name") and self._typed_by_name:
             type_suffix = f" : {self._typed_by_name}"
-        elif hasattr(self, '_specializes_names') and self._specializes_names:
+        elif hasattr(self, "_specializes_names") and self._specializes_names:
             type_suffix = " :> " + ", ".join(self._specializes_names)
-        
+
         # Build body members
         body_items = []
-        
+
         if self.subject:
             subj_name, subj_type = self.subject
             if subj_type:
                 body_items.append(f"subject {subj_name} : {subj_type};")
             else:
                 body_items.append(f"subject {subj_name};")
-        
+
         for actor_name, actor_type in self.actors:
             if actor_type:
                 body_items.append(f"actor {actor_name} : {actor_type};")
             else:
                 body_items.append(f"actor {actor_name};")
-        
+
         for inc in self.includes:
             body_items.append(f"include use case {inc};")
-        
+
         if body_items:
             body = " {\n   " + "\n   ".join(body_items) + "\n}"
             return f"{keyword} {name_str}{type_suffix}{body}"
@@ -1439,10 +1480,12 @@ class Requirement(Usage):
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = RequirementDefinition(None)
-            self.grammar.declaration.identification.declaredName = name if name else None
+            self.grammar.declaration.identification.declaredName = (
+                name if name else None
+            )
         else:
             self.grammar = True
-        
+
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
@@ -1462,14 +1505,20 @@ class Requirement(Usage):
 
     def _get_definition(self, child=None):
         # Sync name to grammar
-        if hasattr(self.grammar, 'declaration') and hasattr(self.grammar.declaration, 'identification'):
+        if hasattr(self.grammar, "declaration") and hasattr(
+            self.grammar.declaration, "identification"
+        ):
             self.grammar.declaration.identification.declaredName = self.name
-        
-        if hasattr(self.grammar, 'get_definition'):
+
+        if hasattr(self.grammar, "get_definition"):
             grammar_def = self.grammar.get_definition()
         else:
-            grammar_def = {"name": "RequirementDefinition", "declaration": {}, "body": {}}
-        
+            grammar_def = {
+                "name": "RequirementDefinition",
+                "declaration": {},
+                "body": {},
+            }
+
         package = {
             "name": "DefinitionElement",
             "ownedRelatedElement": grammar_def,
@@ -1550,19 +1599,19 @@ class Requirement(Usage):
 
     def _set_typed_by(self, typed):
         """Set typing (`:`) for requirement usage."""
-        self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
+        self._typed_by_name = typed.name if hasattr(typed, "name") else str(typed)
         return self
 
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for requirement definitions."""
         self._specializes_names = [
-            p.name if hasattr(p, 'name') else str(p) for p in parents
+            p.name if hasattr(p, "name") else str(p) for p in parents
         ]
         return self
 
     def dump(self):
-        name_str = getattr(self, 'name', "") or ""
-        keyword = getattr(self, 'keyword', 'requirement')
+        name_str = getattr(self, "name", "") or ""
+        keyword = getattr(self, "keyword", "requirement")
 
         # Add shortname
         shortname_str = ""
@@ -1571,9 +1620,9 @@ class Requirement(Usage):
 
         # Build type/specialization suffix
         type_suffix = ""
-        if hasattr(self, '_typed_by_name') and self._typed_by_name:
+        if hasattr(self, "_typed_by_name") and self._typed_by_name:
             type_suffix = f" : {self._typed_by_name}"
-        elif hasattr(self, '_specializes_names') and self._specializes_names:
+        elif hasattr(self, "_specializes_names") and self._specializes_names:
             type_suffix = " :> " + ", ".join(self._specializes_names)
 
         # Build body members
@@ -1638,7 +1687,9 @@ class Message(Usage):
         Args:
             from_port: Source path string or element with .name
         """
-        self.from_port = from_port.name if hasattr(from_port, 'name') else str(from_port)
+        self.from_port = (
+            from_port.name if hasattr(from_port, "name") else str(from_port)
+        )
         return self
 
     def set_to(self, to_port):
@@ -1647,7 +1698,7 @@ class Message(Usage):
         Args:
             to_port: Target path string or element with .name
         """
-        self.to_port = to_port.name if hasattr(to_port, 'name') else str(to_port)
+        self.to_port = to_port.name if hasattr(to_port, "name") else str(to_port)
         return self
 
     def set_of(self, of_type):
@@ -1656,16 +1707,17 @@ class Message(Usage):
         Args:
             of_type: Item type string or element with .name
         """
-        self.of_type = of_type.name if hasattr(of_type, 'name') else str(of_type)
+        self.of_type = of_type.name if hasattr(of_type, "name") else str(of_type)
         return self
 
     def dump(self):
         parts = ["message"]
 
         # Name (if not a UUID)
-        name_str = getattr(self, 'name', "") or ""
+        name_str = getattr(self, "name", "") or ""
         try:
             import uuid as _uuid
+
             _uuid.UUID(name_str)
             # It's a UUID - anonymous message, skip name
         except ValueError:
@@ -1684,17 +1736,18 @@ class Message(Usage):
 
 class _BehaviorUsage(Usage):
     """Base class for behavior-style usages (state, action, etc.).
-    
+
     These get wrapped in BehaviorUsageElement rather than StructureUsageElement.
     """
+
     # Subclasses should set _is_definition_grammar based on grammar class
     _is_definition_grammar = False
-    
+
     def _get_definition(self, child=None):
         # Determine if this is a definition or usage based on grammar class name
         grammar_cls_name = type(self.grammar).__name__
-        is_def = grammar_cls_name.endswith('Definition')
-        
+        is_def = grammar_cls_name.endswith("Definition")
+
         if is_def:
             package = self.behavior_definition_dump(child)
         else:
@@ -1707,7 +1760,7 @@ class _BehaviorUsage(Usage):
                 "prefix": None,
             }
         return package
-    
+
     def usage_dump(self, child):
         # This is a behavior usage, not a structure usage.
         package = {
@@ -1756,13 +1809,14 @@ class _BehaviorUsage(Usage):
 
 class _NonOccurrenceUsage(Usage):
     """Base class for non-occurrence usages (attribute, calculation, constraint, etc.).
-    
+
     These get wrapped in NonOccurrenceUsageElement rather than StructureUsageElement.
     """
+
     def _get_definition(self, child=None):
         grammar_cls_name = type(self.grammar).__name__
-        is_def = grammar_cls_name.endswith('Definition')
-        
+        is_def = grammar_cls_name.endswith("Definition")
+
         if is_def:
             package = self.nonocc_definition_dump(child)
         else:
@@ -1775,7 +1829,7 @@ class _NonOccurrenceUsage(Usage):
                 "prefix": None,
             }
         return package
-    
+
     def usage_dump(self, child):
         # Add packaging for non-occurrence usage
         package = {
@@ -1823,12 +1877,13 @@ class _NonOccurrenceUsage(Usage):
 
 class State(_BehaviorUsage):
     """SysML v2 State Machine state usage/definition.
-    
+
     Usage:
         State()                              # state ;
         State(name='Idle')                   # state Idle;
         State(definition=True, name='Mode')  # state def Mode;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1844,12 +1899,13 @@ class State(_BehaviorUsage):
 
 class Constraint(_NonOccurrenceUsage):
     """SysML v2 Constraint usage/definition.
-    
+
     Usage:
         Constraint()                              # constraint ;
         Constraint(name='PowerLimit')             # constraint PowerLimit;
         Constraint(definition=True, name='Limit') # constraint def Limit;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1865,12 +1921,13 @@ class Constraint(_NonOccurrenceUsage):
 
 class Connection(Usage):
     """SysML v2 Connection usage/definition.
-    
+
     Usage:
         Connection()                                  # connection ;
         Connection(name='wire')                       # connection wire;
         Connection(definition=True, name='DataLink')  # connection def DataLink;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1886,12 +1943,13 @@ class Connection(Usage):
 
 class Flow(Usage):
     """SysML v2 Flow connection usage/definition.
-    
+
     Usage:
         Flow()                                       # flow ;
         Flow(name='fuelFlow')                        # flow fuelFlow;
         Flow(definition=True, name='WaterFlow')      # flow def WaterFlow;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1907,12 +1965,13 @@ class Flow(Usage):
 
 class Calculation(_NonOccurrenceUsage):
     """SysML v2 Calculation usage/definition.
-    
+
     Usage:
         Calculation()                                   # calc ;
         Calculation(name='computeArea')                 # calc computeArea;
         Calculation(definition=True, name='Distance')   # calc def Distance;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1928,17 +1987,18 @@ class Calculation(_NonOccurrenceUsage):
 
 class Enumeration(Usage):
     """SysML v2 Enumeration definition.
-    
+
     Note: SysML v2 only has EnumerationDefinition, no EnumerationUsage.
-    
+
     Usage:
         Enumeration(name='Color')  # enum def Color;
     """
+
     def __init__(self, definition=True, name=None, shortname=None):
         Usage.__init__(self)
         # EnumerationDefinition is the only form
         self.grammar = EnumerationDefinition()
-        
+
         if name is not None:
             self._set_name(name)
         if shortname is not None:
@@ -1947,14 +2007,15 @@ class Enumeration(Usage):
 
 class Allocation(Usage):
     """SysML v2 Allocation usage/definition.
-    
+
     Allocation represents mapping from one model element to another.
-    
+
     Usage:
         Allocation()                                  # allocation ;
         Allocation(name='alloc1')                     # allocation alloc1;
         Allocation(definition=True, name='AllocSpec') # allocation def AllocSpec;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1970,14 +2031,15 @@ class Allocation(Usage):
 
 class Metadata(_NonOccurrenceUsage):
     """SysML v2 Metadata usage/definition.
-    
+
     Metadata attaches additional information to model elements.
-    
+
     Usage:
         Metadata()                                       # metadata ;
         Metadata(name='tag1')                            # metadata tag1;
         Metadata(definition=True, name='AuthorMeta')     # metadata def AuthorMeta;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -1993,14 +2055,15 @@ class Metadata(_NonOccurrenceUsage):
 
 class Rendering(Usage):
     """SysML v2 Rendering usage/definition.
-    
+
     Rendering specifies how views should be rendered.
-    
+
     Usage:
         Rendering()                                    # rendering ;
         Rendering(name='myRender')                     # rendering myRender;
         Rendering(definition=True, name='DefRender')   # rendering def DefRender;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2016,14 +2079,15 @@ class Rendering(Usage):
 
 class Individual(Usage):
     """SysML v2 Individual usage/definition.
-    
+
     Individual represents a specific instance or occurrence.
-    
+
     Usage:
         Individual()                                     # individual ;
         Individual(name='instance1')                     # individual instance1;
         Individual(definition=True, name='DefIndiv')     # individual def DefIndiv;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2039,17 +2103,18 @@ class Individual(Usage):
 
 class FlowDef(Usage):
     """SysML v2 FlowDefinition alternate form.
-    
+
     Note: This is the simpler 'flow def' form (distinct from FlowConnectionDefinition).
     Usage already provides Flow class for flowConnectionUsage/Definition.
-    
+
     Usage:
         FlowDef(name='DataStream')   # flow def DataStream;
     """
+
     def __init__(self, name=None, shortname=None):
         Usage.__init__(self)
         self.grammar = FlowDefinition()
-        
+
         if name is not None:
             self._set_name(name)
         if shortname is not None:
@@ -2058,14 +2123,15 @@ class FlowDef(Usage):
 
 class View(Usage):
     """SysML v2 View usage/definition.
-    
+
     Views define how models are presented and filtered.
-    
+
     Usage:
         View()                                  # view ;
         View(name='systemOverview')             # view systemOverview;
         View(definition=True, name='SysView')   # view def SysView;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2081,14 +2147,15 @@ class View(Usage):
 
 class Viewpoint(_BehaviorUsage):
     """SysML v2 Viewpoint usage/definition.
-    
+
     Viewpoints specify viewing perspectives with stakeholder concerns.
-    
+
     Usage:
         Viewpoint()                                   # viewpoint ;
         Viewpoint(name='stakeholderVP')               # viewpoint stakeholderVP;
         Viewpoint(definition=True, name='VPDef')      # viewpoint def VPDef;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2104,14 +2171,15 @@ class Viewpoint(_BehaviorUsage):
 
 class Concern(_BehaviorUsage):
     """SysML v2 Concern usage/definition.
-    
+
     Concerns represent stakeholder concerns for viewpoints.
-    
+
     Usage:
         Concern()                                  # concern ;
         Concern(name='security')                   # concern security;
         Concern(definition=True, name='Safety')    # concern def Safety;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2127,14 +2195,15 @@ class Concern(_BehaviorUsage):
 
 class Case(_BehaviorUsage):
     """SysML v2 Case usage/definition.
-    
+
     A case is a broad classifier for analysis, verification, and use cases.
-    
+
     Usage:
         Case()                                  # case ;
         Case(name='scenario1')                  # case scenario1;
         Case(definition=True, name='CaseSpec')  # case def CaseSpec;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2150,14 +2219,15 @@ class Case(_BehaviorUsage):
 
 class AnalysisCase(_BehaviorUsage):
     """SysML v2 AnalysisCase usage/definition.
-    
+
     Analysis cases represent analytical scenarios or studies.
-    
+
     Usage:
         AnalysisCase()                                  # analysis ;
         AnalysisCase(name='thermal1')                   # analysis thermal1;
         AnalysisCase(definition=True, name='Thermal')   # analysis def Thermal;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2173,14 +2243,15 @@ class AnalysisCase(_BehaviorUsage):
 
 class VerificationCase(_BehaviorUsage):
     """SysML v2 VerificationCase usage/definition.
-    
+
     Verification cases represent verification scenarios or tests.
-    
+
     Usage:
         VerificationCase()                                    # verification ;
         VerificationCase(name='test1')                        # verification test1;
         VerificationCase(definition=True, name='Verify1')     # verification case def Verify1;
     """
+
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -2206,7 +2277,7 @@ class Reference(Usage):
 
     def set_type(self, type_obj):
         """Set the type this reference points to.
-        
+
         Args:
             type_obj: Another element (Item, Part, etc.) to reference
         """
@@ -2218,16 +2289,16 @@ class Reference(Usage):
         return self.set_type(type_obj)
 
     def dump(self):
-        name_str = getattr(self, 'name', "") or ""
+        name_str = getattr(self, "name", "") or ""
         type_str = ""
-        
+
         if self.ref_type:
-            type_name = getattr(self.ref_type, 'name', str(self.ref_type))
+            type_name = getattr(self.ref_type, "name", str(self.ref_type))
             type_str = f" : {type_name}"
-        
+
         if self.redefines:
             return f"ref :>> {name_str}{type_str};"
-        
+
         return f"ref {name_str}{type_str};"
 
 

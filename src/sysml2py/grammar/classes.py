@@ -189,13 +189,9 @@ class DefinitionElement:
                     IndividualDefinition(definition["ownedRelatedElement"])
                 )
             elif de == "FlowDefinition":
-                self.children.append(
-                    FlowDefinition(definition["ownedRelatedElement"])
-                )
+                self.children.append(FlowDefinition(definition["ownedRelatedElement"]))
             elif de == "ViewDefinition":
-                self.children.append(
-                    ViewDefinition(definition["ownedRelatedElement"])
-                )
+                self.children.append(ViewDefinition(definition["ownedRelatedElement"]))
             elif de == "ViewpointDefinition":
                 self.children.append(
                     ViewpointDefinition(definition["ownedRelatedElement"])
@@ -205,9 +201,7 @@ class DefinitionElement:
                     ConcernDefinition(definition["ownedRelatedElement"])
                 )
             elif de == "CaseDefinition":
-                self.children.append(
-                    CaseDefinition(definition["ownedRelatedElement"])
-                )
+                self.children.append(CaseDefinition(definition["ownedRelatedElement"]))
             elif de == "VerificationCaseDefinition":
                 self.children.append(
                     VerificationCaseDefinition(definition["ownedRelatedElement"])
@@ -327,7 +321,9 @@ class UseCaseUsage:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-                self.declaration = CalculationUsageDeclaration(definition["declaration"])
+                self.declaration = CalculationUsageDeclaration(
+                    definition["declaration"]
+                )
                 self.body = CaseBody(definition["body"])
         else:
             self.declaration = CalculationUsageDeclaration(None)
@@ -384,7 +380,10 @@ class CaseBody:
             )
 
     def get_definition(self):
-        result = {"name": self.__class__.__name__, "item": [item.get_definition() for item in self.items]}
+        result = {
+            "name": self.__class__.__name__,
+            "item": [item.get_definition() for item in self.items],
+        }
         if self.child is not None:
             result["ownedRelationship"] = self.child.get_definition()
         else:
@@ -401,7 +400,9 @@ class CaseBodyItem:
     # ;
     def __init__(self, definition):
         self.child = None
-        if definition is not None and valid_definition(definition, self.__class__.__name__):
+        if definition is not None and valid_definition(
+            definition, self.__class__.__name__
+        ):
             child = definition["ownedRelationship"]
             name = child["name"]
             if name == "CalculationBodyItem":
@@ -421,7 +422,7 @@ class CaseBodyItem:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "ownedRelationship": self.child.get_definition()
+            "ownedRelationship": self.child.get_definition(),
         }
 
 
@@ -495,18 +496,26 @@ class RequirementDefinition:
         output = {"name": self.__class__.__name__, "prefix": None}
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
-        
+
         # RequirementDefinition uses 'declaration' directly
-        output["declaration"] = self.declaration.get_definition() if self.declaration else None
-        output["body"] = self.body.get_definition() if hasattr(self.body, 'get_definition') else {"name": "RequirementBody", "item": []}
-        
+        output["declaration"] = (
+            self.declaration.get_definition() if self.declaration else None
+        )
+        output["body"] = (
+            self.body.get_definition()
+            if hasattr(self.body, "get_definition")
+            else {"name": "RequirementBody", "item": []}
+        )
+
         return output
 
 
 class RequirementBody:
     def __init__(self, definition):
         self.items = []
-        if definition is not None and valid_definition(definition, self.__class__.__name__):
+        if definition is not None and valid_definition(
+            definition, self.__class__.__name__
+        ):
             if "item" in definition:
                 for item in definition["item"]:
                     self.items.append(RequirementBodyItem(item))
@@ -520,7 +529,7 @@ class RequirementBody:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "item": [item.get_definition() for item in self.items]
+            "item": [item.get_definition() for item in self.items],
         }
 
 
@@ -536,7 +545,9 @@ class RequirementBodyItem:
     # ;
     def __init__(self, definition):
         self.child = None
-        if definition is not None and valid_definition(definition, self.__class__.__name__):
+        if definition is not None and valid_definition(
+            definition, self.__class__.__name__
+        ):
             child = definition["ownedRelationship"]
             name = child["name"]
             if name == "DefinitionBodyItem":
@@ -562,7 +573,7 @@ class RequirementBodyItem:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "ownedRelationship": self.child.get_definition()
+            "ownedRelationship": self.child.get_definition(),
         }
 
 
@@ -814,7 +825,11 @@ class StateDefBody:
             return " ".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "part": None, "isParallel": self.isParallel}
+        output = {
+            "name": self.__class__.__name__,
+            "part": None,
+            "isParallel": self.isParallel,
+        }
         if self.children is not None:
             output["part"] = self.children.get_definition()
         return output
@@ -1687,11 +1702,11 @@ class ActionDefinition:
         output = {"name": self.__class__.__name__, "prefix": None}
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
-        
+
         # ActionDefinition uses 'declaration' directly (not wrapped in 'definition')
         output["declaration"] = self.declaration.get_definition()
         output["body"] = self.body.get_definition()
-        
+
         return output
 
 
@@ -1712,7 +1727,7 @@ class ActionBody:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "items": [child.get_definition() for child in self.children]
+            "items": [child.get_definition() for child in self.children],
         }
 
 
@@ -1746,7 +1761,7 @@ class ActionBodyItem:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "ownedRelationship": [child.get_definition() for child in self.children]
+            "ownedRelationship": [child.get_definition() for child in self.children],
         }
 
 
@@ -2042,7 +2057,11 @@ class CalculationBodyItem:
         return "".join([x.dump() for x in self.children])
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "item": None, "ownedRelationship": None}
+        output = {
+            "name": self.__class__.__name__,
+            "item": None,
+            "ownedRelationship": None,
+        }
         # Only one child expected
         return output
 
@@ -2097,7 +2116,9 @@ class AnalysisCaseUsage:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-                self.declaration = CalculationUsageDeclaration(definition["declaration"])
+                self.declaration = CalculationUsageDeclaration(
+                    definition["declaration"]
+                )
                 self.body = CaseBody(definition["body"])
         else:
             self.declaration = CalculationUsageDeclaration()
@@ -2132,7 +2153,9 @@ class CaseUsage:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-                self.declaration = CalculationUsageDeclaration(definition["declaration"])
+                self.declaration = CalculationUsageDeclaration(
+                    definition["declaration"]
+                )
                 self.body = CaseBody(definition["body"])
         else:
             self.declaration = CalculationUsageDeclaration()
@@ -2167,7 +2190,9 @@ class VerificationCaseUsage:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-                self.declaration = CalculationUsageDeclaration(definition["declaration"])
+                self.declaration = CalculationUsageDeclaration(
+                    definition["declaration"]
+                )
                 self.body = CaseBody(definition["body"])
         else:
             self.declaration = CalculationUsageDeclaration()
@@ -2262,7 +2287,9 @@ class CalculationUsage:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-                self.declaration = CalculationUsageDeclaration(definition["declaration"])
+                self.declaration = CalculationUsageDeclaration(
+                    definition["declaration"]
+                )
                 self.body = CalculationBody(definition["body"])
         else:
             self.declaration = CalculationUsageDeclaration()
@@ -2308,7 +2335,11 @@ class CalculationUsageDeclaration:
         return "".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "declaration": None, "valuepart": None}
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": None,
+            "valuepart": None,
+        }
         if self.declaration is not None:
             output["declaration"] = self.declaration.get_definition()
         if self.valuepart is not None:
@@ -2366,7 +2397,11 @@ class ActionUsageDeclaration:
         return " ".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "declaration": None, "valuepart": None}
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": None,
+            "valuepart": None,
+        }
         if self.declaration is not None:
             output["declaration"] = self.declaration.get_definition()
         if self.valuepart is not None:
@@ -2712,7 +2747,9 @@ class EnumerationBody:
                         if relationship["name"] == "AnnotatingMember":
                             self.relationships.append(AnnotatingMember(relationship))
                         else:
-                            self.relationships.append(EnumerationUsageMember(relationship))
+                            self.relationships.append(
+                                EnumerationUsageMember(relationship)
+                            )
 
     def dump(self):
         if self.relationships is None:
@@ -4813,10 +4850,14 @@ class FlowConnectionDeclaration:
                     self.declaration = ValuePart(definition["valuepart"])
 
                 if definition["ownedRelationship_of"] is not None:
-                    self.children[0] = ItemFeatureMember(definition["ownedRelationship_of"])
+                    self.children[0] = ItemFeatureMember(
+                        definition["ownedRelationship_of"]
+                    )
 
                 if definition["ownedRelationship_from"] is not None:
-                    self.children[1] = FlowEndMember(definition["ownedRelationship_from"])
+                    self.children[1] = FlowEndMember(
+                        definition["ownedRelationship_from"]
+                    )
 
                 if definition["ownedRelationship_to"] is not None:
                     self.children[2] = FlowEndMember(definition["ownedRelationship_to"])
@@ -4844,8 +4885,14 @@ class FlowConnectionDeclaration:
         return " ".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "declaration": None, "valuepart": None,
-                  "ownedRelationship_of": None, "ownedRelationship_from": None, "ownedRelationship_to": None}
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": None,
+            "valuepart": None,
+            "ownedRelationship_of": None,
+            "ownedRelationship_from": None,
+            "ownedRelationship_to": None,
+        }
         if self.declaration is not None:
             output["declaration"] = self.declaration.get_definition()
         if self.valuepart is not None:
@@ -5248,7 +5295,12 @@ class ConnectionUsage:
         return " ".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "prefix": None, "declaration": None, "part": None}
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "part": None,
+        }
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
         if self.declaration is not None:
@@ -6592,6 +6644,7 @@ class VisibilityIndicator:
 
 class _PrefixedDefinitionBase:
     """Base class for definitions that have: prefix + keyword + Definition body."""
+
     keyword = "def"
 
     def __init__(self, definition=None):
@@ -6739,7 +6792,9 @@ class LibraryPackage:
         return {
             "name": self.__class__.__name__,
             "isStandard": self.is_standard,
-            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "declaration": (
+                self.declaration.get_definition() if self.declaration else None
+            ),
             "body": self.body.get_definition() if self.body else None,
         }
 
@@ -6751,6 +6806,7 @@ class LibraryPackage:
 
 class _DeclaredDefinitionBase:
     """Base class for definitions with: prefix + keyword + declaration + body."""
+
     keyword = "def"
     body_class = None  # Must be set in subclass
 
@@ -6785,7 +6841,9 @@ class _DeclaredDefinitionBase:
         return {
             "name": self.__class__.__name__,
             "prefix": self.prefix.get_definition() if self.prefix else None,
-            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "declaration": (
+                self.declaration.get_definition() if self.declaration else None
+            ),
             "body": self.body.get_definition() if self.body else None,
         }
 
@@ -6830,6 +6888,7 @@ class ConcernDefinition(_DeclaredDefinitionBase):
 
 class _TypeDefinitionBase:
     """Base class for simple type definitions that use Definition as body."""
+
     keyword = "type"  # Override in subclass
 
     def __init__(self, definition=None):
@@ -6971,6 +7030,7 @@ class OccurrenceDefinition:
 
 class _RelationshipDefinitionBase:
     """Base class for binary relationship definitions with source and target."""
+
     keyword = "relationship"
     source_key = "source"
     target_key = "target"
@@ -7009,7 +7069,9 @@ class _RelationshipDefinitionBase:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "identification": self.identification.get_definition() if self.identification else None,
+            "identification": (
+                self.identification.get_definition() if self.identification else None
+            ),
             self.source_key: self.source.get_definition() if self.source else None,
             self.target_key: self.target.get_definition() if self.target else None,
             "body": self.body.get_definition() if self.body else None,
@@ -7091,7 +7153,9 @@ class Dependency:
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
-            "identification": self.identification.get_definition() if self.identification else None,
+            "identification": (
+                self.identification.get_definition() if self.identification else None
+            ),
             "clients": [c.get_definition() for c in self.clients],
             "suppliers": [s.get_definition() for s in self.suppliers],
             "body": self.body.get_definition() if self.body else None,
@@ -7106,6 +7170,7 @@ class Dependency:
 
 class _PrefixedUsageBase:
     """Base class for usages with: prefix + keyword + Usage."""
+
     keyword = "usage"
 
     def __init__(self, definition=None):
@@ -7139,7 +7204,9 @@ class _PrefixedUsageBase:
         return {
             "name": self.__class__.__name__,
             "prefix": self.prefix.get_definition() if self.prefix else None,
-            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "declaration": (
+                self.declaration.get_definition() if self.declaration else None
+            ),
             "body": self.body.get_definition() if self.body else None,
         }
 
@@ -7161,11 +7228,13 @@ class MetadataUsage(_PrefixedUsageBase):
 
 class IndividualUsageSimple(_PrefixedUsageBase):
     """Simpler IndividualUsage for the user-facing API."""
+
     keyword = "individual"
 
 
 class FlowUsageSimple(_PrefixedUsageBase):
     """Alternative FlowUsage (flow without connection - simple usage)."""
+
     keyword = "flow"
 
 
