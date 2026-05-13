@@ -58,6 +58,50 @@ def _get_usage_identification(ctx):
     return name, shortname
 
 
+def _get_subclassification_part(ctx):
+    """Extract SubclassificationPart dict from a definition context.
+    
+    Handles 'part def Foo :> Bar, Baz' — returns the :> clause as a dict,
+    or None if there is no subclassification.
+    """
+    defn = None
+    if hasattr(ctx, 'definition') and ctx.definition():
+        defn = ctx.definition()
+    if defn is None:
+        return None
+    
+    dd = None
+    if hasattr(defn, 'definitionDeclaration') and defn.definitionDeclaration():
+        dd = defn.definitionDeclaration()
+    elif hasattr(ctx, 'definitionDeclaration') and ctx.definitionDeclaration():
+        dd = ctx.definitionDeclaration()
+    if dd is None:
+        return None
+    
+    if not (hasattr(dd, 'subclassificationPart') and dd.subclassificationPart()):
+        return None
+    
+    sc = dd.subclassificationPart()
+    owned = []
+    if hasattr(sc, 'ownedSubclassification'):
+        for osc in sc.ownedSubclassification():
+            if hasattr(osc, 'qualifiedName') and osc.qualifiedName():
+                qn_text = osc.qualifiedName().getText()
+                qn_names = qn_text.split("::")
+                owned.append({
+                    "name": "OwnedSubclassification",
+                    "superclassifier": {"name": "QualifiedName", "names": qn_names}
+                })
+    
+    if not owned:
+        return None
+    
+    return {
+        "name": "SubclassificationPart",
+        "ownedRelationship": owned
+    }
+
+
 def _get_definition_identification(ctx):
     """Extract (name, shortname) from a definition context by navigating definition().definitionDeclaration().identification().
     
@@ -634,7 +678,7 @@ def _make_item_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -795,7 +839,7 @@ def _make_part_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -837,7 +881,7 @@ def _make_attribute_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -880,7 +924,7 @@ def _make_port_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -921,7 +965,7 @@ def _make_requirement_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "RequirementBody",
@@ -961,7 +1005,7 @@ def _make_use_case_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CaseBody",
@@ -1003,7 +1047,7 @@ def _make_interface_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -1040,6 +1084,7 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
     
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1055,7 +1100,7 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "ActionBody",
@@ -1094,6 +1139,7 @@ def _make_state_definition_dict(ctx, member_prefix=None):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
     
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1109,7 +1155,7 @@ def _make_state_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "StateDefBody",
@@ -1142,6 +1188,7 @@ def _make_constraint_definition_dict(ctx, member_prefix=None):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
     
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1157,7 +1204,7 @@ def _make_constraint_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CalculationBody",
@@ -1189,6 +1236,7 @@ def _make_calculation_definition_dict(ctx, member_prefix=None):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
     
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1204,7 +1252,7 @@ def _make_calculation_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CalculationBody",
@@ -1246,7 +1294,7 @@ def _make_connection_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -1289,7 +1337,7 @@ def _make_flow_connection_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -1609,9 +1657,12 @@ def _make_flow_connection_usage_dict(ctx, prefix=None):
                         if len(name_list) == 2:
                             shortname = name_list[0].getText()
                             name = name_list[1].getText()
-                        elif len(name_list) == 1:
-                            name_text = name_list[0].getText()
-                            name, shortname = _extract_name_shortname(name_text)
+                    elif len(name_list) == 1:
+                        name_text = name_list[0].getText()
+                        if hasattr(ident, 'LT') and ident.LT() is not None:
+                            shortname = name_text
+                        else:
+                            name = name_text
         
         # If still no name, fall back to _get_usage_identification
         if not name and not shortname:
@@ -1688,7 +1739,7 @@ def _make_view_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "DefinitionBody",
@@ -1727,7 +1778,7 @@ def _make_viewpoint_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "RequirementBody",
@@ -1766,7 +1817,7 @@ def _make_concern_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "RequirementBody",
@@ -1807,7 +1858,7 @@ def _make_case_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CaseBody",
@@ -1849,7 +1900,7 @@ def _make_analysis_case_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CaseBody",
@@ -1891,7 +1942,7 @@ def _make_verification_case_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "CaseBody",
@@ -2304,6 +2355,7 @@ def _make_enumeration_definition_dict(ctx, member_prefix=None):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
     
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -2319,7 +2371,7 @@ def _make_enumeration_definition_dict(ctx, member_prefix=None):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "subclassificationpart": None
+                    "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
                     "name": "EnumerationBody",
@@ -2357,7 +2409,7 @@ def _make_allocation_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -2397,7 +2449,7 @@ def _make_metadata_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -2436,7 +2488,7 @@ def _make_rendering_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -2469,7 +2521,7 @@ def _make_individual_definition_dict(ctx, member_prefix=None):
                             "declaredShortName": shortname,
                             "declaredName": name
                         },
-                        "subclassificationpart": None
+                        "subclassificationpart": _get_subclassification_part(ctx)
                     },
                     "body": {
                         "name": "DefinitionBody",
@@ -3866,7 +3918,7 @@ def _get_usage_typed_by(ctx):
     
     if ud and hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
         fsp = ud.featureSpecializationPart()
-        # Get the typing
+        # Only look for Typings (': TypeName'), not subsets/redefines/specializes
         if hasattr(fsp, 'featureSpecialization') and fsp.featureSpecialization():
             specs = fsp.featureSpecialization()
             if not isinstance(specs, list):
@@ -3879,13 +3931,8 @@ def _get_usage_typed_by(ctx):
                         if text.startswith(':'):
                             text = text[1:].strip()
                         return text
-        # Try direct feature specialization access
-        if hasattr(fsp, 'getText'):
-            text = fsp.getText()
-            # Remove leading ':' or ':>' etc
-            if text.startswith(':'):
-                text = text[1:].strip()
-            return text
+        # NOTE: Do NOT fall back to fsp.getText() — that would return
+        # 'redefines X', 'subsets X', or ':> X' which are NOT types.
     
     return None
 
