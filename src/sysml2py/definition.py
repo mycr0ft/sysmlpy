@@ -75,10 +75,13 @@ class Model:
         
         definition = load_grammar_antlr(s, library=library)["ownedRelationship"]
 
-        # Add each sub-element to children.
         member_grammar = []
         found_package = False
         for member in definition:
+            if "ownedRelatedElement" not in member:
+                if member.get("name") in ("Import", "AliasMember"):
+                    member_grammar.append(member)
+                continue
             if member["ownedRelatedElement"]["name"] == "DefinitionElement":
                 de = member["ownedRelatedElement"]
                 if de["ownedRelatedElement"]["name"] == "Package":
@@ -93,6 +96,10 @@ class Model:
             # Wrap bare top-level definitions in a synthetic package
             synthetic_relationships = []
             for member in definition:
+                if "ownedRelatedElement" not in member:
+                    if member.get("name") in ("Import", "AliasMember"):
+                        member_grammar.append(member)
+                    continue
                 if member["ownedRelatedElement"]["name"] == "DefinitionElement":
                     de = member["ownedRelatedElement"]
                     if de["ownedRelatedElement"]["name"] == "AnnotatingElement":
@@ -135,7 +142,6 @@ class Model:
         return self
 
     def _ensure_body(self):
-        # Add children
         body = []
         for abc in self.children:
             v = abc._get_definition(child="PackageBody")
@@ -144,6 +150,11 @@ class Model:
                     body.append(PackageMember(subchild).get_definition())
             else:
                 body.append(PackageMember(v).get_definition())
+
+        if hasattr(self, 'grammar') and self.grammar:
+            for child in self.grammar.children:
+                if child.__class__.__name__ in ('Import', 'AliasMember'):
+                    body.append(child.get_definition())
 
         if len(body) > 0:
             self.grammar = RootNamespace(
@@ -252,7 +263,6 @@ class Package:
                     return child._get_child(featurechain)
 
     def _ensure_body(self):
-        # Add children
         body = []
         for abc in self.children:
             v = abc._get_definition(child="PackageBody")
@@ -261,6 +271,12 @@ class Package:
                     body.append(PackageMember(subchild).get_definition())
             else:
                 body.append(PackageMember(v).get_definition())
+
+        if hasattr(self.grammar, 'body') and self.grammar.body:
+            for child in self.grammar.body.children:
+                if child.__class__.__name__ in ('Import', 'AliasMember'):
+                    body.append(child.get_definition())
+
         if len(body) > 0:
             self.grammar.body = PackageBody(
                 {"name": "PackageBody", "ownedRelationship": body}

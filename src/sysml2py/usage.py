@@ -880,21 +880,58 @@ class Attribute(Usage):
         return self
 
     def get_value(self):
-        realpart = (
-            self.grammar.usage.completion.valuepart.relationships[0]
-            .element.expression.operands[0]
+        valuepart = self.grammar.usage.completion.valuepart
+        if valuepart is None:
+            raise AttributeError("No valuepart found in grammar")
+        
+        feature_value = valuepart.relationships[0]
+        primary = (
+            feature_value.element.expression.operands[0]
             .implies.orexpression.xor.andexpression.equality.classification.relational.range.additive.left_hand.exponential.unary.extent.primary
         )
-        real = float(realpart.base.relationship.dump())
-        unit = (
-            realpart.operand[0]
-            .relationship.expression.operands[0]
-            .implies.orexpression.xor.andexpression.equality.classification.relational.range.additive.left_hand.exponential.unary.extent.primary.base.relationship.children[
-                0
-            ]
-            .memberElement.dump()
-        )
-        return real * ureg(unit)
+        
+        base = primary.base.relationship
+        base_name = base.__class__.__name__
+        
+        has_unit = hasattr(primary, 'operand') and primary.operand and len(primary.operand) > 0
+        
+        if has_unit:
+            unit = primary.operand[0]
+            unit_name = None
+            if hasattr(unit, 'relationship'):
+                unit_expr = unit.relationship.expression
+                if hasattr(unit_expr, 'operands') and unit_expr.operands:
+                    primary2 = unit_expr.operands[0]
+                    if hasattr(primary2, 'implies'):
+                        primary2 = primary2.implies.orexpression.xor.andexpression.equality.classification.relational.range.additive.left_hand.exponential.unary.extent.primary
+                    if hasattr(primary2, 'base'):
+                        unit_rel = primary2.base.relationship
+                        if hasattr(unit_rel, 'children') and unit_rel.children:
+                            unit_name = unit_rel.children[0].memberElement.dump()
+                        elif hasattr(unit_rel, 'dump'):
+                            unit_name = unit_rel.dump()
+            if unit_name:
+                if base_name == "LiteralInteger":
+                    return int(base.dump()) * ureg(unit_name)
+                elif base_name == "LiteralReal":
+                    return float(base.dump()) * ureg(unit_name)
+        
+        base_dump = base.dump()
+        
+        if base_name == "LiteralString":
+            return base_dump.strip('"')
+        elif base_name == "LiteralInteger":
+            return int(base_dump)
+        elif base_name == "LiteralReal":
+            return float(base_dump)
+        elif base_name in ("LiteralTrue", "LiteralFalse"):
+            return base_name == "LiteralTrue"
+        elif base_name == "LiteralNull":
+            return None
+        elif base_name == "FeatureReferenceExpression":
+            return base_dump
+        else:
+            return base_dump
 
 
 class Part(Usage):

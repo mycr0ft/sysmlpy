@@ -73,9 +73,9 @@ class RootNamespace:
                 elif member["name"] == "ElementFilterMember":
                     raise NotImplementedError  # pragma: no cover
                 elif member["name"] == "AliasMember":
-                    raise NotImplementedError  # pragma: no cover
+                    memberclass = AliasMember(member)
                 elif member["name"] == "Import":
-                    raise NotImplementedError  # pragma: no cover
+                    memberclass = Import(member)
                 else:
                     print(member["name"])  # pragma: no cover
                     raise AttributeError("Error")  # pragma: no cover
@@ -6534,21 +6534,38 @@ class AliasMember:
             + self.body.dump()
         )
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "body": self.body.get_definition(),
+            "memberShortName": self.memberShortName,
+            "memberName": self.memberName,
+            "memberElement": self.memberElement.get_definition()
+        }
+
 
 class RelationshipBody:
     def __init__(self, definition):
         self.children = []
-        for relationship in definition["ownedRelationship"]:
-            if relationship["name"] == "OwnedAnnotation":
-                self.children.append(OwnedAnnotation(relationship))
-            else:
-                raise NotImplementedError  # pragma: no cover
+        if isinstance(definition, dict) and "ownedRelationship" in definition:
+            for relationship in definition["ownedRelationship"]:
+                if relationship["name"] == "OwnedAnnotation":
+                    self.children.append(OwnedAnnotation(relationship))
+                else:
+                    raise NotImplementedError  # pragma: no cover
 
     def dump(self):
         if len(self.children) == 0:
             return ";"
         else:
             return "{" + "\n".join([child.dump() for child in self.children]) + "}"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [c.get_definition() for c in self.children]
+        }
 
 
 class OwnedAnnotation:
@@ -6560,6 +6577,12 @@ class OwnedAnnotation:
 
     def dump(self):
         return "\n".join([child.dump() for child in self.children])
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [c.get_definition() for c in self.children]
+        }
 
 
 class Import:
@@ -6583,6 +6606,13 @@ class Import:
             output.append(child.dump())
         return "".join(output) + self.body.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "body": self.body.get_definition(),
+            "ownedRelationship": self.children[0].get_definition() if self.children else None
+        }
+
 
 class MembershipImport:
     def __init__(self, definition):
@@ -6591,7 +6621,14 @@ class MembershipImport:
             self.membership = ImportedMembership(definition["membership"])
 
     def dump(self):
-        return " ".join([self.prefix.dump(), self.membership.dump()])
+        return self.prefix.dump() + self.membership.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition(),
+            "membership": self.membership.get_definition()
+        }
 
 
 class ImportedMembership:
@@ -6605,6 +6642,13 @@ class ImportedMembership:
             return self.name.dump()
         else:
             return self.name.dump() + "::**"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "importedMembership": self.name.get_definition(),
+            "isRecursive": self.isRecursive
+        }
 
 
 class NamespaceImport:
@@ -6621,6 +6665,14 @@ class NamespaceImport:
 
     def dump(self):
         return self.prefix.dump() + self.namespace.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition(),
+            "ownedRelatedElement": [],
+            "namespace": self.namespace.get_definition()
+        }
 
 
 class ImportPrefix:
@@ -6642,15 +6694,32 @@ class ImportPrefix:
         else:
             return self.visibility.dump() + self.keyword
 
+    def get_definition(self):
+        output = {"name": self.__class__.__name__}
+        output["visibility"] = self.visibility.get_definition() if self.visibility else None
+        output["isImportAll"] = (self.keyword == "import all ")
+        return output
+
 
 class ImportedNamespace:
     # The grammar for this file is currently broken.
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
             self.namespaces = QualifiedName(definition["namespace"])
+            self.isRecursive = definition.get("isRecursive", False)
 
     def dump(self):
-        return self.namespaces.dump() + "::*"
+        suffix = "::*"
+        if getattr(self, 'isRecursive', False):
+            suffix = "::*::**"
+        return self.namespaces.dump() + suffix
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "namespace": self.namespaces.get_definition(),
+            "isRecursive": getattr(self, 'isRecursive', False)
+        }
 
 
 class QualifiedName:
@@ -6696,10 +6765,14 @@ class VisibilityIndicator:
     def dump(self):
         return self.keyword
 
-
-# ==========================================================================
-# Package, Definition, and Occurrence definitions
-# ==========================================================================
+    def get_definition(self):
+        kw = self.keyword or ""
+        return {
+            "name": self.__class__.__name__,
+            "private": "private" if kw == "private " else "",
+            "protected": "protected" if kw == "protected " else "",
+            "public": "public" if kw == "public " else ""
+        }
 
 
 class _PrefixedDefinitionBase:

@@ -324,8 +324,140 @@ def _visit_package_dict(tree):
     return result
 
 
+def _visit_visibility_indicator_dict(vis_ctx):
+    """Build a VisibilityIndicator dict from ANTLR context."""
+    return {
+        "name": "VisibilityIndicator",
+        "private": "private" if vis_ctx.PRIVATE() else "",
+        "protected": "protected" if vis_ctx.PROTECTED() else "",
+        "public": "public" if vis_ctx.PUBLIC() else ""
+    }
+
+
+def _visit_import_rule_dict(import_ctx):
+    """Visit an import rule context and return an Import dictionary."""
+    visibility_dict = None
+    if import_ctx.visibilityIndicator():
+        visibility_dict = _visit_visibility_indicator_dict(import_ctx.visibilityIndicator())
+
+    is_import_all = import_ctx.ALL() is not None
+
+    imp_dec = import_ctx.importDeclaration()
+
+    qn_text = None
+    is_recursive = False
+    has_namespace = False
+
+    if imp_dec.membershipImport():
+        mem = imp_dec.membershipImport()
+        qn_text = mem.qualifiedName().getText()
+        is_recursive = mem.STAR_STAR() is not None
+        qn_names = qn_text.split("::")
+        return {
+            "name": "Import",
+            "body": {"name": "RelationshipBody", "ownedRelationship": []},
+            "ownedRelationship": {
+                "name": "MembershipImport",
+                "prefix": {
+                    "name": "ImportPrefix",
+                    "visibility": visibility_dict,
+                    "isImportAll": is_import_all
+                },
+                "membership": {
+                    "name": "ImportedMembership",
+                    "importedMembership": {"name": "QualifiedName", "names": qn_names},
+                    "isRecursive": is_recursive
+                }
+            }
+        }
+
+    elif imp_dec.namespaceImport():
+        ns = imp_dec.namespaceImport()
+        qn_text = ns.qualifiedName().getText()
+        qn_names = qn_text.split("::")
+        has_colon_colon = ns.COLON_COLON() is not None
+        has_star_star = ns.STAR_STAR() is not None
+
+        if has_colon_colon:
+            return {
+                "name": "Import",
+                "body": {"name": "RelationshipBody", "ownedRelationship": []},
+                "ownedRelationship": {
+                    "name": "NamespaceImport",
+                    "prefix": {
+                        "name": "ImportPrefix",
+                        "visibility": visibility_dict,
+                        "isImportAll": is_import_all
+                    },
+                    "ownedRelatedElement": [],
+                    "namespace": {
+                        "name": "ImportedNamespace",
+                        "namespace": {"name": "QualifiedName", "names": qn_names},
+                        "isRecursive": has_star_star
+                    }
+                }
+            }
+        else:
+            return {
+                "name": "Import",
+                "body": {"name": "RelationshipBody", "ownedRelationship": []},
+                "ownedRelationship": {
+                    "name": "MembershipImport",
+                    "prefix": {
+                        "name": "ImportPrefix",
+                        "visibility": visibility_dict,
+                        "isImportAll": is_import_all
+                    },
+                    "membership": {
+                        "name": "ImportedMembership",
+                        "importedMembership": {"name": "QualifiedName", "names": qn_names},
+                        "isRecursive": False
+                    }
+                }
+            }
+
+    return None
+
+
+def _visit_alias_member_dict(alias_ctx):
+    """Visit an alias member context and return an AliasMember dictionary."""
+    short_name = None
+    name = None
+    has_short_name = alias_ctx.LT() is not None
+
+    name_list = alias_ctx.name() if hasattr(alias_ctx, 'name') else None
+    if name_list and isinstance(name_list, list):
+        if len(name_list) >= 2:
+            short_name = name_list[0].getText() if name_list[0] else None
+            name = name_list[1].getText() if name_list[1] else None
+        elif len(name_list) == 1:
+            if has_short_name:
+                short_name = name_list[0].getText()
+            else:
+                name = name_list[0].getText()
+
+    qn_text = alias_ctx.qualifiedName().getText()
+
+    return {
+        "name": "AliasMember",
+        "prefix": None,
+        "body": {"name": "RelationshipBody", "ownedRelationship": []},
+        "memberShortName": short_name,
+        "memberName": name,
+        "memberElement": {"name": "QualifiedName", "names": qn_text.split("::")}
+    }
+
+
 def _visit_package_body_element_dict(elem_ctx):
     """Visit a package body element and return a dictionary."""
+    # Check for importRule first
+    if hasattr(elem_ctx, 'importRule') and elem_ctx.importRule():
+        return _visit_import_rule_dict(elem_ctx.importRule())
+
+    # Check for aliasMember
+    if hasattr(elem_ctx, 'aliasMember') and elem_ctx.aliasMember():
+        return _visit_alias_member_dict(elem_ctx.aliasMember())
+
     if not hasattr(elem_ctx, 'packageMember'):
         return None
     
@@ -2371,6 +2503,9 @@ def _visit_nested_non_occurrence_usage(non_occ):
     if hasattr(non_occ, 'attributeUsage') and non_occ.attributeUsage():
         ctx = non_occ.attributeUsage()
         name, shortname = _get_usage_identification(ctx)
+        typed_by = _get_usage_typed_by(ctx)
+        specialization = _build_specialization(typed_by)
+        valuepart = _get_usage_value_part(ctx)
         return {
             "name": "NonOccurrenceUsageElement",
             "ownedRelatedElement": {
@@ -2387,12 +2522,12 @@ def _visit_nested_non_occurrence_usage(non_occ):
                                 "declaredShortName": shortname,
                                 "declaredName": name
                             },
-                            "specialization": None
+                            "specialization": specialization
                         }
                     },
                     "completion": {
                         "name": "UsageCompletion",
-                        "valuepart": None,
+                        "valuepart": valuepart,
                         "body": {
                             "name": "UsageBody",
                             "body": {
