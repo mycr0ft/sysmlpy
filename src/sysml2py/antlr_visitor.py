@@ -2383,7 +2383,20 @@ def _make_enumeration_definition_dict(ctx, member_prefix=None):
                         name = name_list[1].getText()
                     elif len(name_list) == 1:
                         name_text = name_list[0].getText()
-                        name, shortname = _extract_name_shortname(name_text)
+                        if hasattr(ident, 'LT') and ident.LT() is not None:
+                            shortname = name_text
+                        else:
+                            name = name_text
+    
+    # Extract enum body members
+    enum_members = []
+    if ctx is not None and hasattr(ctx, 'enumerationBody') and ctx.enumerationBody():
+        body_ctx = ctx.enumerationBody()
+        if hasattr(body_ctx, 'enumerationUsageMember'):
+            for member_ctx in body_ctx.enumerationUsageMember():
+                member_dict = _visit_enumeration_usage_member(member_ctx)
+                if member_dict:
+                    enum_members.append(member_dict)
     
     occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
@@ -2405,10 +2418,102 @@ def _make_enumeration_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "EnumerationBody",
-                    "ownedRelationship": []
+                    "ownedRelationship": enum_members
                 }
             }
         }
+    }
+
+
+def _visit_enumeration_usage_member(member_ctx):
+    """Build an EnumerationUsageMember dict from ANTLR context."""
+    # member_ctx children: MemberPrefixContext, EnumeratedValueContext
+    prefix = None
+    if hasattr(member_ctx, 'memberPrefix') and member_ctx.memberPrefix():
+        mp = member_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    # Find EnumeratedValueContext
+    ev_ctx = None
+    for child in member_ctx.children:
+        if type(child).__name__ == 'EnumeratedValueContext':
+            ev_ctx = child
+            break
+    
+    if ev_ctx is None:
+        return None
+    
+    # EnumeratedValue children: TerminalNodeImpl("enum"), UsageContext
+    keyword = None
+    usage_ctx = None
+    for child in ev_ctx.children:
+        cname = type(child).__name__
+        if cname == 'TerminalNodeImpl':
+            keyword = child.getText()  # "enum"
+        elif cname == 'UsageContext':
+            usage_ctx = child
+    
+    if usage_ctx is None:
+        return None
+    
+    # Extract name from UsageContext -> UsageDeclarationContext -> IdentificationContext
+    ev_name = None
+    ev_shortname = None
+    if hasattr(usage_ctx, 'usageDeclaration') and usage_ctx.usageDeclaration():
+        ud = usage_ctx.usageDeclaration()
+        if hasattr(ud, 'identification') and ud.identification():
+            ident = ud.identification()
+            name_list = ident.name() if hasattr(ident, 'name') else []
+            if name_list and isinstance(name_list, list):
+                if len(name_list) == 2:
+                    ev_shortname = name_list[0].getText()
+                    ev_name = name_list[1].getText()
+                elif len(name_list) == 1:
+                    ev_name_text = name_list[0].getText()
+                    if hasattr(ident, 'LT') and ident.LT() is not None:
+                        ev_shortname = ev_name_text
+                    else:
+                        ev_name = ev_name_text
+    
+    return {
+        "name": "EnumerationUsageMember",
+        "prefix": prefix,
+        "ownedRelatedElement": [
+            {
+                "name": "EnumeratedValue",
+                "keyword": keyword,
+                "usage": {
+                    "name": "Usage",
+                    "declaration": {
+                        "name": "UsageDeclaration",
+                        "declaration": {
+                            "name": "FeatureDeclaration",
+                            "identification": {
+                                "name": "Identification",
+                                "declaredShortName": ev_shortname,
+                                "declaredName": ev_name
+                            },
+                            "specialization": None
+                        }
+                    },
+                    "completion": {
+                        "name": "UsageCompletion",
+                        "valuepart": None,
+                        "body": {
+                            "name": "UsageBody",
+                            "body": {
+                                "name": "DefinitionBody",
+                                "ownedRelatedElement": []
+                            }
+                        }
+                    }
+                }
+            }
+        ]
     }
 
 
