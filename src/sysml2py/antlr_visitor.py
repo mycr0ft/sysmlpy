@@ -1112,7 +1112,13 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                         name = name_list[1].getText()
                     elif len(name_list) == 1:
                         name_text = name_list[0].getText()
-                        name, shortname = _extract_name_shortname(name_text)
+                        if hasattr(ident, 'LT') and ident.LT() is not None:
+                            shortname = name_text
+                        else:
+                            name = name_text
+    
+    # Extract action body items
+    action_items = _visit_action_body_items(ctx)
     
     occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
@@ -1134,11 +1140,105 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "ActionBody",
-                    "items": []
+                    "items": action_items
                 }
             }
         }
     }
+
+
+def _visit_action_body_items(ctx):
+    """Extract ActionBodyItem dicts from an actionDefinition or actionUsage context.
+    
+    Processes actionBody().actionBodyItem() items, handling nonBehaviorBodyItem
+    (in/out parameters, attributes) and actionBehaviorMember (nested actions).
+    """
+    if ctx is None:
+        return []
+    
+    action_body = None
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        action_body = ctx.actionBody()
+    
+    if action_body is None:
+        return []
+    
+    items = []
+    if not (hasattr(action_body, 'actionBodyItem') and action_body.actionBodyItem()):
+        return []
+    
+    for abi_ctx in action_body.actionBodyItem():
+        item_dict = _visit_action_body_item(abi_ctx)
+        if item_dict:
+            items.append(item_dict)
+    
+    return items
+
+
+def _visit_action_body_item(abi_ctx):
+    """Visit a single actionBodyItem and return an ActionBodyItem dict."""
+    if abi_ctx is None:
+        return None
+    
+    # Handle nonBehaviorBodyItem (in/out params, attributes, imports)
+    if hasattr(abi_ctx, 'nonBehaviorBodyItem') and abi_ctx.nonBehaviorBodyItem():
+        nbi = abi_ctx.nonBehaviorBodyItem()
+        inner = _visit_non_behavior_body_item(nbi)
+        if inner:
+            return {
+                "name": "ActionBodyItem",
+                "ownedRelationship": [inner]
+            }
+    
+    return None
+
+
+def _visit_non_behavior_body_item(nbi_ctx):
+    """Visit a nonBehaviorBodyItem - similar to definitionBodyItem but inside action body."""
+    if nbi_ctx is None:
+        return None
+    
+    # Handle nonOccurrenceUsageMember (in/out params, attributes)
+    for child in nbi_ctx.children:
+        cname = type(child).__name__
+        
+        if cname == 'NonOccurrenceUsageMemberContext':
+            # Navigate: NonOccurrenceUsageMember -> NonOccurrenceUsageElement -> usage
+            for c2 in child.children:
+                if type(c2).__name__ == 'NonOccurrenceUsageElementContext':
+                    inner = _visit_nested_non_occurrence_usage(c2)
+                    if inner:
+                        if inner.get("name") == "NonOccurrenceUsageElement":
+                            owned = [inner]
+                        else:
+                            owned = [inner]
+                        return {
+                            "name": "NonOccurrenceUsageMember",
+                            "prefix": None,
+                            "ownedRelatedElement": owned
+                        }
+        
+        elif cname == 'StructureUsageMemberContext':
+            # Handle occurrence usages (parts, items, ports)
+            for c2 in child.children:
+                if type(c2).__name__ == 'OccurrenceUsageElementContext':
+                    inner = _visit_nested_occurrence_usage(c2)
+                    if inner:
+                        if inner.get("name") == "UsageElement":
+                            occ_elem = inner.get("ownedRelatedElement", {})
+                            if occ_elem.get("name") == "OccurrenceUsageElement":
+                                owned = [occ_elem]
+                            else:
+                                owned = [inner]
+                        else:
+                            owned = [inner]
+                        return {
+                            "name": "OccurrenceUsageMember",
+                            "prefix": None,
+                            "ownedRelatedElement": owned
+                        }
+    
+    return None
 
 
 def _make_state_definition_dict(ctx, member_prefix=None):
