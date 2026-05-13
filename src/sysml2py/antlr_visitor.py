@@ -9,12 +9,12 @@ import uuid
 
 
 def _extract_name_shortname(name_text):
-    """Given a name text, determine if it's a short name (quoted) or regular name.
+    """Given a name text, return (name, shortname) tuple.
     
-    Returns (name, shortname) tuple.
+    This function is only called for single-name identifications without
+    angle brackets. In that case the name is always a declaredName.
+    Short names require explicit < > in source, handled at call sites.
     """
-    if name_text and (name_text.startswith("'") or name_text.startswith('"')):
-        return None, name_text
     return name_text, None
 
 
@@ -49,9 +49,11 @@ def _get_usage_identification(ctx):
                     shortname = name_list[0].getText()
                     name = name_list[1].getText()
                 elif len(name_list) == 1:
-                    # Single name: could be short or long depending on token type
                     name_text = name_list[0].getText()
-                    name, shortname = _extract_name_shortname(name_text)
+                    if hasattr(ident, 'LT') and ident.LT() is not None:
+                        shortname = name_text
+                    else:
+                        name = name_text
     
     return name, shortname
 
@@ -87,9 +89,11 @@ def _get_definition_identification(ctx):
                     shortname = name_list[0].getText()
                     name = name_list[1].getText()
                 elif len(name_list) == 1:
-                    # Single name: could be short or long depending on token type
                     name_text = name_list[0].getText()
-                    name, shortname = _extract_name_shortname(name_text)
+                    if hasattr(ident, 'LT') and ident.LT() is not None:
+                        shortname = name_text
+                    else:
+                        name = name_text
     
     return name, shortname
 
@@ -110,11 +114,14 @@ def _build_identification_dict(ident_ctx):
         name_list = ident_ctx.name()
         if name_list and isinstance(name_list, list):
             if len(name_list) == 2:
+                # LT name GT name: first is short name, second is long name
                 shortname = name_list[0].getText()
                 name = name_list[1].getText()
             elif len(name_list) == 1:
                 name_text = name_list[0].getText()
-                if name_text.startswith("'") or name_text.startswith('"'):
+                # Check for explicit angle brackets: <name> → shortname only
+                has_lt = hasattr(ident_ctx, 'LT') and ident_ctx.LT() is not None
+                if has_lt:
                     shortname = name_text
                 else:
                     name = name_text
@@ -269,14 +276,11 @@ def _visit_package_dict(tree):
                             pkg_shortname = name_list[0].getText()
                             pkg_name = name_list[1].getText()
                         elif len(name_list) == 1:
-                            # Single name - need to tell if it's a short or long name
-                            # Check the actual token text - if it starts with quote, it's a short name
                             name_text = name_list[0].getText()
-                            if name_text.startswith("'") or name_text.startswith('"'):
-                                # Short name (<name>)
+                            # Check for explicit < > angle brackets
+                            if hasattr(ident, 'LT') and ident.LT() is not None:
                                 pkg_shortname = name_text
                             else:
-                                # Regular identifier (name)
                                 pkg_name = name_text
                         # If len(name_list) == 0, leave both as None
 
@@ -438,9 +442,19 @@ def _visit_alias_member_dict(alias_ctx):
 
     qn_text = alias_ctx.qualifiedName().getText()
 
+    # Extract visibility from memberPrefix
+    prefix = None
+    if hasattr(alias_ctx, 'memberPrefix') and alias_ctx.memberPrefix():
+        mp = alias_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+
     return {
         "name": "AliasMember",
-        "prefix": None,
+        "prefix": prefix,
         "body": {"name": "RelationshipBody", "ownedRelationship": []},
         "memberShortName": short_name,
         "memberName": name,
@@ -465,15 +479,15 @@ def _visit_package_body_element_dict(elem_ctx):
     if not member:
         return None
     
-    # Get prefix if present
+    # Get prefix if present (memberPrefix = (visibilityIndicator)?)
     prefix = None
     if hasattr(member, 'memberPrefix'):
         mp = member.memberPrefix()
-        if mp:
-            if hasattr(mp, 'redefines'):
-                prefix = 'redefines'
-            elif hasattr(mp, 'conjugated'):
-                prefix = 'conjugated'
+        if mp and hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
     
     # Check if it's a definition or usage element
     if hasattr(member, 'definitionElement'):
@@ -589,9 +603,10 @@ def _visit_definition_element_dict(def_elem_ctx, prefix=None):
     return None
 
 
-def _make_item_definition_dict(ctx, prefix=None):
+def _make_item_definition_dict(ctx, member_prefix=None):
     """Create an ItemDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     
     # Get body items
     body_items = []
@@ -604,12 +619,12 @@ def _make_item_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "ItemDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -650,7 +665,11 @@ def _make_nested_package_dict(ctx, prefix=None):
                         pkg_name = name_list[1].getText()
                     elif len(name_list) == 1:
                         name_text = name_list[0].getText()
-                        pkg_name, pkg_shortname = _extract_name_shortname(name_text)
+                        # Explicit angle brackets <name> → shortname; bare name → declaredName
+                        if hasattr(ident, 'LT') and ident.LT() is not None:
+                            pkg_shortname = name_text
+                        else:
+                            pkg_name = name_text
     
     # Process body elements
     body_elements = []
@@ -688,9 +707,67 @@ def _make_nested_package_dict(ctx, prefix=None):
     }
 
 
-def _make_part_definition_dict(ctx, prefix=None):
-    """Create a PartDefinition dictionary."""
+def _get_occurrence_usage_prefix(ctx):
+    """Extract OccurrenceUsagePrefix from a usage context (for 'ref', direction, etc.)."""
+    is_reference = False
+    
+    if hasattr(ctx, 'occurrenceUsagePrefix') and ctx.occurrenceUsagePrefix():
+        oup = ctx.occurrenceUsagePrefix()
+        if hasattr(oup, 'basicUsagePrefix') and oup.basicUsagePrefix():
+            bup = oup.basicUsagePrefix()
+            is_reference = hasattr(bup, 'REF') and bup.REF() is not None
+    
+    if not is_reference:
+        return None
+    
+    return {
+        "name": "OccurrenceUsagePrefix",
+        "prefix": {
+            "name": "BasicUsagePrefix",
+            "prefix": None,
+            "isReference": is_reference
+        },
+        "isIndividual": None,
+        "portionKind": None,
+        "usageExtension": []
+    }
+
+
+def _get_occurrence_definition_prefix(ctx):
+    """Extract OccurrenceDefinitionPrefix from a definition context (for 'abstract' etc.)."""
+    is_abstract = False
+    is_variation = False
+    
+    if hasattr(ctx, 'occurrenceDefinitionPrefix') and ctx.occurrenceDefinitionPrefix():
+        odp = ctx.occurrenceDefinitionPrefix()
+        if hasattr(odp, 'basicDefinitionPrefix') and odp.basicDefinitionPrefix():
+            bdp = odp.basicDefinitionPrefix()
+            is_abstract = hasattr(bdp, 'ABSTRACT') and bdp.ABSTRACT() is not None
+            is_variation = hasattr(bdp, 'VARIATION') and bdp.VARIATION() is not None
+    
+    if not is_abstract and not is_variation:
+        return None
+    
+    return {
+        "name": "OccurrenceDefinitionPrefix",
+        "prefix": {
+            "name": "BasicDefinitionPrefix",
+            "isAbstract": "abstract" if is_abstract else None,
+            "isVariation": "variation" if is_variation else None,
+        },
+        "isIndividual": None,
+        "ownedRelationship": [],
+        "keyword": []
+    }
+
+def _make_part_definition_dict(ctx, member_prefix=None):
+    """Create a PartDefinition dictionary.
+    
+    member_prefix: MemberPrefix dict (visibility) to place on PackageMember.prefix.
+    The OccurrenceDefinitionPrefix (abstract) is extracted from the ANTLR context.
+    """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     
     # Get body items
     body_items = []
@@ -703,12 +780,12 @@ def _make_part_definition_dict(ctx, prefix=None):
     
     result = {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "PartDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -732,60 +809,25 @@ def _make_part_definition_dict(ctx, prefix=None):
     return result
 
 
-def _make_attribute_definition_dict(ctx, prefix=None):
+def _make_attribute_definition_dict(ctx, member_prefix=None):
     """Create an AttributeDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "AttributeDefinition",
-                "prefix": prefix,
-                "definition": {
-                    "name": "Definition",
-                    "declaration": {
-                        "name": "DefinitionDeclaration",
-                        "identification": {
-                            "name": "Identification",
-                            "declaredShortName": shortname,
-                            "declaredName": name
-                        },
-                        "subclassificationpart": None
-                    },
-                    "body": {
-                        "name": "DefinitionBody",
-                        "ownedRelatedElement": []
-                    }
-                }
-            }
-        }
-    }
-
-
-def _make_port_definition_dict(ctx, prefix=None):
-    """Create a PortDefinition dictionary."""
-    name, shortname = _get_definition_identification(ctx)
-    
-    # Get body items
-    body_items = []
-    if hasattr(ctx, 'definition'):
-        defn = ctx.definition()
-        if defn and hasattr(defn, 'definitionBody'):
-            body_ctx = defn.definitionBody()
-            if body_ctx:
-                body_items = _visit_definition_body_dict(body_ctx)
-    
-    return {
-        "name": "PackageMember",
-        "prefix": None,
-        "ownedRelatedElement": {
-            "name": "DefinitionElement",
-            "ownedRelatedElement": {
-                "name": "PortDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -807,21 +849,71 @@ def _make_port_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_requirement_definition_dict(ctx, prefix=None):
+def _make_port_definition_dict(ctx, member_prefix=None):
+    """Create a PortDefinition dictionary."""
+    name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    
+    # Get body items
+    body_items = []
+    if hasattr(ctx, 'definition'):
+        defn = ctx.definition()
+        if defn and hasattr(defn, 'definitionBody'):
+            body_ctx = defn.definitionBody()
+            if body_ctx:
+                body_items = _visit_definition_body_dict(body_ctx)
+    
+    return {
+        "name": "PackageMember",
+        "prefix": member_prefix,
+        "ownedRelatedElement": {
+            "name": "DefinitionElement",
+            "ownedRelatedElement": {
+                "name": "PortDefinition",
+                "prefix": occ_prefix,
+                "definition": {
+                    "name": "Definition",
+                    "declaration": {
+                        "name": "DefinitionDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "subclassificationpart": None
+                    },
+                    "body": {
+                        "name": "DefinitionBody",
+                        "ownedRelatedElement": body_items
+                    }
+                }
+            }
+        }
+    }
+
+
+def _make_requirement_definition_dict(ctx, member_prefix=None):
     """Create a RequirementDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "Requirement_" + str(uuid.uuid4())[:8]
     
     # Note: RequirementDefinition uses 'declaration' not 'definition'
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "RequirementDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -840,21 +932,28 @@ def _make_requirement_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_use_case_definition_dict(ctx, prefix=None):
+def _make_use_case_definition_dict(ctx, member_prefix=None):
     """Create a UseCaseDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "UseCase_" + str(uuid.uuid4())[:8]
     
     # Note: UseCaseDefinition uses 'declaration' not 'definition'
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "UseCaseDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -874,20 +973,27 @@ def _make_use_case_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_interface_definition_dict(ctx, prefix=None):
+def _make_interface_definition_dict(ctx, member_prefix=None):
     """Create an InterfaceDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "Interface_" + str(uuid.uuid4())[:8]
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "InterfaceDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -901,7 +1007,7 @@ def _make_interface_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -909,7 +1015,7 @@ def _make_interface_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_action_definition_dict(ctx, prefix=None):
+def _make_action_definition_dict(ctx, member_prefix=None):
     """Create an ActionDefinition dictionary.
     
     ActionDefinition uses 'declaration' directly (not wrapped in 'definition').
@@ -936,12 +1042,12 @@ def _make_action_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "ActionDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -960,7 +1066,7 @@ def _make_action_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_state_definition_dict(ctx, prefix=None):
+def _make_state_definition_dict(ctx, member_prefix=None):
     """Create a StateDefinition dictionary.
     
     StateDefinition has the pattern:
@@ -990,12 +1096,12 @@ def _make_state_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "StateDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -1015,7 +1121,7 @@ def _make_state_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_constraint_definition_dict(ctx, prefix=None):
+def _make_constraint_definition_dict(ctx, member_prefix=None):
     """Create a ConstraintDefinition dictionary."""
     name = None
     shortname = None
@@ -1038,12 +1144,12 @@ def _make_constraint_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "ConstraintDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -1062,7 +1168,7 @@ def _make_constraint_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_calculation_definition_dict(ctx, prefix=None):
+def _make_calculation_definition_dict(ctx, member_prefix=None):
     """Create a CalculationDefinition dictionary."""
     name = None
     shortname = None
@@ -1085,12 +1191,12 @@ def _make_calculation_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "CalculationDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -1109,21 +1215,28 @@ def _make_calculation_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_connection_definition_dict(ctx, prefix=None):
+def _make_connection_definition_dict(ctx, member_prefix=None):
     """Create a ConnectionDefinition dictionary.
     
     ConnectionDefinition uses 'definition' wrapper pattern (like part, item, port).
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "ConnectionDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -1137,7 +1250,7 @@ def _make_connection_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -1145,21 +1258,28 @@ def _make_connection_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_flow_connection_definition_dict(ctx, prefix=None):
+def _make_flow_connection_definition_dict(ctx, member_prefix=None):
     """Create a FlowConnectionDefinition dictionary.
     
     FlowConnectionDefinition uses 'definition' wrapper pattern.
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "FlowConnectionDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -1173,7 +1293,7 @@ def _make_flow_connection_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -1539,16 +1659,23 @@ def _make_flow_connection_usage_dict(ctx, prefix=None):
     }
 
 
-def _make_view_definition_dict(ctx, prefix=None):
+def _make_view_definition_dict(ctx, member_prefix=None):
     """Create a ViewDefinition dictionary.
     
     viewDefinition: occurrenceDefinitionPrefix VIEW DEF definitionDeclaration viewDefinitionBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     # ViewDefinition uses _DeclaredDefinitionBase pattern: prefix + keyword + declaration + body
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
@@ -1565,22 +1692,29 @@ def _make_view_definition_dict(ctx, prefix=None):
                 },
                 "body": {
                     "name": "DefinitionBody",
-                    "ownedRelatedElement": []
+                    "ownedRelatedElement": body_items
                 }
             }
         }
     }
 
 
-def _make_viewpoint_definition_dict(ctx, prefix=None):
+def _make_viewpoint_definition_dict(ctx, member_prefix=None):
     """Create a ViewpointDefinition dictionary.
     
     viewpointDefinition: occurrenceDefinitionPrefix VIEWPOINT DEF definitionDeclaration requirementBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
@@ -1604,15 +1738,22 @@ def _make_viewpoint_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_concern_definition_dict(ctx, prefix=None):
+def _make_concern_definition_dict(ctx, member_prefix=None):
     """Create a ConcernDefinition dictionary.
     
     concernDefinition: occurrenceDefinitionPrefix CONCERN DEF definitionDeclaration requirementBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
@@ -1636,22 +1777,29 @@ def _make_concern_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_case_definition_dict(ctx, prefix=None):
+def _make_case_definition_dict(ctx, member_prefix=None):
     """Create a CaseDefinition dictionary.
     
     caseDefinition: occurrenceDefinitionPrefix CASE DEF definitionDeclaration caseBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "Case_" + str(uuid.uuid4())[:8]
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "CaseDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -1671,22 +1819,29 @@ def _make_case_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_analysis_case_definition_dict(ctx, prefix=None):
+def _make_analysis_case_definition_dict(ctx, member_prefix=None):
     """Create an AnalysisCaseDefinition dictionary.
     
     analysisCaseDefinition: occurrenceDefinitionPrefix ANALYSIS DEF definitionDeclaration caseBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "AnalysisCase_" + str(uuid.uuid4())[:8]
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "AnalysisCaseDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -1706,22 +1861,29 @@ def _make_analysis_case_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_verification_case_definition_dict(ctx, prefix=None):
+def _make_verification_case_definition_dict(ctx, member_prefix=None):
     """Create a VerificationCaseDefinition dictionary.
     
     verificationCaseDefinition: occurrenceDefinitionPrefix VERIFICATION DEF definitionDeclaration caseBody
     """
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "VerificationCase_" + str(uuid.uuid4())[:8]
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "VerificationCaseDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -2118,7 +2280,7 @@ def _make_individual_usage_dict(ctx, prefix=None):
     }
 
 
-def _make_enumeration_definition_dict(ctx, prefix=None):
+def _make_enumeration_definition_dict(ctx, member_prefix=None):
     """Create an EnumerationDefinition dictionary.
     
     EnumerationDefinition has 'declaration' and 'body' (EnumerationBody).
@@ -2144,12 +2306,12 @@ def _make_enumeration_definition_dict(ctx, prefix=None):
     
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "EnumerationDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "declaration": {
                     "name": "DefinitionDeclaration",
                     "identification": {
@@ -2168,17 +2330,24 @@ def _make_enumeration_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_allocation_definition_dict(ctx, prefix=None):
+def _make_allocation_definition_dict(ctx, member_prefix=None):
     """Create an AllocationDefinition dictionary (uses Definition body)."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "AllocationDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -2192,7 +2361,7 @@ def _make_allocation_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -2200,12 +2369,19 @@ def _make_allocation_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_metadata_definition_dict(ctx, prefix=None):
+def _make_metadata_definition_dict(ctx, member_prefix=None):
     """Create a MetadataDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
@@ -2225,7 +2401,7 @@ def _make_metadata_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -2233,17 +2409,24 @@ def _make_metadata_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_rendering_definition_dict(ctx, prefix=None):
+def _make_rendering_definition_dict(ctx, member_prefix=None):
     """Create a RenderingDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
+    # Get body items from definition body
+    body_items = []
+    if hasattr(ctx, "definition") and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, "definitionBody") and defn.definitionBody():
+            body_items = _visit_definition_body_dict(defn.definitionBody())
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "RenderingDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -2257,7 +2440,7 @@ def _make_rendering_definition_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }
@@ -2265,17 +2448,18 @@ def _make_rendering_definition_dict(ctx, prefix=None):
     }
 
 
-def _make_individual_definition_dict(ctx, prefix=None):
+def _make_individual_definition_dict(ctx, member_prefix=None):
     """Create an IndividualDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
+    occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
         "name": "PackageMember",
-        "prefix": None,
+        "prefix": member_prefix,
         "ownedRelatedElement": {
             "name": "DefinitionElement",
             "ownedRelatedElement": {
                 "name": "IndividualDefinition",
-                "prefix": prefix,
+                "prefix": occ_prefix,
                 "definition": {
                     "name": "Definition",
                     "declaration": {
@@ -2421,19 +2605,22 @@ def _visit_nested_occurrence_usage(occ_elem):
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             typed_by = _get_usage_typed_by(ctx)
-            return _make_nested_usage_element("PartUsage", name, shortname, None, body_items, typed_by)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, typed_by)
         elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
             ctx = struct_elem.itemUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             typed_by = _get_usage_typed_by(ctx)
-            return _make_nested_usage_element("ItemUsage", name, shortname, None, body_items, typed_by)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, typed_by)
         elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
             ctx = struct_elem.portUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             typed_by = _get_usage_typed_by(ctx)
-            return _make_nested_usage_element("PortUsage", name, shortname, None, body_items, typed_by)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, typed_by)
     
     # Check behavior usage elements (action)
     if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -2911,9 +3098,10 @@ def _make_default_reference_usage_dict(ctx):
             elif direction_text == 'inout':
                 direction_inout = "inout"
     
-    # Extract name from usage -> usageDeclaration -> identification
+    # Extract name and typed_by from usage -> usageDeclaration -> identification
     name = None
     shortname = None
+    typed_by = None
     if hasattr(ctx, 'usage') and ctx.usage():
         usage = ctx.usage()
         if hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
@@ -2928,7 +3116,15 @@ def _make_default_reference_usage_dict(ctx):
                             name = name_list[1].getText()
                         elif len(name_list) == 1:
                             name_text = name_list[0].getText()
-                            name, shortname = _extract_name_shortname(name_text)
+                            has_lt = hasattr(ident, 'LT') and ident.LT() is not None
+                            if has_lt:
+                                shortname = name_text
+                            else:
+                                name = name_text
+        # Extract typed_by from the usage context itself
+        typed_by = _get_usage_typed_by(ctx)
+    
+    specialization = _build_specialization(typed_by)
     
     return {
         "name": "NonOccurrenceUsageElement",
@@ -2958,7 +3154,7 @@ def _make_default_reference_usage_dict(ctx):
                         "declaredShortName": shortname,
                         "declaredName": name
                     },
-                    "specialization": None
+                    "specialization": specialization
                 }
             },
             "body": {
@@ -3131,12 +3327,8 @@ def _visit_nested_usage(usage_elem_ctx):
                             if hasattr(ident, 'name') and ident.name():
                                 name_list = ident.name()
                                 if name_list and isinstance(name_list, list):
-                                    name_text = name_list[0].getText()
-                                    # Check if it's a short name (quoted)
-                                    if name_text.startswith("'") or name_text.startswith('"'):
-                                        shortname = name_text
-                                    else:
-                                        name = name_text
+                                    name = name_list[0].getText()
+                                    shortname = None
                 return {
                     "name": "UsageElement",
                     "ownedRelatedElement": {
@@ -3327,19 +3519,22 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 typed_by = _get_usage_typed_by(ctx)
-                return _make_usage_dict("PartUsage", name, shortname, prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                occ_prefix = _get_occurrence_usage_prefix(ctx)
+                return _make_usage_dict("PartUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
             elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
                 ctx = struct_elem.itemUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 typed_by = _get_usage_typed_by(ctx)
-                return _make_usage_dict("ItemUsage", name, shortname, prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                occ_prefix = _get_occurrence_usage_prefix(ctx)
+                return _make_usage_dict("ItemUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
             elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
                 ctx = struct_elem.portUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 typed_by = _get_usage_typed_by(ctx)
-                return _make_usage_dict("PortUsage", name, shortname, prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                occ_prefix = _get_occurrence_usage_prefix(ctx)
+                return _make_usage_dict("PortUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
             elif hasattr(struct_elem, 'connectionUsage') and struct_elem.connectionUsage():
                 ctx = struct_elem.connectionUsage()
                 return _make_connection_usage_dict(ctx, prefix)
