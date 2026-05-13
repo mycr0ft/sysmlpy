@@ -496,10 +496,36 @@ def _visit_alias_member_dict(alias_ctx):
                 "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
             }
 
+    # Extract body annotations (e.g. block comments inside alias body)
+    body_owned = []
+    if hasattr(alias_ctx, 'relationshipBody') and alias_ctx.relationshipBody():
+        rb = alias_ctx.relationshipBody()
+        for child in rb.children:
+            if type(child).__name__ == 'RelationshipOwnedElementContext':
+                for c2 in child.children:
+                    if type(c2).__name__ == 'OwnedAnnotationContext':
+                        for c3 in c2.children:
+                            if type(c3).__name__ == 'AnnotatingElementContext':
+                                comment_text = c3.getText()
+                                body_owned.append({
+                                    "name": "OwnedAnnotation",
+                                    "ownedRelatedElement": [
+                                        {
+                                            "name": "AnnotatingElement",
+                                            "ownedRelatedElement": {
+                                                "name": "CommentSysML",
+                                                "body": comment_text,
+                                                "identification": None,
+                                                "ownedRelationship": []
+                                            }
+                                        }
+                                    ]
+                                })
+
     return {
         "name": "AliasMember",
         "prefix": prefix,
-        "body": {"name": "RelationshipBody", "ownedRelationship": []},
+        "body": {"name": "RelationshipBody", "ownedRelationship": body_owned},
         "memberShortName": short_name,
         "memberName": name,
         "memberElement": {"name": "QualifiedName", "names": qn_text.split("::")}

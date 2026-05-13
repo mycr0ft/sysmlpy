@@ -2883,8 +2883,8 @@ class CommentSysML:
                 return "comment " + self.identification.dump() + " " + self.body
             else:
                 import re
-
-                return "comment " + re.sub(r"\n[\s]*", "\n", self.body)
+                # Anonymous block comment — no 'comment' keyword, just the raw block comment
+                return re.sub(r"\n[\s]*", "\n", self.body)
 
     def get_definition(self):
         output = {"name": self.__class__.__name__}
