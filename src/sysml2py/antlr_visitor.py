@@ -754,21 +754,51 @@ def _make_nested_package_dict(ctx, prefix=None):
 def _get_occurrence_usage_prefix(ctx):
     """Extract OccurrenceUsagePrefix from a usage context (for 'ref', direction, etc.)."""
     is_reference = False
+    direction_in = ""
+    direction_out = ""
+    direction_inout = ""
     
     if hasattr(ctx, 'occurrenceUsagePrefix') and ctx.occurrenceUsagePrefix():
         oup = ctx.occurrenceUsagePrefix()
         if hasattr(oup, 'basicUsagePrefix') and oup.basicUsagePrefix():
             bup = oup.basicUsagePrefix()
             is_reference = hasattr(bup, 'REF') and bup.REF() is not None
+            # Extract direction from refPrefix
+            if hasattr(bup, 'refPrefix') and bup.refPrefix():
+                rp = bup.refPrefix()
+                if hasattr(rp, 'featureDirection') and rp.featureDirection():
+                    fd = rp.featureDirection()
+                    direction_in = "in " if fd.IN() is not None else ""
+                    direction_out = "out" if fd.OUT() is not None else ""
+                    direction_inout = "inout" if fd.INOUT() is not None else ""
     
-    if not is_reference:
+    has_direction = any([direction_in, direction_out, direction_inout])
+    
+    if not is_reference and not has_direction:
         return None
+    
+    ref_prefix = None
+    if has_direction:
+        ref_prefix = {
+            "name": "RefPrefix",
+            "direction": {
+                "name": "FeatureDirection",
+                "in": direction_in,
+                "out": direction_out,
+                "inout": direction_inout
+            },
+            "isAbstract": None,
+            "isVariation": None,
+            "isReadOnly": None,
+            "isDerived": None,
+            "isEnd": None
+        }
     
     return {
         "name": "OccurrenceUsagePrefix",
         "prefix": {
             "name": "BasicUsagePrefix",
-            "prefix": None,
+            "prefix": ref_prefix,
             "isReference": is_reference
         },
         "isIndividual": None,
@@ -2656,23 +2686,23 @@ def _visit_nested_occurrence_usage(occ_elem):
             ctx = struct_elem.partUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
-            typed_by = _get_usage_typed_by(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
-            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, typed_by)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization)
         elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
             ctx = struct_elem.itemUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
-            typed_by = _get_usage_typed_by(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
-            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, typed_by)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization)
         elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
             ctx = struct_elem.portUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
-            typed_by = _get_usage_typed_by(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
-            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, typed_by)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization)
     
     # Check behavior usage elements (action)
     if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -2742,8 +2772,7 @@ def _visit_nested_non_occurrence_usage(non_occ):
     if hasattr(non_occ, 'attributeUsage') and non_occ.attributeUsage():
         ctx = non_occ.attributeUsage()
         name, shortname = _get_usage_identification(ctx)
-        typed_by = _get_usage_typed_by(ctx)
-        specialization = _build_specialization(typed_by)
+        specialization = _build_full_specialization_from_ctx(ctx)
         valuepart = _get_usage_value_part(ctx)
         return {
             "name": "NonOccurrenceUsageElement",
@@ -3251,12 +3280,16 @@ def _visit_nested_definition_element(def_elem):
     return None
 
 
-def _make_nested_usage_element(usage_type, name, shortname, prefix, body_items=None, typed_by=None):
-    """Build a nested usage element (not wrapped in PackageMember)."""
+def _make_nested_usage_element(usage_type, name, shortname, prefix, body_items=None, specialization=None):
+    """Build a nested usage element (not wrapped in PackageMember).
+    
+    Parameters
+    ----------
+    specialization : dict or None
+        Pre-built FeatureSpecializationPart dict, or None.
+    """
     if body_items is None:
         body_items = []
-    
-    specialization = _build_specialization(typed_by)
     
     return {
         "name": "UsageElement",
@@ -3838,6 +3871,8 @@ def _build_specialization(typed_by):
     if not typed_by:
         return None
     
+    qn_names = typed_by.split("::")
+    
     return {
         "name": "FeatureSpecializationPart",
         "specialization": [
@@ -3856,7 +3891,7 @@ def _build_specialization(typed_by):
                                         "name": "FeatureType",
                                         "type": {
                                             "name": "QualifiedName",
-                                            "names": [typed_by]
+                                            "names": qn_names
                                         },
                                         "ownedRelatedElement": []
                                     }
@@ -3869,6 +3904,248 @@ def _build_specialization(typed_by):
             }
         ],
         "multiplicity": None,
+        "specialization2": [],
+        "multiplicity2": None,
+    }
+
+
+def _get_multiplicity_part(fsp_ctx):
+    """Extract MultiplicityPart dict from featureSpecializationPart context.
+    
+    Handles [N], [N..M], [*] forms. Returns None if no multiplicity.
+    """
+    if fsp_ctx is None:
+        return None
+    
+    for child in fsp_ctx.children:
+        if type(child).__name__ == 'MultiplicityPartContext':
+            mp_ctx = child
+            break
+    else:
+        return None
+    
+    try:
+        omc = mp_ctx.children[0]       # OwnedMultiplicityContext
+        omrc = omc.children[0]          # OwnedMultiplicityRangeContext
+        bounds = omrc.children[0]       # MultiplicityBoundsContext
+        members = [c for c in bounds.children if 'ExpressionMember' in type(c).__name__]
+        
+        def _make_bound(value_text):
+            if value_text == '*':
+                return {
+                    "name": "MultiplicityExpressionMember",
+                    "ownedRelatedElement": [
+                        {"name": "MultiplicityRelatedElement", "ownedRelatedElement":
+                            {"name": "LiteralInfinity", "value": "*"}
+                        }
+                    ]
+                }
+            else:
+                return {
+                    "name": "MultiplicityExpressionMember",
+                    "ownedRelatedElement": [
+                        {"name": "MultiplicityRelatedElement", "ownedRelatedElement":
+                            {"name": "LiteralInteger", "value": int(value_text)}
+                        }
+                    ]
+                }
+        
+        if len(members) == 1:
+            # [N] or [*]
+            bound_dicts = [_make_bound(members[0].getText())]
+        elif len(members) == 2:
+            # [N..M]
+            bound_dicts = [_make_bound(members[0].getText()), _make_bound(members[1].getText())]
+        else:
+            return None
+        
+        return {
+            "name": "MultiplicityPart",
+            "isOrdered": False,
+            "isNonunique": False,
+            "ownedRelationship": [
+                {
+                    "name": "OwnedMultiplicity",
+                    "ownedRelatedElement": [
+                        {
+                            "name": "MultiplicityRange",
+                            "ownedRelationship": bound_dicts
+                        }
+                    ]
+                }
+            ]
+        }
+    except (IndexError, AttributeError):
+        return None
+
+
+def _build_full_specialization_from_ctx(ctx):
+    """Build a full FeatureSpecializationPart dict from a usage ANTLR context.
+    
+    Extracts all specializations (typings, redefinitions, subsets) from the
+    featureSpecializationPart of the usage declaration.
+    Returns None if there are no specializations.
+    """
+    if ctx is None:
+        return None
+    
+    usage = None
+    if hasattr(ctx, 'usage') and ctx.usage():
+        usage = ctx.usage()
+    
+    ud = None
+    if usage and hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
+        ud = usage.usageDeclaration()
+    
+    if ud is None:
+        return None
+    
+    fsp = None
+    if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+        fsp = ud.featureSpecializationPart()
+    
+    if fsp is None:
+        return None
+    
+    specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
+    if not specs:
+        return None
+    
+    if not isinstance(specs, list):
+        specs = [specs]
+    
+    specialization_list = []
+    
+    for spec in specs:
+        # Typings: ': TypeName'
+        if hasattr(spec, 'typings') and spec.typings():
+            typings = spec.typings()
+            # Navigate to the type qualified name
+            typed_by = None
+            if hasattr(typings, 'typedby') and typings.typedby():
+                tb = typings.typedby()
+                if hasattr(tb, 'featureType'):
+                    for ft in (tb.featureType() if isinstance(tb.featureType(), list) else [tb.featureType()]):
+                        if hasattr(ft, 'qualifiedName') and ft.qualifiedName():
+                            typed_by = ft.qualifiedName().getText()
+                            break
+            if typed_by is None:
+                # Fallback: extract from typings getText
+                t_text = typings.getText()
+                if t_text.startswith(':'):
+                    typed_by = t_text[1:].strip()
+            if typed_by:
+                qn_names = typed_by.split("::")
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Typings",
+                        "typedby": {
+                            "name": "TypedBy",
+                            "ownedRelationship": [
+                                {
+                                    "name": "FeatureTyping",
+                                    "ownedRelationship": {
+                                        "name": "OwnedFeatureTyping",
+                                        "type": {
+                                            "name": "FeatureType",
+                                            "type": {"name": "QualifiedName", "names": qn_names},
+                                            "ownedRelatedElement": []
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "ownedRelationship": []
+                    }
+                })
+        
+        # Redefinitions: ':>> name' or 'redefines name'
+        elif hasattr(spec, 'redefinitions') and spec.redefinitions():
+            redef_ctx = spec.redefinitions()
+            redef_names = []
+            # RedefinitionsContext → [RedefinesContext, ...] → [OwnedRedefinitionContext, ...] → QualifiedNameContext
+            for child in redef_ctx.children:
+                child_name = type(child).__name__
+                if child_name == 'OwnedRedefinitionContext':
+                    for c2 in child.children:
+                        if type(c2).__name__ == 'QualifiedNameContext':
+                            redef_names.append(c2.getText())
+                elif child_name == 'RedefinesContext':
+                    for c2 in child.children:
+                        if type(c2).__name__ == 'OwnedRedefinitionContext':
+                            for c3 in c2.children:
+                                if type(c3).__name__ == 'QualifiedNameContext':
+                                    redef_names.append(c3.getText())
+            if redef_names:
+                owned = [
+                    {
+                        "name": "OwnedRedefinition",
+                        "redefinedFeature": {"name": "QualifiedName", "names": n.split("::")},
+                        "ownedRelatedElement": []
+                    }
+                    for n in redef_names
+                ]
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Redefinitions",
+                        "ownedRelationship": owned
+                    }
+                })
+        
+        # Subsettings: ':> name' or 'subsets name'
+        elif hasattr(spec, 'subsettings') and spec.subsettings():
+            sub_ctx = spec.subsettings()
+            sub_names = []
+            # SubsettingsContext → [SubsetsContext, ...] → [OwnedSubsettingContext] → QualifiedNameContext
+            for child in sub_ctx.children:
+                child_name = type(child).__name__
+                if child_name == 'OwnedSubsettingContext':
+                    for c2 in child.children:
+                        if type(c2).__name__ == 'QualifiedNameContext':
+                            sub_names.append(c2.getText())
+                elif child_name == 'SubsetsContext':
+                    for c2 in child.children:
+                        if type(c2).__name__ == 'OwnedSubsettingContext':
+                            for c3 in c2.children:
+                                if type(c3).__name__ == 'QualifiedNameContext':
+                                    sub_names.append(c3.getText())
+                elif child_name == 'SpecializesContext':
+                    for c2 in child.children:
+                        if type(c2).__name__ == 'OwnedSubsettingContext':
+                            for c3 in c2.children:
+                                if type(c3).__name__ == 'QualifiedNameContext':
+                                    sub_names.append(c3.getText())
+            if sub_names:
+                owned = [
+                    {
+                        "name": "OwnedSubsetting",
+                        "subsettedFeature": {"name": "QualifiedName", "names": n.split("::")},
+                        "ownedRelatedElement": []
+                    }
+                    for n in sub_names
+                ]
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Subsettings",
+                        "ownedRelationship": owned
+                    }
+                })
+    
+    if not specialization_list and fsp is None:
+        return None
+    
+    multiplicity = _get_multiplicity_part(fsp)
+    
+    if not specialization_list and multiplicity is None:
+        return None
+    
+    return {
+        "name": "FeatureSpecializationPart",
+        "specialization": specialization_list,
+        "multiplicity": multiplicity,
         "specialization2": [],
         "multiplicity2": None,
     }
