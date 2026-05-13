@@ -515,7 +515,29 @@ class Usage:
                     u_name = None
             else:
                 u_name = None
-            children = []
+            
+            # Extract children from usage body: grammar.usage.completion.body.body.children
+            # This mirrors the PartDefinition path: grammar.definition.body.children
+            try:
+                body = usage.completion.body.body
+                if hasattr(body, 'children') and body.children:
+                    children_list = []
+                    for body_item in body.children:
+                        if hasattr(body_item, 'children') and body_item.children:
+                            member = body_item.children[0]
+                            mc = member.children if isinstance(member.children, list) else [member.children]
+                            for inner in mc:
+                                if inner is None:
+                                    continue
+                                # Handle DefinitionElement wrapping
+                                if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
+                                    inner = inner.children[0]
+                                children_list.append(inner)
+                    children = children_list
+                else:
+                    children = []
+            except AttributeError:
+                children = []
         elif hasattr(grammar, 'declaration'):
             # This type uses 'declaration' directly (RequirementDefinition, UseCaseDefinition, some usages)
             decl = grammar.declaration
