@@ -4632,23 +4632,23 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                 ctx = struct_elem.partUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
-                typed_by = _get_usage_typed_by(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_usage_dict("PartUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                return _make_usage_dict("PartUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, specialization=specialization)
             elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
                 ctx = struct_elem.itemUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
-                typed_by = _get_usage_typed_by(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_usage_dict("ItemUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                return _make_usage_dict("ItemUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, specialization=specialization)
             elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
                 ctx = struct_elem.portUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
-                typed_by = _get_usage_typed_by(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_usage_dict("PortUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, typed_by=typed_by)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                return _make_usage_dict("PortUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, specialization=specialization)
             elif hasattr(struct_elem, 'connectionUsage') and struct_elem.connectionUsage():
                 ctx = struct_elem.connectionUsage()
                 return _make_connection_usage_dict(ctx, prefix)
@@ -4811,7 +4811,7 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
     return None
 
 
-def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrapped=True, body_items=None, typed_by=None):
+def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrapped=True, body_items=None, typed_by=None, specialization=None):
     """Build a usage dictionary for PartUsage/ItemUsage/PortUsage.
     
     Parameters
@@ -4833,6 +4833,8 @@ def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrappe
         List of nested body items
     typed_by : str
         Name of the type this usage is typed by (e.g., "Fuel" in "item Hydrogen : Fuel")
+    specialization : dict or None
+        Pre-built FeatureSpecializationPart dict (from _build_full_specialization_from_ctx)
     
     Returns
     -------
@@ -4842,8 +4844,9 @@ def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrappe
     if body_items is None:
         body_items = []
     
-    # Build specialization if typed_by is present
-    specialization = _build_specialization(typed_by)
+    # Build specialization - prefer pre-built specialization, fall back to typed_by
+    if specialization is None and typed_by:
+        specialization = _build_specialization(typed_by)
     
     inner_usage = {
         "name": usage_type,
@@ -5028,6 +5031,9 @@ def _build_full_specialization_from_ctx(ctx):
     ud = None
     if usage and hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
         ud = usage.usageDeclaration()
+        # ud can be a list (multiple alternatives) or a single context
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
     
     if ud is None:
         return None
@@ -5095,20 +5101,24 @@ def _build_full_specialization_from_ctx(ctx):
         # Redefinitions: ':>> name' or 'redefines name'
         elif hasattr(spec, 'redefinitions') and spec.redefinitions():
             redef_ctx = spec.redefinitions()
+            # redef_ctx can be a single RedefinitionsContext or a list
+            if not isinstance(redef_ctx, list):
+                redef_ctx = [redef_ctx]
             redef_names = []
-            # RedefinitionsContext → [RedefinesContext, ...] → [OwnedRedefinitionContext, ...] → QualifiedNameContext
-            for child in redef_ctx.children:
-                child_name = type(child).__name__
-                if child_name == 'OwnedRedefinitionContext':
-                    for c2 in child.children:
-                        if type(c2).__name__ == 'QualifiedNameContext':
-                            redef_names.append(c2.getText())
-                elif child_name == 'RedefinesContext':
-                    for c2 in child.children:
-                        if type(c2).__name__ == 'OwnedRedefinitionContext':
-                            for c3 in c2.children:
-                                if type(c3).__name__ == 'QualifiedNameContext':
-                                    redef_names.append(c3.getText())
+            for rc in redef_ctx:
+                # RedefinitionsContext → [RedefinesContext, ...] → [OwnedRedefinitionContext, ...] → QualifiedNameContext
+                for child in rc.children:
+                    child_name = type(child).__name__
+                    if child_name == 'OwnedRedefinitionContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'QualifiedNameContext':
+                                redef_names.append(c2.getText())
+                    elif child_name == 'RedefinesContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedRedefinitionContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        redef_names.append(c3.getText())
             if redef_names:
                 owned = [
                     {
@@ -5129,26 +5139,30 @@ def _build_full_specialization_from_ctx(ctx):
         # Subsettings: ':> name' or 'subsets name'
         elif hasattr(spec, 'subsettings') and spec.subsettings():
             sub_ctx = spec.subsettings()
+            # sub_ctx can be a single SubsettingsContext or a list
+            if not isinstance(sub_ctx, list):
+                sub_ctx = [sub_ctx]
             sub_names = []
-            # SubsettingsContext → [SubsetsContext, ...] → [OwnedSubsettingContext] → QualifiedNameContext
-            for child in sub_ctx.children:
-                child_name = type(child).__name__
-                if child_name == 'OwnedSubsettingContext':
-                    for c2 in child.children:
-                        if type(c2).__name__ == 'QualifiedNameContext':
-                            sub_names.append(c2.getText())
-                elif child_name == 'SubsetsContext':
-                    for c2 in child.children:
-                        if type(c2).__name__ == 'OwnedSubsettingContext':
-                            for c3 in c2.children:
-                                if type(c3).__name__ == 'QualifiedNameContext':
-                                    sub_names.append(c3.getText())
-                elif child_name == 'SpecializesContext':
-                    for c2 in child.children:
-                        if type(c2).__name__ == 'OwnedSubsettingContext':
-                            for c3 in c2.children:
-                                if type(c3).__name__ == 'QualifiedNameContext':
-                                    sub_names.append(c3.getText())
+            for sc in sub_ctx:
+                # SubsettingsContext → [SubsetsContext, ...] → [OwnedSubsettingContext] → QualifiedNameContext
+                for child in sc.children:
+                    child_name = type(child).__name__
+                    if child_name == 'OwnedSubsettingContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'QualifiedNameContext':
+                                sub_names.append(c2.getText())
+                    elif child_name == 'SubsetsContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedSubsettingContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        sub_names.append(c3.getText())
+                    elif child_name == 'SpecializesContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedSubsettingContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        sub_names.append(c3.getText())
             if sub_names:
                 owned = [
                     {
