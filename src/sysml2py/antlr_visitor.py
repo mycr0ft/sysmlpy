@@ -1232,6 +1232,113 @@ def _visit_action_body_item(abi_ctx):
     return None
 
 
+def _visit_calculation_body_items(ctx):
+    """Extract CalculationBodyPart dicts from a constraint/calculation definition context.
+    
+    Processes calculationBody().calculationBodyPart() items, handling calculationBodyItem
+    (in/out parameters, attributes) and result expressions.
+    """
+    if ctx is None:
+        return []
+    
+    calc_body = None
+    if hasattr(ctx, 'calculationBody') and ctx.calculationBody():
+        calc_body = ctx.calculationBody()
+    
+    if calc_body is None:
+        return []
+    
+    parts = []
+    if hasattr(calc_body, 'calculationBodyPart') and calc_body.calculationBodyPart():
+        part_ctx = calc_body.calculationBodyPart()
+        if part_ctx:
+            part_dict = _visit_calculation_body_part(part_ctx)
+            if part_dict:
+                parts.append(part_dict)
+    
+    return parts
+
+
+def _visit_calculation_body_part(part_ctx):
+    """Visit a single CalculationBodyPart and return a dict."""
+    if part_ctx is None:
+        return None
+    
+    items = []
+    rem = []
+    
+    # Handle calculationBodyItem
+    if hasattr(part_ctx, 'calculationBodyItem') and part_ctx.calculationBodyItem():
+        for cbi_ctx in part_ctx.calculationBodyItem():
+            item_dict = _visit_calculation_body_item(cbi_ctx)
+            if item_dict:
+                items.append(item_dict)
+    
+    return {
+        "name": "CalculationBodyPart",
+        "item": items,
+        "ownedRelationship": rem
+    }
+
+
+def _visit_calculation_body_item(cbi_ctx):
+    """Visit a single CalculationBodyItem and return a CalculationBodyItem dict."""
+    if cbi_ctx is None:
+        return None
+    
+    # Handle actionBodyItem (which contains nonBehaviorBodyItem)
+    if hasattr(cbi_ctx, 'actionBodyItem') and cbi_ctx.actionBodyItem():
+        abi = cbi_ctx.actionBodyItem()
+        action_item = _visit_action_body_item(abi)
+        if action_item:
+            return {
+                "name": "CalculationBodyItem",
+                "item": action_item,
+                "ownedRelationship": None
+            }
+    
+    # Handle returnParameterMember
+    if hasattr(cbi_ctx, 'returnParameterMember') and cbi_ctx.returnParameterMember():
+        rpm = cbi_ctx.returnParameterMember()
+        inner = _visit_return_parameter_member(rpm)
+        if inner:
+            return {
+                "name": "CalculationBodyItem",
+                "item": None,
+                "ownedRelationship": inner
+            }
+    
+    return None
+
+
+def _visit_return_parameter_member(rpm_ctx):
+    """Visit a returnParameterMember."""
+    if rpm_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(rpm_ctx, 'memberPrefix') and rpm_ctx.memberPrefix():
+        mp = rpm_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    # Find usageElement
+    usage_elem = None
+    for child in rpm_ctx.children:
+        if type(child).__name__ == 'UsageElementContext':
+            usage_elem = _visit_usage_element(child, None)
+            break
+    
+    return {
+        "name": "ReturnParameterMember",
+        "prefix": prefix,
+        "ownedRelatedElement": usage_elem
+    }
+
+
 def _visit_non_behavior_body_item(nbi_ctx):
     """Visit a nonBehaviorBodyItem - similar to definitionBodyItem but inside action body."""
     if nbi_ctx is None:
@@ -1358,6 +1465,10 @@ def _make_constraint_definition_dict(ctx, member_prefix=None):
                         name, shortname = _extract_name_shortname(name_text)
     
     occ_prefix = _get_occurrence_definition_prefix(ctx)
+    
+    # Get body items from calculationBody
+    body_parts = _visit_calculation_body_items(ctx)
+    
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1377,7 +1488,7 @@ def _make_constraint_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "CalculationBody",
-                    "part": []
+                    "part": body_parts
                 }
             }
         }

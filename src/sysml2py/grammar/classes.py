@@ -2035,7 +2035,7 @@ class CalculationBodyItem:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["item"] is not None:
                     self.children.append(ActionBodyItem(definition["item"]))
-                else:
+                elif definition["ownedRelationship"] is not None:
                     self.children.append(
                         ReturnParameterMember(definition["ownedRelationship"])
                     )
@@ -2045,7 +2045,14 @@ class CalculationBodyItem:
 
     def get_definition(self):
         output = {"name": self.__class__.__name__, "item": None, "ownedRelationship": None}
-        # Only one child expected
+        if len(self.children) > 0:
+            child = self.children[0]
+            if hasattr(child, 'get_definition'):
+                child_def = child.get_definition()
+                if child_def.get("name") == "ActionBodyItem":
+                    output["item"] = child_def
+                elif child_def.get("name") == "ReturnParameterMember":
+                    output["ownedRelationship"] = child_def
         return output
 
 
@@ -5909,7 +5916,7 @@ class FeatureSpecializationPart:
         }
 
         if self.multiplicity is not None:
-            output["multiplicity"].get_definition()
+            output["multiplicity"] = self.multiplicity.get_definition()
 
         if len(self.specializations) > 0:
             for child in self.specializations:
@@ -5948,6 +5955,17 @@ class MultiplicityPart:
 
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "isOrdered": self.isOrdered,
+            "isNonunique": self.isNonunique,
+            "ownedRelationship": []
+        }
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class OwnedMultiplicity:
     def __init__(self, definition):
@@ -5959,6 +5977,12 @@ class OwnedMultiplicity:
     def dump(self):
         output = [child.dump() for child in self.children]
         return "".join(output)
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "ownedRelatedElement": []}
+        for child in self.children:
+            output["ownedRelatedElement"].append(child.get_definition())
+        return output
 
 
 class MultiplicityRange:
@@ -5972,6 +5996,12 @@ class MultiplicityRange:
         output = [child.dump() for child in self.children]
         return "[" + "..".join(output) + "]"
 
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "ownedRelationship": []}
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class MultiplicityExpressionMember:
     def __init__(self, definition):
@@ -5982,6 +6012,12 @@ class MultiplicityExpressionMember:
 
     def dump(self):
         return "".join([child.dump() for child in self.children])
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "ownedRelatedElement": []}
+        for child in self.children:
+            output["ownedRelatedElement"].append(child.get_definition())
+        return output
 
 
 class MultiplicityRelatedElement:
@@ -5997,6 +6033,12 @@ class MultiplicityRelatedElement:
 
     def dump(self):
         return str(self.element.dump())
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.element.get_definition()
+        }
 
 
 class LiteralString:
