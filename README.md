@@ -132,5 +132,42 @@ print(r3.dump())
 # → ref :>> payload : Person;
 ```
 
+## Grammar Round-Trip
+
+`loads()` parses SysML v2 text and `classtree()` converts the result back to text. This round-trip is the basis for the grammar test suite.
+
+```python
+from sysml2py import loads
+from sysml2py.formatting import classtree
+
+text = """package 'Action Example' {
+    action def Focus { in scene : Scene; out image : Image; }
+    action def Shoot { in image: Image; out picture : Picture; }
+
+    action def TakePicture {
+        in item scene : Scene;
+        out item picture : Picture;
+
+        bind focus.scene = scene;
+
+        action focus : Focus { in scene; out image; }
+
+        flow focus.image to shoot.image;
+
+        first focus then shoot;
+
+        action shoot : Shoot { in image; out picture; }
+
+        bind shoot.picture = picture;
+    }
+}"""
+
+model = loads(text)
+tree = classtree(model)
+print(tree.dump())
+```
+
+**61% of the 56 grammar round-trip tests currently pass** (34/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, and constraints.
+
 ## License
 sysml2py is released under the MIT license, hence allowing commercial use of the library.
