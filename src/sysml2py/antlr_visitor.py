@@ -5189,12 +5189,16 @@ def _visit_owned_expression(oe_ctx):
     """Visit an ownedExpression context and return the OwnedExpression dict.
     
     This handles literals (int, real, string) and unit expressions like "100 [kilogram]".
-    For complex expressions, it falls back to a best-effort interpretation.
+    For complex expressions, it falls back to a best-effort interpretation that
+    preserves the original text via a FeatureReferenceMember.
     """
     if oe_ctx is None:
         return None
     
     text = oe_ctx.getText().strip() if hasattr(oe_ctx, 'getText') else ''
+    
+    if not text:
+        return None
     
     # Check for unit expression pattern: "value[unit]"
     if '[' in text and text.endswith(']'):
@@ -5227,12 +5231,10 @@ def _visit_owned_expression(oe_ctx):
         primary = _make_literal_string_primary(text)
         return _wrap_expression_layers(primary)
     
-    # Feature reference (identifier)
-    if text and text[0].isalpha():
-        primary = _make_feature_reference_primary(text)
-        return _wrap_expression_layers(primary)
-    
-    return None
+    # Complex expression or feature reference - preserve raw text
+    # Wrap as a single FeatureReferenceMember with the original text
+    primary = _make_feature_reference_primary(text)
+    return _wrap_expression_layers(primary)
 
 
 def _visit_value_part(vp_ctx):
