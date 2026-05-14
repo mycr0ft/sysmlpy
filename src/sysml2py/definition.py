@@ -11,6 +11,7 @@ import uuid as uuidlib
 from typing import TypeVar
 
 from sysml2py.formatting import classtree
+from sysml2py.navigate import Searchable
 from sysml2py.grammar.classes import (
     Identification,
     PackageMember,
@@ -29,7 +30,12 @@ from sysml2py.usage import (
 ModelType = TypeVar("Model", bound="Model")
 
 
-class Model:
+class Model(Searchable):
+    """Root model container.  Exposes typed accessors and ``find()`` / ``all()``
+    across all child packages and their contents."""
+
+    sysml_type = None  # Model is the root, not a SysML element itself
+
     def __init__(self):
         self.name = str(uuidlib.uuid4())
         self.children = []
@@ -197,7 +203,12 @@ class Model:
                     return child._get_child(featurechain)
 
 
-class Package:
+class Package(Searchable):
+    """SysML v2 Package.  Exposes typed accessors and ``find()`` / ``all()``
+    across its direct and nested children."""
+
+    sysml_type = "package"
+
     def __init__(self, name=None, shortname=None):
         self.name = str(uuidlib.uuid4())
         self.children = []

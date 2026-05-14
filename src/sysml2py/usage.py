@@ -18,6 +18,7 @@ import pint
 ureg = pint.UnitRegistry()
 
 from sysml2py.formatting import classtree
+from sysml2py.navigate import Searchable
 
 from sysml2py.grammar.classes import (
     Identification,
@@ -78,11 +79,35 @@ from sysml2py.grammar.classes import (
 )
 
 
-class Usage:
+class Usage(Searchable):
+    """Base class for all SysML v2 usage and definition wrapper objects."""
+
+    #: SysML type keyword for this element (overridden by each subclass).
+    sysml_type = None
+
     def __init__(self):
         self.name = str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self._is_definition = None  # overridden via the setter below
+
+    @property
+    def is_definition(self):
+        """``True`` when this object wraps a *definition* (e.g. ``part def``)
+        rather than a usage (``part``).
+
+        Subclass ``__init__`` methods assign ``self.is_definition = True/False``
+        which is stored via the setter so we never mask existing instance
+        variable semantics.
+        """
+        if self._is_definition is not None:
+            return self._is_definition
+        # Fallback: infer from the grammar class name
+        return type(getattr(self, "grammar", None)).__name__.endswith("Definition")
+
+    @is_definition.setter
+    def is_definition(self, value):
+        self._is_definition = bool(value)
 
     def _ensure_body(self, subgrammar="usage"):
         # Add children
@@ -616,6 +641,7 @@ class Usage:
 
 
 class Attribute(Usage):
+    sysml_type = 'attribute'
     def __init__(self, definition=False, name=None):
         Usage.__init__(self)
 
@@ -957,6 +983,7 @@ class Attribute(Usage):
 
 
 class Part(Usage):
+    sysml_type = 'part'
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -971,6 +998,7 @@ class Part(Usage):
 
 
 class Item(Usage):
+    sysml_type = 'item'
     def __init__(self, definition=False, name=None, shortname=None):
         Usage.__init__(self)
         if definition:
@@ -985,6 +1013,7 @@ class Item(Usage):
 
 
 class Port(Usage):
+    sysml_type = 'port'
     def __init__(self, definition=False, name=None, shortname=None, conjugated=False):
         Usage.__init__(self)
         if definition:
@@ -1088,6 +1117,7 @@ class Port(Usage):
 
 
 class Interface(Usage):
+    sysml_type = 'interface'
     def __init__(self, definition=False, name=None, shortname=None):
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
@@ -1167,6 +1197,7 @@ class Interface(Usage):
 
 
 class Action(Usage):
+    sysml_type = 'action'
     def __init__(self, definition=False, name=None, shortname=None, grammar=None):
         # If grammar is provided (from load_from_grammar), use it
         if grammar is not None:
@@ -1392,6 +1423,7 @@ class Action(Usage):
 
 
 class UseCase(Usage):
+    sysml_type = 'use_case'
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = UseCaseDefinition()
@@ -1523,6 +1555,7 @@ class UseCase(Usage):
 
 
 class Requirement(Usage):
+    sysml_type = 'requirement'
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = RequirementDefinition(None)
@@ -1703,6 +1736,7 @@ class Requirement(Usage):
 
 
 class Message(Usage):
+    sysml_type = 'message'
     def __init__(self, name=None, from_port=None, to_port=None, of_type=None):
         """Create a message.
 
@@ -1910,6 +1944,7 @@ class _NonOccurrenceUsage(Usage):
 
 
 class State(_BehaviorUsage):
+    sysml_type = 'state'
     """SysML v2 State Machine state usage/definition.
     
     Usage:
@@ -1931,6 +1966,7 @@ class State(_BehaviorUsage):
 
 
 class Constraint(_NonOccurrenceUsage):
+    sysml_type = 'constraint'
     """SysML v2 Constraint usage/definition.
     
     Usage:
@@ -1952,6 +1988,7 @@ class Constraint(_NonOccurrenceUsage):
 
 
 class Connection(Usage):
+    sysml_type = 'connection'
     """SysML v2 Connection usage/definition.
     
     Usage:
@@ -1973,6 +2010,7 @@ class Connection(Usage):
 
 
 class Flow(Usage):
+    sysml_type = 'flow'
     """SysML v2 Flow connection usage/definition.
     
     Usage:
@@ -1994,6 +2032,7 @@ class Flow(Usage):
 
 
 class Calculation(_NonOccurrenceUsage):
+    sysml_type = 'calculation'
     """SysML v2 Calculation usage/definition.
     
     Usage:
@@ -2015,6 +2054,7 @@ class Calculation(_NonOccurrenceUsage):
 
 
 class Enumeration(Usage):
+    sysml_type = 'enumeration'
     """SysML v2 Enumeration definition.
     
     Note: SysML v2 only has EnumerationDefinition, no EnumerationUsage.
@@ -2034,6 +2074,7 @@ class Enumeration(Usage):
 
 
 class Allocation(Usage):
+    sysml_type = 'allocation'
     """SysML v2 Allocation usage/definition.
     
     Allocation represents mapping from one model element to another.
@@ -2057,6 +2098,7 @@ class Allocation(Usage):
 
 
 class Metadata(_NonOccurrenceUsage):
+    sysml_type = 'metadata'
     """SysML v2 Metadata usage/definition.
     
     Metadata attaches additional information to model elements.
@@ -2080,6 +2122,7 @@ class Metadata(_NonOccurrenceUsage):
 
 
 class Rendering(Usage):
+    sysml_type = 'rendering'
     """SysML v2 Rendering usage/definition.
     
     Rendering specifies how views should be rendered.
@@ -2103,6 +2146,7 @@ class Rendering(Usage):
 
 
 class Individual(Usage):
+    sysml_type = 'individual'
     """SysML v2 Individual usage/definition.
     
     Individual represents a specific instance or occurrence.
@@ -2126,6 +2170,7 @@ class Individual(Usage):
 
 
 class FlowDef(Usage):
+    sysml_type = 'flow'
     """SysML v2 FlowDefinition alternate form.
     
     Note: This is the simpler 'flow def' form (distinct from FlowConnectionDefinition).
@@ -2145,6 +2190,7 @@ class FlowDef(Usage):
 
 
 class View(Usage):
+    sysml_type = 'view'
     """SysML v2 View usage/definition.
     
     Views define how models are presented and filtered.
@@ -2168,6 +2214,7 @@ class View(Usage):
 
 
 class Viewpoint(_BehaviorUsage):
+    sysml_type = 'viewpoint'
     """SysML v2 Viewpoint usage/definition.
     
     Viewpoints specify viewing perspectives with stakeholder concerns.
@@ -2191,6 +2238,7 @@ class Viewpoint(_BehaviorUsage):
 
 
 class Concern(_BehaviorUsage):
+    sysml_type = 'concern'
     """SysML v2 Concern usage/definition.
     
     Concerns represent stakeholder concerns for viewpoints.
@@ -2214,6 +2262,7 @@ class Concern(_BehaviorUsage):
 
 
 class Case(_BehaviorUsage):
+    sysml_type = 'case'
     """SysML v2 Case usage/definition.
     
     A case is a broad classifier for analysis, verification, and use cases.
@@ -2237,6 +2286,7 @@ class Case(_BehaviorUsage):
 
 
 class AnalysisCase(_BehaviorUsage):
+    sysml_type = 'analysis'
     """SysML v2 AnalysisCase usage/definition.
     
     Analysis cases represent analytical scenarios or studies.
@@ -2260,6 +2310,7 @@ class AnalysisCase(_BehaviorUsage):
 
 
 class VerificationCase(_BehaviorUsage):
+    sysml_type = 'verification'
     """SysML v2 VerificationCase usage/definition.
     
     Verification cases represent verification scenarios or tests.
@@ -2283,6 +2334,7 @@ class VerificationCase(_BehaviorUsage):
 
 
 class Reference(Usage):
+    sysml_type = 'reference'
     def __init__(self, name=None, shortname=None, redefines=None):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []

@@ -7,7 +7,10 @@ A pure Python implementation for parsing SysML v2.0 models.
 Uses the ANTLR4 parser for full SysML v2 grammar support.
 """
 
-__all__ = ["load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr"]
+__all__ = [
+    "load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr",
+    "Searchable",
+]
 __author__ = "Jon Fox"
 __version__ = "0.6.0"
 
@@ -20,6 +23,7 @@ from sysml2py.usage import (
 )
 
 from sysml2py.definition import Model, Package
+from sysml2py.navigate import Searchable
 
 from sysml2py.usage import ureg
 
