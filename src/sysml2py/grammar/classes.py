@@ -4955,7 +4955,9 @@ class FlowConnectionDeclaration:
     def dump(self):
         output = []
         if self.declaration is not None:
-            output.append(self.declaration.dump())
+            decl_dump = self.declaration.dump()
+            if decl_dump:
+                output.append(decl_dump)
         if self.valuepart is not None:
             output.append(self.valuepart.dump())
 
@@ -4964,9 +4966,11 @@ class FlowConnectionDeclaration:
             output.append(self.children[0].dump())
 
         if self.children[1] is not None:
+            # Add 'from' if there's content before the from-end (e.g. 'of Fuel from ...')
             if len(output) > 0:
                 output.append("from")
             output.append(self.children[1].dump())
+        if self.children[2] is not None:
             output.append("to")
             output.append(self.children[2].dump())
 
@@ -5110,7 +5114,17 @@ class FlowEnd:
                 self.children.append(FlowFeatureMember(child))
 
     def dump(self):
-        return "".join([x.dump() for x in self.children])
+        # Concatenate FlowEndSubsetting (ends with '.') then FlowFeatureMembers joined by '.'
+        output = []
+        ffm_parts = []
+        for child in self.children:
+            if child.__class__.__name__ == "FlowEndSubsetting":
+                output.append(child.dump())
+            else:
+                ffm_parts.append(child.dump())
+        if ffm_parts:
+            output.append(".".join(ffm_parts))
+        return "".join(output)
 
 
 class FlowEndSubsetting:

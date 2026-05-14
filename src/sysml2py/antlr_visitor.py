@@ -33,13 +33,10 @@ def _get_usage_identification(ctx):
     usage_decl = None
     if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
         usage_decl = ctx.usageDeclaration()
-    else:
-        # Try to get usage -> usageDeclaration
-        usage = None
-        if hasattr(ctx, 'usage') and ctx.usage():
-            usage = ctx.usage()
-            if usage and hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
-                usage_decl = usage.usageDeclaration()
+    elif hasattr(ctx, 'usage') and ctx.usage():
+        usage = ctx.usage()
+        if hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
+            usage_decl = usage.usageDeclaration()
     
     if usage_decl and hasattr(usage_decl, 'identification') and usage_decl.identification():
         ident = usage_decl.identification()
@@ -47,7 +44,6 @@ def _get_usage_identification(ctx):
             name_list = ident.name()
             if name_list and isinstance(name_list, list):
                 if len(name_list) == 2:
-                    # LT name GT name: first is short name, second is long name
                     shortname = name_list[0].getText()
                     name = name_list[1].getText()
                 elif len(name_list) == 1:
@@ -1156,8 +1152,15 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                         else:
                             name = name_text
     
-    # Extract action body items
-    action_items = _visit_action_body_items(ctx)
+    # Extract action body items from actionBody (not definitionBody)
+    body_items = []
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        action_body = ctx.actionBody()
+        if hasattr(action_body, 'actionBodyItem') and action_body.actionBodyItem():
+            for abi_ctx in action_body.actionBodyItem():
+                item_dict = _visit_action_body_item(abi_ctx)
+                if item_dict:
+                    body_items.append(item_dict)
     
     occ_prefix = _get_occurrence_definition_prefix(ctx)
     return {
@@ -1179,7 +1182,7 @@ def _make_action_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "ActionBody",
-                    "items": action_items
+                    "items": body_items
                 }
             }
         }
@@ -1215,11 +1218,22 @@ def _visit_action_body_items(ctx):
 
 
 def _visit_action_body_item(abi_ctx):
-    """Visit a single actionBodyItem and return an ActionBodyItem dict."""
+    """Visit a single actionBodyItem and return an ActionBodyItem dict.
+    
+    Grammar:
+      actionBodyItem
+        : nonBehaviorBodyItem
+        | initialNodeMember ( actionTargetSuccessionMember)*
+        | (sourceSuccessionMember)? actionBehaviorMember (actionTargetSuccessionMember)*
+        | guardedSuccessionMember
+        ;
+    
+    The sourceSuccessionMember ('then') is a prefix to actionBehaviorMember.
+    """
     if abi_ctx is None:
         return None
     
-    # Handle nonBehaviorBodyItem (in/out params, attributes, imports)
+    # Handle nonBehaviorBodyItem (in/out params, attributes, imports, bindings)
     if hasattr(abi_ctx, 'nonBehaviorBodyItem') and abi_ctx.nonBehaviorBodyItem():
         nbi = abi_ctx.nonBehaviorBodyItem()
         inner = _visit_non_behavior_body_item(nbi)
@@ -1229,7 +1243,394 @@ def _visit_action_body_item(abi_ctx):
                 "ownedRelationship": [inner]
             }
     
+    # Handle actionBehaviorMember (nested actions), possibly with sourceSuccessionMember prefix
+    if hasattr(abi_ctx, 'actionBehaviorMember') and abi_ctx.actionBehaviorMember():
+        relationships = []
+        # Check for sourceSuccessionMember prefix ('then')
+        if hasattr(abi_ctx, 'sourceSuccessionMember') and abi_ctx.sourceSuccessionMember():
+            relationships.append({
+                "name": "EmptySuccessionMember",
+                "ownedRelatedElement": [{
+                    "name": "EmptySuccession",
+                    "ownedRelationship": []
+                }]
+            })
+        abm = abi_ctx.actionBehaviorMember()
+        inner = _visit_action_behavior_member(abm)
+        if inner:
+            relationships.append(inner)
+        if relationships:
+            return {
+                "name": "ActionBodyItem",
+                "ownedRelationship": relationships
+            }
+    
+    # Handle guardedSuccessionMember
+    if hasattr(abi_ctx, 'guardedSuccessionMember') and abi_ctx.guardedSuccessionMember():
+        gsm = abi_ctx.guardedSuccessionMember()
+        inner = _visit_guarded_succession_member(gsm)
+        if inner:
+            return {
+                "name": "ActionBodyItem",
+                "ownedRelationship": [inner]
+            }
+    
     return None
+
+
+def _visit_action_behavior_member(abm_ctx):
+    """Visit an actionBehaviorMember context and return a member dict.
+    
+    actionBehaviorMember can be:
+    - actionNodeMember (send action, accept action, etc.)
+    - behaviorUsageMember (nested action usage)
+    """
+    if abm_ctx is None:
+        return None
+    
+    # Handle behaviorUsageMember (nested action usage)
+    if hasattr(abm_ctx, 'behaviorUsageMember') and abm_ctx.behaviorUsageMember():
+        bum = abm_ctx.behaviorUsageMember()
+        return _visit_behavior_usage_member(bum)
+    
+    # Handle actionNodeMember
+    if hasattr(abm_ctx, 'actionNodeMember') and abm_ctx.actionNodeMember():
+        anm = abm_ctx.actionNodeMember()
+        return _visit_action_node_member(anm)
+    
+    return None
+
+
+def _visit_source_succession_member(ssm_ctx):
+    """Visit a sourceSuccessionMember context.
+    
+    This handles 'then action ...' constructs and flow connections with succession.
+    """
+    if ssm_ctx is None:
+        return None
+    
+    result_items = []
+    
+    # Handle succession (flow connections)
+    if hasattr(ssm_ctx, 'succession') and ssm_ctx.succession():
+        succ = ssm_ctx.succession()
+        inner = _visit_succession(succ)
+        if inner:
+            result_items.append(inner)
+    
+    # Handle actionBehaviorMember after 'then'
+    if hasattr(ssm_ctx, 'actionBehaviorMember') and ssm_ctx.actionBehaviorMember():
+        abm = ssm_ctx.actionBehaviorMember()
+        inner = _visit_action_behavior_member(abm)
+        if inner:
+            result_items.append(inner)
+    
+    if len(result_items) == 1:
+        return {
+            "name": "ActionBodyItem",
+            "ownedRelationship": result_items[0]
+        }
+    elif len(result_items) > 1:
+        # Return single ActionBodyItem with multiple ownedRelationship items
+        return {
+            "name": "ActionBodyItem",
+            "ownedRelationship": result_items
+        }
+    
+    return None
+
+
+def _visit_guarded_succession_member(gsm_ctx):
+    """Visit a guardedSuccessionMember context."""
+    if gsm_ctx is None:
+        return None
+    
+    if hasattr(gsm_ctx, 'succession') and gsm_ctx.succession():
+        succ = gsm_ctx.succession()
+        inner = _visit_succession(succ)
+        if inner:
+            return {
+                "name": "ActionBodyItem",
+                "ownedRelationship": inner
+            }
+    
+    return None
+
+
+def _visit_behavior_usage_member(bum_ctx):
+    """Visit a behaviorUsageMember context (nested action usage).
+    
+    behaviorUsageMember: memberPrefix behaviorUsageElement
+    """
+    if bum_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(bum_ctx, 'memberPrefix') and bum_ctx.memberPrefix():
+        mp = bum_ctx.memberPrefix()
+        if mp and hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    if hasattr(bum_ctx, 'behaviorUsageElement') and bum_ctx.behaviorUsageElement():
+        bue = bum_ctx.behaviorUsageElement()
+        if hasattr(bue, 'actionUsage') and bue.actionUsage():
+            ctx = bue.actionUsage()
+            return _make_action_usage_element(ctx, prefix)
+    
+    return None
+
+
+def _visit_action_node_member(anm_ctx):
+    """Visit an actionNodeMember context (send action, accept action, etc.)."""
+    if anm_ctx is None:
+        return None
+    
+    if hasattr(anm_ctx, 'sendActionUsage') and anm_ctx.sendActionUsage():
+        ctx = anm_ctx.sendActionUsage()
+        return _make_action_usage_element(ctx, None)
+    
+    if hasattr(anm_ctx, 'acceptActionUsage') and anm_ctx.acceptActionUsage():
+        ctx = anm_ctx.acceptActionUsage()
+        return _make_action_usage_element(ctx, None)
+    
+    return None
+
+
+def _visit_succession(succ_ctx):
+    """Visit a succession context (flow connections)."""
+    if succ_ctx is None:
+        return None
+    
+    # Handle succession usage
+    if hasattr(succ_ctx, 'successionUsage') and succ_ctx.successionUsage():
+        return _make_succession_usage_dict(succ_ctx.successionUsage())
+    
+    return None
+
+
+def _make_action_usage_element(ctx, member_prefix=None):
+    """Create an action usage element dictionary from an actionUsage context.
+    
+    This is used for nested action usages inside action bodies.
+    """
+    if ctx is None:
+        return None
+    
+    name = None
+    shortname = None
+    typed_by = None
+    occ_prefix = None
+    
+    # Get name from actionUsageDeclaration -> usageDeclaration -> identification
+    if ctx.actionUsageDeclaration():
+        aud = ctx.actionUsageDeclaration()
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if isinstance(ud, list):
+                ud = ud[0] if ud else None
+            if ud and hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name, shortname = _extract_name_shortname(name_text)
+                # Extract typed_by for the specialization
+                typed_by = _get_action_usage_typed_by(ctx)
+                if typed_by is None:
+                    typed_by = _get_action_usage_subsetted_by(ctx)
+    
+    # Get body items
+    action_items = _visit_action_body_items(ctx)
+    
+    # Build specialization if typed_by is present
+    specialization = _build_specialization(typed_by) if typed_by else None
+    
+    return {
+        "name": "BehaviorUsageMember",
+        "prefix": member_prefix,
+        "ownedRelatedElement": {
+            "name": "BehaviorUsageElement",
+            "ownedRelationship": {
+                "name": "ActionUsage",
+                "prefix": occ_prefix,
+                "declaration": {
+                    "name": "ActionUsageDeclaration",
+                    "declaration": {
+                        "name": "UsageDeclaration",
+                        "declaration": {
+                            "name": "FeatureDeclaration",
+                            "identification": {
+                                "name": "Identification",
+                                "declaredShortName": shortname,
+                                "declaredName": name
+                            },
+                            "specialization": specialization
+                        }
+                    },
+                    "valuepart": None
+                },
+                "body": {
+                    "name": "ActionBody",
+                    "items": action_items
+                }
+            }
+        }
+    }
+
+
+def _make_succession_usage_dict(ctx, prefix=None):
+    """Create a succession usage dictionary for flow connections."""
+    if ctx is None:
+        return None
+    
+    name = None
+    if hasattr(ctx, 'identification') and ctx.identification():
+        ident = ctx.identification()
+        if hasattr(ident, 'name'):
+            name_list = ident.name()
+            if name_list and isinstance(name_list, list):
+                name = name_list[0].getText() if len(name_list) >= 1 else None
+    
+    # Get succession items
+    succession_items = []
+    if hasattr(ctx, 'successionItem') and ctx.successionItem():
+        items = ctx.successionItem()
+        if not isinstance(items, list):
+            items = [items]
+        for item in items:
+            item_dict = _visit_succession_item(item)
+            if item_dict:
+                succession_items.append(item_dict)
+    
+    return {
+        "name": "SuccessionItemUsage",
+        "prefix": prefix,
+        "ownedRelatedElement": {
+            "name": "SuccessionUsage",
+            "identification": {
+                "name": "Identification",
+                "declaredShortName": None,
+                "declaredName": name
+            },
+            "items": succession_items
+        }
+    }
+
+
+def _visit_succession_item(item_ctx):
+    """Visit a succession item (source -> target connection)."""
+    if item_ctx is None:
+        return None
+    
+    source = None
+    target = None
+    
+    if hasattr(item_ctx, 'source') and item_ctx.source():
+        source = _visit_relationship_end(item_ctx.source())
+    
+    if hasattr(item_ctx, 'target') and item_ctx.target():
+        target = _visit_relationship_end(item_ctx.target())
+    
+    if source or target:
+        return {
+            "name": "SuccessionItem",
+            "source": source,
+            "target": target
+        }
+    
+    return None
+
+
+def _visit_relationship_end(end_ctx):
+    """Visit a relationship end (for flow connections)."""
+    if end_ctx is None:
+        return None
+    
+    # Handle feature path (e.g., focus.image)
+    if hasattr(end_ctx, 'featurePath') and end_ctx.featurePath():
+        fp = end_ctx.featurePath()
+        names = []
+        if hasattr(fp, 'qualifiedName') and fp.qualifiedName():
+            qn = fp.qualifiedName()
+            if hasattr(qn, 'name') and qn.name():
+                names = [n.getText() for n in qn.name()]
+        return {
+            "name": "FeaturePath",
+            "names": names
+        }
+    
+    return None
+
+
+def _build_flow_end_member_dict(flow_end_ctx):
+    """Build a FlowEndMember dict from a FlowEndMemberContext."""
+    if flow_end_ctx is None:
+        return None
+    
+    fes_list = []
+    ffm_list = []
+    
+    # flowEndMember -> flowEnd
+    # flowEnd : qualifiedName (DOT qualifiedName)*
+    # For "focus.image", first qualifiedName is subsetting, rest are features
+    if hasattr(flow_end_ctx, 'flowEnd') and flow_end_ctx.flowEnd():
+        flow_end = flow_end_ctx.flowEnd()
+        if hasattr(flow_end, 'qualifiedName') and flow_end.qualifiedName():
+            qnames = flow_end.qualifiedName()
+            if not isinstance(qnames, list):
+                qnames = [qnames]
+            
+            # First qualifiedName -> FlowEndSubsetting
+            if len(qnames) >= 1:
+                qn = qnames[0]
+                if hasattr(qn, 'name') and qn.name():
+                    names = [n.getText() for n in qn.name()]
+                    fes_list.append({
+                        "name": "FlowEndSubsetting",
+                        "referencedFeature": {
+                            "name": "QualifiedName",
+                            "names": names
+                        },
+                        "ownedRelatedElement": []
+                    })
+            
+            # Remaining qualifiedNames -> FlowFeatureMember
+            for qn in qnames[1:]:
+                if hasattr(qn, 'name') and qn.name():
+                    names = [n.getText() for n in qn.name()]
+                    ffm_list.append({
+                        "name": "FlowFeatureMember",
+                        "ownedRelatedElement": [{
+                            "name": "FlowFeature",
+                            "ownedRelationship": [{
+                                "name": "FlowRedefinition",
+                                "redefinedFeature": {
+                                    "name": "QualifiedName",
+                                    "names": names
+                                }
+                            }]
+                        }]
+                    })
+    
+    # Create FlowEnd dict
+    flow_end_dict = {
+        "name": "FlowEnd",
+        "fes": fes_list,
+        "ffm": ffm_list
+    }
+    
+    return {
+        "name": "FlowEndMember",
+        "ownedRelatedElement": [flow_end_dict]
+    }
 
 
 def _visit_calculation_body_items(ctx):
@@ -1367,7 +1768,25 @@ def _visit_non_behavior_body_item(nbi_ctx):
         elif cname == 'StructureUsageMemberContext':
             # Handle occurrence usages (parts, items, ports)
             for c2 in child.children:
-                if type(c2).__name__ == 'OccurrenceUsageElementContext':
+                c2name = type(c2).__name__
+                if c2name == 'OccurrenceUsageElementContext':
+                    inner = _visit_nested_occurrence_usage(c2)
+                    if inner:
+                        if inner.get("name") == "UsageElement":
+                            occ_elem = inner.get("ownedRelatedElement", {})
+                            if occ_elem.get("name") == "OccurrenceUsageElement":
+                                owned = [occ_elem]
+                            else:
+                                owned = [inner]
+                        else:
+                            owned = [inner]
+                        return {
+                            "name": "OccurrenceUsageMember",
+                            "prefix": None,
+                            "ownedRelatedElement": owned
+                        }
+                elif c2name == 'StructureUsageElementContext':
+                    # StructureUsageElementContext is the direct child of StructureUsageMemberContext
                     inner = _visit_nested_occurrence_usage(c2)
                     if inner:
                         if inner.get("name") == "UsageElement":
@@ -2338,13 +2757,90 @@ def _visit_multiplicity(mult_ctx):
     return result
 
 
-def _make_flow_connection_usage_dict(ctx, prefix=None):
-    """Create a FlowConnectionUsage dictionary.
+def _build_item_feature_member_from_payload(pfm_ctx):
+    """Build an ItemFeatureMember dict from a (flow)payloadFeatureMember context.
     
-    FlowUsage has `flowDeclaration` with `featureDeclaration` (not usageDeclaration).
+    This handles the 'of TYPE' clause in flow connections, like 'flow of Fuel from ... to ...'.
+    
+    Grammar:
+      payloadFeatureMember : payloadFeature ;
+      flowPayloadFeatureMember : flowPayloadFeature ;
+      flowPayloadFeature : payloadFeature ;
+      payloadFeature
+          : identification? valuePart
+          | identification? payloadFeatureSpecializationPart valuePart?
+          | ownedFeatureTyping (ownedMultiplicity)?
+          | ownedMultiplicity (ownedFeatureTyping)?
+          ;
     """
+    if pfm_ctx is None:
+        return None
+    
+    # Drill down to payloadFeature
+    pf = None
+    if hasattr(pfm_ctx, 'payloadFeature') and pfm_ctx.payloadFeature():
+        pf = pfm_ctx.payloadFeature()
+    elif hasattr(pfm_ctx, 'flowPayloadFeature') and pfm_ctx.flowPayloadFeature():
+        fpf = pfm_ctx.flowPayloadFeature()
+        if hasattr(fpf, 'payloadFeature') and fpf.payloadFeature():
+            pf = fpf.payloadFeature()
+    
+    if pf is None:
+        return None
+    
+    # Extract the type name (e.g. "Fuel") from ownedFeatureTyping
+    type_name = None
+    if hasattr(pf, 'ownedFeatureTyping') and pf.ownedFeatureTyping():
+        oft = pf.ownedFeatureTyping()
+        if hasattr(oft, 'qualifiedName') and oft.qualifiedName():
+            qn = oft.qualifiedName()
+            if hasattr(qn, 'name') and qn.name():
+                names = [n.getText() for n in qn.name()]
+                type_name = names
+    
+    if type_name is None:
+        # Fallback: use the full text
+        text = pf.getText()
+        if text:
+            type_name = [text]
+        else:
+            return None
+    
+    return {
+        "name": "ItemFeatureMember",
+        "ownedRelatedElement": [{
+            "name": "ItemFeature",
+            "ownedRelatedElement": {
+                "name": "PayloadFeature",
+                "identification": None,
+                "valuepart": None,
+                "multiplicity1": None,
+                "multiplicity2": None,
+                "ownedRelationship": {
+                    "name": "OwnedFeatureTyping",
+                    "type": {
+                        "name": "FeatureType",
+                        "type": {
+                            "name": "QualifiedName",
+                            "names": type_name
+                        },
+                        "ownedRelatedElement": []
+                    }
+                },
+                "pfsp": None
+            }
+        }]
+    }
+
+
+def _make_nested_flow_connection_usage_dict(ctx, prefix=None):
+    """Create a nested FlowConnectionUsage dictionary (for use inside action bodies)."""
     name = None
     shortname = None
+    from_end = None
+    to_end = None
+    of_payload = None
+    
     if ctx is not None:
         fd = None
         if hasattr(ctx, 'flowDeclaration') and ctx.flowDeclaration():
@@ -2352,87 +2848,188 @@ def _make_flow_connection_usage_dict(ctx, prefix=None):
         elif hasattr(ctx, 'flowConnectionDeclaration') and ctx.flowConnectionDeclaration():
             fd = ctx.flowConnectionDeclaration()
         
-        # Try to get via featureDeclaration -> featureIdentification (used by flowUsage)
-        if fd and hasattr(fd, 'featureDeclaration') and fd.featureDeclaration():
-            featd = fd.featureDeclaration()
-            if hasattr(featd, 'featureIdentification') and featd.featureIdentification():
-                fi = featd.featureIdentification()
-                # Get the name from the children
-                if hasattr(fi, 'name') and fi.name():
-                    name_res = fi.name()
-                    # name() may return a list or a single object
-                    if isinstance(name_res, list):
-                        if len(name_res) == 2:
-                            shortname = name_res[0].getText()
-                            name = name_res[1].getText()
-                        elif len(name_res) == 1:
-                            name_text = name_res[0].getText()
-                            name, shortname = _extract_name_shortname(name_text)
-                    elif name_res:
-                        name_text = name_res.getText()
-                        name, shortname = _extract_name_shortname(name_text)
-                else:
-                    # Fall back to text
-                    text = fi.getText()
-                    if text:
-                        name, shortname = _extract_name_shortname(text)
-        # Alternative: usageDeclaration (for flowConnectionUsage)
-        elif fd and hasattr(fd, 'usageDeclaration') and fd.usageDeclaration():
-            ud = fd.usageDeclaration()
-            if ud and hasattr(ud, 'identification') and ud.identification():
-                ident = ud.identification()
-                if hasattr(ident, 'name'):
-                    name_list = ident.name()
-                    if name_list and isinstance(name_list, list):
-                        if len(name_list) == 2:
-                            shortname = name_list[0].getText()
-                            name = name_list[1].getText()
-                    elif len(name_list) == 1:
-                        name_text = name_list[0].getText()
-                        if hasattr(ident, 'LT') and ident.LT() is not None:
-                            shortname = name_text
-                        else:
-                            name = name_text
-        
-        # If still no name, fall back to _get_usage_identification
-        if not name and not shortname:
-            name, shortname = _get_usage_identification(ctx)
+        if fd:
+            # Extract flow ends (FROM x TO y)
+            if hasattr(fd, 'flowEndMember') and fd.flowEndMember():
+                flow_ends = fd.flowEndMember()
+                if isinstance(flow_ends, list) and len(flow_ends) >= 2:
+                    from_end = _build_flow_end_member_dict(flow_ends[0])
+                    to_end = _build_flow_end_member_dict(flow_ends[1])
+            
+            # Extract optional 'of' payload (e.g., "of Fuel")
+            pfm = None
+            if hasattr(fd, 'flowPayloadFeatureMember') and fd.flowPayloadFeatureMember():
+                pfm = fd.flowPayloadFeatureMember()
+            elif hasattr(fd, 'payloadFeatureMember') and fd.payloadFeatureMember():
+                pfm = fd.payloadFeatureMember()
+            if pfm is not None:
+                of_payload = _build_item_feature_member_from_payload(pfm)
+            
+            # Get name from featureDeclaration or usageDeclaration
+            if hasattr(fd, 'featureDeclaration') and fd.featureDeclaration():
+                featd = fd.featureDeclaration()
+                if hasattr(featd, 'featureIdentification') and featd.featureIdentification():
+                    fi = featd.featureIdentification()
+                    if hasattr(fi, 'name') and fi.name():
+                        name_res = fi.name()
+                        if isinstance(name_res, list):
+                            if len(name_res) == 2:
+                                shortname = name_res[0].getText()
+                                name = name_res[1].getText()
+                            elif len(name_res) == 1:
+                                name_text = name_res[0].getText()
+                                name, shortname = _extract_name_shortname(name_text)
+                    else:
+                        text = fi.getText()
+                        if text:
+                            name, shortname = _extract_name_shortname(text)
+            elif hasattr(fd, 'usageDeclaration') and fd.usageDeclaration():
+                ud = fd.usageDeclaration()
+                if ud and hasattr(ud, 'identification') and ud.identification():
+                    ident = ud.identification()
+                    if hasattr(ident, 'name'):
+                        name_list = ident.name()
+                        if name_list and isinstance(name_list, list):
+                            if len(name_list) == 2:
+                                shortname = name_list[0].getText()
+                                name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            if hasattr(ident, 'LT') and ident.LT() is not None:
+                                shortname = name_text
+                            else:
+                                name = name_text
+            
+            if not name and not shortname:
+                name, shortname = _get_usage_identification(ctx)
+    
+    # Build declaration - omit declaration if no name/shortname (e.g. anonymous flow)
+    inner_declaration = None
+    if name or shortname:
+        inner_declaration = {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": None
+            }
+        }
     
     return {
-        "name": "PackageMember",
-        "prefix": None,
+        "name": "UsageElement",
         "ownedRelatedElement": {
-            "name": "UsageElement",
+            "name": "OccurrenceUsageElement",
             "ownedRelatedElement": {
-                "name": "OccurrenceUsageElement",
+                "name": "StructureUsageElement",
                 "ownedRelatedElement": {
-                    "name": "StructureUsageElement",
-                    "ownedRelatedElement": {
-                        "name": "FlowConnectionUsage",
-                        "prefix": prefix,
-                        "declaration": {
-                            "name": "FlowConnectionDeclaration",
-                            "declaration": {
-                                "name": "UsageDeclaration",
-                                "declaration": {
-                                    "name": "FeatureDeclaration",
-                                    "identification": {
-                                        "name": "Identification",
-                                        "declaredShortName": shortname,
-                                        "declaredName": name
-                                    },
-                                    "specialization": None
-                                }
-                            },
-                            "valuepart": None,
-                            "ownedRelationship_of": None,
-                            "ownedRelationship_from": None,
-                            "ownedRelationship_to": None
-                        },
-                        "body": {
-                            "name": "DefinitionBody",
-                            "ownedRelatedElement": []
-                        }
+                    "name": "FlowConnectionUsage",
+                    "prefix": prefix,
+                    "declaration": {
+                        "name": "FlowConnectionDeclaration",
+                        "declaration": inner_declaration,
+                        "valuepart": None,
+                        "ownedRelationship_of": of_payload,
+                        "ownedRelationship_from": from_end,
+                        "ownedRelationship_to": to_end
+                    },
+                    "body": {
+                        "name": "DefinitionBody",
+                        "ownedRelatedElement": []
+                    }
+                }
+            }
+        }
+}
+
+
+def _make_nested_succession_flow_usage_dict(ctx, prefix=None):
+    """Create a nested SuccessionFlowConnectionUsage dictionary.
+    
+    Grammar:
+      successionFlowUsage
+        : occurrenceUsagePrefix SUCCESSION FLOW flowDeclaration definitionBody
+    """
+    name = None
+    shortname = None
+    from_end = None
+    to_end = None
+    
+    if ctx is not None:
+        fd = None
+        if hasattr(ctx, 'flowDeclaration') and ctx.flowDeclaration():
+            fd = ctx.flowDeclaration()
+        
+        if fd:
+            # Extract flow ends (FROM x TO y)
+            if hasattr(fd, 'flowEndMember') and fd.flowEndMember():
+                flow_ends = fd.flowEndMember()
+                if isinstance(flow_ends, list) and len(flow_ends) >= 2:
+                    from_end = _build_flow_end_member_dict(flow_ends[0])
+                    to_end = _build_flow_end_member_dict(flow_ends[1])
+            
+            # Get name from usageDeclaration
+            if hasattr(fd, 'usageDeclaration') and fd.usageDeclaration():
+                ud = fd.usageDeclaration()
+                if ud and hasattr(ud, 'identification') and ud.identification():
+                    ident = ud.identification()
+                    if hasattr(ident, 'name'):
+                        name_list = ident.name()
+                        if name_list and isinstance(name_list, list):
+                            if len(name_list) == 2:
+                                shortname = name_list[0].getText()
+                                name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name = name_text
+    
+    declaration = None
+    if name or shortname:
+        declaration = {
+            "name": "FlowConnectionDeclaration",
+            "declaration": {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "specialization": None
+                }
+            },
+            "valuepart": None,
+            "ownedRelationship_of": None,
+            "ownedRelationship_from": from_end,
+            "ownedRelationship_to": to_end
+        }
+    else:
+        declaration = {
+            "name": "FlowConnectionDeclaration",
+            "declaration": None,
+            "valuepart": None,
+            "ownedRelationship_of": None,
+            "ownedRelationship_from": from_end,
+            "ownedRelationship_to": to_end
+        }
+    
+    return {
+        "name": "UsageElement",
+        "ownedRelatedElement": {
+            "name": "OccurrenceUsageElement",
+            "ownedRelatedElement": {
+                "name": "StructureUsageElement",
+                "ownedRelatedElement": {
+                    "name": "SuccessionFlowConnectionUsage",
+                    "prefix": prefix,
+                    "declaration": declaration,
+                    "body": {
+                        "name": "DefinitionBody",
+                        "ownedRelatedElement": []
                     }
                 }
             }
@@ -3632,6 +4229,53 @@ def _visit_nested_occurrence_usage(occ_elem):
     if occ_elem is None:
         return None
     
+    # Handle case where occ_elem is directly a StructureUsageElementContext
+    if type(occ_elem).__name__ == 'StructureUsageElementContext':
+        if hasattr(occ_elem, 'itemUsage') and occ_elem.itemUsage():
+            ctx = occ_elem.itemUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(occ_elem, 'partUsage') and occ_elem.partUsage():
+            ctx = occ_elem.partUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(occ_elem, 'portUsage') and occ_elem.portUsage():
+            ctx = occ_elem.portUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(occ_elem, 'flowUsage') and occ_elem.flowUsage():
+            ctx = occ_elem.flowUsage()
+            return _make_nested_flow_connection_usage_dict(ctx, None)
+        elif hasattr(occ_elem, 'flowConnectionUsage') and occ_elem.flowConnectionUsage():
+            ctx = occ_elem.flowConnectionUsage()
+            return _make_nested_flow_connection_usage_dict(ctx, None)
+        elif hasattr(occ_elem, 'successionFlowUsage') and occ_elem.successionFlowUsage():
+            ctx = occ_elem.successionFlowUsage()
+            return _make_nested_succession_flow_usage_dict(ctx, None)
+        elif hasattr(occ_elem, 'connectionUsage') and occ_elem.connectionUsage():
+            ctx = occ_elem.connectionUsage()
+            return _make_nested_connection_usage_dict(ctx, None)
+        elif hasattr(occ_elem, 'interfaceUsage') and occ_elem.interfaceUsage():
+            ctx = occ_elem.interfaceUsage()
+            result = _make_interface_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                inner = result.get("ownedRelatedElement", {})
+                return inner
+            return result
+        return None
+    
     # print(f"DEBUG _visit_nested_occurrence_usage: {type(occ_elem).__name__}")
     
     # Check structure usage elements (part, item, port)
@@ -3647,7 +4291,8 @@ def _visit_nested_occurrence_usage(occ_elem):
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
             ctx = struct_elem.itemUsage()
             # print(f"DEBUG: Found itemUsage: {ctx}")
@@ -3655,14 +4300,16 @@ def _visit_nested_occurrence_usage(occ_elem):
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
             ctx = struct_elem.portUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         elif hasattr(struct_elem, 'interfaceUsage') and struct_elem.interfaceUsage():
             ctx = struct_elem.interfaceUsage()
             result = _make_interface_usage_dict(ctx, None)
@@ -3670,6 +4317,18 @@ def _visit_nested_occurrence_usage(occ_elem):
                 inner = result.get("ownedRelatedElement", {})
                 return inner  # Extract the inner UsageElement for nested usage
             return result
+        elif hasattr(struct_elem, 'flowUsage') and struct_elem.flowUsage():
+            ctx = struct_elem.flowUsage()
+            return _make_nested_flow_connection_usage_dict(ctx, None)
+        elif hasattr(struct_elem, 'flowConnectionUsage') and struct_elem.flowConnectionUsage():
+            ctx = struct_elem.flowConnectionUsage()
+            return _make_nested_flow_connection_usage_dict(ctx, None)
+        elif hasattr(struct_elem, 'successionFlowUsage') and struct_elem.successionFlowUsage():
+            ctx = struct_elem.successionFlowUsage()
+            return _make_nested_succession_flow_usage_dict(ctx, None)
+        elif hasattr(struct_elem, 'connectionUsage') and struct_elem.connectionUsage():
+            ctx = struct_elem.connectionUsage()
+            return _make_nested_connection_usage_dict(ctx, None)
     
     # Check for interface occurrence usage element (has defaultInterfaceEnd keyword)
     if hasattr(occ_elem, 'defaultInterfaceEnd') and occ_elem.defaultInterfaceEnd() is not None:
@@ -3807,21 +4466,24 @@ def _visit_nested_occurrence_usage(occ_elem):
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
             ctx = struct_elem.itemUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
             ctx = struct_elem.portUsage()
             name, shortname = _get_usage_identification(ctx)
             body_items = _get_usage_body_items(ctx)
             occ_prefix = _get_occurrence_usage_prefix(ctx)
             specialization = _build_full_specialization_from_ctx(ctx)
-            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
     
     # Check behavior usage elements (action)
     if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -3932,7 +4594,235 @@ def _visit_nested_non_occurrence_usage(non_occ):
         ctx = non_occ.defaultReferenceUsage()
         return _make_default_reference_usage_dict(ctx)
     
+    # Handle bindingConnectorAsUsage (bind X = Y)
+    if hasattr(non_occ, 'bindingConnectorAsUsage') and non_occ.bindingConnectorAsUsage():
+        ctx = non_occ.bindingConnectorAsUsage()
+        return _make_binding_connector_dict(ctx)
+    
+    # Handle successionAsUsage (first X then Y)
+    if hasattr(non_occ, 'successionAsUsage') and non_occ.successionAsUsage():
+        ctx = non_occ.successionAsUsage()
+        return _make_succession_as_usage_dict(ctx)
+    
     return None
+
+
+def _build_owned_reference_subsetting_dict(ors_ctx):
+    """Build an OwnedReferenceSubsetting dict from an ownedReferenceSubsetting context.
+    
+    ownedReferenceSubsetting : qualifiedName (DOT qualifiedName)*
+    
+    Single qualifiedName -> referencedFeature
+    Multiple (e.g. focus.scene) -> ownedRelatedElement feature chain
+    """
+    if ors_ctx is None:
+        return None
+    
+    qnames = ors_ctx.qualifiedName()
+    if not isinstance(qnames, list):
+        qnames = [qnames]
+    
+    if len(qnames) == 1:
+        # Single qualified name - referencedFeature
+        qn = qnames[0]
+        names = [n.getText() for n in qn.name()] if hasattr(qn, 'name') and qn.name() else []
+        return {
+            "name": "OwnedReferenceSubsetting",
+            "referencedFeature": {
+                "name": "QualifiedName",
+                "names": names
+            },
+            "ownedRelatedElement": []
+        }
+    else:
+        # Multiple qualified names - feature chain
+        chain_elements = []
+        for qn in qnames:
+            names = [n.getText() for n in qn.name()] if hasattr(qn, 'name') and qn.name() else []
+            chain_elements.append({
+                "name": "OwnedFeatureChaining",
+                "chainingFeature": {
+                    "name": "QualifiedName",
+                    "names": names
+                }
+            })
+        return {
+            "name": "OwnedReferenceSubsetting",
+            "referencedFeature": None,
+            "ownedRelatedElement": [{
+                "name": "OwnedFeatureChain",
+                "feature": {
+                    "name": "FeatureChain",
+                    "ownedRelationship": chain_elements
+                }
+            }]
+        }
+
+
+def _build_connector_end_member_dict(cem_ctx):
+    """Build a ConnectorEndMember dict from a connectorEndMember context.
+    
+    connectorEndMember : connectorEnd ;
+    connectorEnd : (ownedCrossMultiplicityMember)? (name (COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting ;
+    """
+    if cem_ctx is None:
+        return None
+    
+    ce_ctx = cem_ctx.connectorEnd() if hasattr(cem_ctx, 'connectorEnd') else None
+    if ce_ctx is None:
+        return None
+    
+    declared_name = None
+    if hasattr(ce_ctx, 'name') and ce_ctx.name():
+        declared_name = ce_ctx.name().getText()
+    
+    relationships = []
+    if hasattr(ce_ctx, 'ownedReferenceSubsetting') and ce_ctx.ownedReferenceSubsetting():
+        ors = _build_owned_reference_subsetting_dict(ce_ctx.ownedReferenceSubsetting())
+        if ors:
+            relationships.append(ors)
+    
+    return {
+        "name": "ConnectorEndMember",
+        "ownedRelatedElement": [{
+            "name": "ConnectorEnd",
+            "declaredName": declared_name,
+            "ownedRelationship": relationships
+        }]
+    }
+
+
+def _make_binding_connector_dict(ctx):
+    """Create a NonOccurrenceUsageElement dict wrapping a BindingConnector.
+    
+    Grammar:
+      bindingConnectorAsUsage
+        : usagePrefix (BINDING usageDeclaration?)? BIND connectorEndMember EQ connectorEndMember usageBody
+    """
+    if ctx is None:
+        return None
+    
+    # Get connector ends
+    ends = []
+    if hasattr(ctx, 'connectorEndMember') and ctx.connectorEndMember():
+        cem_list = ctx.connectorEndMember()
+        if not isinstance(cem_list, list):
+            cem_list = [cem_list]
+        for cem in cem_list:
+            cem_dict = _build_connector_end_member_dict(cem)
+            if cem_dict:
+                ends.append(cem_dict)
+    
+    # Check for optional declaration (BINDING usageDeclaration)
+    declaration = None
+    if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
+        ud = ctx.usageDeclaration()
+        if ud is not None:
+            # Extract name from usageDeclaration
+            decl_name = None
+            decl_shortname = None
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            decl_shortname = name_list[0].getText()
+                            decl_name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            decl_name = name_list[0].getText()
+            declaration = {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": decl_shortname,
+                        "declaredName": decl_name
+                    },
+                    "specialization": None
+                }
+            }
+    
+    return {
+        "name": "NonOccurrenceUsageElement",
+        "ownedRelatedElement": {
+            "name": "BindingConnector",
+            "prefix": None,
+            "declaration": declaration,
+            "ownedRelationship": ends,
+            "body": {
+                "name": "DefinitionBody",
+                "ownedRelatedElement": []
+            }
+        }
+    }
+
+
+def _make_succession_as_usage_dict(ctx):
+    """Create a NonOccurrenceUsageElement dict wrapping a Succession.
+    
+    Grammar:
+      successionAsUsage
+        : usagePrefix (SUCCESSION usageDeclaration?)? FIRST connectorEndMember THEN connectorEndMember usageBody
+    """
+    if ctx is None:
+        return None
+    
+    # Get connector ends
+    ends = []
+    if hasattr(ctx, 'connectorEndMember') and ctx.connectorEndMember():
+        cem_list = ctx.connectorEndMember()
+        if not isinstance(cem_list, list):
+            cem_list = [cem_list]
+        for cem in cem_list:
+            cem_dict = _build_connector_end_member_dict(cem)
+            if cem_dict:
+                ends.append(cem_dict)
+    
+    # Check for optional declaration (SUCCESSION usageDeclaration)
+    declaration = None
+    if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
+        ud = ctx.usageDeclaration()
+        if ud is not None:
+            decl_name = None
+            decl_shortname = None
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            decl_shortname = name_list[0].getText()
+                            decl_name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            decl_name = name_list[0].getText()
+            declaration = {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": decl_shortname,
+                        "declaredName": decl_name
+                    },
+                    "specialization": None
+                }
+            }
+    
+    return {
+        "name": "NonOccurrenceUsageElement",
+        "ownedRelatedElement": {
+            "name": "Succession",
+            "prefix": None,
+            "declaration": declaration,
+            "ownedRelationship": ends,
+            "body": {
+                "name": "DefinitionBody",
+                "ownedRelatedElement": []
+            }
+        }
+    }
 
 
 def _wrap_expression_layers(primary_expression):
@@ -4420,13 +5310,17 @@ def _visit_nested_definition_element(def_elem):
     return None
 
 
-def _make_nested_usage_element(usage_type, name, shortname, prefix, body_items=None, specialization=None):
+def _make_nested_usage_element(usage_type, name, shortname, prefix, body_items=None, specialization=None, valuepart=None):
     """Build a nested usage element (not wrapped in PackageMember).
     
     Parameters
     ----------
+    body_items : list or None
+        Nested body items
     specialization : dict or None
         Pre-built FeatureSpecializationPart dict, or None.
+    valuepart : dict or None
+        Pre-built valuepart dict, or None.
     """
     if body_items is None:
         body_items = []
@@ -4456,7 +5350,7 @@ def _make_nested_usage_element(usage_type, name, shortname, prefix, body_items=N
                         },
                         "completion": {
                             "name": "UsageCompletion",
-                            "valuepart": None,
+                            "valuepart": valuepart,
                             "body": {
                                 "name": "UsageBody",
                                 "body": {
@@ -4503,19 +5397,25 @@ def _visit_nested_usage(usage_elem_ctx):
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items=body_items)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
             elif hasattr(struct_elem, 'itemUsage') and struct_elem.itemUsage():
                 ctx = struct_elem.itemUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items=body_items)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                return _make_nested_usage_element("ItemUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
             elif hasattr(struct_elem, 'portUsage') and struct_elem.portUsage():
                 ctx = struct_elem.portUsage()
                 name, shortname = _get_usage_identification(ctx)
                 body_items = _get_usage_body_items(ctx)
                 occ_prefix = _get_occurrence_usage_prefix(ctx)
-                return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items=body_items)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         
         # Check behavior usage elements (action)
         if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -4654,10 +5554,13 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                 return _make_connection_usage_dict(ctx, prefix)
             elif hasattr(struct_elem, 'flowConnectionUsage') and struct_elem.flowConnectionUsage():
                 ctx = struct_elem.flowConnectionUsage()
-                return _make_flow_connection_usage_dict(ctx, prefix)
+                return _make_nested_flow_connection_usage_dict(ctx, prefix)
             elif hasattr(struct_elem, 'flowUsage') and struct_elem.flowUsage():
                 ctx = struct_elem.flowUsage()
-                return _make_flow_connection_usage_dict(ctx, prefix)
+                return _make_nested_flow_connection_usage_dict(ctx, prefix)
+            elif hasattr(struct_elem, 'successionFlowUsage') and struct_elem.successionFlowUsage():
+                ctx = struct_elem.successionFlowUsage()
+                return _make_nested_succession_flow_usage_dict(ctx, prefix)
             elif hasattr(struct_elem, 'allocationUsage') and struct_elem.allocationUsage():
                 ctx = struct_elem.allocationUsage()
                 return _make_allocation_usage_dict(ctx, prefix)
@@ -4697,11 +5600,16 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                 ctx = behav_elem.actionUsage()
                 name = None
                 shortname = None
+                typed_by = None
+                occ_prefix = None
+                
                 # Get name from actionUsageDeclaration -> usageDeclaration -> identification
                 if ctx.actionUsageDeclaration():
                     aud = ctx.actionUsageDeclaration()
                     if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
                         ud = aud.usageDeclaration()
+                        if isinstance(ud, list):
+                            ud = ud[0] if ud else None
                         if ud and hasattr(ud, 'identification') and ud.identification():
                             ident = ud.identification()
                             if hasattr(ident, 'name'):
@@ -4713,11 +5621,17 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                                     elif len(name_list) == 1:
                                         name_text = name_list[0].getText()
                                         name, shortname = _extract_name_shortname(name_text)
-                        # If no identification, fall back to text extraction
-                        elif hasattr(ud, 'getText'):
-                            text = ud.getText().strip()
-                            if text and text != 'ACTION':
-                                name = text
+                        # Extract typed_by for the specialization
+                        typed_by = _get_action_usage_typed_by(ctx)
+                        if typed_by is None:
+                            typed_by = _get_usage_subsetted_by(ctx)
+                
+                # Get body items
+                action_items = _visit_action_body_items(ctx)
+                
+                # Build specialization if typed_by is present
+                specialization = _build_specialization(typed_by) if typed_by else None
+                
                 return {
                     "name": "PackageMember",
                     "prefix": None,
@@ -4729,7 +5643,7 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                                 "name": "BehaviorUsageElement",
                                 "ownedRelationship": {
                                     "name": "ActionUsage",
-                                    "prefix": prefix,
+                                    "prefix": occ_prefix,
                                     "declaration": {
                                         "name": "ActionUsageDeclaration",
                                         "declaration": {
@@ -4741,14 +5655,14 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
                                                     "declaredShortName": shortname,
                                                     "declaredName": name
                                                 },
-                                                "specialization": None
+                                                "specialization": specialization
                                             }
                                         },
                                         "valuepart": None
                                     },
                                     "body": {
                                         "name": "ActionBody",
-                                        "items": []
+                                        "items": action_items
                                     }
                                 }
                             }
@@ -4899,6 +5813,100 @@ def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrappe
             "name": "UsageElement",
             "ownedRelatedElement": inner_usage
         }
+
+
+def _get_action_usage_typed_by(ctx):
+    """Extract the typed-by reference from an actionUsage context.
+    
+    ActionUsage has actionUsageDeclaration (not direct usageDeclaration),
+    and actionUsageDeclaration can contain usageDeclaration.
+    Returns the qualified name of the type, or None.
+    """
+    if ctx is None:
+        return None
+    
+    # Get actionUsageDeclaration
+    aud = None
+    if hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
+        aud = ctx.actionUsageDeclaration()
+    
+    if aud is None:
+        return None
+    
+    # Get usageDeclaration from actionUsageDeclaration
+    ud = None
+    if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+        ud = aud.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
+    
+    if ud is None:
+        return None
+    
+    # Get featureSpecializationPart
+    if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+        fsp = ud.featureSpecializationPart()
+        if hasattr(fsp, 'featureSpecialization') and fsp.featureSpecialization():
+            specs = fsp.featureSpecialization()
+            if not isinstance(specs, list):
+                specs = [specs]
+            for spec in specs:
+                if hasattr(spec, 'typings') and spec.typings():
+                    typings = spec.typings()
+                    if hasattr(typings, 'getText'):
+                        text = typings.getText()
+                        if text.startswith(':'):
+                            text = text[1:].strip()
+                        return text
+    
+    return None
+
+
+def _get_action_usage_subsetted_by(ctx):
+    """Extract the subsetted-by reference from an actionUsage context.
+    
+    ActionUsage has actionUsageDeclaration (not direct usageDeclaration),
+    and actionUsageDeclaration can contain usageDeclaration.
+    Returns the qualified name of the subsetting type, or None.
+    """
+    if ctx is None:
+        return None
+    
+    # Get actionUsageDeclaration
+    aud = None
+    if hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
+        aud = ctx.actionUsageDeclaration()
+    
+    if aud is None:
+        return None
+    
+    # Get usageDeclaration from actionUsageDeclaration
+    ud = None
+    if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+        ud = aud.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
+    
+    if ud is None:
+        return None
+    
+    # Get featureSpecializationPart
+    if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+        fsp = ud.featureSpecializationPart()
+        if hasattr(fsp, 'featureSpecialization') and fsp.featureSpecialization():
+            specs = fsp.featureSpecialization()
+            if not isinstance(specs, list):
+                specs = [specs]
+            for spec in specs:
+                if hasattr(spec, 'subsettings') and spec.subsettings():
+                    subs = spec.subsettings()
+                    if hasattr(subs, 'getText'):
+                        text = subs.getText()
+                        if text.startswith(':>'):
+                            text = text[2:].strip()
+                        return text
+    
+    return None
 
 
 def _build_specialization(typed_by):
@@ -5256,6 +6264,41 @@ def _get_usage_typed_by(ctx):
                         return text
         # NOTE: Do NOT fall back to fsp.getText() — that would return
         # 'redefines X', 'subsets X', or ':> X' which are NOT types.
+    
+    return None
+
+
+def _get_usage_subsetted_by(ctx):
+    """Extract the subsetted-by reference from a usage context.
+    
+    Returns the qualified name of the subsetting type, or None.
+    """
+    if ctx is None:
+        return None
+    
+    # Get usage -> usageDeclaration -> featureSpecializationPart -> featureSpecialization
+    usage = None
+    if hasattr(ctx, 'usage') and ctx.usage():
+        usage = ctx.usage()
+    
+    ud = None
+    if usage and hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
+        ud = usage.usageDeclaration()
+    
+    if ud and hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+        fsp = ud.featureSpecializationPart()
+        if hasattr(fsp, 'featureSpecialization') and fsp.featureSpecialization():
+            specs = fsp.featureSpecialization()
+            if not isinstance(specs, list):
+                specs = [specs]
+            for spec in specs:
+                if hasattr(spec, 'subsettings') and spec.subsettings():
+                    subs = spec.subsettings()
+                    if hasattr(subs, 'getText'):
+                        text = subs.getText()
+                        if text.startswith(':>'):
+                            text = text[2:].strip()
+                        return text
     
     return None
 
