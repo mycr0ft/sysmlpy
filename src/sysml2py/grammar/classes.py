@@ -2824,6 +2824,13 @@ class EnumerationUsageMember:
 
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": [rel.get_definition() for rel in self.relationships]
+        }
+
 
 class EnumeratedValue:
     def __init__(self, definition):
@@ -2839,6 +2846,13 @@ class EnumeratedValue:
             return self.keyword + " " + self.usage.dump()
         else:
             return self.usage.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "keyword": self.keyword,
+            "usage": self.usage.get_definition()
+        }
 
 
 class AnnotatingMember:

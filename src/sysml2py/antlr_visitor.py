@@ -65,18 +65,22 @@ def _get_subclassification_part(ctx):
     
     Handles 'part def Foo :> Bar, Baz' — returns the :> clause as a dict,
     or None if there is no subclassification.
+    
+    Handles both regular definitions (via definition().definitionDeclaration()) 
+    and enumeration definitions (via definitionDeclaration() directly).
     """
     defn = None
-    if hasattr(ctx, 'definition') and ctx.definition():
-        defn = ctx.definition()
-    if defn is None:
-        return None
-    
     dd = None
-    if hasattr(defn, 'definitionDeclaration') and defn.definitionDeclaration():
-        dd = defn.definitionDeclaration()
-    elif hasattr(ctx, 'definitionDeclaration') and ctx.definitionDeclaration():
+    
+    # Try direct definitionDeclaration first (for enumeration definitions, etc.)
+    if hasattr(ctx, 'definitionDeclaration') and ctx.definitionDeclaration():
         dd = ctx.definitionDeclaration()
+    # Then try nested definition() for regular definitions
+    if dd is None and hasattr(ctx, 'definition') and ctx.definition():
+        defn = ctx.definition()
+        if hasattr(defn, 'definitionDeclaration') and defn.definitionDeclaration():
+            dd = defn.definitionDeclaration()
+    
     if dd is None:
         return None
     
@@ -3064,6 +3068,28 @@ def _visit_enumeration_usage_member(member_ctx):
                     else:
                         ev_name = ev_name_text
     
+    # Extract specialization (redefinitions) from the usage context
+    specialization = None
+    if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+        specialization = _build_full_specialization_from_ctx(usage_ctx)
+    
+    # Extract valuepart from usage completion (e.g., =4.0 for A = 4.0)
+    valuepart = None
+    if hasattr(usage_ctx, 'usageCompletion') and usage_ctx.usageCompletion():
+        uc = usage_ctx.usageCompletion()
+        if hasattr(uc, 'valuePart') and uc.valuePart():
+            valuepart = _visit_value_part(uc.valuePart())
+    
+    # Extract body items from usage completion
+    # Note: UsageContext has usageCompletion directly (not via usage attribute)
+    body_items = []
+    if hasattr(usage_ctx, 'usageCompletion') and usage_ctx.usageCompletion():
+        uc = usage_ctx.usageCompletion()
+        if hasattr(uc, 'usageBody') and uc.usageBody():
+            ub = uc.usageBody()
+            if hasattr(ub, 'definitionBody') and ub.definitionBody():
+                body_items = _visit_definition_body_dict(ub.definitionBody())
+    
     return {
         "name": "EnumerationUsageMember",
         "prefix": prefix,
@@ -3082,17 +3108,17 @@ def _visit_enumeration_usage_member(member_ctx):
                                 "declaredShortName": ev_shortname,
                                 "declaredName": ev_name
                             },
-                            "specialization": None
+                            "specialization": specialization
                         }
                     },
                     "completion": {
                         "name": "UsageCompletion",
-                        "valuepart": None,
+                        "valuepart": valuepart,
                         "body": {
                             "name": "UsageBody",
                             "body": {
                                 "name": "DefinitionBody",
-                                "ownedRelatedElement": []
+                                "ownedRelatedElement": body_items
                             }
                         }
                     }
@@ -4138,6 +4164,9 @@ def _make_default_reference_usage_dict(ctx):
     
     The grammar rule is: defaultReferenceUsage : refPrefix usage ;
     refPrefix can contain featureDirection (in, out, inout).
+    
+    Note: For enumerations like `simple { :>> code = "test"; }`, the value is
+    in the usage body, not in a valuepart. We need to extract it from the body.
     """
     # Extract direction from refPrefix
     direction_in = ""
@@ -4161,10 +4190,9 @@ def _make_default_reference_usage_dict(ctx):
             elif direction_text == 'inout':
                 direction_inout = "inout"
     
-    # Extract name and typed_by from usage -> usageDeclaration -> identification
+    # Extract name from usage -> usageDeclaration -> identification
     name = None
     shortname = None
-    typed_by = None
     if hasattr(ctx, 'usage') and ctx.usage():
         usage = ctx.usage()
         if hasattr(usage, 'usageDeclaration') and usage.usageDeclaration():
@@ -4184,10 +4212,27 @@ def _make_default_reference_usage_dict(ctx):
                                 shortname = name_text
                             else:
                                 name = name_text
-        # Extract typed_by from the usage context itself
-        typed_by = _get_usage_typed_by(ctx)
     
-    specialization = _build_specialization(typed_by)
+    # Build specialization from usage declaration (handles :, :>>, etc.)
+    specialization = _build_full_specialization_from_ctx(ctx)
+    
+    # Extract value part from usage completion (e.g., ="test" in :>> code = "test")
+    valuepart = None
+    if hasattr(ctx, 'usage') and ctx.usage():
+        valuepart = _get_usage_value_part(ctx)
+    
+    # Extract body from usage completion
+    # Note: For enumerations, the value is in the body (not in valuepart)
+    body_items = []
+    if hasattr(ctx, 'usage') and ctx.usage():
+        usage = ctx.usage()
+        if hasattr(usage, 'usageCompletion') and usage.usageCompletion():
+            uc = usage.usageCompletion()
+            if hasattr(uc, 'usageBody') and uc.usageBody():
+                ub = uc.usageBody()
+                if hasattr(ub, 'definitionBody') and ub.definitionBody():
+                    db = ub.definitionBody()
+                    body_items = _visit_definition_body_dict(db)
     
     return {
         "name": "NonOccurrenceUsageElement",
@@ -4207,7 +4252,7 @@ def _make_default_reference_usage_dict(ctx):
                     "inout": direction_inout
                 }
             },
-            "valuepart": None,
+            "valuepart": valuepart,
             "declaration": {
                 "name": "UsageDeclaration",
                 "declaration": {
@@ -4224,7 +4269,7 @@ def _make_default_reference_usage_dict(ctx):
                 "name": "UsageBody",
                 "body": {
                     "name": "DefinitionBody",
-                    "ownedRelatedElement": []
+                    "ownedRelatedElement": body_items
                 }
             }
         }
