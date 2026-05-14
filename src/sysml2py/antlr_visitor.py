@@ -1379,6 +1379,35 @@ def _visit_behavior_usage_member(bum_ctx):
         if hasattr(bue, 'actionUsage') and bue.actionUsage():
             ctx = bue.actionUsage()
             return _make_action_usage_element(ctx, prefix)
+        elif hasattr(bue, 'calculationUsage') and bue.calculationUsage():
+            ctx = bue.calculationUsage()
+            result = _make_calculation_usage_dict(ctx, prefix)
+            if result and result.get("name") == "PackageMember":
+                # Wrap as BehaviorUsageMember for action body
+                ue = result.get("ownedRelatedElement", {})
+                if ue.get("name") == "UsageElement":
+                    occ = ue.get("ownedRelatedElement", {})
+                    if occ.get("name") == "OccurrenceUsageElement":
+                        return {
+                            "name": "BehaviorUsageMember",
+                            "prefix": prefix,
+                            "ownedRelatedElement": occ.get("ownedRelatedElement")
+                        }
+            return result
+        elif hasattr(bue, 'constraintUsage') and bue.constraintUsage():
+            ctx = bue.constraintUsage()
+            result = _make_constraint_usage_dict(ctx, prefix)
+            if result and result.get("name") == "PackageMember":
+                ue = result.get("ownedRelatedElement", {})
+                if ue.get("name") == "UsageElement":
+                    occ = ue.get("ownedRelatedElement", {})
+                    if occ.get("name") == "OccurrenceUsageElement":
+                        return {
+                            "name": "BehaviorUsageMember",
+                            "prefix": prefix,
+                            "ownedRelatedElement": occ.get("ownedRelatedElement")
+                        }
+            return result
     
     return None
 
@@ -1675,10 +1704,47 @@ def _visit_calculation_body_part(part_ctx):
             if item_dict:
                 items.append(item_dict)
     
+    # Handle resultExpressionMember (e.g. "sum(partMasses) <= massLimit")
+    if hasattr(part_ctx, 'resultExpressionMember') and part_ctx.resultExpressionMember():
+        rem_ctx = part_ctx.resultExpressionMember()
+        rem_dict = _visit_result_expression_member(rem_ctx)
+        if rem_dict:
+            rem.append(rem_dict)
+    
     return {
         "name": "CalculationBodyPart",
         "item": items,
         "ownedRelationship": rem
+    }
+
+
+def _visit_result_expression_member(rem_ctx):
+    """Visit a resultExpressionMember context.
+    
+    Grammar:
+      resultExpressionMember : memberPrefix ownedExpression ;
+    """
+    if rem_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(rem_ctx, 'memberPrefix') and rem_ctx.memberPrefix():
+        mp = rem_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    owned_expr = None
+    if hasattr(rem_ctx, 'ownedExpression') and rem_ctx.ownedExpression():
+        oe_ctx = rem_ctx.ownedExpression()
+        owned_expr = _visit_owned_expression(oe_ctx)
+    
+    return {
+        "name": "ResultExpressionMember",
+        "prefix": prefix,
+        "ownedRelatedElement": owned_expr
     }
 
 
@@ -1713,7 +1779,12 @@ def _visit_calculation_body_item(cbi_ctx):
 
 
 def _visit_return_parameter_member(rpm_ctx):
-    """Visit a returnParameterMember."""
+    """Visit a returnParameterMember.
+    
+    Grammar:
+      returnParameterMember : memberPrefix RETURN usageElement ;
+      usageElement : nonOccurrenceUsageElement | occurrenceUsageElement ;
+    """
     if rpm_ctx is None:
         return None
     
@@ -1727,16 +1798,44 @@ def _visit_return_parameter_member(rpm_ctx):
             }
     
     # Find usageElement
-    usage_elem = None
-    for child in rpm_ctx.children:
-        if type(child).__name__ == 'UsageElementContext':
-            usage_elem = _visit_usage_element(child, None)
-            break
+    usage_element_dict = None
+    if hasattr(rpm_ctx, 'usageElement') and rpm_ctx.usageElement():
+        ue = rpm_ctx.usageElement()
+        # Check if non-occurrence or occurrence
+        if hasattr(ue, 'nonOccurrenceUsageElement') and ue.nonOccurrenceUsageElement():
+            non_occ = ue.nonOccurrenceUsageElement()
+            inner = _visit_nested_non_occurrence_usage(non_occ)
+            if inner:
+                if inner.get("name") == "NonOccurrenceUsageElement":
+                    usage_element_dict = {
+                        "name": "UsageElement",
+                        "ownedRelatedElement": inner
+                    }
+                else:
+                    # Wrap raw element in NonOccurrenceUsageElement
+                    usage_element_dict = {
+                        "name": "UsageElement",
+                        "ownedRelatedElement": {
+                            "name": "NonOccurrenceUsageElement",
+                            "ownedRelatedElement": inner
+                        }
+                    }
+        elif hasattr(ue, 'occurrenceUsageElement') and ue.occurrenceUsageElement():
+            occ = ue.occurrenceUsageElement()
+            inner = _visit_nested_occurrence_usage(occ)
+            if inner:
+                if inner.get("name") == "UsageElement":
+                    usage_element_dict = inner
+                else:
+                    usage_element_dict = {
+                        "name": "UsageElement",
+                        "ownedRelatedElement": inner
+                    }
     
     return {
         "name": "ReturnParameterMember",
         "prefix": prefix,
-        "ownedRelatedElement": usage_elem
+        "ownedRelatedElement": usage_element_dict
     }
 
 
@@ -1936,6 +2035,7 @@ def _make_calculation_definition_dict(ctx, member_prefix=None):
                         name, shortname = _extract_name_shortname(name_text)
     
     occ_prefix = _get_occurrence_definition_prefix(ctx)
+    body_parts = _visit_calculation_body_items(ctx)
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1955,7 +2055,7 @@ def _make_calculation_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "CalculationBody",
-                    "part": []
+                    "part": body_parts
                 }
             }
         }
@@ -2131,6 +2231,7 @@ def _make_calculation_usage_dict(ctx, prefix=None):
     """
     name = None
     shortname = None
+    typed_by = None
     if ctx is not None:
         cud = None
         # Try both actionUsageDeclaration and calculationUsageDeclaration
@@ -2154,6 +2255,15 @@ def _make_calculation_usage_dict(ctx, prefix=None):
                     elif len(name_list) == 1:
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
+        
+        # Extract typed_by for the specialization
+        typed_by = _get_action_usage_typed_by(ctx)
+        if typed_by is None:
+            typed_by = _get_action_usage_subsetted_by(ctx)
+    
+    specialization = _build_specialization(typed_by) if typed_by else None
+    body_parts = _visit_calculation_body_items(ctx)
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
     
     return {
         "name": "PackageMember",
@@ -2166,7 +2276,7 @@ def _make_calculation_usage_dict(ctx, prefix=None):
                     "name": "BehaviorUsageElement",
                     "ownedRelationship": {
                         "name": "CalculationUsage",
-                        "prefix": prefix,
+                        "prefix": occ_prefix or prefix,
                         "declaration": {
                             "name": "CalculationUsageDeclaration",
                             "declaration": {
@@ -2178,20 +2288,28 @@ def _make_calculation_usage_dict(ctx, prefix=None):
                                         "declaredShortName": shortname,
                                         "declaredName": name
                                     },
-                                    "specialization": None
+                                    "specialization": specialization
                                 }
                             },
                             "valuepart": None
                         },
                         "body": {
                             "name": "CalculationBody",
-                            "part": []
+                            "part": body_parts
                         }
                     }
                 }
             }
         }
     }
+
+
+def _make_nested_calculation_usage_dict(ctx, prefix=None):
+    """Create a CalculationUsage dict for nested usage (returns UsageElement-rooted dict)."""
+    result = _make_calculation_usage_dict(ctx, prefix)
+    if result and result.get("name") == "PackageMember":
+        return result.get("ownedRelatedElement")
+    return result
 
 
 def _make_constraint_usage_dict(ctx, prefix=None):
@@ -2201,6 +2319,7 @@ def _make_constraint_usage_dict(ctx, prefix=None):
     """
     name = None
     shortname = None
+    typed_by = None
     if ctx is not None:
         cud = None
         # Try several possibilities
@@ -2226,37 +2345,49 @@ def _make_constraint_usage_dict(ctx, prefix=None):
                     elif len(name_list) == 1:
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
+        
+        # Extract typed_by for the specialization (e.g. "constraint X : MassConstraint")
+        typed_by = _get_action_usage_typed_by(ctx)
+        if typed_by is None:
+            typed_by = _get_action_usage_subsetted_by(ctx)
     
-    # ConstraintUsage is handled as NonOccurrenceUsageElement per grammar class structure
+    specialization = _build_specialization(typed_by) if typed_by else None
+    body_parts = _visit_calculation_body_items(ctx)
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    
+    # ConstraintUsage wrapped through OccurrenceUsageElement -> BehaviorUsageElement
     return {
         "name": "PackageMember",
         "prefix": None,
         "ownedRelatedElement": {
             "name": "UsageElement",
             "ownedRelatedElement": {
-                "name": "NonOccurrenceUsageElement",
+                "name": "OccurrenceUsageElement",
                 "ownedRelatedElement": {
-                    "name": "ConstraintUsage",
-                    "prefix": prefix,
-                    "declaration": {
-                        "name": "CalculationUsageDeclaration",
+                    "name": "BehaviorUsageElement",
+                    "ownedRelationship": {
+                        "name": "ConstraintUsage",
+                        "prefix": occ_prefix or prefix,
                         "declaration": {
-                            "name": "UsageDeclaration",
+                            "name": "CalculationUsageDeclaration",
                             "declaration": {
-                                "name": "FeatureDeclaration",
-                                "identification": {
-                                    "name": "Identification",
-                                    "declaredShortName": shortname,
-                                    "declaredName": name
-                                },
-                                "specialization": None
-                            }
+                                "name": "UsageDeclaration",
+                                "declaration": {
+                                    "name": "FeatureDeclaration",
+                                    "identification": {
+                                        "name": "Identification",
+                                        "declaredShortName": shortname,
+                                        "declaredName": name
+                                    },
+                                    "specialization": specialization
+                                }
+                            },
+                            "valuepart": None
                         },
-                        "valuepart": None
-                    },
-                    "body": {
-                        "name": "CalculationBody",
-                        "part": []
+                        "body": {
+                            "name": "CalculationBody",
+                            "part": body_parts
+                        }
                     }
                 }
             }
@@ -4422,6 +4553,18 @@ def _visit_nested_occurrence_usage(occ_elem):
                                 elif len(name_list) == 1:
                                     name_text = name_list[0].getText()
                                     name, shortname = _extract_name_shortname(name_text)
+            
+            # Get body items from action body
+            action_items = _visit_action_body_items(ctx)
+            
+            # Extract typed_by for the specialization
+            typed_by = _get_action_usage_typed_by(ctx)
+            if typed_by is None:
+                typed_by = _get_action_usage_subsetted_by(ctx)
+            specialization = _build_specialization(typed_by) if typed_by else None
+            
+            occ_prefix = _get_occurrence_usage_prefix(ctx)
+            
             return {
                 "name": "UsageElement",
                 "ownedRelatedElement": {
@@ -4430,28 +4573,40 @@ def _visit_nested_occurrence_usage(occ_elem):
                         "name": "BehaviorUsageElement",
                         "ownedRelationship": {
                             "name": "ActionUsage",
-                            "prefix": None,
+                            "prefix": occ_prefix,
                             "declaration": {
                                 "name": "ActionUsageDeclaration",
                                 "declaration": {
-                                    "name": "FeatureDeclaration",
-                                    "identification": {
-                                        "name": "Identification",
-                                        "declaredShortName": shortname,
-                                        "declaredName": name
-                                    },
-                                    "specialization": None
-                                }
+                                    "name": "UsageDeclaration",
+                                    "declaration": {
+                                        "name": "FeatureDeclaration",
+                                        "identification": {
+                                            "name": "Identification",
+                                            "declaredShortName": shortname,
+                                            "declaredName": name
+                                        },
+                                        "specialization": specialization
+                                    }
+                                },
+                                "valuepart": None
                             },
-                            "valuepart": None
-                        },
-                        "body": {
-                            "name": "ActionBody",
-                            "items": []
+                            "body": {
+                                "name": "ActionBody",
+                                "items": action_items
+                            }
                         }
                     }
                 }
             }
+        elif hasattr(behav_elem, 'calculationUsage') and behav_elem.calculationUsage():
+            ctx = behav_elem.calculationUsage()
+            return _make_nested_calculation_usage_dict(ctx, None)
+        elif hasattr(behav_elem, 'constraintUsage') and behav_elem.constraintUsage():
+            ctx = behav_elem.constraintUsage()
+            result = _make_constraint_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                return result.get("ownedRelatedElement")
+            return result
     
     # print(f"DEBUG: No match found in _visit_nested_occurrence_usage")
     # Fall through to check structure usage elements
@@ -5825,10 +5980,15 @@ def _get_action_usage_typed_by(ctx):
     if ctx is None:
         return None
     
-    # Get actionUsageDeclaration
+    # Get actionUsageDeclaration / constraintUsageDeclaration / calculationUsageDeclaration
     aud = None
-    if hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
-        aud = ctx.actionUsageDeclaration()
+    for attr in ('actionUsageDeclaration', 'constraintUsageDeclaration', 'calculationUsageDeclaration'):
+        if hasattr(ctx, attr):
+            method = getattr(ctx, attr)
+            value = method()
+            if value:
+                aud = value
+                break
     
     if aud is None:
         return None
