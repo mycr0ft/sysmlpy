@@ -5867,6 +5867,13 @@ class FeatureSpecializationPart:
             output = [child.dump() for child in self.specializations]
             output.append(self.multiplicity.dump())
 
+        elif len(self.specializations) > 1 and self.multiplicity is not None:
+            # Multiple specializations with multiplicity - put multiplicity after first
+            output = [self.specializations[0].dump()]
+            output.append(self.multiplicity.dump())
+            for child in self.specializations[1:]:
+                output.append(child.dump())
+
         else:
             # Multiplicity at start or no multiplicity found
             output = []
