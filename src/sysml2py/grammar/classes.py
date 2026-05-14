@@ -2538,6 +2538,14 @@ class InterfaceOccurrenceUsageMember:
 
         return "\n".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": [element.get_definition() for element in self.elements]
+        }
+        return output
+
 
 class InterfaceOccurrenceUsageElement:
     def __init__(self, definition):
@@ -2551,6 +2559,21 @@ class InterfaceOccurrenceUsageElement:
 
     def dump(self):
         return self.element.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__
+        }
+        if hasattr(self, 'element'):
+            output["element"] = self.element.get_definition()
+        # Add isAbstract, isVariation, isEnd if they exist
+        if hasattr(self, 'isAbstract'):
+            output["isAbstract"] = self.isAbstract
+        if hasattr(self, 'isVariation'):
+            output["isVariation"] = self.isVariation
+        if hasattr(self, 'isEnd'):
+            output["isEnd"] = self.isEnd
+        return output
 
 
 class DefaultInterfaceEnd:
@@ -4566,12 +4589,15 @@ class FeatureReferenceMember:
 class OccurrenceUsageElement:
     def __init__(self, definition):
         if valid_definition(definition, "OccurrenceUsageElement"):
-            if definition["ownedRelatedElement"]["name"] == "StructureUsageElement":
+            ore_name = definition["ownedRelatedElement"]["name"]
+            if ore_name == "StructureUsageElement":
                 self.children = StructureUsageElement(definition["ownedRelatedElement"])
-            elif definition["ownedRelatedElement"]["name"] == "BehaviorUsageElement":
+            elif ore_name == "BehaviorUsageElement":
                 self.children = BehaviorUsageElement(definition["ownedRelatedElement"])
+            elif ore_name == "InterfaceUsage":
+                self.children = InterfaceUsage(definition["ownedRelatedElement"])
             else:
-                print(definition["ownedRelatedElement"]["name"])  # pragma: no cover
+                print(f"OccurrenceUsageElement: unhandled {ore_name}")  # pragma: no cover
                 raise NotImplementedError  # pragma: no cover
 
     def dump(self):
@@ -5143,7 +5169,9 @@ class InterfaceUsage:
 
             if definition.get("body") is not None:
                 body_dict = definition["body"]
-                if isinstance(body_dict, dict) and body_dict.get("name") == "DefinitionBody":
+                if isinstance(body_dict, dict) and body_dict.get("name") == "InterfaceBody":
+                    self.body = InterfaceBody(body_dict)
+                elif isinstance(body_dict, dict) and body_dict.get("name") == "DefinitionBody":
                     self.body = InterfaceBody({"name": "InterfaceBody", "item": body_dict.get("ownedRelatedElement", [])})
                 else:
                     self.body = InterfaceBody(body_dict)
