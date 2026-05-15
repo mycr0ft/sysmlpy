@@ -1032,19 +1032,21 @@ def _make_port_definition_dict(ctx, member_prefix=None):
 
 
 def _make_requirement_definition_dict(ctx, member_prefix=None):
-    """Create a RequirementDefinition dictionary."""
+    """Create a RequirementDefinition dictionary.
+    
+    RequirementDefinition uses requirementBody (not definitionBody).
+    """
     name, shortname = _get_definition_identification(ctx)
     occ_prefix = _get_occurrence_definition_prefix(ctx)
-    # Get body items from definition body
+    
     body_items = []
-    if hasattr(ctx, "definition") and ctx.definition():
-        defn = ctx.definition()
-        if hasattr(defn, "definitionBody") and defn.definitionBody():
-            body_items = _visit_definition_body_dict(defn.definitionBody())
+    if hasattr(ctx, "requirementBody") and ctx.requirementBody():
+        body_ctx = ctx.requirementBody()
+        body_items = _visit_requirement_body_dict(body_ctx)
+    
     if not name and not shortname:
         name = "Requirement_" + str(uuid.uuid4())[:8]
     
-    # Note: RequirementDefinition uses 'declaration' not 'definition'
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -1064,7 +1066,7 @@ def _make_requirement_definition_dict(ctx, member_prefix=None):
                 },
                 "body": {
                     "name": "RequirementBody",
-                    "item": []
+                    "item": body_items
                 }
             }
         }
@@ -1814,11 +1816,14 @@ def _visit_calculation_body_items(ctx):
     
     parts = []
     if hasattr(calc_body, 'calculationBodyPart') and calc_body.calculationBodyPart():
-        part_ctx = calc_body.calculationBodyPart()
-        if part_ctx:
-            part_dict = _visit_calculation_body_part(part_ctx)
-            if part_dict:
-                parts.append(part_dict)
+        part_ctx_list = calc_body.calculationBodyPart()
+        if not isinstance(part_ctx_list, list):
+            part_ctx_list = [part_ctx_list]
+        for part_ctx in part_ctx_list:
+            if part_ctx:
+                part_dict = _visit_calculation_body_part(part_ctx)
+                if part_dict:
+                    parts.append(part_dict)
     
     return parts
 
@@ -4271,6 +4276,356 @@ def _visit_definition_body_dict(body_ctx):
         pass
     # print(f"  Returning {len(items)} items")
     return items
+
+
+def _visit_requirement_body_dict(body_ctx):
+    """Visit a requirement body and return a list of RequirementBodyItem dicts.
+    
+    Per grammar:
+    requirementBodyItem
+        : definitionBodyItem
+        | subjectMember
+        | requirementConstraintMember
+        | framedConcernMember
+        | requirementVerificationMember
+        | actorMember
+        | stakeholderMember
+        ;
+    """
+    if body_ctx is None:
+        return []
+    
+    items = []
+    if hasattr(body_ctx, 'requirementBodyItem') and body_ctx.requirementBodyItem():
+        items_list = body_ctx.requirementBodyItem()
+        if not isinstance(items_list, list):
+            items_list = [items_list]
+        for item_ctx in items_list:
+            item_dict = _visit_requirement_body_item_dict(item_ctx)
+            if item_dict:
+                items.append(item_dict)
+    
+    return items
+
+
+def _visit_requirement_body_item_dict(item_ctx):
+    """Visit a requirement body item and return a RequirementBodyItem dict."""
+    if item_ctx is None:
+        return None
+    
+    inner_dict = None
+    
+    # Check for definitionBodyItem first
+    if hasattr(item_ctx, 'definitionBodyItem') and item_ctx.definitionBodyItem():
+        def_item = item_ctx.definitionBodyItem()
+        if isinstance(def_item, list):
+            def_item = def_item[0]
+        inner_dict = _visit_definition_body_item_dict(def_item)
+        if inner_dict:
+            return {
+                "name": "RequirementBodyItem",
+                "ownedRelationship": inner_dict
+            }
+    
+    # Check for subjectMember
+    if hasattr(item_ctx, 'subjectMember') and item_ctx.subjectMember():
+        sm = item_ctx.subjectMember()
+        if isinstance(sm, list):
+            sm = sm[0]
+        subject_dict = _visit_subject_member_dict(sm)
+        if subject_dict:
+            return {
+                "name": "RequirementBodyItem",
+                "ownedRelationship": subject_dict
+            }
+    
+    # Check for requirementConstraintMember
+    if hasattr(item_ctx, 'requirementConstraintMember') and item_ctx.requirementConstraintMember():
+        rcm = item_ctx.requirementConstraintMember()
+        if isinstance(rcm, list):
+            rcm = rcm[0]
+        constraint_dict = _visit_requirement_constraint_member_dict(rcm)
+        if constraint_dict:
+            return {
+                "name": "RequirementBodyItem",
+                "ownedRelationship": constraint_dict
+            }
+    
+    # Check for actorMember (skip for now)
+    # Check for stakeholderMember (skip for now)
+    # Check for framedConcernMember (skip for now)
+    # Check for requirementVerificationMember (skip for now)
+    
+    return None
+
+
+def _visit_subject_member_dict(sm_ctx):
+    """Visit a subjectMember and return a SubjectMember dict.
+    
+    subjectMember : memberPrefix subjectUsage ;
+    subjectUsage : SUBJECT usageExtensionKeyword* usage ;
+    """
+    if sm_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(sm_ctx, 'memberPrefix') and sm_ctx.memberPrefix():
+        mp = sm_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    usage_dict = None
+    if hasattr(sm_ctx, 'subjectUsage') and sm_ctx.subjectUsage():
+        su = sm_ctx.subjectUsage()
+        if isinstance(su, list):
+            su = su[0]
+        
+        keywords = []
+        if hasattr(su, 'usageExtensionKeyword') and su.usageExtensionKeyword():
+            kw_list = su.usageExtensionKeyword()
+            if not isinstance(kw_list, list):
+                kw_list = [kw_list]
+            for kw in kw_list:
+                if hasattr(kw, 'getText'):
+                    keywords.append({"name": "UsageExtensionKeyword", "keyword": kw.getText()})
+        
+        if hasattr(su, 'usage') and su.usage():
+            usage_ctx = su.usage()
+            if isinstance(usage_ctx, list):
+                usage_ctx = usage_ctx[0]
+            usage_dict = _visit_usage_for_subject(usage_ctx)
+    
+    return {
+        "name": "SubjectMember",
+        "prefix": prefix,
+        "ownedRelatedElement": {
+            "name": "SubjectUsage",
+            "keyword": keywords,
+            "usage": usage_dict
+        }
+    }
+
+
+def _visit_usage_for_subject(usage_ctx):
+    """Visit a usage element for subject usage.
+    
+    Subject usage is a simplified usage without full body.
+    Note: The usage_ctx is a UsageContext, which contains a usage() method
+    that returns the actual usage with usageDeclaration.
+    """
+    if usage_ctx is None:
+        return None
+    
+    # Drill into usage() if present (subjectUsage has 'usage' which is a UsageContext)
+    actual_ctx = usage_ctx
+    if hasattr(usage_ctx, 'usage') and usage_ctx.usage():
+        usages = usage_ctx.usage()
+        if isinstance(usages, list):
+            usages = usages[0]
+        if usages:
+            actual_ctx = usages
+    
+    name, shortname = _get_usage_identification(actual_ctx)
+    typed_by = _get_action_usage_typed_by(actual_ctx)
+    specialization = _build_specialization(typed_by)
+    
+    return {
+        "name": "Usage",
+        "declaration": {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": specialization
+            }
+        },
+        "completion": {
+            "name": "UsageCompletion",
+            "valuepart": None,
+            "body": {
+                "name": "UsageBody",
+                "body": {
+                    "name": "DefinitionBody",
+                    "ownedRelatedElement": []
+                }
+            }
+        }
+    }
+
+
+def _visit_requirement_constraint_member_dict(rcm_ctx):
+    """Visit a requirementConstraintMember and return a RequirementConstraintMember dict.
+    
+    requirementConstraintMember : memberPrefix requirementKind requirementConstraintUsage ;
+    requirementKind : ASSUME | REQUIRE ;
+    """
+    if rcm_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(rcm_ctx, 'memberPrefix') and rcm_ctx.memberPrefix():
+        mp = rcm_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    kind = None
+    if hasattr(rcm_ctx, 'requirementKind') and rcm_ctx.requirementKind():
+        kh = rcm_ctx.requirementKind()
+        if hasattr(kh, 'ASSUME') and kh.ASSUME():
+            kind = {"name": "RequirementConstraintKind", "assumption": "assume", "requirement": None}
+        elif hasattr(kh, 'REQUIRE') and kh.REQUIRE():
+            kind = {"name": "RequirementConstraintKind", "assumption": None, "requirement": "require"}
+    
+    usage_dict = None
+    if hasattr(rcm_ctx, 'requirementConstraintUsage') and rcm_ctx.requirementConstraintUsage():
+        rcu = rcm_ctx.requirementConstraintUsage()
+        if isinstance(rcu, list):
+            rcu = rcu[0]
+        usage_dict = _visit_requirement_constraint_usage(rcu)
+    
+    return {
+        "name": "RequirementConstraintMember",
+        "prefix": prefix,
+        "kind": kind,
+        "ownedRelatedElement": usage_dict
+    }
+
+
+def _visit_requirement_constraint_usage(rcu_ctx):
+    """Visit a requirementConstraintUsage and return a RequirementConstraintUsage dict.
+    
+    requirementConstraintUsage
+        : ownedReferenceSubsetting featureSpecializationPart? requirementBody
+        | (usageExtensionKeyword* CONSTRAINT | usageExtensionKeyword+) constraintUsageDeclaration calculationBody
+        ;
+    """
+    if rcu_ctx is None:
+        return None
+    
+    # Check first alternative: ownedReferenceSubsetting
+    if hasattr(rcu_ctx, 'ownedReferenceSubsetting') and rcu_ctx.ownedReferenceSubsetting():
+        ors = _build_owned_reference_subsetting_dict(rcu_ctx.ownedReferenceSubsetting())
+        
+        fs = []
+        if hasattr(rcu_ctx, 'featureSpecializationPart') and rcu_ctx.featureSpecializationPart():
+            fsp_ctx = rcu_ctx.featureSpecializationPart()
+            fsp = _build_feature_specialization_part(fsp_ctx)
+            if fsp and "specialization" in fsp:
+                fs = fsp["specialization"]
+        
+        body_dict = None
+        if hasattr(rcu_ctx, 'requirementBody') and rcu_ctx.requirementBody():
+            body_items = _visit_requirement_body_dict(rcu_ctx.requirementBody())
+            body_dict = {
+                "name": "RequirementBody",
+                "item": body_items
+            }
+        
+        return {
+            "name": "RequirementConstraintUsage",
+            "ownedRelationship": ors,
+            "fs": fs,
+            "body": body_dict
+        }
+    
+    # Check second alternative: constraint usage with keywords
+    keywords_before = []
+    if hasattr(rcu_ctx, 'usageExtensionKeyword') and rcu_ctx.usageExtensionKeyword():
+        kw_list = rcu_ctx.usageExtensionKeyword()
+        if not isinstance(kw_list, list):
+            kw_list = [kw_list]
+        for kw in kw_list:
+            if hasattr(kw, 'getText'):
+                keywords_before.append({"name": "UsageExtensionKeyword", "keyword": kw.getText()})
+    
+    has_constraint_keyword = False
+    if hasattr(rcu_ctx, 'CONSTRAINT') and rcu_ctx.CONSTRAINT():
+        has_constraint_keyword = True
+    
+    declaration = None
+    if hasattr(rcu_ctx, 'constraintUsageDeclaration') and rcu_ctx.constraintUsageDeclaration():
+        cud = rcu_ctx.constraintUsageDeclaration()
+        if isinstance(cud, list):
+            cud = cud[0]
+        declaration = _make_constraint_usage_declaration_dict(cud)
+    
+    body_parts = []
+    if hasattr(rcu_ctx, 'calculationBody') and rcu_ctx.calculationBody():
+        # Pass the parent context (rcu_ctx), not the calculationBody directly
+        # _visit_calculation_body_items will extract calculationBody from it
+        body_parts = _visit_calculation_body_items(rcu_ctx)
+    
+    return {
+        "name": "RequirementConstraintUsage",
+        "ownedRelationship": None,
+        "keyword1": keywords_before,
+        "keyword2": [],
+        "constraint": "constraint" if has_constraint_keyword else None,
+        "declaration": declaration,
+        "body": {
+            "name": "CalculationBody",
+            "part": body_parts
+        }
+    }
+
+
+def _make_constraint_usage_declaration_dict(cud_ctx):
+    """Create a constraint usage declaration dict.
+    
+    constraintUsageDeclaration : usageDeclaration? valuePart? ;
+    """
+    name = None
+    shortname = None
+    typed_by = None
+    
+    if hasattr(cud_ctx, 'usageDeclaration') and cud_ctx.usageDeclaration():
+        ud = cud_ctx.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0]
+        if ud and hasattr(ud, 'identification') and ud.identification():
+            ident = ud.identification()
+            if hasattr(ident, 'name'):
+                name_list = ident.name()
+                if name_list and isinstance(name_list, list):
+                    if len(name_list) == 2:
+                        shortname = name_list[0].getText()
+                        name = name_list[1].getText()
+                    elif len(name_list) == 1:
+                        name_text = name_list[0].getText()
+                        name, shortname = _extract_name_shortname(name_text)
+        
+        typed_by = _get_action_usage_typed_by(cud)
+        if typed_by is None:
+            typed_by = _get_action_usage_subsetted_by(cud)
+    
+    specialization = _build_specialization(typed_by) if typed_by else None
+    
+    return {
+        "name": "CalculationUsageDeclaration",
+        "declaration": {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": specialization
+            }
+        },
+        "valuepart": None
+    }
 
 
 def _visit_definition_body_item_dict(item_ctx, is_interface=False):

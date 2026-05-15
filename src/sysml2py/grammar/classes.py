@@ -599,9 +599,11 @@ class SubjectUsage:
             self.child = Usage(definition["usage"])
 
     def dump(self):
-        return " ".join(
-            [self.subject] + [x.dump() for x in self.keyword] + [self.child.dump()]
-        )
+        parts = [self.subject]
+        parts.extend([x.dump() for x in self.keyword])
+        child_dump = self.child.dump()
+        parts.append(child_dump)
+        return " ".join(filter(None, parts))
 
 
 class RequirementConstraintMember:
@@ -633,18 +635,13 @@ class RequirementConstraintKind:
     def __init__(self, definition):
         self.requirement = None
         if valid_definition(definition, self.__class__.__name__):
-            if definition["assumption"] == "assume" and definition["requirement"] == "":
+            assumption = definition.get("assumption")
+            req_value = definition.get("requirement")
+            if assumption == "assume" and not req_value:
                 self.requirement = False
-            elif (
-                definition["assumption"] == ""
-                and definition["requirement"] == "require"
-            ):
+            elif not assumption and req_value == "require":
                 self.requirement = True
-            else:  # pragma: no cover
-                print(
-                    definition["assumption"] == ""
-                    and definition["requirement"] == "require"
-                )
+            elif assumption or req_value:
                 raise ValueError
 
     def dump(self):
@@ -5775,19 +5772,23 @@ class Usage:
         if definition is not None:
             if valid_definition(definition, "Usage"):
                 self.declaration = UsageDeclaration(definition["declaration"])
-                self.completion = UsageCompletion(definition["completion"])
+                self.completion = UsageCompletion(definition["completion"]) if "completion" in definition else None
         else:
             self.declaration = UsageDeclaration()
-            self.completion = UsageCompletion()
+            self.completion = None
 
     def dump(self):
-        return "".join([self.declaration.dump(), self.completion.dump()])
+        output = []
+        if self.completion is not None:
+            output.append(self.completion.dump())
+        return self.declaration.dump() + "".join(output)
 
     def get_definition(self):
         output = {}
         output["name"] = self.__class__.__name__
         output["declaration"] = self.declaration.get_definition()
-        output["completion"] = self.completion.get_definition()
+        if self.completion is not None:
+            output["completion"] = self.completion.get_definition()
         return output
 
 
