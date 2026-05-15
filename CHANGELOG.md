@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v0.7.0 (2026-05-15)
+
+### :bug: Fixes
+
+* :bug: **State machines with transitions no longer crash** — `State.load_from_grammar()` added to extract nested states from `StateDefBody`/`StateUsageBody` structures
+* :bug: **Action parameters now extracted** — `action.action_inputs` and `action.action_outputs` populate with `(name, type_name)` tuples (e.g., `[("inputParam", "Real")]`)
+* :bug: **Nested actions now accessible** — `action.actions` returns nested `Action` objects parsed from `BehaviorUsageMember` bodies
+* :bug: **Action parameter type extraction fixed** — `_extract_type_from_typings()` handles `TypedBy` → `FeatureTyping` → `OwnedFeatureTyping` → `FeatureType` path
+* :bug: **Action constructor fixed** — `ActionUsage(None)` instead of `ActionUsage({})` to avoid grammar validation failure
+
+### :sparkles: Features
+
+* :sparkles: `State` class now supports `load_from_grammar()` with recursive nested state extraction
+* :sparkles: `Action._extract_behavior_usage()` traverses `BehaviorUsageElement` indirection to find nested `ActionUsage`/`StateUsage`
+* :sparkles: `Action._process_nested_usage()` helper for handling nested behavior usages
+* :sparkles: `Action._extract_type_from_typings()` helper for extracting type names from specialization chains
+
+### :white_check_mark: Test Results
+
+* :white_check_mark: Grammar round-trip tests: **50/56 passing** (no regressions)
+* :white_check_mark: State machines with transitions: parses without crash, states extracted
+* :white_check_mark: Activity parameters: `action_inputs`/`action_outputs` correctly populated with types
+* :white_check_mark: Nested actions: `action.actions` returns child `Action` objects
+* :white_check_mark: Nested states: recursive state extraction works (e.g., `active.states` → `["flying", "hovering"]`)
+
 ## v0.6.0 (2026-05-12)
 
 ### :rocket: Major Changes

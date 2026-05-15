@@ -1208,10 +1208,10 @@ class Action(Usage):
                 self.grammar = ActionDefinition()
                 self.grammar.declaration.identification.declaredName = name if name else None
             else:
-                # Create ActionUsage with an empty dict to handle default initialization
-                self.grammar = ActionUsage({} if name else None)
-                if self.grammar.declaration and hasattr(self.grammar.declaration, 'identification'):
-                    self.grammar.declaration.identification.declaredName = name if name else None
+                self.grammar = ActionUsage(None)
+                if self.grammar.declaration and hasattr(self.grammar.declaration, 'declaration') and self.grammar.declaration.declaration:
+                    if hasattr(self.grammar.declaration.declaration, 'identification') and self.grammar.declaration.declaration.identification:
+                        self.grammar.declaration.declaration.identification.declaredName = name if name else None
         
         self.is_definition = definition
         self.action_shortname = shortname
@@ -1294,9 +1294,13 @@ class Action(Usage):
         }
 
     def load_from_grammar(self, grammar):
+        # Set the grammar
+        self.grammar = grammar
+        
         self.is_definition = False
         self.action_inputs = []
         self.action_outputs = []
+        self._nested_actions = []
         
         # Check for 'declaration' directly (for definitions like ActionDefinition, RequirementDefinition)
         decl = getattr(grammar, 'declaration', None)
@@ -1319,7 +1323,162 @@ class Action(Usage):
                     self.is_definition = False
                     self.keyword = "action"
         
+        # Extract parameters and nested actions from body
+        body = getattr(grammar, 'body', None)
+        if body and hasattr(body, 'children'):
+            for item in body.children:
+                if hasattr(item, 'children'):
+                    for child in item.children:
+                        child_name = child.__class__.__name__
+                        # Extract in/out parameters from NonOccurrenceUsageMember -> DefaultReferenceUsage
+                        if child_name == "NonOccurrenceUsageMember":
+                            self._extract_parameter_from_non_occurrence(child)
+                        elif child_name == "BehaviorUsageMember":
+                            self._extract_behavior_usage(child)
+                        elif child_name == "ActionNodeMember":
+                            self._extract_nested_action(child)
+        
         return self
+    
+    def _extract_parameter_from_non_occurrence(self, non_occ_member):
+        """Extract in/out parameter from NonOccurrenceUsageMember -> NonOccurrenceUsageElement -> DefaultReferenceUsage."""
+        if hasattr(non_occ_member, 'children'):
+            children = non_occ_member.children
+            if not isinstance(children, list):
+                children = [children]
+            for elem in children:
+                # elem is NonOccurrenceUsageElement
+                if hasattr(elem, 'children'):
+                    # elem.children is DefaultReferenceUsage (not a list)
+                    usage = elem.children
+                    if isinstance(usage, list):
+                        usage = usage[0] if usage else None
+                    if usage and hasattr(usage, 'declaration') and usage.declaration:
+                        # UsageDeclaration has a 'declaration' attribute which is FeatureDeclaration
+                        usage_decl = usage.declaration
+                        if hasattr(usage_decl, 'declaration') and usage_decl.declaration:
+                            feat_decl = usage_decl.declaration
+                            if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                                name = feat_decl.identification.declaredName
+                                # Extract direction from prefix (RefPrefix has direction directly)
+                                direction = None
+                                if hasattr(usage, 'prefix') and usage.prefix:
+                                    prefix = usage.prefix
+                                    # RefPrefix has direction directly
+                                    if hasattr(prefix, 'direction') and prefix.direction:
+                                        dir_obj = prefix.direction
+                                        if hasattr(dir_obj, 'isIn') and dir_obj.isIn:
+                                            direction = 'in'
+                                        elif hasattr(dir_obj, 'isOut') and dir_obj.isOut:
+                                            direction = 'out'
+                                    # OccurrenceUsagePrefix has nested prefix
+                                    elif hasattr(prefix, 'prefix') and prefix.prefix:
+                                        inner_prefix = prefix.prefix
+                                        if hasattr(inner_prefix, 'direction') and inner_prefix.direction:
+                                            dir_obj = inner_prefix.direction
+                                            if hasattr(dir_obj, 'isIn') and dir_obj.isIn:
+                                                direction = 'in'
+                                            elif hasattr(dir_obj, 'isOut') and dir_obj.isOut:
+                                                direction = 'out'
+                                # Extract type from specialization
+                                type_name = None
+                                if hasattr(feat_decl, 'specialization') and feat_decl.specialization:
+                                    for spec in feat_decl.specialization.specializations:
+                                        if hasattr(spec, 'relationship') and spec.relationship:
+                                            rel = spec.relationship
+                                            type_name = self._extract_type_from_typings(rel)
+                                if direction == 'in' and name:
+                                    self.action_inputs.append((name, type_name))
+                                elif direction == 'out' and name:
+                                    self.action_outputs.append((name, type_name))
+    
+    def _extract_type_from_typings(self, rel):
+        """Extract type name from a Typings relationship."""
+        if not hasattr(rel, 'typing') or not rel.typing:
+            return None
+        
+        typing = rel.typing
+        
+        # Direct type attribute (simple case)
+        if hasattr(typing, 'type') and typing.type:
+            return typing.type.dump()
+        
+        # TypedBy case: typing.relationships -> FeatureTyping -> relationship -> OwnedFeatureTyping -> type
+        if hasattr(typing, 'relationships') and typing.relationships:
+            for ft in typing.relationships:
+                if hasattr(ft, 'relationship') and ft.relationship:
+                    owned = ft.relationship
+                    if hasattr(owned, 'type') and owned.type:
+                        return owned.type.dump()
+        
+        return None
+    
+    def _extract_nested_action(self, action_node_member):
+        """Extract nested action from ActionNodeMember."""
+        if hasattr(action_node_member, 'children'):
+            node = action_node_member.children
+            if hasattr(node, 'children'):
+                action_node = node.children
+                if hasattr(action_node, 'declaration'):
+                    decl = action_node.declaration
+                    if hasattr(decl, 'identification') and decl.identification:
+                        name = decl.identification.declaredName
+                        if name:
+                            nested_action = Action(name=name)
+                            nested_action.load_from_grammar(action_node)
+                            self._nested_actions.append(nested_action)
+                            self.children.append(nested_action)
+    
+    def _extract_behavior_usage(self, behavior_usage_member):
+        """Extract behavior usage (nested action/state) from BehaviorUsageMember."""
+        if hasattr(behavior_usage_member, 'children'):
+            for child in behavior_usage_member.children:
+                if hasattr(child, 'children'):
+                    # child is BehaviorUsageElement, its children contain the actual usage
+                    behavior_element = child.children
+                    if isinstance(behavior_element, list):
+                        usage_list = behavior_element
+                    else:
+                        usage_list = [behavior_element]
+                    for usage in usage_list:
+                        if not usage:
+                            continue
+                        # Check if BehaviorUsageElement has children with the actual usage
+                        if hasattr(usage, 'children') and usage.children:
+                            inner = usage.children
+                            if isinstance(inner, list):
+                                inner_list = inner
+                            else:
+                                inner_list = [inner]
+                            for actual_usage in inner_list:
+                                if not actual_usage:
+                                    continue
+                                self._process_nested_usage(actual_usage)
+                        elif hasattr(usage, 'declaration'):
+                            self._process_nested_usage(usage)
+    
+    def _process_nested_usage(self, usage):
+        """Process a nested usage element (ActionUsage, StateUsage, etc.)."""
+        usage_type = usage.__class__.__name__
+        
+        # Get name from declaration
+        name = None
+        if hasattr(usage, 'declaration') and usage.declaration:
+            decl = usage.declaration
+            # Handle nested declaration structure
+            while hasattr(decl, 'declaration') and not hasattr(decl, 'identification'):
+                decl = decl.declaration
+            if hasattr(decl, 'identification') and decl.identification:
+                name = decl.identification.declaredName
+        
+        if not name:
+            return
+        
+        if 'Action' in usage_type:
+            nested_action = Action(name=name)
+            nested_action.load_from_grammar(usage)
+            self._nested_actions.append(nested_action)
+            self.children.append(nested_action)
     
     def _get_definition(self, child=None):
         # Sync self.name to grammar before getting definition
@@ -1963,6 +2122,79 @@ class State(_BehaviorUsage):
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+
+    def load_from_grammar(self, grammar):
+        """Load state from grammar, extracting nested states."""
+        self.grammar = grammar
+        self.children = []
+        
+        # Extract name
+        if hasattr(grammar, 'declaration') and grammar.declaration:
+            decl = grammar.declaration
+            # Handle nested declaration structure
+            while hasattr(decl, 'declaration') and not hasattr(decl, 'identification'):
+                decl = decl.declaration
+            if hasattr(decl, 'identification') and decl.identification:
+                self.name = decl.identification.declaredName
+        
+        # Extract nested states from body
+        # StateDefinition: grammar.body -> StateDefBody -> children -> StateBodyPart -> children -> items
+        # StateUsage: grammar.body -> StateUsageBody -> children -> StateDefBody -> children -> StateBodyPart -> children -> items
+        body = getattr(grammar, 'body', None)
+        if body is None:
+            return self
+        
+        # Handle StateUsageBody wrapper (has .children -> StateDefBody)
+        body_type = body.__class__.__name__
+        if body_type == 'StateUsageBody':
+            body = body.children
+        if body is None:
+            return self
+        
+        if not hasattr(body, 'children'):
+            return self
+            
+        state_body_part = body.children
+        if state_body_part is None:
+            return self
+        
+        if hasattr(state_body_part, 'children'):
+            items = state_body_part.children
+        elif isinstance(state_body_part, list):
+            items = state_body_part
+        else:
+            items = []
+        
+        if not items:
+            return self
+        
+        for item in items:
+            if not hasattr(item, 'children') or not item.children:
+                continue
+            member = item.children[0]
+            member_name = member.__class__.__name__
+            
+            if member_name == 'BehaviorUsageMember':
+                self._extract_state_from_behavior_member(member)
+        
+        return self
+    
+    def _extract_state_from_behavior_member(self, behavior_member):
+        """Extract nested state from BehaviorUsageMember."""
+        if hasattr(behavior_member, 'children'):
+            for child in behavior_member.children:
+                if hasattr(child, 'children'):
+                    # child is BehaviorUsageElement, its children is the actual usage (StateUsage, etc.)
+                    usage = child.children
+                    if not usage:
+                        continue
+                    
+                    usage_type = usage.__class__.__name__
+                    if usage_type in ('StateUsage', 'StateDefinition'):
+                        is_def = usage_type == 'StateDefinition'
+                        nested_state = State(definition=is_def)
+                        nested_state.load_from_grammar(usage)
+                        self.children.append(nested_state)
 
 
 class Constraint(_NonOccurrenceUsage):

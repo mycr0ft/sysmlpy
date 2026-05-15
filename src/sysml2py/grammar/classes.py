@@ -925,6 +925,18 @@ class DoActionMember:
         output.append(self.children.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class ExitActionMember:
     # ExitActionMember :
@@ -946,6 +958,18 @@ class ExitActionMember:
         output.append(self.keyword)
         output.append(self.children.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
 
 
 class EntryActionMember:
@@ -971,6 +995,18 @@ class EntryActionMember:
         output.append(self.children.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class StateActionUsage:
     # StateActionUsage :
@@ -990,6 +1026,18 @@ class StateActionUsage:
             return ";"
         else:
             return "".join([self.pau.dump(), self.body.dump()])
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "pau": None,
+            "body": None,
+        }
+        if self.pau is not None:
+            output["pau"] = self.pau.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
 
 
 class AssignmentNode:
@@ -1214,6 +1262,15 @@ class GuardExpressionMember:
     def dump(self):
         return " ".join([self.keyword, self.children.dump()])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": None,
+        }
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class TransitionSuccessionMember:
     # TransitionSuccessionMember :
@@ -1225,6 +1282,15 @@ class TransitionSuccessionMember:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": None,
+        }
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
 
 
 class TransitionSuccession:
@@ -1241,6 +1307,15 @@ class TransitionSuccession:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": None,
+        }
+        if self.children is not None:
+            output["ownedRelationship"] = self.children.get_definition()
+        return output
 
 
 class TransitionUsageMember:
@@ -1262,6 +1337,18 @@ class TransitionUsageMember:
         output.append(self.children.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class TargetTransitionUsageMember:
     # This is a special class version of the previous, but it assumes the
@@ -1282,6 +1369,18 @@ class TargetTransitionUsageMember:
             output.append(self.prefix.dump())
         output.append(self.children.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
 
 
 class TargetTransitionUsage:
@@ -1377,6 +1476,22 @@ class TransitionUsage:
         output.append(self.body.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "keyword": self.keyword,
+            "declaration": None,
+            "body": None,
+            "ownedRelationship": [],
+        }
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class EffectBehaviorMember:
     # EffectBehaviorMember :
@@ -1389,6 +1504,15 @@ class EffectBehaviorMember:
 
     def dump(self):
         return " ".join([self.keyword, self.children.dump()])
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": None,
+        }
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
 
 
 class EffectBehaviorUsage:
@@ -1429,6 +1553,19 @@ class TransitionSourceMember:
     def dump(self):
         return "".join([x.dump() for x in self.children])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "memberElement": None,
+            "ownedRelatedElement": [],
+        }
+        for child in self.children:
+            if child.__class__.__name__ == "QualifiedName":
+                output["memberElement"] = child.get_definition()
+            else:
+                output["ownedRelatedElement"].append(child.get_definition())
+        return output
+
 
 class TriggerActionMember:
     # TriggerActionMember :
@@ -1442,6 +1579,15 @@ class TriggerActionMember:
     def dump(self):
         return " ".join([self.keyword, self.children.dump()])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": None,
+        }
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class TriggerAction:
     # TriggerAction :
@@ -1453,6 +1599,15 @@ class TriggerAction:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "part": None,
+        }
+        if self.children is not None:
+            output["part"] = self.children.get_definition()
+        return output
 
 
 class AcceptParameterPart:
@@ -1880,9 +2035,13 @@ class BehaviorUsageMember:
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
             if definition["ownedRelatedElement"] is not None:
-                self.children.append(
-                    BehaviorUsageElement(definition["ownedRelatedElement"])
-                )
+                rel = definition["ownedRelatedElement"]
+                if isinstance(rel, list):
+                    rel = rel[0] if rel else None
+                if rel is not None:
+                    self.children.append(
+                        BehaviorUsageElement(rel)
+                    )
 
     def dump(self):
         output = []
@@ -1891,6 +2050,20 @@ class BehaviorUsageMember:
         for child in self.children:
             output.append(child.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": [],
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+
+        for child in self.children:
+            output["ownedRelatedElement"].append(child.get_definition())
+
+        return output
 
 
 class ConstraintUsage:
@@ -2207,9 +2380,10 @@ class VerificationCaseUsage:
 class BehaviorUsageElement:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.children = globals()[definition["ownedRelationship"]["name"]](
-                definition["ownedRelationship"]
-            )
+            rel = definition["ownedRelationship"]
+            if isinstance(rel, list):
+                rel = rel[0] if rel else {"name": "StateUsage", "prefix": None}
+            self.children = globals()[rel["name"]](rel)
 
     def dump(self):
         return self.children.dump()
@@ -3416,6 +3590,8 @@ class NonOccurrenceUsageElement:
                 self.children = CalculationUsage(definition["ownedRelatedElement"])
             elif name == "MetadataUsage":
                 self.children = MetadataUsage(definition["ownedRelatedElement"])
+            elif name == "EndFeatureUsage":
+                self.children = EndFeatureUsage(definition["ownedRelatedElement"])
             else:
                 print(name)  # pragma: no cover
                 raise NotImplementedError  # pragma: no cover
@@ -3446,8 +3622,43 @@ class ReferenceUsage:
         if self.prefix is not None:
             output.append(self.prefix.dump())
         output.append(self.keyword)
+        output.append(":>>")
         output.append(self.child.dump())
         return " ".join(output)
+
+
+class EndFeatureUsage:
+    # EndFeatureUsage :
+    # 	prefix=EndUsagePrefix featureDeclaration usageCompletion
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition["prefix"] is not None:
+                self.prefix = EndUsagePrefix(definition["prefix"])
+            self.declaration = FeatureDeclaration(definition["usage"]["declaration"]["declaration"])
+            self.completion = UsageCompletion(definition["usage"]["completion"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        output.append(self.declaration.dump())
+        output.append(self.completion.dump())
+        return " ".join(output)
+
+
+class EndUsagePrefix:
+    def __init__(self, definition):
+        self.prefix = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition["prefix"] is not None:
+                self.prefix = RefPrefix(definition["prefix"])
+
+    def dump(self):
+        if self.prefix is not None:
+            return self.prefix.dump()
+        return ""
 
 
 class SatisfyRequirementUsage:
@@ -5472,6 +5683,15 @@ class ConnectorEndMember:
     def dump(self):
         return "".join([child.dump() for child in self.children])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [],
+        }
+        for child in self.children:
+            output["ownedRelatedElement"].append(child.get_definition())
+        return output
+
 
 class ConnectorEnd:
     def __init__(self, definition):
@@ -5498,6 +5718,16 @@ class ConnectorEnd:
 
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "declaredName": self.declaredName,
+            "ownedRelationship": [],
+        }
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class OwnedReferenceSubsetting:
     def __init__(self, definition):
@@ -5515,6 +5745,18 @@ class OwnedReferenceSubsetting:
             return self.referencedFeature.dump()
         else:
             return "".join([child.dump() for child in self.elements])
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "referencedFeature": None,
+            "ownedRelatedElement": [],
+        }
+        if self.referencedFeature is not None:
+            output["referencedFeature"] = self.referencedFeature.get_definition()
+        for element in self.elements:
+            output["ownedRelatedElement"].append(element.get_definition())
+        return output
 
 
 class AttributeUsage:
@@ -6249,6 +6491,15 @@ class OwnedFeatureChain:
     def dump(self):
         return self.feature.dump()
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "feature": None,
+        }
+        if self.feature is not None:
+            output["feature"] = self.feature.get_definition()
+        return output
+
 
 class FeatureChain:
     def __init__(self, definition):
@@ -6260,6 +6511,15 @@ class FeatureChain:
     def dump(self):
         return ".".join([child.dump() for child in self.children])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [],
+        }
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class OwnedFeatureChaining:
     def __init__(self, definition):
@@ -6268,6 +6528,15 @@ class OwnedFeatureChaining:
 
     def dump(self):
         return self.chainingFeature.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "chainingFeature": None,
+        }
+        if self.chainingFeature is not None:
+            output["chainingFeature"] = self.chainingFeature.get_definition()
+        return output
 
 
 class Typings:

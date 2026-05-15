@@ -475,25 +475,10 @@ class Package(Searchable):
                     pass
                 self.children.append(c)
             elif inner_class == "StateDefinition":
-                s = State(definition=True)
-                s.grammar = inner_element
-                if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
-                    s.name = inner_element.declaration.identification.declaredName
+                s = State(definition=True).load_from_grammar(inner_element)
                 self.children.append(s)
             elif inner_class == "StateUsage":
-                s = State()
-                s.grammar = inner_element
-                try:
-                    if hasattr(inner_element, 'declaration') and inner_element.declaration:
-                        decl = inner_element.declaration
-                        if hasattr(decl, 'declaration') and decl.declaration:
-                            inner_decl = decl.declaration
-                            if hasattr(inner_decl, 'declaration') and inner_decl.declaration:
-                                feat_decl = inner_decl.declaration
-                                if hasattr(feat_decl, 'identification') and feat_decl.identification:
-                                    s.name = feat_decl.identification.declaredName
-                except AttributeError:
-                    pass
+                s = State().load_from_grammar(inner_element)
                 self.children.append(s)
             elif inner_class == "CalculationDefinition":
                 c = Calculation(definition=True)
