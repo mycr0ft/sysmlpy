@@ -4092,6 +4092,92 @@ def _make_constraint_usage_dict(ctx, prefix=None):
     }
 
 
+def _make_requirement_usage_dict(ctx, prefix=None):
+    """Create a RequirementUsage dictionary.
+    
+    Grammar: requirementUsage: occurrenceUsagePrefix REQUIREMENT constraintUsageDeclaration requirementBody ;
+    RequirementUsage class expects: prefix, declaration (CalculationUsageDeclaration), body (RequirementBody)
+    """
+    if ctx is None:
+        return None
+    
+    name = None
+    shortname = None
+    typed_by = None
+    
+    # Extract name from constraintUsageDeclaration
+    cud = None
+    if hasattr(ctx, 'constraintUsageDeclaration') and ctx.constraintUsageDeclaration():
+        cud = ctx.constraintUsageDeclaration()
+    
+    ud = None
+    if cud and hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
+        ud = cud.usageDeclaration()
+    
+    if ud and hasattr(ud, 'identification') and ud.identification():
+        ident = ud.identification()
+        if hasattr(ident, 'name'):
+            name_list = ident.name()
+            if name_list and isinstance(name_list, list):
+                if len(name_list) == 2:
+                    shortname = name_list[0].getText()
+                    name = name_list[1].getText()
+                elif len(name_list) == 1:
+                    name_text = name_list[0].getText()
+                    name, shortname = _extract_name_shortname(name_text)
+    
+    # Extract typed_by from specialization (e.g., ': VehicleMassLimitationRequirement')
+    typed_by = _get_action_usage_typed_by(ctx)
+    if typed_by is None:
+        typed_by = _get_action_usage_subsetted_by(ctx)
+    
+    specialization = _build_specialization(typed_by) if typed_by else None
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    
+    # Get requirement body items
+    body_items = []
+    if hasattr(ctx, 'requirementBody') and ctx.requirementBody():
+        body_items = _visit_requirement_body_dict(ctx.requirementBody())
+    
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "UsageElement",
+            "ownedRelatedElement": {
+                "name": "OccurrenceUsageElement",
+                "ownedRelatedElement": {
+                    "name": "BehaviorUsageElement",
+                    "ownedRelationship": {
+                        "name": "RequirementUsage",
+                        "prefix": occ_prefix or prefix,
+                        "declaration": {
+                            "name": "CalculationUsageDeclaration",
+                            "declaration": {
+                                "name": "UsageDeclaration",
+                                "declaration": {
+                                    "name": "FeatureDeclaration",
+                                    "identification": {
+                                        "name": "Identification",
+                                        "declaredShortName": shortname,
+                                        "declaredName": name
+                                    },
+                                    "specialization": specialization
+                                }
+                            },
+                            "valuepart": None
+                        },
+                        "body": {
+                            "name": "RequirementBody",
+                            "item": body_items
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 def _make_connection_usage_dict(ctx, prefix=None):
     """Create a ConnectionUsage dictionary."""
     name, shortname = _get_usage_identification(ctx)
@@ -7895,6 +7981,9 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(behav_elem, 'constraintUsage') and behav_elem.constraintUsage():
                 ctx = behav_elem.constraintUsage()
                 return _make_constraint_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'requirementUsage') and behav_elem.requirementUsage():
+                ctx = behav_elem.requirementUsage()
+                return _make_requirement_usage_dict(ctx, prefix)
             elif hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
                 ctx = behav_elem.assertConstraintUsage()
                 result = _make_assert_constraint_usage_dict(ctx, prefix)
