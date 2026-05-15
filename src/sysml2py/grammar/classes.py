@@ -1233,7 +1233,11 @@ class TransitionSuccession:
     # ;
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.children = ConnectorEndMember(definition["ownedRelationship"])
+            # ownedRelationship can be a list (from visitor) or a dict (from grammar)
+            rel = definition["ownedRelationship"]
+            if isinstance(rel, list):
+                rel = rel[0] if rel else {"name": "ConnectorEndMember", "ownedRelatedElement": []}
+            self.children = ConnectorEndMember(rel)
 
     def dump(self):
         return self.children.dump()
@@ -5449,8 +5453,18 @@ class ConnectorEndMember:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
             self.children = []
-            for element in definition["ownedRelatedElement"]:
-                self.children.append(ConnectorEnd(element))
+            # Handle both list (from visitor) and dict (from grammar) formats
+            rel = definition["ownedRelatedElement"]
+            if isinstance(rel, list):
+                for element in rel:
+                    if element.get("name") == "ConnectorEnd":
+                        self.children.append(ConnectorEnd(element))
+                    elif element.get("name") == "ConnectorEndMember":
+                        # Nested structure from visitor
+                        nested = element.get("ownedRelatedElement", [])
+                        if isinstance(nested, list):
+                            for child in nested:
+                                self.children.append(ConnectorEnd(child))
 
     def dump(self):
         return "".join([child.dump() for child in self.children])
