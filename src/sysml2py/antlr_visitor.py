@@ -2003,6 +2003,22 @@ def _visit_non_behavior_body_item(nbi_ctx):
                             "ownedRelatedElement": owned
                         }
         
+        elif cname == 'DefinitionMemberContext':
+            # Handle comments/documentation inside bodies
+            # Structure: DefinitionMember -> DefinitionElement -> AnnotatingElement -> Comment
+            for c2 in child.children:
+                if type(c2).__name__ == 'DefinitionElementContext':
+                    for c3 in c2.children:
+                        if type(c3).__name__ == 'AnnotatingElementContext':
+                            if hasattr(c3, 'comment') and c3.comment():
+                                comment = _visit_comment_dict(c3.comment())
+                                if comment:
+                                    return comment
+                            elif hasattr(c3, 'documentation') and c3.documentation():
+                                doc = _visit_documentation_dict(c3.documentation())
+                                if doc:
+                                    return doc
+        
         elif cname == 'StructureUsageMemberContext':
             # Handle occurrence usages (parts, items, ports)
             for c2 in child.children:
@@ -2165,7 +2181,7 @@ def _visit_state_body_item(ctx):
         if not isinstance(items, list):
             items = [items]
         for item in items:
-            item_dict = _visit_non_behavior_body_item(item)
+            item_dict = _visit_state_non_behavior_body_item(item)
             if item_dict:
                 owned_rel.append(item_dict)
     
@@ -3194,8 +3210,10 @@ def _visit_connector_end(ctx):
     }
 
 
-def _visit_non_behavior_body_item(ctx):
-    """Visit a nonBehaviorBodyItem context."""
+def _visit_state_non_behavior_body_item(ctx):
+    """Visit a nonBehaviorBodyItem in state context.
+    Handles documentation, annotating elements, and falls back to general handler.
+    """
     if ctx is None:
         return None
     
@@ -3215,7 +3233,8 @@ def _visit_non_behavior_body_item(ctx):
         if ae:
             return _visit_annotating_element(ae)
     
-    return None
+    # Fall back to general handler for in/out params, parts, etc.
+    return _visit_non_behavior_body_item(ctx)
 
 
 def _visit_documentation(ctx):
