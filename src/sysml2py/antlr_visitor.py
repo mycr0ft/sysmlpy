@@ -5111,14 +5111,14 @@ def _make_analysis_case_definition_dict(ctx, member_prefix=None):
     """
     name, shortname = _get_definition_identification(ctx)
     occ_prefix = _get_occurrence_definition_prefix(ctx)
-    # Get body items from definition body
-    body_items = []
-    if hasattr(ctx, "definition") and ctx.definition():
-        defn = ctx.definition()
-        if hasattr(defn, "definitionBody") and defn.definitionBody():
-            body_items = _visit_definition_body_dict(defn.definitionBody())
     if not name and not shortname:
         name = "AnalysisCase_" + str(uuid.uuid4())[:8]
+    
+    # Parse caseBody
+    case_body = {"name": "CaseBody", "item": [], "ownedRelationship": None}
+    if hasattr(ctx, "caseBody") and ctx.caseBody():
+        case_body = _visit_case_body_dict(ctx.caseBody())
+    
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -5136,11 +5136,7 @@ def _make_analysis_case_definition_dict(ctx, member_prefix=None):
                     },
                     "subclassificationpart": _get_subclassification_part(ctx)
                 },
-                "body": {
-                    "name": "CaseBody",
-                    "item": [],
-                    "ownedRelationship": None
-                }
+                "body": case_body
             }
         }
     }
@@ -5950,6 +5946,190 @@ def _visit_requirement_body_dict(body_ctx):
                 items.append(item_dict)
     
     return items
+
+
+def _visit_case_body_dict(body_ctx):
+    """Visit a caseBody and return a CaseBody dict.
+    
+    Grammar:
+      caseBody: SEMI | LBRACE caseBodyItem* (resultExpressionMember)? RBRACE ;
+      caseBodyItem: actionBodyItem | returnParameterMember | subjectMember | actorMember | objectiveMember ;
+    
+    CaseBody class expects: {"name": "CaseBody", "item": [...CaseBodyItems...], "ownedRelationship": ...}
+    CaseBodyItem.ownedRelationship can be: CalculationBodyItem, SubjectMember, ActorMember, ObjectiveMember
+    """
+    if body_ctx is None:
+        return {"name": "CaseBody", "item": [], "ownedRelationship": None}
+    
+    # SEMI case - empty body
+    if hasattr(body_ctx, 'SEMI') and body_ctx.SEMI():
+        return {"name": "CaseBody", "item": [], "ownedRelationship": None}
+    
+    items = []
+    if hasattr(body_ctx, 'caseBodyItem') and body_ctx.caseBodyItem():
+        for item_ctx in body_ctx.caseBodyItem():
+            item_dict = _visit_case_body_item_dict(item_ctx)
+            if item_dict:
+                items.append(item_dict)
+    
+    result_expr = None
+    if hasattr(body_ctx, 'resultExpressionMember') and body_ctx.resultExpressionMember():
+        rem_ctx = body_ctx.resultExpressionMember()
+        result_expr = _visit_result_expression_member(rem_ctx)
+    
+    return {"name": "CaseBody", "item": items, "ownedRelationship": result_expr}
+
+
+def _visit_case_body_item_dict(item_ctx):
+    """Visit a caseBodyItem and return a CaseBodyItem dict."""
+    if item_ctx is None:
+        return None
+    
+    # subjectMember
+    if hasattr(item_ctx, 'subjectMember') and item_ctx.subjectMember():
+        sm = item_ctx.subjectMember()
+        if isinstance(sm, list):
+            sm = sm[0]
+        subject_dict = _visit_subject_member_dict(sm)
+        if subject_dict:
+            return {"name": "CaseBodyItem", "ownedRelationship": subject_dict}
+    
+    # returnParameterMember → wraps in CalculationBodyItem
+    if hasattr(item_ctx, 'returnParameterMember') and item_ctx.returnParameterMember():
+        rpm = item_ctx.returnParameterMember()
+        if isinstance(rpm, list):
+            rpm = rpm[0]
+        rpm_dict = _visit_return_parameter_member(rpm)
+        if rpm_dict:
+            return {
+                "name": "CaseBodyItem",
+                "ownedRelationship": {
+                    "name": "CalculationBodyItem",
+                    "item": None,
+                    "ownedRelationship": rpm_dict
+                }
+            }
+    
+    # actionBodyItem → wraps in CalculationBodyItem
+    if hasattr(item_ctx, 'actionBodyItem') and item_ctx.actionBodyItem():
+        abi = item_ctx.actionBodyItem()
+        if isinstance(abi, list):
+            abi = abi[0]
+        action_dict = _visit_action_body_item(abi)
+        if action_dict:
+            return {
+                "name": "CaseBodyItem",
+                "ownedRelationship": {
+                    "name": "CalculationBodyItem",
+                    "item": action_dict,
+                    "ownedRelationship": None
+                }
+            }
+    
+    # objectiveMember
+    if hasattr(item_ctx, 'objectiveMember') and item_ctx.objectiveMember():
+        om = item_ctx.objectiveMember()
+        if isinstance(om, list):
+            om = om[0]
+        obj_dict = _visit_objective_member_dict(om)
+        if obj_dict:
+            return {"name": "CaseBodyItem", "ownedRelationship": obj_dict}
+    
+    return None
+
+
+def _visit_objective_member_dict(om_ctx):
+    """Visit an objectiveMember and return an ObjectiveMember dict.
+    
+    Grammar: objectiveMember: memberPrefix OBJECTIVE objectiveRequirementUsage ;
+    objectiveRequirementUsage: usageExtensionKeyword* constraintUsageDeclaration requirementBody ;
+    """
+    if om_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(om_ctx, 'memberPrefix') and om_ctx.memberPrefix():
+        mp = om_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    oru_dict = None
+    if hasattr(om_ctx, 'objectiveRequirementUsage') and om_ctx.objectiveRequirementUsage():
+        oru = om_ctx.objectiveRequirementUsage()
+        
+        # Extract name from constraintUsageDeclaration
+        name = None
+        shortname = None
+        typed_by = None
+        cud = None
+        if hasattr(oru, 'constraintUsageDeclaration') and oru.constraintUsageDeclaration():
+            cud = oru.constraintUsageDeclaration()
+        
+        ud = None
+        if cud and hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
+            ud = cud.usageDeclaration()
+        
+        if ud and hasattr(ud, 'identification') and ud.identification():
+            ident = ud.identification()
+            if hasattr(ident, 'name'):
+                name_list = ident.name()
+                if name_list and isinstance(name_list, list):
+                    if len(name_list) == 2:
+                        shortname = name_list[0].getText()
+                        name = name_list[1].getText()
+                    elif len(name_list) == 1:
+                        name_text = name_list[0].getText()
+                        name, shortname = _extract_name_shortname(name_text)
+        
+        typed_by = _get_action_usage_typed_by(oru)
+        if typed_by is None:
+            typed_by = _get_action_usage_subsetted_by(oru)
+        specialization = _build_specialization(typed_by) if typed_by else None
+        
+        # Get requirement body
+        body_items = []
+        if hasattr(oru, 'requirementBody') and oru.requirementBody():
+            body_items = _visit_requirement_body_dict(oru.requirementBody())
+        
+        # Keywords (like '#metadata')
+        keywords = []
+        if hasattr(oru, 'usageExtensionKeyword') and oru.usageExtensionKeyword():
+            for kw in oru.usageExtensionKeyword():
+                keywords.append({"name": "UsageExtensionKeyword"})
+        
+        oru_dict = {
+            "name": "ObjectiveRequirementUsage",
+            "keyword": keywords,
+            "declaration": {
+                "name": "CalculationUsageDeclaration",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": specialization
+                    }
+                },
+                "valuepart": None
+            },
+            "body": {
+                "name": "RequirementBody",
+                "item": body_items
+            }
+        }
+    
+    return {
+        "name": "ObjectiveMember",
+        "prefix": prefix,
+        "ownedRelatedElement": oru_dict
+    }
 
 
 def _visit_requirement_body_item_dict(item_ctx):
@@ -6904,6 +7084,72 @@ def _visit_nested_occurrence_usage(occ_elem):
     return None
 
 
+def _get_usage_prefix_dict(ctx):
+    """Extract UsagePrefix dict from an attributeUsage (or similar) context.
+    Returns None if no direction/ref is present.
+    """
+    if ctx is None:
+        return None
+    if not (hasattr(ctx, 'usagePrefix') and ctx.usagePrefix()):
+        return None
+    
+    up = ctx.usagePrefix()
+    is_reference = False
+    direction_in = ""
+    direction_out = ""
+    direction_inout = ""
+    
+    # Navigate: usagePrefix -> unextendedUsagePrefix -> basicUsagePrefix -> refPrefix
+    bup = None
+    if hasattr(up, 'unextendedUsagePrefix') and up.unextendedUsagePrefix():
+        uep = up.unextendedUsagePrefix()
+        if hasattr(uep, 'basicUsagePrefix') and uep.basicUsagePrefix():
+            bup = uep.basicUsagePrefix()
+    elif hasattr(up, 'basicUsagePrefix') and up.basicUsagePrefix():
+        bup = up.basicUsagePrefix()
+    
+    if bup:
+        is_reference = hasattr(bup, 'REF') and bup.REF() is not None
+        if hasattr(bup, 'refPrefix') and bup.refPrefix():
+            rp = bup.refPrefix()
+            if hasattr(rp, 'featureDirection') and rp.featureDirection():
+                fd = rp.featureDirection()
+                direction_in = "in " if (hasattr(fd, 'IN') and fd.IN() is not None) else ""
+                direction_out = "out" if (hasattr(fd, 'OUT') and fd.OUT() is not None) else ""
+                direction_inout = "inout" if (hasattr(fd, 'INOUT') and fd.INOUT() is not None) else ""
+    
+    has_direction = any([direction_in, direction_out, direction_inout])
+    if not is_reference and not has_direction:
+        return None
+    
+    ref_prefix = None
+    if has_direction:
+        ref_prefix = {
+            "name": "RefPrefix",
+            "direction": {
+                "name": "FeatureDirection",
+                "in": direction_in,
+                "out": direction_out,
+                "inout": direction_inout
+            },
+            "isAbstract": None,
+            "isVariation": None,
+            "isReadOnly": None,
+            "isDerived": None,
+            "isEnd": None
+        }
+    
+    return {
+        "name": "UsagePrefix",
+        "prefix": {
+            "name": "BasicUsagePrefix",
+            "prefix": ref_prefix,
+            "isReference": is_reference
+        },
+        "usageKeyword": []
+    }
+
+
 def _visit_nested_non_occurrence_usage(non_occ):
     """Visit a non-occurrence usage element for nested body items."""
     if non_occ is None:
@@ -6914,11 +7160,12 @@ def _visit_nested_non_occurrence_usage(non_occ):
         name, shortname = _get_usage_identification(ctx)
         specialization = _build_full_specialization_from_ctx(ctx)
         valuepart = _get_usage_value_part(ctx)
+        usage_prefix = _get_usage_prefix_dict(ctx)
         return {
             "name": "NonOccurrenceUsageElement",
             "ownedRelatedElement": {
                 "name": "AttributeUsage",
-                "prefix": None,
+                "prefix": usage_prefix,
                 "usage": {
                     "name": "Usage",
                     "declaration": {
