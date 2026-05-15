@@ -462,10 +462,43 @@ def _visit_import_rule_dict(import_ctx):
                         "name": "ImportedMembership",
                         "importedMembership": {"name": "QualifiedName", "names": qn_names},
                         "isRecursive": False
-                    }
+}
                 }
             }
-
+        
+        if hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+            ctx = behav_elem.assertConstraintUsage()
+            result = _make_assert_constraint_usage_dict(ctx, None)
+            if result:
+                return {
+                    "name": "UsageElement",
+                    "ownedRelatedElement": {
+                        "name": "OccurrenceUsageElement",
+                        "ownedRelatedElement": {
+                            "name": "BehaviorUsageElement",
+                            "ownedRelationship": result
+}
+                }
+            }
+        
+        if hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+            ctx = behav_elem.assertConstraintUsage()
+            result = _make_assert_constraint_usage_dict(ctx, None)
+            if result:
+                return {
+                    "name": "UsageElement",
+                    "ownedRelatedElement": {
+                        "name": "OccurrenceUsageElement",
+                        "ownedRelatedElement": {
+                            "name": "BehaviorUsageElement",
+                            "ownedRelationship": result
+                        }
+                    }
+                }
+            return None
+    
+    return None
+    
     return None
 
 
@@ -1408,8 +1441,109 @@ def _visit_behavior_usage_member(bum_ctx):
                             "ownedRelatedElement": occ.get("ownedRelatedElement")
                         }
             return result
+        elif hasattr(bue, 'assertConstraintUsage') and bue.assertConstraintUsage():
+            return _make_assert_constraint_usage_dict(bue.assertConstraintUsage(), prefix)
     
     return None
+
+
+def _make_assert_constraint_usage_dict(acu_ctx, prefix=None):
+    """Create an AssertConstraintUsage dictionary.
+    
+    Grammar:
+      assertConstraintUsage
+        : occurrenceUsagePrefix ASSERT (NOT)? (
+            ownedReferenceSubsetting featureSpecializationPart?
+            | CONSTRAINT constraintUsageDeclaration
+          ) calculationBody
+        ;
+    """
+    if acu_ctx is None:
+        return None
+    
+    is_negated = False
+    occ_prefix = _get_occurrence_usage_prefix(acu_ctx)
+    
+    if hasattr(acu_ctx, 'NOT') and acu_ctx.NOT():
+        is_negated = True
+    
+    body_parts = _visit_calculation_body_items(acu_ctx)
+    
+    owned_relationship = []
+    fsp = None
+    
+    if hasattr(acu_ctx, 'ownedReferenceSubsetting') and acu_ctx.ownedReferenceSubsetting():
+        ors = _build_owned_reference_subsetting_dict(acu_ctx.ownedReferenceSubsetting())
+        if ors:
+            owned_relationship.append(ors)
+        
+        if hasattr(acu_ctx, 'featureSpecializationPart') and acu_ctx.featureSpecializationPart():
+            fsp_ctx = acu_ctx.featureSpecializationPart()
+            fsp = _build_feature_specialization_part(fsp_ctx)
+    
+    declaration = None
+    if hasattr(acu_ctx, 'constraintUsageDeclaration') and acu_ctx.constraintUsageDeclaration():
+        cud = acu_ctx.constraintUsageDeclaration()
+        name = None
+        shortname = None
+        typed_by = None
+        
+        if hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
+            ud = cud.usageDeclaration()
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name, shortname = _extract_name_shortname(name_text)
+            
+            typed_by = _get_action_usage_typed_by(cud)
+            if typed_by is None:
+                typed_by = _get_action_usage_subsetted_by(cud)
+        
+        specialization = _build_specialization(typed_by) if typed_by else None
+        
+        valuepart = None
+        if hasattr(cud, 'valuePart') and cud.valuePart():
+            vp = cud.valuePart()
+            if hasattr(vp, 'ownedExpression') and vp.ownedExpression():
+                expr = _visit_expression(vp.ownedExpression())
+                if expr:
+                    valuepart = {"name": "ValuePart", "ownedRelationship": expr}
+        
+        declaration = {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": specialization
+            }
+        }
+        
+        if valuepart:
+            declaration["valuepart"] = valuepart
+    
+    return {
+        "name": "AssertConstraintUsage",
+        "prefix": occ_prefix or prefix,
+        "isNegated": is_negated,
+        "ownedRelationship": owned_relationship,
+        "featurespecializationpart": fsp,
+        "declaration": declaration,
+        "body": {
+            "name": "CalculationBody",
+            "part": body_parts
+        }
+    }
 
 
 def _visit_action_node_member(anm_ctx):
@@ -3120,23 +3254,16 @@ def _make_nested_succession_flow_usage_dict(ctx, prefix=None):
     declaration = None
     if name or shortname:
         declaration = {
-            "name": "FlowConnectionDeclaration",
+            "name": "UsageDeclaration",
             "declaration": {
-                "name": "UsageDeclaration",
-                "declaration": {
-                    "name": "FeatureDeclaration",
-                    "identification": {
-                        "name": "Identification",
-                        "declaredShortName": shortname,
-                        "declaredName": name
-                    },
-                    "specialization": None
-                }
-            },
-            "valuepart": None,
-            "ownedRelationship_of": None,
-            "ownedRelationship_from": from_end,
-            "ownedRelationship_to": to_end
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": specialization
+            }
         }
     else:
         declaration = {
@@ -4192,9 +4319,54 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
     # Check for endOccurrenceUsageElement (for regular definition body)
     elif hasattr(item_ctx, 'endOccurrenceUsageElement') and item_ctx.endOccurrenceUsageElement():
         occ_elem = item_ctx.endOccurrenceUsageElement()
-        # print(f"DEBUG: Found endOccurrenceUsageElement: {occ_elem}")
-        inner_element = _visit_nested_occurrence_usage(occ_elem)
-        wrapper = "OccurrenceUsageMember"
+        if isinstance(occ_elem, list):
+            occ_elem = occ_elem[0]
+        # EndOccurrenceUsageElementContext has OccurrenceUsageElement as a child
+        # Get the second child (first is usually the 'end' keyword terminal)
+        children = list(occ_elem.getChildren())
+        actual_occ_elem = None
+        for child in children:
+            # TerminalNode has 'symbol' attribute, ParserRuleContext doesn't
+            if not hasattr(child, 'symbol') and hasattr(child, 'getChildCount'):
+                # This is a ParserRuleContext, not a terminal
+                actual_occ_elem = child
+                break
+        if actual_occ_elem is None and len(children) > 1:
+            actual_occ_elem = children[1]
+        if actual_occ_elem:
+            inner_element = _visit_nested_occurrence_usage(actual_occ_elem)
+            # Add END prefix if not already present
+            if inner_element:
+                occ_usage_elem = inner_element.get("ownedRelatedElement", {})
+                occ_elem_inner = occ_usage_elem.get("ownedRelatedElement", {})
+                if occ_elem_inner.get("name") == "StructureUsageElement":
+                    struct_elem = occ_elem_inner.get("ownedRelatedElement", {})
+                    if isinstance(struct_elem, dict) and struct_elem.get("prefix") is None:
+                        struct_elem["prefix"] = {
+                            "name": "OccurrenceUsagePrefix",
+                            "prefix": {
+                                "name": "BasicUsagePrefix",
+                                "prefix": {
+                                    "name": "RefPrefix",
+                                    "isAbstract": None,
+                                    "isVariation": None,
+                                    "isReadOnly": None,
+                                    "isDerived": None,
+                                    "isEnd": "end",
+                                    "direction": {
+                                        "name": "FeatureDirection",
+                                        "in": "",
+                                        "out": "",
+                                        "inout": ""
+                                    }
+                                },
+                                "isReference": False
+                            },
+                            "isIndividual": None,
+                            "portionKind": None,
+                            "usageExtension": []
+                        }
+            wrapper = "OccurrenceUsageMember"
     # Check for interfaceNonOccurrenceUsageMember
     elif hasattr(item_ctx, 'interfaceNonOccurrenceUsageMember') and item_ctx.interfaceNonOccurrenceUsageMember():
         memb = item_ctx.interfaceNonOccurrenceUsageMember()
@@ -4532,7 +4704,9 @@ def _visit_nested_occurrence_usage(occ_elem):
             return _make_nested_usage_element("PartUsage", name, shortname, occ_prefix, body_items, specialization)
     if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
         behav_elem = occ_elem.behaviorUsageElement()
-        # print(f"DEBUG: Found behaviorUsageElement: {behav_elem}")
+        if isinstance(behav_elem, list):
+            behav_elem = behav_elem[0]
+        
         if hasattr(behav_elem, 'actionUsage') and behav_elem.actionUsage():
             ctx = behav_elem.actionUsage()
             # Use action usage navigation
@@ -4607,6 +4781,21 @@ def _visit_nested_occurrence_usage(occ_elem):
             if result and result.get("name") == "PackageMember":
                 return result.get("ownedRelatedElement")
             return result
+        elif hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+            ctx = behav_elem.assertConstraintUsage()
+            result = _make_assert_constraint_usage_dict(ctx, None)
+            if result:
+                return {
+                    "name": "UsageElement",
+                    "ownedRelatedElement": {
+                        "name": "OccurrenceUsageElement",
+                        "ownedRelatedElement": {
+                            "name": "BehaviorUsageElement",
+                            "ownedRelationship": result
+                        }
+                    }
+                }
+            return None
     
     # print(f"DEBUG: No match found in _visit_nested_occurrence_usage")
     # Fall through to check structure usage elements
@@ -4696,6 +4885,22 @@ def _visit_nested_occurrence_usage(occ_elem):
                     }
                 }
             }
+        
+        if hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+            ctx = behav_elem.assertConstraintUsage()
+            result = _make_assert_constraint_usage_dict(ctx, None)
+            if result:
+                return {
+                    "name": "UsageElement",
+                    "ownedRelatedElement": {
+                        "name": "OccurrenceUsageElement",
+                        "ownedRelatedElement": {
+                            "name": "BehaviorUsageElement",
+                            "ownedRelationship": result
+                        }
+                    }
+                }
+            return None
     
     return None
 
@@ -5622,6 +5827,36 @@ def _visit_nested_usage(usage_elem_ctx):
                         }
                     }
                 }
+            
+            if hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+                ctx = behav_elem.assertConstraintUsage()
+                result = _make_assert_constraint_usage_dict(ctx, None)
+                if result:
+                    return {
+                        "name": "UsageElement",
+                        "ownedRelatedElement": {
+                            "name": "OccurrenceUsageElement",
+                            "ownedRelatedElement": {
+                                "name": "BehaviorUsageElement",
+                                "ownedRelationship": result
+                            }
+                        }
+                    }
+                return None
+            
+            if hasattr(behav_elem, 'calculationUsage') and behav_elem.calculationUsage():
+                ctx = behav_elem.calculationUsage()
+                result = _make_calculation_usage_dict(ctx, None)
+                if result and result.get("name") == "PackageMember":
+                    return result.get("ownedRelatedElement")
+                return result
+            
+            if hasattr(behav_elem, 'constraintUsage') and behav_elem.constraintUsage():
+                ctx = behav_elem.constraintUsage()
+                result = _make_constraint_usage_dict(ctx, None)
+                if result and result.get("name") == "PackageMember":
+                    return result.get("ownedRelatedElement")
+                return result
     
     # Check for non-occurrence usage (attribute, calculation)
     if hasattr(usage_elem_ctx, 'nonOccurrenceUsageElement') and usage_elem_ctx.nonOccurrenceUsageElement():
@@ -5747,6 +5982,25 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(behav_elem, 'constraintUsage') and behav_elem.constraintUsage():
                 ctx = behav_elem.constraintUsage()
                 return _make_constraint_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
+                ctx = behav_elem.assertConstraintUsage()
+                result = _make_assert_constraint_usage_dict(ctx, prefix)
+                if result:
+                    return {
+                        "name": "PackageMember",
+                        "prefix": None,
+                        "ownedRelatedElement": {
+                            "name": "UsageElement",
+                            "ownedRelatedElement": {
+                                "name": "OccurrenceUsageElement",
+                                "ownedRelatedElement": {
+                                    "name": "BehaviorUsageElement",
+                                    "ownedRelationship": result
+                                }
+                            }
+                        }
+                    }
+                return result
             elif hasattr(behav_elem, 'viewpointUsage') and behav_elem.viewpointUsage():
                 ctx = behav_elem.viewpointUsage()
                 return _make_viewpoint_usage_dict(ctx, prefix)
@@ -5973,16 +6227,18 @@ def _make_usage_dict(usage_type, name, shortname, prefix, structure=True, wrappe
 
 
 def _get_action_usage_typed_by(ctx):
-    """Extract the typed-by reference from an actionUsage context.
+    """Extract the typed-by reference from a usage context.
     
-    ActionUsage has actionUsageDeclaration (not direct usageDeclaration),
-    and actionUsageDeclaration can contain usageDeclaration.
+    Can work with:
+    - actionUsageDeclaration / constraintUsageDeclaration / calculationUsageDeclaration
+    - constraintUsageDeclaration (which has usageDeclaration directly)
+    
     Returns the qualified name of the type, or None.
     """
     if ctx is None:
         return None
     
-    # Get actionUsageDeclaration / constraintUsageDeclaration / calculationUsageDeclaration
+    # First, try the *Declaration pattern (action, constraint, calculation)
     aud = None
     for attr in ('actionUsageDeclaration', 'constraintUsageDeclaration', 'calculationUsageDeclaration'):
         if hasattr(ctx, attr):
@@ -5992,15 +6248,27 @@ def _get_action_usage_typed_by(ctx):
                 aud = value
                 break
     
+    # If not found, check for direct usageDeclaration (e.g., in ConstraintUsageDeclaration)
+    if aud is None and hasattr(ctx, 'usageDeclaration'):
+        ud = ctx.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
+        if ud is not None:
+            # This is the usageDeclaration directly, not wrapped in a *Declaration
+            # We can use it directly for typing extraction
+            aud = ud  # Treat the direct usageDeclaration as the context for typing extraction
+    
     if aud is None:
         return None
     
-    # Get usageDeclaration from actionUsageDeclaration
-    ud = None
+    # Get usageDeclaration from the *Declaration context (or direct usageDeclaration)
     if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
         ud = aud.usageDeclaration()
         if isinstance(ud, list):
             ud = ud[0] if ud else None
+    else:
+        # aud is already the usageDeclaration
+        ud = aud if hasattr(aud, 'featureSpecializationPart') else None
     
     if ud is None:
         return None
@@ -6015,7 +6283,9 @@ def _get_action_usage_typed_by(ctx):
             for spec in specs:
                 if hasattr(spec, 'typings') and spec.typings():
                     typings = spec.typings()
-                    if hasattr(typings, 'getText'):
+                    if isinstance(typings, list):
+                        typings = typings[0] if typings else None
+                    if typings and hasattr(typings, 'getText'):
                         text = typings.getText()
                         if text.startswith(':'):
                             text = text[1:].strip()
