@@ -911,18 +911,26 @@ class DoActionMember:
     def __init__(self, definition):
         self.prefix = None
         self.keyword = "do"
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
 
-            self.children = StateActionUsage(definition["ownedRelatedElement"])
+            related = definition["ownedRelatedElement"]
+            if related is not None:
+                cls_name = related.get("name", "StateActionUsage")
+                if cls_name in globals():
+                    self.children = globals()[cls_name](related)
+                else:
+                    self.children = StateActionUsage(related)
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        output.append(self.keyword)
-        output.append(self.children.dump())
+        if self.children is not None:
+            output.append(self.keyword)
+            output.append(self.children.dump())
         return " ".join(output)
 
     def get_definition(self):
@@ -945,18 +953,26 @@ class ExitActionMember:
     def __init__(self, definition):
         self.prefix = None
         self.keyword = "exit"
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
 
-            self.children = StateActionUsage(definition["ownedRelatedElement"])
+            related = definition["ownedRelatedElement"]
+            if related is not None:
+                cls_name = related.get("name", "StateActionUsage")
+                if cls_name in globals():
+                    self.children = globals()[cls_name](related)
+                else:
+                    self.children = StateActionUsage(related)
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        output.append(self.keyword)
-        output.append(self.children.dump())
+        if self.children is not None:
+            output.append(self.keyword)
+            output.append(self.children.dump())
         return " ".join(output)
 
     def get_definition(self):
@@ -984,15 +1000,22 @@ class EntryActionMember:
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
 
-            self.children = StateActionUsage(definition["ownedRelatedElement"])
+            related = definition["ownedRelatedElement"]
+            if related is not None:
+                cls_name = related.get("name", "StateActionUsage")
+                if cls_name in globals():
+                    self.children = globals()[cls_name](related)
+                else:
+                    self.children = StateActionUsage(related)
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
 
-        output.append(self.keyword)
-        output.append(self.children.dump())
+        if self.children is not None:
+            output.append(self.keyword)
+            output.append(self.children.dump())
         return " ".join(output)
 
     def get_definition(self):
@@ -1035,6 +1058,40 @@ class StateActionUsage:
         }
         if self.pau is not None:
             output["pau"] = self.pau.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class StateAssignmentActionUsage:
+    # StateAssignmentActionUsage :
+    # 	declaration=AssignmentNodeDeclaration body=ActionBody
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition["declaration"] is not None:
+                self.declaration = AssignmentNodeDeclaration(definition["declaration"])
+            if definition["body"] is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": None,
+            "body": None,
+        }
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
         if self.body is not None:
             output["body"] = self.body.get_definition()
         return output
@@ -1123,11 +1180,17 @@ class NodeParameter:
     # 	 ownedRelationship = FeatureBinding
     # ;
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = FeatureBinding(definition["ownedRelationship"])
+            if definition.get("ownedRelationship") is not None:
+                self.children = FeatureBinding(definition["ownedRelationship"])
+            elif definition.get("memberElement") is not None:
+                self.children = QualifiedName(definition["memberElement"])
 
     def dump(self):
-        return self.children.dump()
+        if self.children is not None:
+            return self.children.dump()
+        return ""
 
 
 class FeatureBinding:
@@ -1668,7 +1731,8 @@ class PayloadParameter:
         if self.pfsp is not None:
             output.append(self.pfsp.dump())
 
-        output.append(self.children.dump())
+        if self.children is not None:
+            output.append(self.children.dump())
         return " ".join(output)
 
 
@@ -1677,11 +1741,16 @@ class TriggerValuePart:
     # 	ownedRelationship = TriggerFeatureValue
     # ;
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = TriggerFeatureValue(definition["ownedRelationship"])
+            rel = definition.get("ownedRelationship")
+            if rel and isinstance(rel, dict):
+                self.children = TriggerFeatureValue(rel)
 
     def dump(self):
-        return self.children.dump()
+        if self.children:
+            return self.children.dump()
+        return ""
 
 
 class TriggerFeatureValue:
@@ -1689,11 +1758,16 @@ class TriggerFeatureValue:
     # 	ownedRelatedElement = TriggerExpression
     # ;
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = TriggerExpression(definition["ownedRelatedElement"])
+            rel = definition.get("ownedRelatedElement")
+            if rel and isinstance(rel, dict):
+                self.children = TriggerExpression(rel)
 
     def dump(self):
-        return self.children.dump()
+        if self.children:
+            return self.children.dump()
+        return ""
 
 
 class TriggerExpression:
@@ -4582,14 +4656,17 @@ class ExpressionBody:
 
 class FeatureChainMember:
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            if definition["memberElement"] is not None:
+            if definition.get("memberElement") is not None:
                 self.children = QualifiedName(definition["memberElement"])
-            else:
+            elif definition.get("ownedRelatedElement") is not None:
                 self.children = OwnedFeatureChain(definition["ownedRelatedElement"])
 
     def dump(self):
-        return self.children.dump()
+        if self.children is not None:
+            return self.children.dump()
+        return ""
 
 
 class SequenceOperand:
