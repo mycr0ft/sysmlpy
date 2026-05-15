@@ -1703,7 +1703,9 @@ class ActionBody:
         self.children = []
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
-                for item in definition["items"]:
+                # Support both "items" (from get_definition) and "item" (from visitor)
+                items = definition.get("items") or definition.get("item") or []
+                for item in items:
                     self.children.append(ActionBodyItem(item))
 
     def dump(self):
@@ -1877,9 +1879,10 @@ class BehaviorUsageMember:
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
-            self.children.append(
-                BehaviorUsageElement(definition["ownedRelatedElement"])
-            )
+            if definition["ownedRelatedElement"] is not None:
+                self.children.append(
+                    BehaviorUsageElement(definition["ownedRelatedElement"])
+                )
 
     def dump(self):
         output = []

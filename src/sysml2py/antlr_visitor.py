@@ -2169,7 +2169,7 @@ def _visit_state_body_item(ctx):
         if not isinstance(items, list):
             items = [items]
         for item in items:
-            item_dict = _visit_behavior_usage_member(item)
+            item_dict = _visit_state_behavior_usage_member(item)
             if item_dict:
                 owned_rel.append(item_dict)
     
@@ -2498,18 +2498,25 @@ def _visit_transition_usage_member(ctx):
 
 
 def _visit_transition_usage(ctx):
-    """Visit a transitionUsage context and return a TransitionUsage dict."""
+    """Visit a transitionUsage context and return a TransitionUsage dict.
+    
+    Grammar:
+      transitionUsage: TRANSITION (usageDeclaration? FIRST)? featureChainMember emptyParameterMember
+        (emptyParameterMember triggerActionMember)? (guardExpressionMember)?
+        (effectBehaviorMember)? THEN transitionSuccessionMember actionBody ;
+    """
     if ctx is None:
         return None
     
     name = "TransitionUsage"
     
-    # Get declaration - extract name from the context's text if present
+    # Get declaration (optional transition name like 'off_to_starting')
     decl = None
     if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
         ud = ctx.usageDeclaration()
         if ud:
-            # Try to get identification
+            decl_name = None
+            shortname = None
             if hasattr(ud, 'identification') and ud.identification():
                 ident = ud.identification()
                 if hasattr(ident, 'name') and ident.name():
@@ -2520,19 +2527,6 @@ def _visit_transition_usage(ctx):
                             decl_name = name_list[1].getText()
                         elif len(name_list) == 1:
                             decl_name = name_list[0].getText()
-                            shortname = None
-                        else:
-                            decl_name = None
-                            shortname = None
-                    else:
-                        decl_name = None
-                        shortname = None
-                else:
-                    decl_name = None
-                    shortname = None
-            else:
-                decl_name = None
-                shortname = None
             
             decl = {
                 "name": "UsageDeclaration",
@@ -2550,72 +2544,51 @@ def _visit_transition_usage(ctx):
     # Build ownedRelationship with all members
     owned_rel = []
     
-    # Get first (source state) - TransitionSourceMember
-    if hasattr(ctx, 'emptyParameterMember') and ctx.emptyParameterMember():
-        members = ctx.emptyParameterMember()
-        if members and isinstance(members, list):
-            # First one is the source state
-            first_dict = _visit_empty_parameter_member(members[0])
-            if first_dict:
+    # Source state from featureChainMember (e.g., 'first off')
+    if hasattr(ctx, 'featureChainMember') and ctx.featureChainMember():
+        fcm = ctx.featureChainMember()
+        if hasattr(fcm, 'qualifiedName') and fcm.qualifiedName():
+            qnames = fcm.qualifiedName()
+            if not isinstance(qnames, list):
+                qnames = [qnames]
+            if qnames:
+                src_text = ".".join(qn.getText() for qn in qnames if qn)
                 owned_rel.append({
                     "name": "TransitionSourceMember",
-                    "ownedRelatedElement": first_dict
+                    "memberElement": {
+                        "name": "QualifiedName",
+                        "names": src_text.split("::")
+                    },
+                    "ownedRelatedElement": []
                 })
     
-    # Get trigger (accept action) - TriggerActionMember
+    # Trigger (accept action) - TriggerActionMember
     if hasattr(ctx, 'triggerActionMember') and ctx.triggerActionMember():
         trigger_dict = _visit_trigger_action_member(ctx.triggerActionMember())
         if trigger_dict:
             owned_rel.append(trigger_dict)
     
-    # Get guard - GuardExpressionMember
+    # Guard - GuardExpressionMember
     if hasattr(ctx, 'guardExpressionMember') and ctx.guardExpressionMember():
         guard_dict = _visit_guard_expression_member(ctx.guardExpressionMember())
         if guard_dict:
             owned_rel.append(guard_dict)
     
-    # Get effect (behavior) - EffectBehaviorMember
+    # Effect - EffectBehaviorMember
     if hasattr(ctx, 'effectBehaviorMember') and ctx.effectBehaviorMember():
         effect_dict = _visit_effect_behavior_member(ctx.effectBehaviorMember())
         if effect_dict:
             owned_rel.append(effect_dict)
     
-    # Get then (target state) - TransitionSuccessionMember
+    # Target state - TransitionSuccessionMember (contains TransitionSuccession)
     if hasattr(ctx, 'transitionSuccessionMember') and ctx.transitionSuccessionMember():
-        ts = ctx.transitionSuccessionMember()
-        if isinstance(ts, list):
-            ts = ts[0]
-        if ts:
-            # Get the target state from the transitionSuccession
-            then_dict = None
-            if hasattr(ts, 'transitionSuccession') and ts.transitionSuccession():
-                succession = ts.transitionSuccession()
-                if isinstance(succession, list):
-                    succession = succession[0]
-                if succession:
-                    then_dict = _visit_transition_succession(succession)
-            
-            if then_dict is None:
-                # Fallback - create empty ConnectorEndMember
-                then_dict = {
-                    "name": "ConnectorEndMember",
-                    "ownedRelatedElement": [{
-                        "name": "ConnectorEnd",
-                        "declaredName": None,
-                        "ownedRelationship": []
-                    }]
-                }
-            
-            # The TransitionSuccessionMember expects ownedRelatedElement = TransitionSuccession
-            # And TransitionSuccession expects ownedRelationship = single ConnectorEndMember (not a list)
-            # So we create a TransitionSuccession with the ConnectorEndMember as ownedRelationship
-            owned_rel.append({
-                "name": "TransitionSuccessionMember",
-                "ownedRelatedElement": {
-                    "name": "TransitionSuccession",
-                    "ownedRelationship": then_dict  # This is already the ConnectorEndMember dict
-                }
-            })
+        tsm = ctx.transitionSuccessionMember()
+        if isinstance(tsm, list):
+            tsm = tsm[0]
+        if tsm:
+            tsm_dict = _visit_transition_succession_member(tsm)
+            if tsm_dict:
+                owned_rel.append(tsm_dict)
     
     # Get body (action body)
     body = None
@@ -2630,8 +2603,15 @@ def _visit_transition_usage(ctx):
     }
 
 
-def _visit_behavior_usage_member(ctx):
-    """Visit a behaviorUsageMember (state usages in state machines)."""
+def _visit_state_behavior_usage_member(ctx):
+    """Visit a behaviorUsageMember in a state body context.
+    
+    Grammar: behaviorUsageMember: memberPrefix behaviorUsageElement ;
+    BehaviorUsageMember class expects:
+      ownedRelatedElement = BehaviorUsageElement { ownedRelationship = StateUsage|ActionUsage|... }
+    
+    This handles stateUsage specially; for other usages falls back to the general handler.
+    """
     if ctx is None:
         return None
     
@@ -2644,21 +2624,82 @@ def _visit_behavior_usage_member(ctx):
                 "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
             }
     
-    # Check for different behavior usage types
-    state_usage = None
+    # Navigate through behaviorUsageElement to find specific usage type
+    if hasattr(ctx, 'behaviorUsageElement') and ctx.behaviorUsageElement():
+        bue = ctx.behaviorUsageElement()
+        if hasattr(bue, 'stateUsage') and bue.stateUsage():
+            su = bue.stateUsage()
+            if isinstance(su, list):
+                su = su[0]
+            if su:
+                usage_dict = _visit_state_usage(su)
+                return {
+                    "name": "BehaviorUsageMember",
+                    "prefix": prefix,
+                    "ownedRelatedElement": {
+                        "name": "BehaviorUsageElement",
+                        "ownedRelationship": usage_dict
+                    }
+                }
     
-    if hasattr(ctx, 'stateUsage') and ctx.stateUsage():
-        su = ctx.stateUsage()
-        if isinstance(su, list):
-            su = su[0]
-        if su:
-            state_usage = _visit_state_usage(su)
+    # Fall back to general handler
+    return _visit_behavior_usage_member(ctx)
+
+
+def _visit_action_usage_declaration(ctx):
+    """Visit an actionUsageDeclaration and return the dict.
     
-    return {
-        "name": "BehaviorUsageMember",
-        "prefix": prefix,
-        "ownedRelatedElement": state_usage
-    }
+    Grammar: actionUsageDeclaration: usageDeclaration? valuePart? ;
+    ActionUsageDeclaration class expects:
+      {"name": "ActionUsageDeclaration", "declaration": UsageDeclaration_or_None, "valuepart": ValuePart_or_None}
+    """
+    if ctx is None:
+        return {"name": "ActionUsageDeclaration", "declaration": None, "valuepart": None}
+    
+    decl = None
+    if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
+        ud = ctx.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0]
+        if ud:
+            # Extract name from usageDeclaration -> featureDeclaration -> identification
+            name = None
+            shortname = None
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            if hasattr(ident, 'LT') and ident.LT() is not None:
+                                shortname = name_text
+                            else:
+                                name = name_text
+            
+            # Get specialization
+            spec = None
+            if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+                # Leave as None for simple state usages
+                pass
+            
+            decl = {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "specialization": spec
+                }
+            }
+    
+    return {"name": "ActionUsageDeclaration", "declaration": decl, "valuepart": None}
 
 
 def _visit_state_usage(ctx):
@@ -2695,18 +2736,20 @@ def _visit_state_usage(ctx):
 
 
 def _visit_state_usage_body(ctx):
-    """Visit a stateUsageBody context."""
-    if ctx is None:
-        return None
+    """Visit a stateUsageBody context.
     
-    # Get state def body
-    body = None
-    if hasattr(ctx, 'stateDefBody') and ctx.stateDefBody():
-        sdb = ctx.stateDefBody()
-        if isinstance(sdb, list):
-            sdb = sdb[0]
-        if sdb:
-            body = _visit_state_def_body(sdb)
+    Grammar: stateUsageBody: SEMI | (PARALLEL)? LBRACE stateBodyItem* RBRACE ;
+    StateUsageBody class expects: {"name": "StateUsageBody", "body": StateDefBody_dict}
+    """
+    if ctx is None:
+        return {
+            "name": "StateUsageBody",
+            "body": {"name": "StateDefBody", "part": None, "isParallel": None}
+        }
+    
+    # stateUsageBody has stateBodyItem() directly (no stateDefBody wrapper)
+    # _visit_state_def_body can handle this context since it checks stateBodyItem
+    body = _visit_state_def_body(ctx)
     
     return {
         "name": "StateUsageBody",
@@ -2744,36 +2787,11 @@ def _visit_source_succession_member(ctx):
 
 
 def _visit_target_transition_usage_member(ctx):
-    """Visit a targetTransitionUsageMember."""
-    if ctx is None:
-        return None
+    """Visit a targetTransitionUsageMember.
     
-    transition_dict = None
-    if hasattr(ctx, 'targetTransitionUsage') and ctx.targetTransitionUsage():
-        tt = ctx.targetTransitionUsage()
-        if isinstance(tt, list):
-            tt = tt[0]
-        if tt:
-            transition_dict = _visit_target_transition_usage(tt)
-    
-    return {
-        "name": "TargetTransitionUsageMember",
-        "ownedRelatedElement": transition_dict
-    }
-
-
-def _visit_target_transition_usage(ctx):
-    """Visit a targetTransitionUsage context."""
-    if ctx is None:
-        return None
-    
-    return {
-        "name": "TargetTransitionUsage"
-    }
-
-
-def _visit_entry_transition_member(ctx):
-    """Visit an entryTransitionMember (then transitions after entry action)."""
+    Grammar: targetTransitionUsageMember: memberPrefix targetTransitionUsage ;
+    TargetTransitionUsageMember class expects prefix and ownedRelatedElement=TargetTransitionUsage.
+    """
     if ctx is None:
         return None
     
@@ -2786,25 +2804,130 @@ def _visit_entry_transition_member(ctx):
                 "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
             }
     
-    # Check for guardedTargetSuccession or transitionSuccessionMember
-    target = None
+    transition_dict = None
+    if hasattr(ctx, 'targetTransitionUsage') and ctx.targetTransitionUsage():
+        tt = ctx.targetTransitionUsage()
+        if isinstance(tt, list):
+            tt = tt[0]
+        if tt:
+            transition_dict = _visit_target_transition_usage(tt)
+    
+    return {
+        "name": "TargetTransitionUsageMember",
+        "prefix": prefix,
+        "ownedRelatedElement": transition_dict
+    }
+
+
+def _visit_target_transition_usage(ctx):
+    """Visit a targetTransitionUsage context.
+    
+    Grammar: targetTransitionUsage:
+      emptyParameterMember (TRANSITION ...)? (guard)? (effect)? THEN transitionSuccessionMember actionBody ;
+    
+    TargetTransitionUsage class expects:
+      ownedRelationship1: TriggerActionMember (optional)
+      ownedRelationship2: GuardExpressionMember (optional)
+      ownedRelationship3: EffectBehaviorMember (optional)
+      ownedRelationship4: TransitionSuccessionMember (required)
+      body: ActionBody
+    """
+    if ctx is None:
+        return None
+    
+    r1 = None  # TriggerActionMember
+    r2 = None  # GuardExpressionMember
+    r3 = None  # EffectBehaviorMember
+    r4 = None  # TransitionSuccessionMember
+    
+    if hasattr(ctx, 'triggerActionMember') and ctx.triggerActionMember():
+        tam = ctx.triggerActionMember()
+        if isinstance(tam, list):
+            tam = tam[0]
+        if tam:
+            r1 = _visit_trigger_action_member(tam)
+    
+    if hasattr(ctx, 'guardExpressionMember') and ctx.guardExpressionMember():
+        gem = ctx.guardExpressionMember()
+        if isinstance(gem, list):
+            gem = gem[0]
+        if gem:
+            r2 = _visit_guard_expression_member(gem)
+    
+    if hasattr(ctx, 'effectBehaviorMember') and ctx.effectBehaviorMember():
+        ebm = ctx.effectBehaviorMember()
+        if isinstance(ebm, list):
+            ebm = ebm[0]
+        if ebm:
+            r3 = _visit_effect_behavior_member(ebm)
+    
+    if hasattr(ctx, 'transitionSuccessionMember') and ctx.transitionSuccessionMember():
+        tsm = ctx.transitionSuccessionMember()
+        if isinstance(tsm, list):
+            tsm = tsm[0]
+        if tsm:
+            r4 = _visit_transition_succession_member(tsm)
+    
+    body = {"name": "ActionBody", "items": []}
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        body = _visit_action_body(ctx.actionBody())
+    
+    return {
+        "name": "TargetTransitionUsage",
+        "ownedRelationship1": r1,
+        "ownedRelationship2": r2,
+        "ownedRelationship3": r3,
+        "ownedRelationship4": r4,
+        "body": body
+    }
+
+
+def _visit_entry_transition_member(ctx):
+    """Visit an entryTransitionMember.
+    
+    Grammar: entryTransitionMember: memberPrefix (guardedTargetSuccession | THEN transitionSuccessionMember) SEMI ;
+    
+    EntryTransitionMember class expects ownedRelatedElement to be either:
+    - GuardedTargetSuccession (when there's a guard)
+    - TransitionSuccession (for plain 'then <state>;')
+    """
+    if ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(ctx, 'memberPrefix') and ctx.memberPrefix():
+        mp = ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    ownedRelatedElement = None
+    
     if hasattr(ctx, 'guardedTargetSuccession') and ctx.guardedTargetSuccession():
         gts = ctx.guardedTargetSuccession()
         if isinstance(gts, list):
             gts = gts[0]
         if gts:
-            target = _visit_guarded_target_succession(gts)
+            ownedRelatedElement = _visit_guarded_target_succession(gts)
     elif hasattr(ctx, 'transitionSuccessionMember') and ctx.transitionSuccessionMember():
         tsm = ctx.transitionSuccessionMember()
         if isinstance(tsm, list):
             tsm = tsm[0]
         if tsm:
-            target = _visit_transition_succession_member(tsm)
+            # Navigate directly to transitionSuccession to get TransitionSuccession dict
+            if hasattr(tsm, 'transitionSuccession') and tsm.transitionSuccession():
+                ts = tsm.transitionSuccession()
+                if isinstance(ts, list):
+                    ts = ts[0]
+                if ts:
+                    ownedRelatedElement = _visit_transition_succession(ts)
     
     return {
         "name": "EntryTransitionMember",
         "prefix": prefix,
-        "ownedRelatedElement": target
+        "ownedRelatedElement": ownedRelatedElement
     }
 
 
@@ -2870,27 +2993,37 @@ def _visit_succession(ctx):
 
 
 def _visit_transition_succession(ctx):
-    """Visit a transitionSuccession context to extract target state."""
+    """Visit a transitionSuccession context.
+    
+    Grammar: transitionSuccession: emptyEndMember connectorEndMember ;
+    Returns a TransitionSuccession dict.
+    """
     if ctx is None:
         return None
     
-    # connectorEndMember contains the target state
+    cem_dict = None
     if hasattr(ctx, 'connectorEndMember') and ctx.connectorEndMember():
         cem = ctx.connectorEndMember()
         if isinstance(cem, list):
             cem = cem[0]
         if cem:
-            return _visit_connector_end_member(cem)
+            cem_dict = _visit_connector_end_member(cem)
     
-    return None
+    return {
+        "name": "TransitionSuccession",
+        "ownedRelationship": [cem_dict] if cem_dict else []
+    }
 
 
 def _visit_transition_succession_member(ctx):
-    """Visit a transitionSuccessionMember context (legacy, not used directly)."""
+    """Visit a transitionSuccessionMember context.
+    
+    Grammar: transitionSuccessionMember: transitionSuccession ;
+    Returns a TransitionSuccessionMember dict containing a TransitionSuccession.
+    """
     if ctx is None:
         return None
     
-    # Get the transitionSuccession
     succession = None
     if hasattr(ctx, 'transitionSuccession') and ctx.transitionSuccession():
         ts = ctx.transitionSuccession()
@@ -2899,7 +3032,13 @@ def _visit_transition_succession_member(ctx):
         if ts:
             succession = _visit_transition_succession(ts)
     
-    return succession
+    if succession is None:
+        succession = {"name": "TransitionSuccession", "ownedRelationship": []}
+    
+    return {
+        "name": "TransitionSuccessionMember",
+        "ownedRelatedElement": succession
+    }
 
 
 def _visit_connector_end_member(ctx):
@@ -2925,23 +3064,49 @@ def _visit_connector_end_member(ctx):
 
 
 def _visit_connector_end(ctx):
-    """Visit a ConnectorEnd context."""
+    """Visit a ConnectorEnd context.
+    
+    Grammar: connectorEnd: (ownedCrossMultiplicityMember)? (name (COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting ;
+    The target state name is in ownedReferenceSubsetting (as qualifiedName), not in the connector end's name.
+    The optional name before '::>' or 'references' is the declaredName.
+    """
     if ctx is None:
         return None
     
+    # Optional declared name (before '::>' or 'references')
     declared_name = None
-    if hasattr(ctx, 'qualifiedName') and ctx.qualifiedName():
-        qn = ctx.qualifiedName()
-        if isinstance(qn, list):
-            qn = qn[0]
-        if qn and hasattr(qn, 'name') and qn.name():
-            names = [n.getText() for n in qn.name()]
-            declared_name = "::".join(names)
+    if hasattr(ctx, 'name') and ctx.name():
+        n = ctx.name()
+        if n:
+            declared_name = n.getText()
+    
+    # Required ownedReferenceSubsetting — contains the target qualified name
+    owned_rel = []
+    if hasattr(ctx, 'ownedReferenceSubsetting') and ctx.ownedReferenceSubsetting():
+        ors = ctx.ownedReferenceSubsetting()
+        qnames = []
+        if hasattr(ors, 'qualifiedName'):
+            qns = ors.qualifiedName()
+            if not isinstance(qns, list):
+                qns = [qns]
+            for qn in qns:
+                if qn:
+                    qnames.append(qn.getText())
+        if qnames:
+            ref_feature_text = "::".join(qnames)
+            owned_rel.append({
+                "name": "OwnedReferenceSubsetting",
+                "referencedFeature": {
+                    "name": "QualifiedName",
+                    "names": ref_feature_text.split("::")
+                },
+                "ownedRelatedElement": []
+            })
     
     return {
         "name": "ConnectorEnd",
         "declaredName": declared_name,
-        "ownedRelationship": []
+        "ownedRelationship": owned_rel
     }
 
 
@@ -3075,21 +3240,40 @@ def _visit_feature_reference_member(ctx):
 
 
 def _visit_trigger_action_member(ctx):
-    """Visit a triggerActionMember context."""
+    """Visit a triggerActionMember context.
+    
+    Grammar: triggerActionMember: ACCEPT triggerAction ;
+    triggerAction: acceptParameterPart ;
+    TriggerActionMember class expects: {"name": "TriggerActionMember", "ownedRelatedElement": TriggerAction_dict}
+    TriggerAction class expects: {"name": "TriggerAction", "part": AcceptParameterPart_dict}
+    """
     if ctx is None:
         return None
     
-    accept = None
-    if hasattr(ctx, 'acceptActionUsage') and ctx.acceptActionUsage():
-        aa = ctx.acceptActionUsage()
-        if isinstance(aa, list):
-            aa = aa[0]
-        if aa:
-            accept = _visit_accept_action_usage(aa)
+    trigger_action = None
+    if hasattr(ctx, 'triggerAction') and ctx.triggerAction():
+        ta = ctx.triggerAction()
+        if isinstance(ta, list):
+            ta = ta[0]
+        if ta:
+            part = None
+            if hasattr(ta, 'acceptParameterPart') and ta.acceptParameterPart():
+                app = ta.acceptParameterPart()
+                if isinstance(app, list):
+                    app = app[0]
+                if app:
+                    part = _visit_accept_parameter_part(app)
+            trigger_action = {
+                "name": "TriggerAction",
+                "part": part
+            }
+    
+    if trigger_action is None:
+        return None  # No trigger found - return None so caller skips it
     
     return {
         "name": "TriggerActionMember",
-        "ownedRelatedElement": accept
+        "ownedRelatedElement": trigger_action
     }
 
 
@@ -3222,29 +3406,51 @@ def _visit_payload_parameter(ctx):
 
 
 def _visit_payload_feature(ctx):
-    """Visit a PayloadFeature context."""
+    """Visit a PayloadFeature context.
+    
+    PayloadFeature class expects:
+      identification, valuepart, multiplicity1, multiplicity2, ownedRelationship (OwnedFeatureTyping), pfsp
+    For 'accept VehicleStartSignal': ownedRelationship contains the type name.
+    """
     if ctx is None:
         return None
     
-    qnames = []
-    if hasattr(ctx, 'qualifiedName') and ctx.qualifiedName():
-        qn = ctx.qualifiedName()
-        if isinstance(qn, list):
-            for q in qn:
-                if hasattr(q, 'name') and q.name():
-                    names = [n.getText() for n in q.name()]
-                    qnames.extend(names)
-        else:
-            if hasattr(qn, 'name') and qn.name():
-                names = [n.getText() for n in qn.name()]
-                qnames = names
+    owned_rel = None
+    # ownedFeatureTyping contains the payload type (e.g., VehicleStartSignal)
+    if hasattr(ctx, 'ownedFeatureTyping') and ctx.ownedFeatureTyping():
+        oft = ctx.ownedFeatureTyping()
+        if isinstance(oft, list):
+            oft = oft[0]
+        if oft and hasattr(oft, 'qualifiedName') and oft.qualifiedName():
+            qns = oft.qualifiedName()
+            if not isinstance(qns, list):
+                qns = [qns]
+            names = []
+            for qn in qns:
+                if qn:
+                    names.append(qn.getText())
+            if names:
+                type_name = "::".join(names)
+                owned_rel = {
+                    "name": "OwnedFeatureTyping",
+                    "type": {
+                        "name": "FeatureType",
+                        "type": {
+                            "name": "QualifiedName",
+                            "names": type_name.split("::")
+                        },
+                        "ownedRelatedElement": []
+                    }
+                }
     
     return {
         "name": "PayloadFeature",
-        "memberElement": {
-            "name": "QualifiedName",
-            "names": qnames
-        }
+        "identification": None,
+        "valuepart": None,
+        "multiplicity1": None,
+        "multiplicity2": None,
+        "ownedRelationship": owned_rel,
+        "pfsp": None
     }
 
 
