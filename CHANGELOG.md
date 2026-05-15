@@ -19,11 +19,22 @@
 
 ### :white_check_mark: Test Results
 
-* :white_check_mark: Grammar round-trip tests: **50/56 passing** (no regressions)
+* :white_check_mark: Grammar round-trip tests: **51/56 passing** (up from 50)
 * :white_check_mark: State machines with transitions: parses without crash, states extracted
 * :white_check_mark: Activity parameters: `action_inputs`/`action_outputs` correctly populated with types
 * :white_check_mark: Nested actions: `action.actions` returns child `Action` objects
 * :white_check_mark: Nested states: recursive state extraction works (e.g., `active.states` → `["flying", "hovering"]`)
+* :white_check_mark: Requirement Groups: `perform action generateTorque: GenerateTorque` round-trips correctly
+
+### :wrench: ANTLR Visitor Fixes
+
+* :wrench: Fixed `typedBy()` method name (was `typedby`) in 3 places
+* :wrench: Fixed `featureTyping()` method name (was `featureType`) in 3 places
+* :wrench: Extract type from `OwnedFeatureTypingContext.qualifiedName()` for perform action usages
+* :wrench: Added `StateAssignmentActionUsage` grammar class (was missing)
+* :wrench: Fixed `EntryActionMember`/`DoActionMember`/`ExitActionMember` dynamic class lookup
+* :wrench: Fixed `TriggerFeatureValue`/`TriggerValuePart` null handling
+* :wrench: Fixed `FeatureChainMember`/`NodeParameter` missing key handling
 
 ## v0.6.0 (2026-05-12)
 
