@@ -2123,6 +2123,8 @@ def _visit_state_def_body(ctx):
         is_parallel = True
     
     # Parse state body items
+    # If LBRACE is present (explicit braces), create a part even if empty
+    has_braces = hasattr(body_ctx, 'LBRACE') and body_ctx.LBRACE()
     part = None
     if hasattr(body_ctx, 'stateBodyItem'):
         items = body_ctx.stateBodyItem()
@@ -2138,6 +2140,10 @@ def _visit_state_def_body(ctx):
                     "name": "StateBodyPart",
                     "item": body_items
                 }
+    
+    # If explicit braces but no items, create an empty StateBodyPart
+    if part is None and has_braces:
+        part = {"name": "StateBodyPart", "item": []}
     
     return {
         "name": "StateDefBody",
@@ -2388,24 +2394,100 @@ def _visit_empty_action_usage(ctx):
     }
 
 
-def _visit_state_perform_action_usage(ctx):
-    """Visit a statePerformActionUsage and return a dict."""
+def _visit_perform_action_usage_declaration(ctx):
+    """Visit a performActionUsageDeclaration context.
+    
+    Grammar: performActionUsageDeclaration:
+      (ownedReferenceSubsetting featureSpecializationPart? | ACTION usageDeclaration?) valuePart? ;
+    
+    Returns a PerformActionUsageDeclaration dict:
+      {name, ownedRelationship, fspart, declaration, valuepart}
+    """
     if ctx is None:
         return None
     
+    ors = None  # OwnedReferenceSubsetting (the action name like 'performSelfTest')
+    fspart = None
     decl = None
+    
+    # Case 1: ownedReferenceSubsetting (named action reference)
+    if hasattr(ctx, 'ownedReferenceSubsetting') and ctx.ownedReferenceSubsetting():
+        ors_ctx = ctx.ownedReferenceSubsetting()
+        if isinstance(ors_ctx, list):
+            ors_ctx = ors_ctx[0]
+        if ors_ctx and hasattr(ors_ctx, 'qualifiedName') and ors_ctx.qualifiedName():
+            qns = ors_ctx.qualifiedName()
+            if not isinstance(qns, list):
+                qns = [qns]
+            names = [qn.getText() for qn in qns if qn]
+            if names:
+                ref_text = "::".join(names)
+                ors = {
+                    "name": "OwnedReferenceSubsetting",
+                    "referencedFeature": {
+                        "name": "QualifiedName",
+                        "names": ref_text.split("::")
+                    },
+                    "ownedRelatedElement": []
+                }
+    
+    # Case 2: ACTION usageDeclaration (anonymous or named action keyword)
+    if ors is None and hasattr(ctx, 'ACTION') and ctx.ACTION():
+        if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
+            ud = ctx.usageDeclaration()
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                name_list = ident.name() if hasattr(ident, 'name') else []
+                if name_list and isinstance(name_list, list) and len(name_list) >= 1:
+                    usage_name = name_list[-1].getText()
+                    decl = {
+                        "name": "UsageDeclaration",
+                        "declaration": {
+                            "name": "FeatureDeclaration",
+                            "identification": {
+                                "name": "Identification",
+                                "declaredShortName": None,
+                                "declaredName": usage_name
+                            },
+                            "specialization": None
+                        }
+                    }
+    
+    return {
+        "name": "PerformActionUsageDeclaration",
+        "ownedRelationship": ors,
+        "fspart": fspart,
+        "declaration": decl,
+        "valuepart": None
+    }
+
+
+def _visit_state_perform_action_usage(ctx):
+    """Visit a statePerformActionUsage and return a StateActionUsage dict.
+    
+    Grammar: statePerformActionUsage: performActionUsageDeclaration actionBody ;
+    EntryActionMember.ownedRelatedElement = StateActionUsage { pau, body }
+    """
+    if ctx is None:
+        return None
+    
+    pau = None
     if hasattr(ctx, 'performActionUsageDeclaration') and ctx.performActionUsageDeclaration():
         decl_dict = _visit_perform_action_usage_declaration(ctx.performActionUsageDeclaration())
-        decl = decl_dict
+        if decl_dict:
+            pau = {
+                "name": "PerformedActionUsage",
+                "declaration": decl_dict
+            }
     
     body = None
     if hasattr(ctx, 'actionBody') and ctx.actionBody():
         body = _visit_action_body(ctx.actionBody())
     
     return {
-        "name": "StatePerformActionUsage",
-        "declaration": decl,
-        "body": body
+        "name": "StateActionUsage",
+        "body": body,
+        "pau": pau
     }
 
 
@@ -2662,7 +2744,7 @@ def _visit_action_usage_declaration(ctx):
         if isinstance(ud, list):
             ud = ud[0]
         if ud:
-            # Extract name from usageDeclaration -> featureDeclaration -> identification
+            # Extract name from usageDeclaration -> identification
             name = None
             shortname = None
             if hasattr(ud, 'identification') and ud.identification():
@@ -2680,11 +2762,13 @@ def _visit_action_usage_declaration(ctx):
                             else:
                                 name = name_text
             
-            # Get specialization
+            # Get specialization (e.g., ': VehicleStates' or ':> Foo')
             spec = None
-            if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
-                # Leave as None for simple state usages
-                pass
+            typed_by = _get_action_usage_typed_by(ctx)
+            if typed_by is None:
+                typed_by = _get_action_usage_subsetted_by(ctx)
+            if typed_by:
+                spec = _build_specialization(typed_by)
             
             decl = {
                 "name": "UsageDeclaration",
@@ -3772,34 +3856,27 @@ def _make_flow_connection_definition_dict(ctx, member_prefix=None):
 
 
 def _make_state_usage_dict(ctx, prefix=None):
-    """Create a StateUsage dictionary.
+    """Create a StateUsage dictionary for package-level state usages.
     
-    State usage: state Name ;
+    State usage: state Name : TypeName { ... }
     Wrapped: PackageMember -> UsageElement -> OccurrenceUsageElement -> BehaviorUsageElement -> StateUsage
     """
-    # StateUsage has actionUsageDeclaration (like ActionUsage does)
-    name = None
-    shortname = None
-    if ctx is not None:
-        aud = None
-        if hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
-            aud = ctx.actionUsageDeclaration()
-        
-        ud = None
-        if aud and hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
-            ud = aud.usageDeclaration()
-        
-        if ud and hasattr(ud, 'identification') and ud.identification():
-            ident = ud.identification()
-            if hasattr(ident, 'name'):
-                name_list = ident.name()
-                if name_list and isinstance(name_list, list):
-                    if len(name_list) == 2:
-                        shortname = name_list[0].getText()
-                        name = name_list[1].getText()
-                    elif len(name_list) == 1:
-                        name_text = name_list[0].getText()
-                        name, shortname = _extract_name_shortname(name_text)
+    if ctx is None:
+        return None
+    
+    # Build the declaration from actionUsageDeclaration
+    decl_dict = None
+    if hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
+        decl_dict = _visit_action_usage_declaration(ctx.actionUsageDeclaration())
+    
+    # Parse the body (stateUsageBody)
+    body_dict = {"name": "StateUsageBody", "body": {"name": "StateDefBody", "part": None, "isParallel": None}}
+    if hasattr(ctx, 'stateUsageBody') and ctx.stateUsageBody():
+        sub = ctx.stateUsageBody()
+        if isinstance(sub, list):
+            sub = sub[0]
+        if sub:
+            body_dict = _visit_state_usage_body(sub)
     
     return {
         "name": "PackageMember",
@@ -3813,30 +3890,8 @@ def _make_state_usage_dict(ctx, prefix=None):
                     "ownedRelationship": {
                         "name": "StateUsage",
                         "prefix": prefix,
-                        "declaration": {
-                            "name": "ActionUsageDeclaration",
-                            "declaration": {
-                                "name": "UsageDeclaration",
-                                "declaration": {
-                                    "name": "FeatureDeclaration",
-                                    "identification": {
-                                        "name": "Identification",
-                                        "declaredShortName": shortname,
-                                        "declaredName": name
-                                    },
-                                    "specialization": None
-                                }
-                            },
-                            "valuepart": None
-                        },
-                        "body": {
-                            "name": "StateUsageBody",
-                            "body": {
-                                "name": "StateDefBody",
-                                "part": None,
-                                "isParallel": None
-                            }
-                        }
+                        "declaration": decl_dict,
+                        "body": body_dict
                     }
                 }
             }
