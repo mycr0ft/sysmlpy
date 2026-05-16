@@ -1738,8 +1738,8 @@ class Requirement(Usage):
         self.subject = None
         self.actors = []
         self.doc = None
-        self.attributes = []
-        self.constraints = []
+        self.req_attributes = []
+        self.req_constraints = []
         self.assume_constraints = []
 
         if definition:
@@ -1814,7 +1814,7 @@ class Requirement(Usage):
             name: Attribute name
             type_name: Optional type
         """
-        self.attributes.append((name, type_name))
+        self.req_attributes.append((name, type_name))
         return self
 
     def add_constraint(self, expr):
@@ -1823,7 +1823,7 @@ class Requirement(Usage):
         Args:
             expr: Constraint expression string (e.g., 'massActual <= massReqd')
         """
-        self.constraints.append(expr)
+        self.req_constraints.append(expr)
         return self
 
     def add_assume_constraint(self, expr):
@@ -1882,13 +1882,13 @@ class Requirement(Usage):
             else:
                 body_items.append(f"actor {actor_name};")
 
-        for attr_name, attr_type in self.attributes:
+        for attr_name, attr_type in self.req_attributes:
             if attr_type:
                 body_items.append(f"attribute {attr_name} : {attr_type};")
             else:
                 body_items.append(f"attribute {attr_name};")
 
-        for expr in self.constraints:
+        for expr in self.req_constraints:
             body_items.append(f"require constraint {{ {expr} }}")
 
         for expr in self.assume_constraints:

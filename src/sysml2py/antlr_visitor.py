@@ -2659,7 +2659,7 @@ def _visit_perform_action_usage_declaration(ctx):
     # Extract featureSpecializationPart (for both ownedReferenceSubsetting and ACTION cases)
     if hasattr(ctx, 'featureSpecializationPart') and ctx.featureSpecializationPart():
         fsp = ctx.featureSpecializationPart()
-        fspart = _build_specialization_from_fsp(fsp)
+        fspart = _build_full_specialization_from_fsp(fsp)
     
     # Case 2: ACTION usageDeclaration (anonymous or named action keyword)
     if ors is None and hasattr(ctx, 'ACTION') and ctx.ACTION():
@@ -2873,7 +2873,7 @@ def _visit_assignment_node_declaration(ctx):
         ;
     
     Returns:
-      {name: "AssignmentNodeDeclaration", declaration, ownedRelationship1, ownedRelationship2}
+      {name: "AssignmentNodeDeclaration", declaration, target, ownedRelationship1, ownedRelationship2}
     """
     if ctx is None:
         return None
@@ -2902,6 +2902,12 @@ def _visit_assignment_node_declaration(ctx):
                     }
                 }
     
+    # assignmentTargetMember (the prefix like 'vehicle.')
+    target = None
+    if hasattr(ctx, 'assignmentTargetMember') and ctx.assignmentTargetMember():
+        atm = ctx.assignmentTargetMember()
+        target = _visit_assignment_target_member(atm)
+    
     # featureChainMember (ownedRelationship1)
     fcm = None
     if hasattr(ctx, 'featureChainMember') and ctx.featureChainMember():
@@ -2916,9 +2922,38 @@ def _visit_assignment_node_declaration(ctx):
     return {
         "name": "AssignmentNodeDeclaration",
         "declaration": decl,
+        "target": target,
         "ownedRelationship1": fcm,
         "ownedRelationship2": npm
     }
+
+
+def _visit_assignment_target_member(ctx):
+    """Visit an assignmentTargetMember context.
+    
+    Grammar:
+      assignmentTargetMember : assignmentTargetParameter ;
+      assignmentTargetParameter : assignmentTargetBinding DOT ;
+      assignmentTargetBinding : nonFeatureChainPrimaryExpression ;
+    """
+    if ctx is None:
+        return None
+    
+    if hasattr(ctx, 'assignmentTargetParameter') and ctx.assignmentTargetParameter():
+        atp = ctx.assignmentTargetParameter()
+        if hasattr(atp, 'assignmentTargetBinding') and atp.assignmentTargetBinding():
+            atb = atp.assignmentTargetBinding()
+            # Extract the name from the binding
+            if hasattr(atb, 'nonFeatureChainPrimaryExpression') and atb.nonFeatureChainPrimaryExpression():
+                nfcp = atb.nonFeatureChainPrimaryExpression()
+                # Get the text directly (it's a simple identifier)
+                name = atb.getText()
+                return {
+                    "name": "QualifiedName",
+                    "names": [name]
+                }
+    
+    return None
 
 
 def _visit_node_parameter_member(ctx):
@@ -3790,6 +3825,21 @@ def _visit_feature_chain_member(ctx):
     if ctx is None:
         return None
     
+    # Check for direct qualifiedName (simple case like 'maintenanceTime')
+    if hasattr(ctx, 'qualifiedName') and ctx.qualifiedName():
+        qn = ctx.qualifiedName()
+        if isinstance(qn, list):
+            qn = qn[0]
+        if qn and hasattr(qn, 'name') and qn.name():
+            names = [n.getText() for n in qn.name()]
+            return {
+                "name": "FeatureChainMember",
+                "memberElement": {
+                    "name": "QualifiedName",
+                    "names": names
+                }
+            }
+    
     owned_rel = []
     
     if hasattr(ctx, 'featureReferenceMember') and ctx.featureReferenceMember():
@@ -3801,9 +3851,15 @@ def _visit_feature_chain_member(ctx):
             if ref_dict:
                 owned_rel.append(ref_dict)
     
+    if owned_rel:
+        return {
+            "name": "FeatureChainMember",
+            "ownedRelationship": owned_rel
+        }
+    
     return {
         "name": "FeatureChainMember",
-        "ownedRelationship": owned_rel
+        "ownedRelationship": []
     }
 
 
@@ -4054,9 +4110,63 @@ def _visit_trigger_value_part(ctx):
     if ctx is None:
         return None
     
+    tfv_dict = None
+    if hasattr(ctx, 'triggerFeatureValue') and ctx.triggerFeatureValue():
+        tfv = ctx.triggerFeatureValue()
+        if isinstance(tfv, list):
+            tfv = tfv[0]
+        if tfv:
+            tfv_dict = _visit_trigger_feature_value(tfv)
+    
     return {
         "name": "TriggerValuePart",
-        "ownedRelationship": []
+        "ownedRelationship": tfv_dict
+    }
+
+
+def _visit_trigger_feature_value(ctx):
+    """Visit a TriggerFeatureValue context.
+    
+    Grammar: triggerFeatureValue : triggerExpression ;
+    triggerExpression : (AT | WHEN | AFTER) argumentMember ;
+    """
+    if ctx is None:
+        return None
+    
+    trigger_expr = None
+    
+    if hasattr(ctx, 'triggerExpression') and ctx.triggerExpression():
+        te = ctx.triggerExpression()
+        # Determine trigger keyword
+        is_at = te.AT() is not None
+        is_after = te.AFTER() is not None
+        trigger_kind = {
+            "name": "TimeTriggerKind",
+            "isAt": is_at,
+            "isAfter": is_after
+        }
+        
+        # Extract expression from argumentMember
+        owned_expr_member = None
+        if hasattr(te, 'argumentMember') and te.argumentMember():
+            am = te.argumentMember()
+            if hasattr(am, 'ownedExpression') and am.ownedExpression():
+                oe = am.ownedExpression()
+                owned_expr = _visit_owned_expression(oe)
+                owned_expr_member = {
+                    "name": "OwnedExpressionMember",
+                    "ownedRelatedElement": owned_expr
+                }
+        
+        trigger_expr = {
+            "name": "TriggerExpression",
+            "kind": trigger_kind,
+            "ownedRelationship": owned_expr_member
+        }
+    
+    return {
+        "name": "TriggerFeatureValue",
+        "ownedRelatedElement": trigger_expr
     }
 
 
@@ -4084,6 +4194,21 @@ def _visit_node_parameter(ctx):
     if ctx is None:
         return None
     
+    # Check for featureBinding (expression binding like in assignment)
+    if hasattr(ctx, 'featureBinding') and ctx.featureBinding():
+        fb = ctx.featureBinding()
+        if hasattr(fb, 'ownedExpression') and fb.ownedExpression():
+            oe = fb.ownedExpression()
+            owned_expr = _visit_owned_expression(oe)
+            return {
+                "name": "NodeParameter",
+                "ownedRelationship": {
+                    "name": "FeatureBinding",
+                    "ownedRelatedElement": owned_expr
+                }
+            }
+    
+    # Check for qualifiedName (simple reference)
     qnames = []
     if hasattr(ctx, 'qualifiedName') and ctx.qualifiedName():
         qn = ctx.qualifiedName()
@@ -4526,32 +4651,8 @@ def _make_reference_usage_dict(ctx):
                                 shortname = name_list[0].getText()
                         else:
                             name = name_list.getText()
-            # Get specialization and extract name from references
-            if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
-                fsp = ud.featureSpecializationPart()
-                specialization = _build_specialization_from_fsp(fsp)
-                # Extract name from first references specialization
-                specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
-                if not isinstance(specs, list):
-                    specs = [specs] if specs else []
-                for spec in specs:
-                    if hasattr(spec, 'redefinitions') and spec.redefinitions():
-                        redefs = spec.redefinitions()
-                        if hasattr(redefs, 'redefines') and redefs.redefines():
-                            rd = redefs.redefines()
-                            if isinstance(rd, list):
-                                rd = rd[0] if rd else None
-                            if rd and hasattr(rd, 'ownedRedefinition') and rd.ownedRedefinition():
-                                owned = rd.ownedRedefinition()
-                                if isinstance(owned, list):
-                                    owned = owned[0] if owned else None
-                                if owned and hasattr(owned, 'qualifiedName') and owned.qualifiedName():
-                                    qn = owned.qualifiedName()
-                                    if isinstance(qn, list):
-                                        qn = qn[0] if qn else None
-                                    if qn:
-                                        name = qn.getText()
-                                break
+            # Get specialization using full specialization builder
+            specialization = _build_full_specialization_from_ctx(ctx)
         # Get value part
         if hasattr(usage, 'valuePart') and usage.valuePart():
             valuepart = _visit_value_part(usage.valuePart())
@@ -8049,6 +8150,12 @@ def _visit_nested_occurrence_usage(occ_elem):
                     }
                 }
             return None
+        elif hasattr(behav_elem, 'analysisCaseUsage') and behav_elem.analysisCaseUsage():
+            ctx = behav_elem.analysisCaseUsage()
+            return _make_nested_analysis_case_usage_dict(ctx, None)
+        elif hasattr(behav_elem, 'caseUsage') and behav_elem.caseUsage():
+            ctx = behav_elem.caseUsage()
+            return _make_nested_case_usage_dict(ctx, None)
     
     # print(f"DEBUG: No match found in _visit_nested_occurrence_usage")
     # Fall through to check structure usage elements
@@ -8255,6 +8362,7 @@ def _visit_nested_non_occurrence_usage(non_occ):
         specialization = _build_full_specialization_from_ctx(ctx)
         valuepart = _get_usage_value_part(ctx)
         usage_prefix = _get_usage_prefix_dict(ctx)
+        body_elements = _extract_body_from_usage_ctx(ctx)
         return {
             "name": "NonOccurrenceUsageElement",
             "ownedRelatedElement": {
@@ -8281,7 +8389,7 @@ def _visit_nested_non_occurrence_usage(non_occ):
                             "name": "UsageBody",
                             "body": {
                                 "name": "DefinitionBody",
-                                "ownedRelatedElement": []
+                                "ownedRelatedElement": body_elements
                             }
                         }
                     }
@@ -9372,6 +9480,12 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(behav_elem, 'concernUsage') and behav_elem.concernUsage():
                 ctx = behav_elem.concernUsage()
                 return _make_concern_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'analysisCaseUsage') and behav_elem.analysisCaseUsage():
+                ctx = behav_elem.analysisCaseUsage()
+                return _make_nested_analysis_case_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'caseUsage') and behav_elem.caseUsage():
+                ctx = behav_elem.caseUsage()
+                return _make_nested_case_usage_dict(ctx, prefix)
             elif hasattr(behav_elem, 'actionUsage') and behav_elem.actionUsage():
                 ctx = behav_elem.actionUsage()
                 name = None
@@ -10026,6 +10140,31 @@ def _get_usage_body_items(ctx):
     return body_items
 
 
+def _extract_body_from_usage_ctx(ctx):
+    """Extract body items directly from a usage context (not wrapped).
+    
+    For AttributeUsageContext: ctx -> usage() -> usageCompletion -> usageBody -> definitionBody
+    Returns a list of body items or empty list.
+    """
+    if ctx is None:
+        return []
+    
+    # Get usage from the context (e.g., AttributeUsageContext.usage())
+    usage = None
+    if hasattr(ctx, 'usage') and ctx.usage():
+        usage = ctx.usage()
+    
+    if usage and hasattr(usage, 'usageCompletion') and usage.usageCompletion():
+        uc = usage.usageCompletion()
+        if hasattr(uc, 'usageBody') and uc.usageBody():
+            ub = uc.usageBody()
+            if hasattr(ub, 'definitionBody') and ub.definitionBody():
+                db = ub.definitionBody()
+                return _visit_definition_body_dict(db)
+    
+    return []
+
+
 def _get_usage_typed_by(ctx):
     """Extract the typed-by reference from a usage context.
     
@@ -10174,6 +10313,338 @@ def _build_specialization_from_fsp(fsp):
         "specialization2": None,
         "multiplicity": None,
         "multiplicity2": None
+    }
+
+
+def _build_full_specialization_from_fsp(fsp):
+    """Build a full FeatureSpecializationPart dict from a FeatureSpecializationPartContext.
+    
+    Handles typings, redefinitions, and subsettings.
+    Returns None if there are no specializations.
+    """
+    if fsp is None:
+        return None
+    
+    specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
+    if not specs:
+        return None
+    
+    if not isinstance(specs, list):
+        specs = [specs]
+    
+    specialization_list = []
+    
+    for spec in specs:
+        # Typings: ': TypeName'
+        if hasattr(spec, 'typings') and spec.typings():
+            typings = spec.typings()
+            typed_by = None
+            if hasattr(typings, 'typedBy') and typings.typedBy():
+                tb = typings.typedBy()
+                if hasattr(tb, 'featureTyping') and tb.featureTyping():
+                    ft = tb.featureTyping()
+                    if hasattr(ft, 'ownedFeatureTyping') and ft.ownedFeatureTyping():
+                        oft = ft.ownedFeatureTyping()
+                        qns = oft.qualifiedName()
+                        if isinstance(qns, list):
+                            qns = [qn for qn in qns if qn]
+                        if qns:
+                            typed_by = qns[0].getText() if isinstance(qns, list) else qns.getText()
+                    elif hasattr(ft, 'qualifiedName') and ft.qualifiedName():
+                        typed_by = ft.qualifiedName().getText()
+            if typed_by is None:
+                t_text = typings.getText()
+                if t_text.startswith(':'):
+                    typed_by = t_text[1:].strip()
+            if typed_by:
+                qn_names = typed_by.split("::")
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Typings",
+                        "ownedRelationship": [],
+                        "typedby": {
+                            "name": "TypedBy",
+                            "ownedRelationship": [
+                                {
+                                    "name": "FeatureTyping",
+                                    "ownedRelationship": {
+                                        "name": "OwnedFeatureTyping",
+                                        "type": {
+                                            "name": "FeatureType",
+                                            "type": {"name": "QualifiedName", "names": qn_names},
+                                            "ownedRelatedElement": []
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "conjugated": None
+                    }
+                })
+        
+        # Redefinitions: ':>> name' or 'redefines name'
+        elif hasattr(spec, 'redefinitions') and spec.redefinitions():
+            redef_ctx = spec.redefinitions()
+            if not isinstance(redef_ctx, list):
+                redef_ctx = [redef_ctx]
+            redef_names = []
+            for rc in redef_ctx:
+                for child in rc.children:
+                    child_name = type(child).__name__
+                    if child_name == 'OwnedRedefinitionContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'QualifiedNameContext':
+                                redef_names.append(c2.getText())
+                    elif child_name == 'RedefinesContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedRedefinitionContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        redef_names.append(c3.getText())
+            if redef_names:
+                owned = [
+                    {
+                        "name": "OwnedRedefinition",
+                        "redefinedFeature": {"name": "QualifiedName", "names": n.split("::")},
+                        "ownedRelatedElement": []
+                    }
+                    for n in redef_names
+                ]
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Redefinitions",
+                        "ownedRelationship": owned
+                    }
+                })
+        
+        # Subsettings: ':> name' or 'subsets name'
+        elif hasattr(spec, 'subsettings') and spec.subsettings():
+            sub_ctx = spec.subsettings()
+            if not isinstance(sub_ctx, list):
+                sub_ctx = [sub_ctx]
+            sub_names = []
+            for sc in sub_ctx:
+                for child in sc.children:
+                    child_name = type(child).__name__
+                    if child_name == 'OwnedSubsettingContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'QualifiedNameContext':
+                                sub_names.append(c2.getText())
+                    elif child_name == 'SubsetsContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedSubsettingContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        sub_names.append(c3.getText())
+                    elif child_name == 'SpecializesContext':
+                        for c2 in child.children:
+                            if type(c2).__name__ == 'OwnedSubsettingContext':
+                                for c3 in c2.children:
+                                    if type(c3).__name__ == 'QualifiedNameContext':
+                                        sub_names.append(c3.getText())
+            if sub_names:
+                owned = [
+                    {
+                        "name": "OwnedSubsetting",
+                        "subsettedFeature": {"name": "QualifiedName", "names": n.split("::")},
+                        "ownedRelatedElement": []
+                    }
+                    for n in sub_names
+                ]
+                specialization_list.append({
+                    "name": "FeatureSpecialization",
+                    "ownedRelationship": {
+                        "name": "Subsettings",
+                        "ownedRelationship": owned
+                    }
+                })
+    
+    if not specialization_list:
+        return None
+    
+    return {
+        "name": "FeatureSpecializationPart",
+        "specialization": specialization_list,
+        "specialization2": None,
+        "multiplicity": None,
+        "multiplicity2": None
+    }
+
+
+def _make_nested_analysis_case_usage_dict(ctx, prefix=None):
+    """Create an AnalysisCaseUsage dict for nested usage."""
+    if ctx is None:
+        return None
+    
+    name, shortname = _get_usage_identification(ctx)
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    specialization = _build_full_specialization_from_ctx(ctx)
+    
+    # Get body items from caseBody
+    body_items = []
+    if hasattr(ctx, 'caseBody') and ctx.caseBody():
+        cb = ctx.caseBody()
+        body_items = _visit_case_body_items(cb)
+    
+    return {
+        "name": "UsageElement",
+        "ownedRelatedElement": {
+            "name": "OccurrenceUsageElement",
+            "ownedRelatedElement": {
+                "name": "BehaviorUsageElement",
+                "ownedRelationship": {
+                    "name": "AnalysisCaseUsage",
+                    "prefix": occ_prefix or prefix,
+                    "declaration": {
+                        "name": "CalculationUsageDeclaration",
+                        "declaration": {
+                            "name": "UsageDeclaration",
+                            "declaration": {
+                                "name": "FeatureDeclaration",
+                                "identification": {
+                                    "name": "Identification",
+                                    "declaredShortName": shortname,
+                                    "declaredName": name
+                                },
+                                "specialization": specialization
+                            }
+                        },
+                        "valuepart": None
+                    },
+                    "body": {
+                        "name": "CaseBody",
+                        "item": body_items
+                    }
+                }
+            }
+        }
+    }
+
+
+def _make_nested_case_usage_dict(ctx, prefix=None):
+    """Create a CaseUsage dict for nested usage."""
+    if ctx is None:
+        return None
+    
+    name, shortname = _get_usage_identification(ctx)
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    specialization = _build_full_specialization_from_ctx(ctx)
+    
+    # Get body items from caseBody
+    body_items = []
+    if hasattr(ctx, 'caseBody') and ctx.caseBody():
+        cb = ctx.caseBody()
+        body_items = _visit_case_body_items(cb)
+    
+    return {
+        "name": "UsageElement",
+        "ownedRelatedElement": {
+            "name": "OccurrenceUsageElement",
+            "ownedRelatedElement": {
+                "name": "BehaviorUsageElement",
+                "ownedRelationship": {
+                    "name": "CaseUsage",
+                    "prefix": occ_prefix or prefix,
+                    "declaration": {
+                        "name": "CalculationUsageDeclaration",
+                        "declaration": {
+                            "name": "UsageDeclaration",
+                            "declaration": {
+                                "name": "FeatureDeclaration",
+                                "identification": {
+                                    "name": "Identification",
+                                    "declaredShortName": shortname,
+                                    "declaredName": name
+                                },
+                                "specialization": specialization
+                            }
+                        },
+                        "valuepart": None
+                    },
+                    "body": {
+                        "name": "CaseBody",
+                        "item": body_items
+                    }
+                }
+            }
+        }
+    }
+
+
+def _visit_case_body_items(case_body):
+    """Visit case body items and return a list of dicts."""
+    if case_body is None:
+        return []
+    
+    items = []
+    if hasattr(case_body, 'caseBodyItem') and case_body.caseBodyItem():
+        cbi_list = case_body.caseBodyItem()
+        if not isinstance(cbi_list, list):
+            cbi_list = [cbi_list]
+        for cbi in cbi_list:
+            item_dict = _visit_case_body_item(cbi)
+            if item_dict:
+                items.append(item_dict)
+    
+    return items
+
+
+def _visit_case_body_item(cbi):
+    """Visit a single case body item and return a dict."""
+    if cbi is None:
+        return None
+    
+    # Handle nonOccurrenceUsageMember (in/out params, subject)
+    if hasattr(cbi, 'nonOccurrenceUsageMember') and cbi.nonOccurrenceUsageMember():
+        nom = cbi.nonOccurrenceUsageMember()
+        if isinstance(nom, list):
+            nom = nom[0]
+        if nom:
+            inner = _visit_non_occurrence_usage_member(nom)
+            if inner:
+                return {
+                    "name": "CaseBodyItem",
+                    "item": None,
+                    "ownedRelationship": inner
+                }
+    
+    return None
+
+
+def _visit_non_occurrence_usage_member(nom):
+    """Visit a nonOccurrenceUsageMember and return a dict."""
+    if nom is None:
+        return None
+    
+    prefix = None
+    if hasattr(nom, 'memberPrefix') and nom.memberPrefix():
+        mp = nom.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    # Find nonOccurrenceUsageElement
+    element = None
+    if hasattr(nom, 'nonOccurrenceUsageElement') and nom.nonOccurrenceUsageElement():
+        non_occ = nom.nonOccurrenceUsageElement()
+        inner = _visit_nested_non_occurrence_usage(non_occ)
+        if inner:
+            if inner.get("name") == "NonOccurrenceUsageElement":
+                element = inner
+            else:
+                element = {
+                    "name": "NonOccurrenceUsageElement",
+                    "ownedRelatedElement": inner
+                }
+    
+    return {
+        "name": "NonOccurrenceUsageMember",
+        "prefix": prefix,
+        "ownedRelatedElement": element
     }
 
 

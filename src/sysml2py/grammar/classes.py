@@ -443,6 +443,13 @@ class ObjectiveMember:
         else:
             return " ".join([self.prefix.dump(), self.keyword, self.child.dump()])
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": self.child.get_definition() if self.child else None,
+        }
+
 
 class ObjectiveRequirementUsage:
     # ObjectiveRequirementUsage :
@@ -463,6 +470,14 @@ class ObjectiveRequirementUsage:
         output.append(self.declaration.dump())
         output.append(self.body.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "keyword": [k.get_definition() for k in self.keyword],
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "body": self.body.get_definition() if self.body else None,
+        }
 
 
 class RequirementDefinition:
@@ -585,6 +600,13 @@ class SubjectMember:
         else:
             return " ".join([self.prefix.dump(), self.child.dump()])
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": self.child.get_definition() if self.child else None,
+        }
+
 
 class SubjectUsage:
     # SubjectUsage :
@@ -604,6 +626,13 @@ class SubjectUsage:
         child_dump = self.child.dump()
         parts.append(child_dump)
         return " ".join(filter(None, parts))
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "keyword": [k.get_definition() for k in self.keyword],
+            "usage": self.child.get_definition() if self.child else None,
+        }
 
 
 class RequirementConstraintMember:
