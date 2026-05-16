@@ -41,6 +41,7 @@ class Model(Searchable):
         self.children = []
         self.typedby = None
         self.grammar = None
+        self.parent = None
 
     def __repr__(self):
         cls_name = self.__class__.__name__
@@ -181,6 +182,7 @@ class Model(Searchable):
 
     def _set_child(self, child):
         self.children.append(child)
+        child.parent = self
         return self
 
     def _get_child(self, featurechain):
@@ -214,6 +216,7 @@ class Package(Searchable):
         self.children = []
         self.typedby = None
         self.grammar = PackageGrammar()
+        self.parent = None
 
         if name is not None:
             self._set_name(name)
@@ -252,6 +255,7 @@ class Package(Searchable):
 
     def _set_child(self, child):
         self.children.append(child)
+        child.parent = self
         return self
 
     def _get_child(self, featurechain):
@@ -396,67 +400,68 @@ class Package(Searchable):
             inner_class = inner_element.__class__.__name__
             
             if inner_class == "ItemUsage":
-                self.children.append(
-                    Item().load_from_grammar(inner_element)
-                )
+                child = Item().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "PartUsage":
-                self.children.append(
-                    Part().load_from_grammar(inner_element)
-                )
+                child = Part().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "PortUsage":
-                self.children.append(
-                    Port().load_from_grammar(inner_element)
-                )
+                child = Port().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "Package":
-                self.children.append(
-                    Package().load_from_grammar(inner_element)
-                )
+                child = Package().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "ItemDefinition":
-                self.children.append(
-                    Item().load_from_grammar(inner_element)
-                )
+                child = Item().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "PartDefinition":
-                self.children.append(
-                    Part(definition=True).load_from_grammar(inner_element)
-                )
+                child = Part(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "PortDefinition":
-                self.children.append(
-                    Port(definition=True).load_from_grammar(inner_element)
-                )
+                child = Port(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "AttributeDefinition":
-                self.children.append(
-                    Attribute(definition=True).load_from_grammar(inner_element)
-                )
+                child = Attribute(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "AttributeUsage":
-                self.children.append(
-                    Attribute().load_from_grammar(inner_element)
-                )
+                child = Attribute().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "ActionDefinition":
-                self.children.append(
-                    Action(definition=True).load_from_grammar(inner_element)
-                )
+                child = Action(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "RequirementDefinition":
-                self.children.append(
-                    Requirement(definition=True).load_from_grammar(inner_element)
-                )
+                child = Requirement(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "UseCaseDefinition":
-                self.children.append(
-                    UseCase(definition=True).load_from_grammar(inner_element)
-                )
+                child = UseCase(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "ActionUsage":
-                self.children.append(
-                    Action(grammar=inner_element).load_from_grammar(inner_element)
-                )
+                child = Action(grammar=inner_element).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "ActionUsage":
-                self.children.append(
-                    Action().load_from_grammar(inner_element)
-                )
+                child = Action().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
             elif inner_class == "ConstraintDefinition":
                 c = Constraint(definition=True)
                 c.grammar = inner_element
                 # Extract the name from the grammar
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     c.name = inner_element.declaration.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "ConstraintUsage":
                 c = Constraint()
@@ -473,18 +478,22 @@ class Package(Searchable):
                                     c.name = feat_decl.identification.declaredName
                 except AttributeError:
                     pass
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "StateDefinition":
                 s = State(definition=True).load_from_grammar(inner_element)
+                s.parent = self
                 self.children.append(s)
             elif inner_class == "StateUsage":
                 s = State().load_from_grammar(inner_element)
+                s.parent = self
                 self.children.append(s)
             elif inner_class == "CalculationDefinition":
                 c = Calculation(definition=True)
                 c.grammar = inner_element
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     c.name = inner_element.declaration.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "CalculationUsage":
                 c = Calculation()
@@ -500,6 +509,7 @@ class Package(Searchable):
                                     c.name = feat_decl.identification.declaredName
                 except AttributeError:
                     pass
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "ConnectionDefinition":
                 c = Connection(definition=True)
@@ -508,6 +518,7 @@ class Package(Searchable):
                     decl = inner_element.definition.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "ConnectionUsage":
                 c = Connection()
@@ -518,6 +529,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             c.name = feat_decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "FlowConnectionDefinition":
                 f = Flow(definition=True)
@@ -526,6 +538,7 @@ class Package(Searchable):
                     decl = inner_element.definition.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         f.name = decl.identification.declaredName
+                f.parent = self
                 self.children.append(f)
             elif inner_class == "FlowConnectionUsage":
                 f = Flow()
@@ -536,12 +549,14 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             f.name = feat_decl.identification.declaredName
+                f.parent = self
                 self.children.append(f)
             elif inner_class == "EnumerationDefinition":
                 e = Enumeration(name=None)  # will set below
                 e.grammar = inner_element
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     e.name = inner_element.declaration.identification.declaredName
+                e.parent = self
                 self.children.append(e)
             elif inner_class == "AllocationDefinition":
                 a = Allocation(definition=True)
@@ -552,6 +567,7 @@ class Package(Searchable):
                         decl = inner_element.definition.declaration
                         if hasattr(decl, 'identification') and decl.identification:
                             a.name = decl.identification.declaredName
+                a.parent = self
                 self.children.append(a)
             elif inner_class == "AllocationUsage":
                 a = Allocation()
@@ -562,6 +578,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             a.name = feat_decl.identification.declaredName
+                a.parent = self
                 self.children.append(a)
             elif inner_class == "MetadataDefinition":
                 m = Metadata(definition=True)
@@ -571,6 +588,7 @@ class Package(Searchable):
                         decl = inner_element.definition.declaration
                         if hasattr(decl, 'identification') and decl.identification:
                             m.name = decl.identification.declaredName
+                m.parent = self
                 self.children.append(m)
             elif inner_class == "MetadataUsage":
                 m = Metadata()
@@ -581,6 +599,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             m.name = feat_decl.identification.declaredName
+                m.parent = self
                 self.children.append(m)
             elif inner_class == "RenderingDefinition":
                 r = Rendering(definition=True)
@@ -590,6 +609,7 @@ class Package(Searchable):
                         decl = inner_element.definition.declaration
                         if hasattr(decl, 'identification') and decl.identification:
                             r.name = decl.identification.declaredName
+                r.parent = self
                 self.children.append(r)
             elif inner_class == "RenderingUsage":
                 r = Rendering()
@@ -600,6 +620,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             r.name = feat_decl.identification.declaredName
+                r.parent = self
                 self.children.append(r)
             elif inner_class == "IndividualDefinition":
                 i = Individual(definition=True)
@@ -609,6 +630,7 @@ class Package(Searchable):
                         decl = inner_element.definition.declaration
                         if hasattr(decl, 'identification') and decl.identification:
                             i.name = decl.identification.declaredName
+                i.parent = self
                 self.children.append(i)
             elif inner_class == "IndividualUsage" or inner_class == "IndividualUsageSimple":
                 i = Individual()
@@ -619,6 +641,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             i.name = feat_decl.identification.declaredName
+                i.parent = self
                 self.children.append(i)
             elif inner_class == "FlowDefinition":
                 f = FlowDef(name=None)
@@ -628,6 +651,7 @@ class Package(Searchable):
                         decl = inner_element.definition.declaration
                         if hasattr(decl, 'identification') and decl.identification:
                             f.name = decl.identification.declaredName
+                f.parent = self
                 self.children.append(f)
             elif inner_class == "ViewDefinition":
                 v = View(definition=True)
@@ -636,6 +660,7 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         v.name = decl.identification.declaredName
+                v.parent = self
                 self.children.append(v)
             elif inner_class == "ViewUsage":
                 v = View()
@@ -646,6 +671,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             v.name = feat_decl.identification.declaredName
+                v.parent = self
                 self.children.append(v)
             elif inner_class == "ViewpointDefinition":
                 vp = Viewpoint(definition=True)
@@ -654,6 +680,7 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         vp.name = decl.identification.declaredName
+                vp.parent = self
                 self.children.append(vp)
             elif inner_class == "ViewpointUsage":
                 vp = Viewpoint()
@@ -664,6 +691,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             vp.name = feat_decl.identification.declaredName
+                vp.parent = self
                 self.children.append(vp)
             elif inner_class == "ConcernDefinition":
                 c = Concern(definition=True)
@@ -672,6 +700,7 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "ConcernUsage":
                 c = Concern()
@@ -682,6 +711,7 @@ class Package(Searchable):
                         feat_decl = decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             c.name = feat_decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "CaseDefinition":
                 c = Case(definition=True)
@@ -690,6 +720,7 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "AnalysisCaseDefinition":
                 c = AnalysisCase(definition=True)
@@ -698,6 +729,7 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "VerificationCaseDefinition":
                 c = VerificationCase(definition=True)
@@ -706,13 +738,20 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                c.parent = self
                 self.children.append(c)
             elif inner_class == "AnnotatingElement":
-                self.children.append(_GrammarAnnotationWrapper(inner_element))
+                wrapper = _GrammarAnnotationWrapper(inner_element)
+                wrapper.parent = self
+                self.children.append(wrapper)
             elif inner_class == "InterfaceDefinition":
-                self.children.append(_GrammarAnnotationWrapper(inner_element))
+                wrapper = _GrammarAnnotationWrapper(inner_element)
+                wrapper.parent = self
+                self.children.append(wrapper)
             elif inner_class == "InterfaceUsage":
-                self.children.append(_GrammarAnnotationWrapper(inner_element))
+                wrapper = _GrammarAnnotationWrapper(inner_element)
+                wrapper.parent = self
+                self.children.append(wrapper)
             else:
                 print(f"Unknown class: {inner_class}")
                 raise NotImplementedError

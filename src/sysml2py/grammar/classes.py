@@ -1036,12 +1036,13 @@ class StateActionUsage:
     # 	';' | pau=PerformedActionUsage body=ActionBody
     # ;
     def __init__(self, definition):
+        self.pau = None
         self.body = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["body"] is not None:
                 self.body = ActionBody(definition["body"])
 
-            if definition["pau"] is not None:
+            if definition.get("pau") is not None:
                 self.pau = PerformedActionUsage(definition["pau"])
 
     def dump(self):
@@ -1128,9 +1129,12 @@ class AssignmentNodeDeclaration:
         self.declaration = None
         self.keyword = "assign"
         self.keyword2 = ":="
+        self.target = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["declaration"] is not None:
                 self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            if definition.get("target") is not None:
+                self.target = QualifiedName(definition["target"])
             self.fcm = FeatureChainMember(definition["ownedRelationship1"])
             self.npm = NodeParameterMember(definition["ownedRelationship2"])
 
@@ -1139,7 +1143,12 @@ class AssignmentNodeDeclaration:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         output.append(self.keyword)
-        output.append(self.fcm.dump())
+        # Build the full target path: target.fcm (no space between)
+        if self.target is not None:
+            target_path = self.target.dump() + "." + self.fcm.dump()
+        else:
+            target_path = self.fcm.dump()
+        output.append(target_path)
         output.append(self.keyword2)
         output.append(self.npm.dump())
         return " ".join(output)
@@ -1222,6 +1231,15 @@ class PerformedActionUsage:
     def dump(self):
         return self.declaration.dump()
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": None,
+        }
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        return output
+
 
 class PerformActionUsageDeclaration:
     # PerformActionUsageDeclaration :
@@ -1262,6 +1280,25 @@ class PerformActionUsageDeclaration:
             else:
                 return " ".join([x.dump() for x in self.children]) + vpdump
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": None,
+            "fspart": None,
+            "declaration": None,
+            "valuepart": None,
+        }
+        if self.children:
+            if self.children[0].__class__.__name__ == "OwnedReferenceSubsetting":
+                output["ownedRelationship"] = self.children[0].get_definition()
+                if len(self.children) > 1:
+                    output["fspart"] = self.children[1].get_definition()
+            else:
+                output["declaration"] = self.children[0].get_definition()
+        if self.valuepart is not None:
+            output["valuepart"] = self.valuepart.get_definition()
+        return output
+
 
 class EntryTransitionMember:
     # EntryTransitionMember :
@@ -1273,6 +1310,7 @@ class EntryTransitionMember:
     def __init__(self, definition):
         self.prefix = None
         self.body = ";"
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
@@ -1294,6 +1332,18 @@ class EntryTransitionMember:
         output.append(self.body)
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class GuardedTargetSuccession:
     # GuardedTargetSuccession :
@@ -1306,11 +1356,20 @@ class GuardedTargetSuccession:
             for child in definition["ownedRelationship"]:
                 if child["name"] == "GuardExpressionMember":
                     self.children.append(GuardExpressionMember(child))
-                else:
+                elif child["name"] == "TransitionSuccessionMember":
                     self.children.append(TransitionSuccessionMember(child))
 
     def dump(self):
         return " then ".join([x.dump() for x in self.children])
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [],
+        }
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
 
 
 class GuardExpressionMember:
@@ -1465,19 +1524,20 @@ class TargetTransitionUsage:
     # Here transition is optional
     def __init__(self, definition):
         self.children = []
+        self.body = None
         if valid_definition(definition, self.__class__.__name__):
-            child = definition["ownedRelationship1"]
-            if child is not None:
+            child = definition.get("ownedRelationship1")
+            if child is not None and child.get("name") == "TriggerActionMember":
                 self.children.append(TriggerActionMember(child))
 
-            child = definition["ownedRelationship2"]
-            if child is not None:
+            child = definition.get("ownedRelationship2")
+            if child is not None and child.get("name") == "GuardExpressionMember":
                 self.children.append(GuardExpressionMember(child))
-            child = definition["ownedRelationship3"]
-            if child is not None:
+            child = definition.get("ownedRelationship3")
+            if child is not None and child.get("name") == "EffectBehaviorMember":
                 self.children.append(EffectBehaviorMember(child))
-            child = definition["ownedRelationship4"]
-            if child is not None:
+            child = definition.get("ownedRelationship4")
+            if child is not None and child.get("name") == "TransitionSuccessionMember":
                 self.children.append(TransitionSuccessionMember(child))
 
             self.body = ActionBody(definition["body"])
@@ -1491,6 +1551,27 @@ class TargetTransitionUsage:
             output.append(child.dump())
         output.append(self.body.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship1": None,
+            "ownedRelationship2": None,
+            "ownedRelationship3": None,
+            "ownedRelationship4": None,
+            "body": None,
+        }
+        if len(self.children) > 0:
+            output["ownedRelationship1"] = self.children[0].get_definition()
+        if len(self.children) > 1:
+            output["ownedRelationship2"] = self.children[1].get_definition()
+        if len(self.children) > 2:
+            output["ownedRelationship3"] = self.children[2].get_definition()
+        if len(self.children) > 3:
+            output["ownedRelationship4"] = self.children[3].get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
 
 
 class TransitionUsage:
@@ -1691,17 +1772,36 @@ class AcceptParameterPart:
     def dump(self):
         return (" " + self.keyword + " ").join([x.dump() for x in self.children])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [],
+        }
+        for child in self.children:
+            output["ownedRelationship"].append(child.get_definition())
+        return output
+
 
 class PayloadParameterMember:
     # PayloadParameterMember :
     # 	ownedRelatedElement = PayloadParameter
     # ;
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
             self.children = PayloadParameter(definition["ownedRelatedElement"])
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": None,
+        }
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
 
 
 class PayloadParameter:
@@ -1710,6 +1810,7 @@ class PayloadParameter:
     # 	| identification=Identification? pfsp=PayloadFeatureSpecializationPart? tvp=TriggerValuePart
     # ;
     def __init__(self, definition):
+        self.children = None
         self.identification = None
         self.pfsp = None
         if valid_definition(definition, self.__class__.__name__):
@@ -1734,6 +1835,25 @@ class PayloadParameter:
         if self.children is not None:
             output.append(self.children.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "feature": None,
+            "identification": None,
+            "pfsp": None,
+            "tvp": None,
+        }
+        if self.children is not None:
+            if self.children.__class__.__name__ == "PayloadFeature":
+                output["feature"] = self.children.get_definition()
+            else:
+                output["tvp"] = self.children.get_definition()
+        if self.identification is not None:
+            output["identification"] = self.identification.get_definition()
+        if self.pfsp is not None:
+            output["pfsp"] = self.pfsp.get_definition()
+        return output
 
 
 class TriggerValuePart:
@@ -3696,7 +3816,6 @@ class ReferenceUsage:
         if self.prefix is not None:
             output.append(self.prefix.dump())
         output.append(self.keyword)
-        output.append(":>>")
         output.append(self.child.dump())
         return " ".join(output)
 
@@ -5315,7 +5434,7 @@ class PayloadFeature:
                 self.identification = Identification(definition["identification"])
 
             if definition["valuepart"] is not None:
-                self.identification = ValuePart(definition["valuepart"])
+                self.valuepart = ValuePart(definition["valuepart"])
 
             if definition["multiplicity1"] is not None:
                 self.multiplicity1 = OwnedMultiplicity(definition["multiplicity1"])
@@ -5350,6 +5469,30 @@ class PayloadFeature:
                 output.append(self.multiplicity1.dump())
                 output.append(self.children.dump())
         return "".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "identification": None,
+            "valuepart": None,
+            "multiplicity1": None,
+            "multiplicity2": None,
+            "ownedRelationship": None,
+            "pfsp": None,
+        }
+        if self.identification is not None:
+            output["identification"] = self.identification.get_definition()
+        if self.valuepart is not None:
+            output["valuepart"] = self.valuepart.get_definition()
+        if self.multiplicity1 is not None:
+            output["multiplicity1"] = self.multiplicity1.get_definition()
+        if self.multiplicity2 is not None:
+            output["multiplicity2"] = self.multiplicity2.get_definition()
+        if self.children is not None:
+            output["ownedRelationship"] = self.children.get_definition()
+        if self.pfsp is not None:
+            output["pfsp"] = self.pfsp.get_definition()
+        return output
 
 
 class PayloadFeatureSpecializationPart:
@@ -5818,10 +5961,12 @@ class OwnedReferenceSubsetting:
                 self.elements.append(OwnedFeatureChain(element))
 
     def dump(self):
+        parts = []
         if self.referencedFeature is not None:
-            return self.referencedFeature.dump()
-        else:
-            return "".join([child.dump() for child in self.elements])
+            parts.append(self.referencedFeature.dump())
+        if self.elements:
+            parts.extend([child.dump() for child in self.elements])
+        return ".".join(parts) if parts else ""
 
     def get_definition(self):
         output = {

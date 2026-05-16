@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v0.8.0 (2026-05-16)
+
+### :sparkles: Features
+
+* :sparkles: **`.parent` property on all elements** — Every `Usage`, `Model`, `Package`, `Transition`, and wrapper class now exposes a `.parent` attribute that references the containing element, set at instantiation time
+* :sparkles: **State machine Python API** — `State` class now exposes `.transitions`, `.entry_actions`, `.exit_actions`, and `.do_actions` properties populated from parsed grammar
+* :sparkles: **`Transition` class** — New public API class representing state machine transitions with `.trigger`, `.guard`, `.target`, `.effect`, and `.is_entry` attributes
+
+### :bug: Fixes
+
+* :bug: **State transitions now extracted** — `State.load_from_grammar()` iterates all members in each `StateBodyItem` (not just the first), correctly capturing `TargetTransitionUsageMember` and `EntryTransitionMember`
+* :bug: **Entry transition targets resolved** — Fixed `_extract_target_from_succession()` method name mismatch that caused `AttributeError` on entry transitions
+* :bug: **Trigger extraction from PayloadParameter** — Fixed trigger name extraction to read from `PayloadParameter.children` (PayloadFeature) instead of non-existent `.feature` attribute
+* :bug: **`PerformedActionUsage.get_definition()` missing** — Added `get_definition()` method to support round-trip serialization of state actions
+* :bug: **`PerformActionUsageDeclaration.get_definition()` missing** — Added `get_definition()` method to support round-trip serialization of performed actions in state entry/do/exit blocks
+
+### :white_check_mark: Test Results
+
+* :white_check_mark: Grammar round-trip tests: **54/56 passing**
+* :white_check_mark: All 5 state-related tests pass
+* :white_check_mark: Parent property verified: nested states, transitions, and actions correctly reference their parent element
+
 ## v0.7.0 (2026-05-15)
 
 ### :bug: Fixes

@@ -90,6 +90,7 @@ class Usage(Searchable):
         self.children = []
         self.typedby = None
         self._is_definition = None  # overridden via the setter below
+        self.parent = None
 
     @property
     def is_definition(self):
@@ -297,6 +298,7 @@ class Usage(Searchable):
 
     def _set_child(self, child):
         self.children.append(child)
+        child.parent = self
         return self
 
     def _get_child(self, featurechain):
@@ -1123,6 +1125,7 @@ class Interface(Usage):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self.parent = None
         self.grammar = True
         self.iface_shortname = shortname
         self.ends = []  # list of (name, type_name, multiplicity, children)
@@ -1218,6 +1221,7 @@ class Action(Usage):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self.parent = None
         self.action_inputs = []  # List of (name, type_name)
         self.action_outputs = []
         
@@ -1476,6 +1480,7 @@ class Action(Usage):
         
         if 'Action' in usage_type:
             nested_action = Action(name=name)
+            nested_action.parent = self
             nested_action.load_from_grammar(usage)
             self._nested_actions.append(nested_action)
             self.children.append(nested_action)
@@ -1594,6 +1599,7 @@ class UseCase(Usage):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self.parent = None
         self.subject = None  # (name, type_name)
         self.actors = []  # list of (name, type_name)
         self.includes = []  # list of use case names
@@ -1727,6 +1733,7 @@ class Requirement(Usage):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self.parent = None
         self.req_shortname = shortname
         self.subject = None
         self.actors = []
@@ -1908,6 +1915,7 @@ class Message(Usage):
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
+        self.parent = None
         self.grammar = True
         self.from_port = from_port
         self.to_port = to_port
@@ -2102,6 +2110,153 @@ class _NonOccurrenceUsage(Usage):
         return package
 
 
+class Transition:
+    """Represents a state machine transition.
+    
+    Attributes:
+        name: Transition name (if any)
+        trigger: Trigger event (accept parameter)
+        guard: Guard condition expression
+        target: Target state name
+        effect: Effect action
+        is_entry: Whether this is an entry transition
+        parent: Parent State element
+    """
+    def __init__(self):
+        self.name = None
+        self.trigger = None
+        self.guard = None
+        self.target = None
+        self.effect = None
+        self.is_entry = False
+        self.grammar = None
+        self.parent = None
+    
+    def load_from_grammar(self, grammar, is_entry=False):
+        """Load transition from grammar element.
+        
+        Args:
+            grammar: TargetTransitionUsage, EntryTransitionMember, or similar
+            is_entry: Whether this is an entry transition
+        """
+        self.grammar = grammar
+        self.is_entry = is_entry
+        
+        if grammar.__class__.__name__ == 'EntryTransitionMember':
+            self.is_entry = True
+            self._load_from_entry_transition(grammar)
+        elif grammar.__class__.__name__ == 'TargetTransitionUsageMember':
+            self._load_from_target_transition(grammar)
+        elif grammar.__class__.__name__ == 'TargetTransitionUsage':
+            self._load_from_target_transition_usage(grammar)
+        
+        return self
+    
+    def _load_from_entry_transition(self, entry_member):
+        """Load from EntryTransitionMember."""
+        if hasattr(entry_member, 'children') and entry_member.children:
+            child = entry_member.children
+            if child.__class__.__name__ == 'GuardedTargetSuccession':
+                self._load_from_guarded_succession(child)
+            elif child.__class__.__name__ == 'TransitionSuccession':
+                self._extract_target_from_succession(child)
+    
+    def _load_from_target_transition(self, target_member):
+        """Load from TargetTransitionUsageMember."""
+        if hasattr(target_member, 'children') and target_member.children:
+            usage = target_member.children
+            if hasattr(usage, '__class__') and usage.__class__.__name__ == 'TargetTransitionUsage':
+                self._load_from_target_transition_usage(usage)
+    
+    def _load_from_target_transition_usage(self, usage):
+        """Load from TargetTransitionUsage."""
+        if hasattr(usage, 'children'):
+            for child in usage.children:
+                child_name = child.__class__.__name__
+                if child_name == 'TriggerActionMember':
+                    self._extract_trigger(child)
+                elif child_name == 'GuardExpressionMember':
+                    self._extract_guard(child)
+                elif child_name == 'EffectBehaviorMember':
+                    self._extract_effect(child)
+                elif child_name == 'TransitionSuccessionMember':
+                    self._extract_target(child)
+    
+    def _load_from_guarded_succession(self, guarded):
+        """Load from GuardedTargetSuccession."""
+        if hasattr(guarded, 'children'):
+            for child in guarded.children:
+                if child.__class__.__name__ == 'GuardExpressionMember':
+                    self._extract_guard(child)
+                elif child.__class__.__name__ == 'TransitionSuccessionMember':
+                    self._extract_target(child)
+    
+    def _extract_trigger(self, trigger_member):
+        """Extract trigger from TriggerActionMember."""
+        if hasattr(trigger_member, 'children') and trigger_member.children:
+            trigger = trigger_member.children
+            if hasattr(trigger, 'children') and trigger.children:
+                accept_param = trigger.children
+                if hasattr(accept_param, 'children'):
+                    for param in accept_param.children:
+                        if param.__class__.__name__ == 'PayloadParameterMember':
+                            if hasattr(param, 'children') and param.children:
+                                payload = param.children
+                                # PayloadParameter can have .children (PayloadFeature) or .identification
+                                if hasattr(payload, 'children') and payload.children:
+                                    feat = payload.children
+                                    if hasattr(feat, 'identification') and feat.identification:
+                                        self.trigger = feat.identification.declaredName
+                                    elif hasattr(feat, 'dump'):
+                                        self.trigger = feat.dump()
+                                elif hasattr(payload, 'identification') and payload.identification:
+                                    self.trigger = payload.identification.declaredName
+    
+    def _extract_guard(self, guard_member):
+        """Extract guard from GuardExpressionMember."""
+        if hasattr(guard_member, 'children') and guard_member.children:
+            self.guard = guard_member.children.dump()
+    
+    def _extract_effect(self, effect_member):
+        """Extract effect from EffectBehaviorMember."""
+        if hasattr(effect_member, 'children') and effect_member.children:
+            effect = effect_member.children
+            if hasattr(effect, 'declaration') and effect.declaration:
+                self.effect = effect.declaration.dump()
+    
+    def _extract_target(self, succession_member):
+        """Extract target from TransitionSuccessionMember."""
+        if hasattr(succession_member, 'children') and succession_member.children:
+            succession = succession_member.children
+            if hasattr(succession, 'children') and succession.children:
+                self._extract_target_from_succession(succession)
+    
+    def _extract_target_from_succession(self, succession):
+        """Extract target from TransitionSuccession."""
+        if hasattr(succession, 'children') and succession.children:
+            connector = succession.children
+            if hasattr(connector, 'children'):
+                target_list = connector.children
+                if isinstance(target_list, list) and target_list:
+                    target = target_list[0]
+                    if hasattr(target, 'dump'):
+                        self.target = target.dump()
+                elif hasattr(target_list, 'dump'):
+                    self.target = target_list.dump()
+    
+    def __repr__(self):
+        parts = []
+        if self.trigger:
+            parts.append(f"trigger={self.trigger!r}")
+        if self.guard:
+            parts.append(f"guard={self.guard!r}")
+        if self.target:
+            parts.append(f"target={self.target!r}")
+        if self.is_entry:
+            parts.append("entry=True")
+        return f"Transition({', '.join(parts)})"
+
+
 class State(_BehaviorUsage):
     sysml_type = 'state'
     """SysML v2 State Machine state usage/definition.
@@ -2118,15 +2273,24 @@ class State(_BehaviorUsage):
         else:
             self.grammar = StateUsage()
 
+        self.transitions = []
+        self.entry_actions = []
+        self.exit_actions = []
+        self.do_actions = []
+
         if name is not None:
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
 
     def load_from_grammar(self, grammar):
-        """Load state from grammar, extracting nested states."""
+        """Load state from grammar, extracting nested states, transitions, and actions."""
         self.grammar = grammar
         self.children = []
+        self.transitions = []
+        self.entry_actions = []
+        self.exit_actions = []
+        self.do_actions = []
         
         # Extract name
         if hasattr(grammar, 'declaration') and grammar.declaration:
@@ -2137,7 +2301,7 @@ class State(_BehaviorUsage):
             if hasattr(decl, 'identification') and decl.identification:
                 self.name = decl.identification.declaredName
         
-        # Extract nested states from body
+        # Extract nested states, transitions, and actions from body
         # StateDefinition: grammar.body -> StateDefBody -> children -> StateBodyPart -> children -> items
         # StateUsage: grammar.body -> StateUsageBody -> children -> StateDefBody -> children -> StateBodyPart -> children -> items
         body = getattr(grammar, 'body', None)
@@ -2171,11 +2335,22 @@ class State(_BehaviorUsage):
         for item in items:
             if not hasattr(item, 'children') or not item.children:
                 continue
-            member = item.children[0]
-            member_name = member.__class__.__name__
-            
-            if member_name == 'BehaviorUsageMember':
-                self._extract_state_from_behavior_member(member)
+            # Each StateBodyItem can have multiple members (e.g., state + transition)
+            for member in item.children:
+                member_name = member.__class__.__name__
+                
+                if member_name == 'BehaviorUsageMember':
+                    self._extract_state_from_behavior_member(member)
+                elif member_name == 'TargetTransitionUsageMember':
+                    self._extract_transition(member)
+                elif member_name == 'EntryTransitionMember':
+                    self._extract_entry_transition(member)
+                elif member_name == 'EntryActionMember':
+                    self._extract_entry_action(member)
+                elif member_name == 'ExitActionMember':
+                    self._extract_exit_action(member)
+                elif member_name == 'DoActionMember':
+                    self._extract_do_action(member)
         
         return self
     
@@ -2193,8 +2368,41 @@ class State(_BehaviorUsage):
                     if usage_type in ('StateUsage', 'StateDefinition'):
                         is_def = usage_type == 'StateDefinition'
                         nested_state = State(definition=is_def)
+                        nested_state.parent = self
                         nested_state.load_from_grammar(usage)
                         self.children.append(nested_state)
+    
+    def _extract_transition(self, target_member):
+        """Extract transition from TargetTransitionUsageMember."""
+        transition = Transition()
+        transition.parent = self
+        transition.load_from_grammar(target_member)
+        self.transitions.append(transition)
+    
+    def _extract_entry_transition(self, entry_member):
+        """Extract entry transition from EntryTransitionMember."""
+        transition = Transition()
+        transition.parent = self
+        transition.load_from_grammar(entry_member, is_entry=True)
+        self.transitions.append(transition)
+    
+    def _extract_entry_action(self, entry_member):
+        """Extract entry action from EntryActionMember."""
+        if hasattr(entry_member, 'children') and entry_member.children:
+            action = entry_member.children
+            self.entry_actions.append(action)
+    
+    def _extract_exit_action(self, exit_member):
+        """Extract exit action from ExitActionMember."""
+        if hasattr(exit_member, 'children') and exit_member.children:
+            action = exit_member.children
+            self.exit_actions.append(action)
+    
+    def _extract_do_action(self, do_member):
+        """Extract do action from DoActionMember."""
+        if hasattr(do_member, 'children') and do_member.children:
+            action = do_member.children
+            self.do_actions.append(action)
 
 
 class Constraint(_NonOccurrenceUsage):
@@ -2572,6 +2780,7 @@ class Reference(Usage):
         self.children = []
         self.typedby = None
         self.grammar = None
+        self.parent = None
         self.shortname = shortname
         self.redefines = redefines  # for redefinition like ref :>> name :
         self.ref_type = None  # type reference
