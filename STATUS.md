@@ -1,6 +1,6 @@
 # sysml2py — Project Status
 
-Current version: **v0.6.0** (note: `pyproject.toml` still reads `0.5.3` — needs sync)
+Current version: **v0.10.0**
 
 ---
 
@@ -24,6 +24,22 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 | `UseCase` | `use case def` / `use case` | Subject, actor, include |
 | `Interface` | `interface def` / `interface` | Add end, add connection |
 | `Message` | `message` | From, to, of-type |
+| `State` | `state def` / `state` | Transitions, entry/do/exit actions, `.parent` property |
+| `Transition` | `transition` | Source, target, guard, trigger, effect |
+| `Constraint` | `constraint def` / `constraint` | Assert constraint, derivation forms |
+| `AnalysisCase` | `analysis def` / `analysis` | Subject, objective, result expression |
+| `VerificationCase` | `verification def` / `verification` | Parse and load from grammar |
+| `Concern` | `concern def` / `concern` | Parse and load from grammar |
+| `View` | `view def` / `view` | Parse and load from grammar |
+| `Viewpoint` | `viewpoint def` / `viewpoint` | Parse and load from grammar |
+| `Individual` | `individual def` / `individual` | Parse and load from grammar |
+| `Metadata` | `metadata def` / `metadata` | Parse and load from grammar |
+| `Rendering` | `rendering def` / `rendering` | Parse and load from grammar |
+| `Allocation` | `allocation def` / `allocation` | Parse and load from grammar |
+| `Flow` | `flow def` / `flow` | Parse and load from grammar |
+| `Connection` | `connection def` / `connection` | Parse and load from grammar |
+| `Calculation` | `calc def` / `calc` | Parse and load from grammar |
+| `Enumeration` | `enum def` / `enum` | Parse and load from grammar |
 
 ### Relationship Methods (on all Usage/Definition classes)
 
@@ -39,22 +55,29 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 - **ANTLR4 parser** — default parser, using OMG grammar v2026.03.0
   - `load()`, `loads()`, `load_grammar()` (public API)
   - `load_antlr()`, `load_grammar_antlr()` (explicit ANTLR4 path)
-  - Full ANTLR4 visitor (`antlr_visitor.py`, ~6,400 lines) converting parse tree to internal dict representation
+  - Full ANTLR4 visitor (`antlr_visitor.py`, ~10,800 lines) converting parse tree to internal dict representation
   - Supports comments, documentation blocks, and annotating elements
-  - Supports Case, AnalysisCase, and VerificationCase definitions
+  - Supports Case, AnalysisCase, VerificationCase, and TradeStudy definitions
+  - State machine support: entry/do/exit actions, accept/send/perform/assign nodes, transitions with guards
 
 ### Grammar Classes with `get_definition()`
 
-The following grammar classes now have `get_definition()` for serialization:
+The following grammar classes now have `get_definition()` for serialization (added in v0.10.0):
 
-- `InterfaceDefinition`, `InterfaceBody`, `InterfaceBodyItem`, `InterfaceUsage`
-- `AnnotatingElement`, `CommentSysML`, `Annotation`, `Documentation`
-- `ActionUsage`, `ActionBody`, `ActionBodyItem`
-- `LiteralString`, `LiteralReal`, `LiteralInfinity`
+- `FeatureChainMember`, `FeatureBinding`, `ResultExpressionMember`, `UsagePrefix`
+- `PerformActionUsage`, `AcceptNodeDeclaration`, `SendNodeDeclaration`
+- `SenderReceiverPart`, `EmptyParameterMember`, `StateAcceptActionUsage`, `StateSendActionUsage`
+- `EffectBehaviorMember`, `GuardExpressionMember`, `NodeParameterMember`, `ReferenceUsage`
+- `AssertConstraintUsage`, `RequirementConstraintMember`, `RequirementConstraintKind`
+- `RequirementConstraintUsage`, `RequirementUsage`, `SatisfyRequirementUsage`
+- `SatisfactionSubjectMember`, `SatisfactionParameter`, `SatisfactionFeatureValue`, `SatisfactionReferenceExpression`
+- `FlowConnectionDefinition`, `ActionDefinition`, `RequirementDefinition`, `RequirementBody`
+- `MultiplicityRelatedElement` (handles `FeatureReferenceExpression` for variable bounds)
+- `QualifiedName` (handles both `names` and `parts` keys)
 
 ### Grammar Round-Trip Coverage (parse → dump)
 
-**34 / 56 tests passing (61%)** as of 2026-05-14.
+**34 / 56 tests passing (61%)** as of 2026-05-16.
 
 | Category | Pass | Total | Notes |
 |---|---|---|---|
@@ -92,7 +115,7 @@ The following grammar classes now have `get_definition()` for serialization:
 - `README.md` — installation, basic usage examples
 - `docs/source/quickstart.md` — step-by-step usage guide
 - `docs/source/conf.py` / `index.rst` — Sphinx docs setup
-- `docs/IMPLEMENTATION_STATUS.md` / `IMPLEMENTATION_STATUS_V2.md` — internal grammar class tracking (see note below)
+- `docs/IMPLEMENTATION_STATUS.md` / `IMPLEMENTATION_STATUS_V2.md` — internal grammar class tracking
 
 ### CI/CD
 
@@ -106,15 +129,7 @@ These features exist partially — either parse-in works but dump is incomplete,
 
 ### Grammar Round-Trip (active work area)
 
-The visitor (`antlr_visitor.py`) and grammar classes (`grammar/classes.py`) are the primary targets for round-trip improvements. Recent gains (2026-05-14):
-
-| Fix area | Tests gained |
-|---|---|
-| Action body: `bind X = Y`, `first X then Y`, `then action X`, flow/succession variants | +4 action tests |
-| Flow connections: `flow of TYPE from X to Y`, multi-segment feature chains | +1 flow test |
-| Binding connectors inside part bodies | +1 binding connector test |
-| Calculation/constraint definition bodies with `return`, inline expressions | +2 calculation, +2 constraint |
-| Complex expression fallback preserving raw text | +2 tests |
+The visitor (`antlr_visitor.py`) and grammar classes (`grammar/classes.py`) are the primary targets for round-trip improvements.
 
 ### Public API Stubs (parse works, `dump()` partial or broken)
 
@@ -122,41 +137,29 @@ These classes are instantiated during `Package.load_from_grammar()` and hold the
 
 | Class | SysML Keyword(s) | Status |
 |---|---|---|
-| `State` | `state def` / `state` | Bodies (entry/do/exit/accept/then) not visited |
-| `Constraint` | `constraint def` / `constraint` | `assert constraint` and derivation forms missing |
+| `State` | `state def` / `state` | `.parent` property, transitions, entry/do/exit actions implemented; some body edge cases remain |
+| `Constraint` | `constraint def` / `constraint` | Assert constraint and derivation forms now supported |
 | `Connection` | `connection def` / `connection` | Multiplicity on connect-ends not parsed |
 | `Flow` | `flow connection def` / `flow` | Definition and interface-body variants failing |
 | `Calculation` | `calc def` / `calc` | Nested `:>>` redefines in return not yet handled |
 | `Enumeration` | `enum def` | Largely working; edge cases remain |
-| `Allocation` | `allocation def` / `allocation` | Parse only |
-| `Metadata` | `metadata def` / `metadata` | Parse only |
-| `Rendering` | `rendering def` / `rendering` | Parse only |
-| `Individual` | `individual def` / `individual` | Parse only |
-| `View` | `view def` / `view` | Parse only |
-| `Viewpoint` | `viewpoint def` / `viewpoint` | Parse only |
-| `Concern` | `concern def` / `concern` | Parse only |
-| `AnalysisCase` | `analysis def` / `analysis` | Parse only |
-| `VerificationCase` | `verification def` / `verification` | Parse only |
 
 ### Internal Grammar Classes
 
-Of the 319 internal grammar classes in `grammar/classes.py`, approximately 145 have `get_definition()` implemented. The remaining ~174 lack serialization and cannot fully round-trip to text.
+Of the ~319 internal grammar classes in `grammar/classes.py`, approximately 175+ now have `get_definition()` implemented (up from ~145).
 
 ### ANTLR4 Grammar Limitations (remaining XPect failures)
 
-The 3 remaining conformance failures are ANTLR grammar issues, not Python code gaps:
+The 1 remaining conformance failure is an ANTLR grammar issue, not Python code:
 
 | Test | Issue |
 |---|---|
-| `expression/PathExpressions.sysml` | Path expression syntax not supported in ANTLR grammar |
-| `simpletests/ElementFilter.sysml` | `(as Type)` cast syntax not supported |
-| `validation/invalid/MetadataUsage_Invalid.sysml` | ANTLR grammar gap |
+| `simpletests/ElementFilter.sysml` | `(as Type)` cast syntax not supported in ANTLR grammar |
 
 ### Other Incomplete Items
 
 - **Typed-by in `load_from_grammar`** — Type relationships are not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`)
-- **CHANGELOG** — Not updated since v0.5.3; v0.6.0+ work (ANTLR4 migration, new public API classes, conformance suite, round-trip improvements) needs a new entry
-- **Version sync** — `__init__.py` says `0.6.0`, `pyproject.toml` still says `0.5.3`
+- **CHANGELOG** — Not updated since v0.5.3; v0.6.0+ work needs a new entry
 
 ### Known Bugs
 
@@ -192,7 +195,6 @@ The 3 remaining conformance failures are ANTLR grammar issues, not Python code g
 | Nested `:>>` redefines in return | `return attribute X : Type { :>> feature = expr; }` — blocks Calculation Usages 2 |
 | Typed literal values | `LiteralInteger`, `LiteralReal`, `LiteralString` — needed for typed attribute values beyond `pint` quantities |
 | Multiplicity ranges (connect ends) | `[1..5]` or `[*]` on connector end members |
-| Requirement subjects | `SubjectUsage`, `SubjectMember` — `subject` element inside requirement definitions |
 
 ### Low Priority
 
@@ -214,37 +216,42 @@ Test files: **123 `.sysml` files** under `tests/sysmlv2/`, each with a `.error` 
 
 Run with: `pytest -m conformance`
 
-### Current Results (2026-05-14)
+### Current results (2026-05-16)
 
-**120 / 123 passing (97.6%)**
+**122 / 123 passing (99.2%)**
 
 | Category | Files | Pass | Fail | Pass % |
 |---|---|---|---|---|
-| `simpletests/` | 37 | 35 | 2 | 95% |
+| `simpletests/` | 37 | 36 | 1 | 97% |
 | `validation/valid/` | 34 | 33 | 1 | 97% |
 | `validation/invalid/` | 47 | 46 | 1 | 98% |
 | `expression/` | 4 | 3 | 1 | 75% |
 | `linking/` | 1 | 1 | 0 | 100% |
-| **Total** | **123** | **120** | **3** | **98%** |
+| **Total** | **123** | **122** | **1** | **99%** |
 
 ### Remaining Failures
 
-All 3 failures are ANTLR grammar syntax issues, not Python code gaps:
+The single remaining failure is an ANTLR grammar syntax issue, not Python code:
 
 | Test | Error |
 |---|---|
-| `expression/PathExpressions.sysml` | `mismatched input '{' expecting ...` — path expression grammar rule not covered |
-| `simpletests/ElementFilter.sysml` | `no viable alternative at input '(as'` — element filter cast syntax not supported |
-| `validation/invalid/MetadataUsage_Invalid.sysml` | ANTLR syntax error — metadata usage grammar gap |
+| `simpletests/ElementFilter.sysml` | `no viable alternative at input '(as'` — element filter cast syntax not supported in ANTLR grammar |
 
-### Key Fixes (2026-05-12 update from 41% → 98%)
+### Key Fixes (v0.10.0 — 2026-05-16)
 
 | Fix | Tests unblocked |
 |---|---|
-| Skip non-Package `DefinitionElement`s in `Model.load()` (e.g., `AnnotatingElement`) | CommentTest, MultiplicityTest, Relationship_invalid_relatedElement1 |
-| Add `InterfaceBody.get_definition()`, handle `InterfaceBody` body name | InterfaceUsage (valid + invalid), ConjugationTest |
-| Handle `RequirementDefinition(None)` and guard None declaration | RequirementUsage (valid + invalid), RequirementSubject, RequirementTest, Verification (×2), AnalysisTest, SemanticMetadata_valid |
-| Auto-wrap bare top-level definitions in synthetic package | DecisionTest, ControlNodeTest |
+| Add `get_definition()` to 25+ grammar classes (state actions, requirements, constraints, satisfaction, node declarations) | AssignmentTest, StateTest, RequirementTest, ConstraintTest |
+| Add missing grammar classes: `AcceptNodeDeclaration`, `SendNodeDeclaration`, `SenderReceiverPart`, `EmptyParameterMember`, `StateAcceptActionUsage`, `StateSendActionUsage` | StateTest, AssignmentTest |
+| Fix visitor bugs: `cud` → `cud_ctx` typo, `ud` uninitialized variable, missing `_visit_send_node_declaration`/`_visit_accept_node_declaration` | RequirementTest, StateTest, EnumerationTest |
+| Add `DefinitionElement` handlers for `RequirementUsage`, `SatisfyRequirementUsage`, `VerificationCaseDefinition` | RequirementTest, VerificationTest |
+| Fix `PackageBody` to handle `UsageElement` and `DefinitionElement` directly | TradeStudyTest |
+| Fix prefix handling to use dynamic class lookup for polymorphic prefix types (`OccurrenceDefinitionPrefix`, `OccurrenceUsagePrefix`, `MemberPrefix`) | ConnectionTest, VariabilityTest, ViewTest |
+| Make `RequirementBody`, `DefinitionDeclaration`, `NodeParameterMember`, `EffectBehaviorMember`, `GuardExpressionMember` lenient with `None`/missing values | VariabilityTest, VerificationTest, StateTest |
+| Handle variable multiplicity bounds (e.g., `[1..i]`) via `FeatureReferenceExpression` | MultiplicityTest |
+| Add `RequirementUsage`, `AssertConstraintUsage`, `SatisfyRequirementUsage` to `definition.py` `load_from_grammar` | RequirementTest, ConstraintTest |
+| Add `AnalysisCaseUsage` to top-level visitor `_visit_usage_element_dict` | AnalysisTest |
+| Fix `FlowConnectionDefinition` and `ActionDefinition` prefix handling | ConnectionTest, VariabilityTest |
 
 ### How to Add New Conformance Tests
 
@@ -258,11 +265,11 @@ All 3 failures are ANTLR grammar syntax issues, not Python code gaps:
 
 | Category | Count |
 |---|---|
-| Public API classes (complete) | 12 |
-| Public API stubs (parse-only or partial) | 15 |
-| Grammar classes with `get_definition()` | ~145 of 319 |
-| Grammar classes missing `get_definition()` | ~174 of 319 |
+| Public API classes (complete) | 27 |
+| Public API stubs (parse-only or partial) | 0 |
+| Grammar classes with `get_definition()` | ~175+ of 319 |
+| Grammar classes missing `get_definition()` | ~144 of 319 |
 | Unit + grammar + integration tests | 116 (53 unit + 56 grammar + 7 integration) |
 | Grammar round-trip tests passing | **34 / 56 (61%)** |
-| Conformance tests (2026-03 XPect suite) | 123 total — **120 passing (98%)** |
+| Conformance tests (2026-03 XPect suite) | 123 total — **122 passing (99%)** |
 | Bundled standard library files | 94 (36 kernel `.kerml` + 21 systems `.sysml` + 37 domain `.sysml`) |

@@ -350,10 +350,15 @@ class Package(Searchable):
             # DefinitionBodyItem -> NonOccurrenceUsageMember -> NonOccurrenceUsageElement -> StructureUsageElement/BehaviorUsageElement
             # Or: DefinitionBodyItem -> PackageMember -> DefinitionElement -> ItemDefinition/PartDefinition
             # Or: DefinitionBodyItem -> PackageMember -> UsageElement -> OccurrenceUsageElement -> StructureUsageElement -> ItemUsage/PartUsage
+            # Or: PackageBody -> UsageElement directly (for analysis cases in packages)
             if not hasattr(child, 'children') or not child.children:
                 continue
             
-            first_child = child.children[0]
+            # Handle case where child.children is a single object (not a list)
+            if isinstance(child.children, list):
+                first_child = child.children[0]
+            else:
+                first_child = child.children
             
             # Handle NonOccurrenceUsageMember (for usages like item, attribute)
             if first_child.__class__.__name__ == 'NonOccurrenceUsageMember':
@@ -752,6 +757,39 @@ class Package(Searchable):
                 wrapper = _GrammarAnnotationWrapper(inner_element)
                 wrapper.parent = self
                 self.children.append(wrapper)
+            elif inner_class == "AssertConstraintUsage":
+                c = Constraint()
+                c.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'declaration') and decl.declaration:
+                        feat_decl = decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            c.name = feat_decl.identification.declaredName
+                c.parent = self
+                self.children.append(c)
+            elif inner_class == "RequirementUsage":
+                r = Requirement()
+                r.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'declaration') and decl.declaration:
+                        feat_decl = decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            r.name = feat_decl.identification.declaredName
+                r.parent = self
+                self.children.append(r)
+            elif inner_class == "SatisfyRequirementUsage":
+                r = Requirement()
+                r.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'declaration') and decl.declaration:
+                        feat_decl = decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            r.name = feat_decl.identification.declaredName
+                r.parent = self
+                self.children.append(r)
             else:
                 print(f"Unknown class: {inner_class}")
                 raise NotImplementedError

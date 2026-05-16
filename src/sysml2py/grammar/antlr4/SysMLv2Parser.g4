@@ -721,7 +721,7 @@ connectorEndMember
     ;
 
 connectorEnd
-    : (ownedCrossMultiplicityMember)? (name ( COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting
+    : (ownedCrossMultiplicityMember)? (name ( COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting ownedMultiplicity?
     ;
 
 ownedCrossMultiplicityMember
@@ -1595,7 +1595,7 @@ interfaceEndMember
     ;
 
 interfaceEnd
-    : (ownedCrossMultiplicityMember)? (name ( COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting
+    : (ownedCrossMultiplicityMember)? (name ( COLON_COLON_GT | REFERENCES))? ownedReferenceSubsetting ownedMultiplicity?
     ;
 
 allocationDefinition

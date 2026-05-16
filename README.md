@@ -6,9 +6,9 @@ sysml2py is an open source pure Python library for constructing python-based
 classes consistent with the [SysML v2.0 standard](https://github.com/Systems-Modeling/SysML-v2-Release).
 
 This is a fork of the original project by [Christopher Cox](https://github.com/chriscox-westfall),
-maintained by [Jon Fox](mailto:jon.fox@drfox.com) at [mycr0ft/sysml2py](https://github.com/mycr0ft/sysml2py).
+authored by [Jon Fox](mailto:jon.fox@drfox.com) at [mycr0ft/sysml2py](https://github.com/mycr0ft/sysml2py).
 
-**v0.6.0:** Now uses ANTLR4 parser for full SysML v2 grammar support!
+**v0.10.0:** 99% conformance test pass rate (122/123). Full state machine, requirement, constraint, and analysis case support. ANTLR4 parser with complete visitor.
 
 ## Requirements
 sysml2py requires the following Python packages:
@@ -168,6 +168,10 @@ print(tree.dump())
 ```
 
 **61% of the 56 grammar round-trip tests currently pass** (34/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, and constraints.
+
+## Conformance
+
+**99% of 123 OMG XPect conformance tests pass** (122/123). The single remaining failure (`ElementFilter.sysml`) is an ANTLR grammar limitation, not a Python code gap.
 
 ## License
 sysml2py is released under the MIT license, hence allowing commercial use of the library.

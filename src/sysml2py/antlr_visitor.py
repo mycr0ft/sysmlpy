@@ -2864,6 +2864,139 @@ def _visit_state_send_action_usage(ctx):
     }
 
 
+def _visit_accept_node_declaration(ctx):
+    """Visit an acceptNodeDeclaration context.
+    
+    Grammar:
+      acceptNodeDeclaration
+        : (actionNodeUsageDeclaration)? ACCEPT acceptParameterPart
+        ;
+    
+    Returns:
+      {name: "AcceptNodeDeclaration", declaration, acceptParameter}
+    """
+    if ctx is None:
+        return None
+    
+    decl = None
+    if hasattr(ctx, 'actionNodeUsageDeclaration') and ctx.actionNodeUsageDeclaration():
+        aud = ctx.actionNodeUsageDeclaration()
+        decl = {
+            "name": "ActionNodeUsageDeclaration",
+            "declaration": None
+        }
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if ud:
+                name, shortname = _get_usage_identification_from_ud(ud)
+                decl["declaration"] = {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                }
+    
+    accept_param = None
+    if hasattr(ctx, 'acceptParameterPart') and ctx.acceptParameterPart():
+        accept_param = _visit_accept_parameter_part(ctx.acceptParameterPart())
+    
+    return {
+        "name": "AcceptNodeDeclaration",
+        "declaration": decl,
+        "acceptParameter": accept_param
+    }
+
+
+def _visit_sender_receiver_part(ctx):
+    """Visit a senderReceiverPart context.
+    
+    Grammar:
+      senderReceiverPart
+        : VIA nodeParameterMember TO emptyParameterMember
+        | TO emptyParameterMember
+        ;
+    
+    Returns:
+      {name: "SenderReceiverPart", via: nodeParameterMember, to: emptyParameterMember}
+    """
+    if ctx is None:
+        return None
+    
+    via = None
+    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
+        via = _visit_node_parameter_member(ctx.nodeParameterMember())
+    
+    to = None
+    if hasattr(ctx, 'emptyParameterMember') and ctx.emptyParameterMember():
+        to = _visit_empty_parameter_member(ctx.emptyParameterMember())
+    
+    return {
+        "name": "SenderReceiverPart",
+        "via": via,
+        "to": to
+    }
+
+
+def _visit_send_node_declaration(ctx):
+    """Visit a sendNodeDeclaration context.
+    
+    Grammar:
+      sendNodeDeclaration
+        : (actionNodeUsageDeclaration)? SEND nodeParameterMember senderReceiverPart?
+        ;
+    
+    Returns:
+      {name: "SendNodeDeclaration", declaration, nodeParameter, senderReceiver}
+    """
+    if ctx is None:
+        return None
+    
+    decl = None
+    if hasattr(ctx, 'actionNodeUsageDeclaration') and ctx.actionNodeUsageDeclaration():
+        aud = ctx.actionNodeUsageDeclaration()
+        decl = {
+            "name": "ActionNodeUsageDeclaration",
+            "declaration": None
+        }
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if ud:
+                name, shortname = _get_usage_identification_from_ud(ud)
+                decl["declaration"] = {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                }
+    
+    node_param = None
+    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
+        node_param = _visit_node_parameter_member(ctx.nodeParameterMember())
+    
+    sender_receiver = None
+    if hasattr(ctx, 'senderReceiverPart') and ctx.senderReceiverPart():
+        sender_receiver = _visit_sender_receiver_part(ctx.senderReceiverPart())
+    
+    return {
+        "name": "SendNodeDeclaration",
+        "declaration": decl,
+        "nodeParameter": node_param,
+        "senderReceiver": sender_receiver
+    }
+
+
 def _visit_assignment_node_declaration(ctx):
     """Visit an assignmentNodeDeclaration context.
     
@@ -6802,6 +6935,7 @@ def _visit_enumeration_usage_member(member_ctx):
     # Extract name from UsageContext -> UsageDeclarationContext -> IdentificationContext
     ev_name = None
     ev_shortname = None
+    ud = None
     if hasattr(usage_ctx, 'usageDeclaration') and usage_ctx.usageDeclaration():
         ud = usage_ctx.usageDeclaration()
         if hasattr(ud, 'identification') and ud.identification():
@@ -7576,9 +7710,9 @@ def _make_constraint_usage_declaration_dict(cud_ctx):
                         name_text = name_list[0].getText()
                         name, shortname = _extract_name_shortname(name_text)
         
-        typed_by = _get_action_usage_typed_by(cud)
+        typed_by = _get_action_usage_typed_by(cud_ctx)
         if typed_by is None:
-            typed_by = _get_action_usage_subsetted_by(cud)
+            typed_by = _get_action_usage_subsetted_by(cud_ctx)
     
     specialization = _build_specialization(typed_by) if typed_by else None
     
@@ -9894,12 +10028,24 @@ def _get_multiplicity_part(fsp_ctx):
                         }
                     ]
                 }
-            else:
+            elif value_text.isdigit():
                 return {
                     "name": "MultiplicityExpressionMember",
                     "ownedRelatedElement": [
                         {"name": "MultiplicityRelatedElement", "ownedRelatedElement":
                             {"name": "LiteralInteger", "value": int(value_text)}
+                        }
+                    ]
+                }
+            else:
+                # Variable reference like 'i'
+                return {
+                    "name": "MultiplicityExpressionMember",
+                    "ownedRelatedElement": [
+                        {"name": "MultiplicityRelatedElement", "ownedRelatedElement":
+                            {"name": "FeatureReferenceExpression", "ownedRelationship": [
+                                {"name": "FeatureReferenceMember", "memberElement": value_text}
+                            ]}
                         }
                     ]
                 }

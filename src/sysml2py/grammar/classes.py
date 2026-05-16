@@ -204,16 +204,20 @@ class DefinitionElement:
                 self.children.append(
                     ConcernDefinition(definition["ownedRelatedElement"])
                 )
-            elif de == "CaseDefinition":
-                self.children.append(
-                    CaseDefinition(definition["ownedRelatedElement"])
-                )
             elif de == "VerificationCaseDefinition":
                 self.children.append(
                     VerificationCaseDefinition(definition["ownedRelatedElement"])
                 )
+            elif de == "RequirementUsage":
+                self.children.append(
+                    RequirementUsage(definition["ownedRelatedElement"])
+                )
+            elif de == "SatisfyRequirementUsage":
+                self.children.append(
+                    SatisfyRequirementUsage(definition["ownedRelatedElement"])
+                )
             else:
-                print(de)  # pragma: no cover
+                print(f"Unknown DefinitionElement type: {de}")  # pragma: no cover
                 raise NotImplementedError  # pragma: no cover
 
     def dump(self):
@@ -491,10 +495,15 @@ class RequirementDefinition:
         self.declaration = None
         self.body = RequirementBody(None)
         if definition is not None and valid_definition(definition, self.__class__.__name__):
-            if definition["prefix"] is not None:
-                self.prefix = OccurrenceDefinitionPrefix(definition["prefix"])
-            if definition["declaration"] is not None:
-                self.declaration = DefinitionDeclaration(definition["declaration"])
+            if definition.get("prefix") is not None:
+                prefix_name = definition["prefix"].get("name", "OccurrenceDefinitionPrefix")
+                self.prefix = globals()[prefix_name](definition["prefix"])
+            if definition.get("declaration") is not None:
+                decl_def = definition["declaration"]
+                if isinstance(decl_def, dict) and decl_def.get("name") == "DefinitionDeclaration":
+                    self.declaration = DefinitionDeclaration(decl_def)
+                else:
+                    self.declaration = DefinitionDeclaration(None)
             if definition.get("body") is not None:
                 self.body = RequirementBody(definition["body"])
 
@@ -523,10 +532,11 @@ class RequirementDefinition:
 class RequirementBody:
     def __init__(self, definition):
         self.items = []
-        if definition is not None and valid_definition(definition, self.__class__.__name__):
-            if "item" in definition:
-                for item in definition["item"]:
-                    self.items.append(RequirementBodyItem(item))
+        if definition is not None:
+            if isinstance(definition, dict) and definition.get("name") == "RequirementBody":
+                if "item" in definition:
+                    for item in definition["item"]:
+                        self.items.append(RequirementBodyItem(item))
 
     def dump(self):
         if len(self.items) == 0:
@@ -656,6 +666,14 @@ class RequirementConstraintMember:
         output.append(self.child.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "kind": self.kind.get_definition(),
+            "ownedRelatedElement": self.child.get_definition(),
+        }
+
 
 class RequirementConstraintKind:
     #  RequirementConstraintKind :
@@ -681,6 +699,13 @@ class RequirementConstraintKind:
                 return "assume"
         else:  # pragma: no cover
             raise ValueError
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "assumption": "assume" if self.requirement is False else None,
+            "requirement": "require" if self.requirement is True else None,
+        }
 
 
 class RequirementConstraintUsage:
@@ -744,6 +769,25 @@ class RequirementConstraintUsage:
                 output.append(self.declaration.dump())
             output.append(self.body.dump())
         return " ".join(filter(None, output))
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelationship": None,
+            "fs": [],
+            "body": None,
+        }
+        if self.reference is not None:
+            output["ownedRelationship"] = self.reference.get_definition()
+            output["fs"] = [fs.get_definition() for fs in self.fs]
+            output["body"] = self.body.get_definition()
+        else:
+            output["keyword1"] = [kw.get_definition() for kw in self.keyword] if hasattr(self, 'keyword1') else []
+            output["keyword2"] = []
+            output["constraint"] = self.constraint
+            output["declaration"] = self.declaration.get_definition() if self.declaration else None
+            output["body"] = self.body.get_definition()
+        return output
 
 
 class ConstraintDefinition:
@@ -864,6 +908,79 @@ class StateBodyPart:
         for child in self.children:
             output["item"].append(child.get_definition())
         return output
+
+
+class SourceSuccessionMember:
+    def __init__(self, definition=None):
+        self.prefix = None
+        self.child = None
+        if definition is not None:
+            if valid_definition(definition, self.__class__.__name__):
+                if definition.get("prefix") is not None:
+                    self.prefix = MemberPrefix(definition["prefix"])
+                if definition.get("ownedRelatedElement") is not None:
+                    self.child = SourceSuccession(definition["ownedRelatedElement"])
+
+    def dump(self):
+        output = []
+        if self.child:
+            output.append(self.child.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": self.child.get_definition() if self.child else None,
+        }
+
+
+class SourceSuccession:
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, self.__class__.__name__):
+                owned_rel = definition.get("ownedRelationship")
+                if owned_rel:
+                    if isinstance(owned_rel, list):
+                        for child in owned_rel:
+                            self.children.append(SourceEndMember(child))
+                    else:
+                        self.children.append(SourceEndMember(owned_rel))
+
+    def dump(self):
+        return "then " + " ".join([c.dump() for c in self.children])
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [c.get_definition() for c in self.children],
+        }
+
+
+class SourceEndMember:
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, self.__class__.__name__):
+                owned_rel = definition.get("ownedRelatedElement")
+                if owned_rel:
+                    if isinstance(owned_rel, list):
+                        for child in owned_rel:
+                            if child.get("name") == "BehaviorUsageElement":
+                                self.children.append(BehaviorUsageElement(child))
+                    else:
+                        if owned_rel.get("name") == "BehaviorUsageElement":
+                            self.children.append(BehaviorUsageElement(owned_rel))
+
+    def dump(self):
+        return " ".join([c.dump() for c in self.children])
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [c.get_definition() for c in self.children],
+        }
 
 
 class StateBodyItem:
@@ -1093,6 +1210,66 @@ class StateActionUsage:
         return output
 
 
+class StateAcceptActionUsage:
+    # StateAcceptActionUsage :
+    # 	declaration=AcceptNodeDeclaration body=ActionBody
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = AcceptNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "body": self.body.get_definition() if self.body else None,
+        }
+        return output
+
+
+class StateSendActionUsage:
+    # StateSendActionUsage :
+    # 	declaration=SendNodeDeclaration body=ActionBody
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = SendNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "body": self.body.get_definition() if self.body else None,
+        }
+        return output
+
+
 class StateAssignmentActionUsage:
     # StateAssignmentActionUsage :
     # 	declaration=AssignmentNodeDeclaration body=ActionBody
@@ -1182,6 +1359,15 @@ class AssignmentNodeDeclaration:
         output.append(self.npm.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "target": self.target.get_definition() if self.target else None,
+            "ownedRelationship1": self.fcm.get_definition() if self.fcm else None,
+            "ownedRelationship2": self.npm.get_definition() if self.npm else None,
+        }
+
 
 class ActionNodeUsageDeclaration:
     #  ActionNodeUsageDeclaration :
@@ -1200,17 +1386,95 @@ class ActionNodeUsageDeclaration:
         else:
             return self.keyword
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+        }
+
+
+class AcceptNodeDeclaration:
+    # AcceptNodeDeclaration :
+    # 	(actionNodeUsageDeclaration)? ACCEPT acceptParameterPart
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = "accept"
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            self.acceptParameter = AcceptParameterPart(definition["acceptParameter"]) if definition.get("acceptParameter") else None
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append(self.keyword)
+        if self.acceptParameter is not None:
+            output.append(self.acceptParameter.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "acceptParameter": self.acceptParameter.get_definition() if self.acceptParameter else None,
+        }
+
+
+class SendNodeDeclaration:
+    # SendNodeDeclaration :
+    # 	(actionNodeUsageDeclaration)? SEND nodeParameterMember senderReceiverPart?
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = "send"
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            self.nodeParameter = NodeParameterMember(definition["nodeParameter"]) if definition.get("nodeParameter") else None
+            self.senderReceiver = SenderReceiverPart(definition["senderReceiver"]) if definition.get("senderReceiver") else None
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append(self.keyword)
+        if self.nodeParameter is not None:
+            output.append(self.nodeParameter.dump())
+        if self.senderReceiver is not None:
+            output.append(self.senderReceiver.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "nodeParameter": self.nodeParameter.get_definition() if self.nodeParameter else None,
+            "senderReceiver": self.senderReceiver.get_definition() if self.senderReceiver else None,
+        }
+
 
 class NodeParameterMember:
     # NodeParameterMember :
     # 	ownedRelatedElement = NodeParameter
     # ;
     def __init__(self, definition):
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = NodeParameter(definition["ownedRelatedElement"])
+            if definition.get("ownedRelatedElement") is not None:
+                self.children = NodeParameter(definition["ownedRelatedElement"])
 
     def dump(self):
-        return self.children.dump()
+        if self.children is not None:
+            return self.children.dump()
+        return ""
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.children.get_definition() if self.children else None,
+        }
 
 
 class NodeParameter:
@@ -1230,6 +1494,13 @@ class NodeParameter:
             return self.children.dump()
         return ""
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": self.children.get_definition() if self.children else None,
+            "memberElement": None,
+        }
+
 
 class FeatureBinding:
     # FeatureBinding :
@@ -1241,6 +1512,13 @@ class FeatureBinding:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.children.get_definition(),
+        }
+        return output
 
 
 class PerformedActionUsage:
@@ -1407,11 +1685,15 @@ class GuardExpressionMember:
     # ;
     def __init__(self, definition):
         self.keyword = "if"
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = OwnedExpression(definition["ownedRelatedElement"])
+            if definition.get("ownedRelatedElement") is not None:
+                self.children = OwnedExpression(definition["ownedRelatedElement"])
 
     def dump(self):
-        return " ".join([self.keyword, self.children.dump()])
+        if self.children is not None:
+            return " ".join([self.keyword, self.children.dump()])
+        return ""
 
     def get_definition(self):
         output = {
@@ -1672,11 +1954,15 @@ class EffectBehaviorMember:
     # ;
     def __init__(self, definition):
         self.keyword = "do"
+        self.children = None
         if valid_definition(definition, self.__class__.__name__):
-            self.children = EffectBehaviorUsage(definition["ownedRelatedElement"])
+            if definition.get("ownedRelatedElement") is not None:
+                self.children = EffectBehaviorUsage(definition["ownedRelatedElement"])
 
     def dump(self):
-        return " ".join([self.keyword, self.children.dump()])
+        if self.children is not None:
+            return " ".join([self.keyword, self.children.dump()])
+        return ""
 
     def get_definition(self):
         output = {
@@ -1809,6 +2095,60 @@ class AcceptParameterPart:
         for child in self.children:
             output["ownedRelationship"].append(child.get_definition())
         return output
+
+
+class SenderReceiverPart:
+    # SenderReceiverPart :
+    # 	'via' nodeParameterMember 'to' emptyParameterMember
+    # 	| 'to' emptyParameterMember
+    # ;
+    def __init__(self, definition):
+        self.via = None
+        self.to = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("via") is not None:
+                self.via = NodeParameterMember(definition["via"])
+            if definition.get("to") is not None:
+                self.to = EmptyParameterMember(definition["to"])
+
+    def dump(self):
+        output = []
+        if self.via is not None:
+            output.append("via")
+            output.append(self.via.dump())
+        if self.to is not None:
+            output.append("to")
+            output.append(self.to.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "via": self.via.get_definition() if self.via else None,
+            "to": self.to.get_definition() if self.to else None,
+        }
+
+
+class EmptyParameterMember:
+    # EmptyParameterMember :
+    # 	emptyUsage_
+    # ;
+    def __init__(self, definition):
+        self.featureChain = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("featureChain") is not None:
+                self.featureChain = FeatureChainMember(definition["featureChain"])
+
+    def dump(self):
+        if self.featureChain is not None:
+            return self.featureChain.dump()
+        return ""
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "featureChain": self.featureChain.get_definition() if self.featureChain else None,
+        }
 
 
 class PayloadParameterMember:
@@ -2048,7 +2388,8 @@ class ActionDefinition:
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
-                    raise NotImplementedError  # pragma: no cover
+                    prefix_name = definition["prefix"].get("name", "DefinitionPrefix")
+                    self.prefix = globals()[prefix_name](definition["prefix"])
                 self.declaration = DefinitionDeclaration(definition["declaration"])
                 self.body = ActionBody(definition["body"])
         else:
@@ -2389,6 +2730,18 @@ class AssertConstraintUsage:
 
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "isNegated": self.isNegated,
+            "ownedRelationship": [child.get_definition() for child in self.children],
+            "featurespecializationpart": self.fsp.get_definition() if self.fsp else None,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "body": self.body.get_definition(),
+        }
+        return output
+
 
 class CalculationBody:
     def __init__(self, definition=None):
@@ -2501,6 +2854,14 @@ class ResultExpressionMember:
             output.append(self.prefix.dump())
         output.append(self.children.dump())
         return "".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "ownedRelatedElement": self.children.get_definition(),
+        }
+        return output
 
 
 class AnalysisCaseUsage:
@@ -2651,6 +3012,15 @@ class RequirementUsage:
         output.append(self.body.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "declaration": self.declaration.get_definition(),
+            "body": self.body.get_definition() if hasattr(self.body, 'get_definition') else {"name": "RequirementBody", "item": []},
+        }
+        return output
+
 
 class PerformActionUsage:
     # PerformActionUsage :
@@ -2673,6 +3043,15 @@ class PerformActionUsage:
         output.append(self.declaration.dump())
         output.append(self.body.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "declaration": self.declaration.get_definition(),
+            "body": self.body.get_definition(),
+        }
+        return output
 
 
 class CalculationUsage:
@@ -2810,7 +3189,8 @@ class FlowConnectionDefinition:
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
-                    raise NotImplementedError  # pragma: no cover
+                    prefix_name = definition["prefix"].get("name", "DefinitionPrefix")
+                    self.prefix = globals()[prefix_name](definition["prefix"])
 
                 self.definition = Definition(definition["definition"])
         else:
@@ -3852,6 +4232,8 @@ class NonOccurrenceUsageElement:
                 self.children = MetadataUsage(definition["ownedRelatedElement"])
             elif name == "EndFeatureUsage":
                 self.children = EndFeatureUsage(definition["ownedRelatedElement"])
+            elif name == "AssertConstraintUsage":
+                self.children = AssertConstraintUsage(definition["ownedRelatedElement"])
             else:
                 print(name)  # pragma: no cover
                 raise NotImplementedError  # pragma: no cover
@@ -3884,6 +4266,14 @@ class ReferenceUsage:
         output.append(self.keyword)
         output.append(self.child.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "usage": self.child.get_definition(),
+        }
+        return output
 
 
 class EndFeatureUsage:
@@ -4006,6 +4396,21 @@ class SatisfyRequirementUsage:
         output.append(self.body.dump())
         return " ".join(filter(None, output))
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "isAssert": self.keyword[1] == "assert",
+            "isNegated": self.keyword[2] == "not",
+            "declaration": self.declaration.get_definition() if hasattr(self, 'declaration') and self.declaration else None,
+            "ors": self.ors.get_definition() if self.ors else None,
+            "fsp": self.fsp.get_definition() if hasattr(self, 'fsp') and self.fsp else None,
+            "valuepart": self.valuepart.get_definition() if self.valuepart else None,
+            "ssm": self.ssm.get_definition() if self.ssm else None,
+            "body": self.body.get_definition() if hasattr(self.body, 'get_definition') else {"name": "RequirementBody", "item": []},
+        }
+        return output
+
 
 class SatisfactionSubjectMember:
     # SatisfactionSubjectMember :
@@ -4018,6 +4423,12 @@ class SatisfactionSubjectMember:
     def dump(self):
         return self.child.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.child.get_definition(),
+        }
+
 
 class SatisfactionParameter:
     # SatisfactionParameter :
@@ -4029,6 +4440,12 @@ class SatisfactionParameter:
 
     def dump(self):
         return self.child.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": self.child.get_definition(),
+        }
 
 
 class SatisfactionFeatureValue:
@@ -4044,6 +4461,12 @@ class SatisfactionFeatureValue:
     def dump(self):
         return self.child.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.child.get_definition(),
+        }
+
 
 class SatisfactionReferenceExpression:
     # SatisfactionReferenceExpression :
@@ -4054,6 +4477,13 @@ class SatisfactionReferenceExpression:
             self.child = FeatureChainMember(definition["ownedRelatedElement"])
 
     def dump(self):
+        return self.child.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.child.get_definition(),
+        }
         return self.child.dump()
 
 
@@ -4873,6 +5303,18 @@ class FeatureChainMember:
             return self.children.dump()
         return ""
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+        }
+        if self.children is not None:
+            # Determine which key to use based on child type
+            if isinstance(self.children, QualifiedName):
+                output["memberElement"] = self.children.get_definition()
+            else:
+                output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
 
 class SequenceOperand:
     # SequenceOperand:
@@ -5091,7 +5533,11 @@ class FeatureReferenceExpression:
 class FeatureReferenceMember:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.memberElement = QualifiedName(definition["memberElement"])
+            member_element = definition["memberElement"]
+            if isinstance(member_element, str):
+                self.memberElement = QualifiedName({"name": "QualifiedName", "parts": [member_element]})
+            else:
+                self.memberElement = QualifiedName(member_element)
 
     def dump(self):
         return self.memberElement.dump()
@@ -5548,12 +5994,14 @@ class PayloadFeature:
             output.append(self.valuepart.dump())
         else:
             if self.multiplicity1 is None:
-                output.append(self.children.dump())
+                if self.children is not None:
+                    output.append(self.children.dump())
                 if self.multiplicity2 is not None:
                     output.append(self.multiplicity2.dump())
             else:
                 output.append(self.multiplicity1.dump())
-                output.append(self.children.dump())
+                if self.children is not None:
+                    output.append(self.children.dump())
         return "".join(output)
 
     def get_definition(self):
@@ -6154,13 +6602,22 @@ class UsagePrefix:
         else:
             return " ".join([x.dump() for x in self.keyword])
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "usageKeyword": [kw.get_definition() for kw in self.keyword],
+        }
+        return output
+
 
 class PartUsage:
     def __init__(self, definition=None):
         if definition is not None:
             if valid_definition(definition, "PartUsage"):
                 if definition["prefix"] is not None:
-                    self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+                    prefix_name = definition["prefix"].get("name", "OccurrenceUsagePrefix")
+                    self.prefix = globals()[prefix_name](definition["prefix"])
                 else:
                     self.prefix = None
 
@@ -6665,6 +7122,8 @@ class MultiplicityRelatedElement:
                     self.element = LiteralInteger(definition["ownedRelatedElement"])
                 elif definition["ownedRelatedElement"]["name"] == "LiteralInfinity":
                     self.element = LiteralInfinity(definition["ownedRelatedElement"])
+                elif definition["ownedRelatedElement"]["name"] == "FeatureReferenceExpression":
+                    self.element = FeatureReferenceExpression(definition["ownedRelatedElement"])
                 else:
                     raise NotImplementedError  # pragma: no cover
 
@@ -7226,7 +7685,12 @@ class PackageBody:
                                 self.children.append(AliasMember(relationship))
                             elif relationship["name"] == "Import":
                                 self.children.append(Import(relationship))
+                            elif relationship["name"] == "UsageElement":
+                                self.children.append(UsageElement(relationship))
+                            elif relationship["name"] == "DefinitionElement":
+                                self.children.append(DefinitionElement(relationship))
                             else:
+                                print(f"Unknown relationship in PackageBody: {json.dumps(relationship, indent=2, default=str)[:500]}")
                                 raise AttributeError(
                                     "Failed to match this relationship"
                                 )  # pragma: no cover
@@ -7481,8 +7945,12 @@ class QualifiedName:
     def __init__(self, definition):
         self.names = []
         if valid_definition(definition, self.__class__.__name__):
-            for name in definition["names"]:
-                self.names.append(name)
+            names = definition.get("names", definition.get("parts", []))
+            if isinstance(names, str):
+                self.names = [names]
+            else:
+                for name in names:
+                    self.names.append(name)
 
     def dump(self):
         return "::".join(self.names)
