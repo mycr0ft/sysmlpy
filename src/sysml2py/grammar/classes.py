@@ -2164,21 +2164,32 @@ class EmptySuccessionMember:
     def dump(self):
         return self.children.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [self.children.get_definition()] if self.children else [],
+        }
+
 
 class EmptySuccession:
     def __init__(self, definition):
-        self.children = []
-        if valid_definition(definition, self.__class__.__name__):
-            if len(definition["ownedRelationship"]) > 0:
-                self.children = MultiplicitySourceEndMember(
-                    definition["ownedRelationship"]
-                )
+        self.children = None
+        if definition is not None and valid_definition(definition, self.__class__.__name__):
+            owned_rel = definition.get("ownedRelationship")
+            if owned_rel and len(owned_rel) > 0:
+                self.children = MultiplicitySourceEndMember(owned_rel)
 
     def dump(self):
         output = ["then"]
-        for child in self.children:
-            output.append(child.dump())
+        if self.children:
+            output.append(self.children.dump())
         return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [self.children.get_definition()] if self.children else [],
+        }
 
 
 class MultiplicitySourceEndMember:
@@ -2984,6 +2995,16 @@ class DefaultInterfaceEnd:
             output.append(self.usage.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "direction": self.direction.get_definition() if self.direction else None,
+            "isAbstract": self.isAbstract,
+            "isVariation": self.isVariation,
+            "isEnd": self.isEnd,
+            "usage": self.usage.get_definition() if self.usage else None,
+        }
+
 
 class PortDefinition:
     def __init__(self, definition=None):
@@ -3451,6 +3472,15 @@ class OccurrenceDefinitionPrefix:
 
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "isIndividual": self.isIndividual,
+            "ownedRelationship": [c.get_definition() for c in self.children],
+            "keyword": [],
+        }
+
 
 class BasicDefinitionPrefix:
     def __init__(self, definition):
@@ -3465,6 +3495,13 @@ class BasicDefinitionPrefix:
         if self.isVariation:
             output = "variation"
         return output
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "isAbstract": self.isAbstract,
+            "isVariation": self.isVariation,
+        }
 
 
 class LifeClassMembership:
@@ -3840,6 +3877,16 @@ class EndFeatureUsage:
         output.append(self.completion.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "usage": {
+                "declaration": {"declaration": self.declaration.get_definition() if self.declaration else None},
+                "completion": self.completion.get_definition() if self.completion else None,
+            },
+        }
+
 
 class EndUsagePrefix:
     def __init__(self, definition):
@@ -3852,6 +3899,12 @@ class EndUsagePrefix:
         if self.prefix is not None:
             return self.prefix.dump()
         return ""
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+        }
 
 
 class SatisfyRequirementUsage:
@@ -4018,23 +4071,17 @@ class BindingConnector:
         self.declaration = None
         self.keyword = "bind"
         self.children = []
+        self.body = None
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
-                if definition["prefix"] is not None:
-                    # self.prefix = UsagePrefix(definition['prefix'])
-                    pass
-                if definition["declaration"] is not None:
+                if definition.get("declaration") is not None:
                     self.declaration = UsageDeclaration(definition["declaration"])
-
-                if len(definition["ownedRelationship"]) == 0:
-                    pass
-                elif len(definition["ownedRelationship"]) == 2:
-                    for child in definition["ownedRelationship"]:
+                owned_rel = definition.get("ownedRelationship")
+                if owned_rel and len(owned_rel) == 2:
+                    for child in owned_rel:
                         self.children.append(ConnectorEndMember(child))
-                else:
-                    raise NotImplementedError  # pragma: no cover
-
-                self.body = DefinitionBody(definition["body"])
+                if definition.get("body") is not None:
+                    self.body = DefinitionBody(definition["body"])
 
     def dump(self):
         output = []
@@ -4050,9 +4097,19 @@ class BindingConnector:
             connectors.append(child.dump())
         output.append(" = ".join(connectors))
 
-        output.append(self.body.dump())
+        if self.body:
+            output.append(self.body.dump())
 
         return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "ownedRelationship": [c.get_definition() for c in self.children],
+            "body": self.body.get_definition() if self.body else None,
+        }
 
 
 class DefaultReferenceUsage:
@@ -5532,10 +5589,17 @@ class PayloadFeatureSpecializationPart:
 class FlowEndMember:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.children = FlowEnd(definition["ownedRelatedElement"][0])
+            ore = definition["ownedRelatedElement"]
+            self.children = FlowEnd(ore[0] if isinstance(ore, list) else ore)
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [self.children.get_definition()] if self.children else [],
+        }
 
 
 class FlowEnd:
@@ -5544,12 +5608,10 @@ class FlowEnd:
         if valid_definition(definition, self.__class__.__name__):
             for child in definition["fes"]:
                 self.children.append(FlowEndSubsetting(child))
-
             for child in definition["ffm"]:
                 self.children.append(FlowFeatureMember(child))
 
     def dump(self):
-        # Concatenate FlowEndSubsetting (ends with '.') then FlowFeatureMembers joined by '.'
         output = []
         ffm_parts = []
         for child in self.children:
@@ -5560,6 +5622,11 @@ class FlowEnd:
         if ffm_parts:
             output.append(".".join(ffm_parts))
         return "".join(output)
+
+    def get_definition(self):
+        fes = [c.get_definition() for c in self.children if c.__class__.__name__ == "FlowEndSubsetting"]
+        ffm = [c.get_definition() for c in self.children if c.__class__.__name__ == "FlowFeatureMember"]
+        return {"name": self.__class__.__name__, "fes": fes, "ffm": ffm}
 
 
 class FlowEndSubsetting:
@@ -5575,6 +5642,12 @@ class FlowEndSubsetting:
             return self.children.dump() + "."
         else:
             return self.children.dump()
+
+    def get_definition(self):
+        if self.children.__class__.__name__ == "QualifiedName":
+            return {"name": self.__class__.__name__, "referencedFeature": self.children.get_definition(), "ownedRelatedElement": None}
+        else:
+            return {"name": self.__class__.__name__, "referencedFeature": None, "ownedRelatedElement": self.children.get_definition()}
 
 
 class FeatureChainPrefix:
@@ -5593,10 +5666,14 @@ class FeatureChainPrefix:
 class FlowFeatureMember:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.children = FlowFeature(definition["ownedRelatedElement"][0])
+            ore = definition["ownedRelatedElement"]
+            self.children = FlowFeature(ore[0] if isinstance(ore, list) else ore)
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "ownedRelatedElement": [self.children.get_definition()] if self.children else []}
 
 
 class FlowFeature:
@@ -5607,6 +5684,9 @@ class FlowFeature:
     def dump(self):
         return self.children.dump()
 
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "ownedRelationship": [self.children.get_definition()] if self.children else []}
+
 
 class FlowRedefinition:
     def __init__(self, definition):
@@ -5615,6 +5695,9 @@ class FlowRedefinition:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "redefinedFeature": self.children.get_definition() if self.children else None}
 
 
 class InterfaceUsage:
@@ -5871,6 +5954,12 @@ class ConnectorPart:
     def dump(self):
         return self.part.dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "part": self.part.get_definition() if self.part else None,
+        }
+
 
 class BinaryConnectorPart:
     def __init__(self, definition):
@@ -5881,6 +5970,12 @@ class BinaryConnectorPart:
 
     def dump(self):
         return " to ".join([child.dump() for child in self.children])
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [c.get_definition() for c in self.children],
+        }
 
 
 class ConnectorEndMember:
@@ -6092,6 +6187,15 @@ class OccurrenceUsagePrefix:
 
         return " ".join(output)
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "isIndividual": self.isIndividual,
+            "portionKind": self.portionKind.get_definition() if self.portionKind else None,
+            "usageExtension": [],
+        }
+
 
 class PortionKind:
     def __init__(self, definition):
@@ -6121,6 +6225,14 @@ class BasicUsagePrefix:
             output.append("ref")
 
         return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "isReference": self.isReference,
+        }
+        return output
 
 
 class RefPrefix:
