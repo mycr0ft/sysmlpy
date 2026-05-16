@@ -2435,17 +2435,39 @@ def _visit_perform_action_usage_declaration(ctx):
             qns = ors_ctx.qualifiedName()
             if not isinstance(qns, list):
                 qns = [qns]
-            names = [qn.getText() for qn in qns if qn]
-            if names:
-                ref_text = "::".join(names)
+            qns = [qn for qn in qns if qn]
+            if qns:
+                # First qualified name is referencedFeature
+                first_name = qns[0].getText()
+                # Remaining qualified names (after DOT) are ownedRelatedElement
+                owned_elements = []
+                for qn in qns[1:]:
+                    owned_elements.append({
+                        "name": "OwnedFeatureChain",
+                        "feature": {
+                            "name": "FeatureChain",
+                            "ownedRelationship": [{
+                                "name": "OwnedFeatureChaining",
+                                "chainingFeature": {
+                                    "name": "QualifiedName",
+                                    "names": [qn.getText()]
+                                }
+                            }]
+                        }
+                    })
                 ors = {
                     "name": "OwnedReferenceSubsetting",
                     "referencedFeature": {
                         "name": "QualifiedName",
-                        "names": ref_text.split("::")
+                        "names": [first_name]
                     },
-                    "ownedRelatedElement": []
+                    "ownedRelatedElement": owned_elements
                 }
+    
+    # Extract featureSpecializationPart (for both ownedReferenceSubsetting and ACTION cases)
+    if hasattr(ctx, 'featureSpecializationPart') and ctx.featureSpecializationPart():
+        fsp = ctx.featureSpecializationPart()
+        fspart = _build_specialization_from_fsp(fsp)
     
     # Case 2: ACTION usageDeclaration (anonymous or named action keyword)
     if ors is None and hasattr(ctx, 'ACTION') and ctx.ACTION():
@@ -2573,7 +2595,7 @@ def _visit_perform_action_usage_declaration(ctx):
     return {
         "name": "PerformActionUsageDeclaration",
         "ownedRelationship": ors,
-        "fspart": None,
+        "fspart": fspart,
         "declaration": decl,
         "valuepart": valuepart
     }
@@ -9874,7 +9896,17 @@ def _build_specialization_from_fsp(fsp):
                 tb = typings.typedBy()
                 if hasattr(tb, 'featureTyping') and tb.featureTyping():
                     ft = tb.featureTyping()
-                    if hasattr(ft, 'qualifiedName') and ft.qualifiedName():
+                    if hasattr(ft, 'ownedFeatureTyping') and ft.ownedFeatureTyping():
+                        oft = ft.ownedFeatureTyping()
+                        qns = oft.qualifiedName()
+                        if isinstance(qns, list):
+                            qns = [qn for qn in qns if qn]
+                        if qns:
+                            if isinstance(qns, list):
+                                typed_by = qns[0].getText()
+                            else:
+                                typed_by = qns.getText()
+                    elif hasattr(ft, 'qualifiedName') and ft.qualifiedName():
                         typed_by = ft.qualifiedName().getText()
             if typed_by is None:
                 t_text = typings.getText()
