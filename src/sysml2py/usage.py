@@ -2115,6 +2115,7 @@ class Transition:
     
     Attributes:
         name: Transition name (if any)
+        source: Source state name (for explicit transitions)
         trigger: Trigger event (accept parameter)
         guard: Guard condition expression
         target: Target state name
@@ -2124,6 +2125,7 @@ class Transition:
     """
     def __init__(self):
         self.name = None
+        self.source = None
         self.trigger = None
         self.guard = None
         self.target = None
@@ -2136,7 +2138,7 @@ class Transition:
         """Load transition from grammar element.
         
         Args:
-            grammar: TargetTransitionUsage, EntryTransitionMember, or similar
+            grammar: TargetTransitionUsage, EntryTransitionMember, TransitionUsageMember, or similar
             is_entry: Whether this is an entry transition
         """
         self.grammar = grammar
@@ -2149,8 +2151,51 @@ class Transition:
             self._load_from_target_transition(grammar)
         elif grammar.__class__.__name__ == 'TargetTransitionUsage':
             self._load_from_target_transition_usage(grammar)
+        elif grammar.__class__.__name__ == 'TransitionUsageMember':
+            self._load_from_transition_usage_member(grammar)
         
         return self
+    
+    def _load_from_transition_usage_member(self, member):
+        """Load from TransitionUsageMember (explicit `transition name first X then Y;`)."""
+        if hasattr(member, 'children') and member.children:
+            usage = member.children
+            if hasattr(usage, '__class__') and usage.__class__.__name__ == 'TransitionUsage':
+                self._load_from_transition_usage(usage)
+    
+    def _load_from_transition_usage(self, usage):
+        """Load from TransitionUsage."""
+        # Extract name from declaration
+        if hasattr(usage, 'declaration') and usage.declaration:
+            decl = usage.declaration
+            while hasattr(decl, 'declaration') and not hasattr(decl, 'identification'):
+                decl = decl.declaration
+            if hasattr(decl, 'identification') and decl.identification:
+                self.name = decl.identification.declaredName
+        
+        # Extract source and target from ownedRelationship
+        if hasattr(usage, 'children'):
+            for child in usage.children:
+                child_name = child.__class__.__name__
+                if child_name == 'TransitionSourceMember':
+                    self._extract_source(child)
+                elif child_name == 'TransitionSuccessionMember':
+                    self._extract_target(child)
+                elif child_name == 'TriggerActionMember':
+                    self._extract_trigger(child)
+                elif child_name == 'GuardExpressionMember':
+                    self._extract_guard(child)
+                elif child_name == 'EffectBehaviorMember':
+                    self._extract_effect(child)
+    
+    def _extract_source(self, source_member):
+        """Extract source from TransitionSourceMember."""
+        if hasattr(source_member, 'children') and source_member.children:
+            qname = source_member.children
+            if isinstance(qname, list):
+                qname = qname[0]
+            if hasattr(qname, 'names'):
+                self.source = '.'.join(qname.names)
     
     def _load_from_entry_transition(self, entry_member):
         """Load from EntryTransitionMember."""
@@ -2345,6 +2390,8 @@ class State(_BehaviorUsage):
                     self._extract_transition(member)
                 elif member_name == 'EntryTransitionMember':
                     self._extract_entry_transition(member)
+                elif member_name == 'TransitionUsageMember':
+                    self._extract_transition(member)
                 elif member_name == 'EntryActionMember':
                     self._extract_entry_action(member)
                 elif member_name == 'ExitActionMember':

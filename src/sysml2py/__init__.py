@@ -12,7 +12,7 @@ __all__ = [
     "Searchable",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.6.0"
+__version__ = "0.9.0"
 
 from sysml2py.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
