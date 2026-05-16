@@ -1445,6 +1445,8 @@ def _visit_behavior_usage_member(bum_ctx):
             return result
         elif hasattr(bue, 'assertConstraintUsage') and bue.assertConstraintUsage():
             return _make_assert_constraint_usage_dict(bue.assertConstraintUsage(), prefix)
+        elif hasattr(bue, 'satisfyRequirementUsage') and bue.satisfyRequirementUsage():
+            return _make_satisfy_requirement_usage_dict(bue.satisfyRequirementUsage(), prefix)
     
     return None
 
@@ -1546,6 +1548,196 @@ def _make_assert_constraint_usage_dict(acu_ctx, prefix=None):
             "part": body_parts
         }
     }
+
+
+def _make_satisfy_requirement_usage_dict(sru_ctx, prefix=None):
+    """Create a SatisfyRequirementUsage dictionary.
+    
+    Grammar:
+      satisfyRequirementUsage
+        : occurrenceUsagePrefix (ASSERT ( NOT)? | NOT)? SATISFY (
+            ownedReferenceSubsetting featureSpecializationPart?
+            | REQUIREMENT usageDeclaration?
+          ) valuePart? (BY satisfactionSubjectMember)? requirementBody
+        ;
+    """
+    if sru_ctx is None:
+        return None
+    
+    is_assert = False
+    is_negated = False
+    occ_prefix = _get_occurrence_usage_prefix(sru_ctx)
+    
+    # Check for ASSERT ( NOT)? | NOT
+    if hasattr(sru_ctx, 'ASSERT') and sru_ctx.ASSERT():
+        is_assert = True
+        if hasattr(sru_ctx, 'NOT') and sru_ctx.NOT():
+            is_negated = True
+    elif hasattr(sru_ctx, 'NOT') and sru_ctx.NOT():
+        is_negated = True
+    
+    # Determine if using ownedReferenceSubsetting or REQUIREMENT keyword
+    ors = None
+    fsp = None
+    declaration = None
+    
+    if hasattr(sru_ctx, 'ownedReferenceSubsetting') and sru_ctx.ownedReferenceSubsetting():
+        ors = _build_owned_reference_subsetting_dict(sru_ctx.ownedReferenceSubsetting())
+        
+        if hasattr(sru_ctx, 'featureSpecializationPart') and sru_ctx.featureSpecializationPart():
+            fsp_ctx = sru_ctx.featureSpecializationPart()
+            fsp = _build_feature_specialization_part(fsp_ctx)
+    elif hasattr(sru_ctx, 'REQUIREMENT') and sru_ctx.REQUIREMENT():
+        if hasattr(sru_ctx, 'usageDeclaration') and sru_ctx.usageDeclaration():
+            ud = sru_ctx.usageDeclaration()
+            name = None
+            shortname = None
+            typed_by = None
+            
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name, shortname = _extract_name_shortname(name_text)
+            
+            typed_by = _get_action_usage_typed_by(sru_ctx)
+            if typed_by is None:
+                typed_by = _get_action_usage_subsetted_by(sru_ctx)
+            
+            specialization = _build_specialization(typed_by) if typed_by else None
+            
+            declaration = {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name
+                    },
+                    "specialization": specialization
+                }
+            }
+    
+    # Extract valuePart
+    valuepart = None
+    if hasattr(sru_ctx, 'valuePart') and sru_ctx.valuePart():
+        vp = sru_ctx.valuePart()
+        if hasattr(vp, 'ownedExpression') and vp.ownedExpression():
+            expr = _visit_expression(vp.ownedExpression())
+            if expr:
+                valuepart = {"name": "ValuePart", "ownedRelationship": expr}
+    
+    # Extract satisfactionSubjectMember (after 'by')
+    ssm = None
+    if hasattr(sru_ctx, 'satisfactionSubjectMember') and sru_ctx.satisfactionSubjectMember():
+        ssm_ctx = sru_ctx.satisfactionSubjectMember()
+        ssm = _visit_satisfaction_subject_member(ssm_ctx)
+    
+    # Extract requirementBody
+    body = _visit_requirement_body(sru_ctx)
+    
+    return {
+        "name": "SatisfyRequirementUsage",
+        "prefix": occ_prefix or prefix,
+        "isAssert": is_assert,
+        "isNegated": is_negated,
+        "ors": ors,
+        "fsp": fsp,
+        "declaration": declaration,
+        "valuepart": valuepart,
+        "ssm": ssm,
+        "body": body
+    }
+
+
+def _visit_satisfaction_subject_member(ssm_ctx):
+    """Visit a satisfactionSubjectMember context.
+    
+    Grammar:
+      satisfactionSubjectMember : satisfactionParameter ;
+      satisfactionParameter : satisfactionFeatureValue ;
+      satisfactionFeatureValue : ownedRelatedElement = SatisfactionReferenceExpression ;
+      SatisfactionReferenceExpression : ownedRelatedElement = FeatureChainMember ;
+    """
+    if ssm_ctx is None:
+        return None
+    
+    if hasattr(ssm_ctx, 'satisfactionParameter') and ssm_ctx.satisfactionParameter():
+        sp_ctx = ssm_ctx.satisfactionParameter()
+        if hasattr(sp_ctx, 'satisfactionFeatureValue') and sp_ctx.satisfactionFeatureValue():
+            sfv_ctx = sp_ctx.satisfactionFeatureValue()
+            
+            # Try to extract qualified name from SatisfactionReferenceExpression
+            for child in sfv_ctx.getChildren():
+                child_name = type(child).__name__
+                if 'Reference' in child_name or 'Expression' in child_name:
+                    qn_text = child.getText()
+                    return {
+                        "name": "SatisfactionSubjectMember",
+                        "ownedRelatedElement": {
+                            "name": "SatisfactionParameter",
+                            "ownedRelationship": {
+                                "name": "SatisfactionFeatureValue",
+                                "ownedRelatedElement": {
+                                    "name": "SatisfactionReferenceExpression",
+                                    "ownedRelatedElement": {
+                                        "name": "FeatureChainMember",
+                                        "memberElement": {
+                                            "name": "QualifiedName",
+                                            "names": [qn_text]
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+    
+    return None
+
+
+def _visit_requirement_body(ctx):
+    """Visit a requirementBody context.
+    
+    Grammar:
+      requirementBody
+        : LBRACE requirementBodyItem* RBRACE
+        | SEMI
+        ;
+    """
+    if ctx is None:
+        return {"name": "RequirementBody", "ownedRelationship": []}
+    
+    if hasattr(ctx, 'requirementBodyItem') and ctx.requirementBodyItem():
+        items = ctx.requirementBodyItem()
+        if not isinstance(items, list):
+            items = [items]
+        owned_relationship = []
+        for item in items:
+            result = _visit_requirement_body_item(item)
+            if result:
+                owned_relationship.append(result)
+        return {"name": "RequirementBody", "ownedRelationship": owned_relationship}
+    
+    return {"name": "RequirementBody", "ownedRelationship": []}
+
+
+def _visit_requirement_body_item(item_ctx):
+    """Visit a requirementBodyItem context."""
+    if item_ctx is None:
+        return None
+    
+    # Check for various usage types inside requirement body
+    if hasattr(item_ctx, 'behaviorUsageMember') and item_ctx.behaviorUsageMember():
+        return _visit_behavior_usage_member(item_ctx.behaviorUsageMember())
+    
+    return None
 
 
 def _visit_action_node_member(anm_ctx):
@@ -7842,6 +8034,21 @@ def _visit_nested_occurrence_usage(occ_elem):
                     }
                 }
             return None
+        elif hasattr(behav_elem, 'satisfyRequirementUsage') and behav_elem.satisfyRequirementUsage():
+            ctx = behav_elem.satisfyRequirementUsage()
+            result = _make_satisfy_requirement_usage_dict(ctx, None)
+            if result:
+                return {
+                    "name": "UsageElement",
+                    "ownedRelatedElement": {
+                        "name": "OccurrenceUsageElement",
+                        "ownedRelatedElement": {
+                            "name": "BehaviorUsageElement",
+                            "ownedRelationship": result
+                        }
+                    }
+                }
+            return None
     
     # print(f"DEBUG: No match found in _visit_nested_occurrence_usage")
     # Fall through to check structure usage elements
@@ -9124,6 +9331,25 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(behav_elem, 'assertConstraintUsage') and behav_elem.assertConstraintUsage():
                 ctx = behav_elem.assertConstraintUsage()
                 result = _make_assert_constraint_usage_dict(ctx, prefix)
+                if result:
+                    return {
+                        "name": "PackageMember",
+                        "prefix": None,
+                        "ownedRelatedElement": {
+                            "name": "UsageElement",
+                            "ownedRelatedElement": {
+                                "name": "OccurrenceUsageElement",
+                                "ownedRelatedElement": {
+                                    "name": "BehaviorUsageElement",
+                                    "ownedRelationship": result
+                                }
+                            }
+                        }
+                    }
+                return result
+            elif hasattr(behav_elem, 'satisfyRequirementUsage') and behav_elem.satisfyRequirementUsage():
+                ctx = behav_elem.satisfyRequirementUsage()
+                result = _make_satisfy_requirement_usage_dict(ctx, prefix)
                 if result:
                     return {
                         "name": "PackageMember",
