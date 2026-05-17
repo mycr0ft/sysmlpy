@@ -8,7 +8,7 @@ classes consistent with the [SysML v2.0 standard](https://github.com/Systems-Mod
 This project began as a fork of the sysml2py project by [Christopher
 Cox](https://github.com/chriscox-westfall). Since April 2026 [Jon Fox](mailto:jon.fox@drfox.com) 
 decided to complete coverage of all SysMLv2 features over two months of weekends,
-and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://github.com/daltskin/sysml-v2-grammar] and
+and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://github.com/daltskin/sysml-v2-grammar) and
 changed our unit library to pint.
 The project had diverged so much from sysml2py that a new name, sysmlpy, was selected.
 
