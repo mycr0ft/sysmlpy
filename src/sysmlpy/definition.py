@@ -204,6 +204,100 @@ class Model(Searchable):
                 else:
                     return child._get_child(featurechain)
 
+    # ── Convenience functions ───────────────────────────────────────────
+
+    def find_all(self, type=None, name=None):
+        """Recursively find all matching elements across all packages.
+
+        Parameters
+        ----------
+        type : str or class, optional
+            Filter by SysML type (e.g. 'part', Part).
+        name : str, optional
+            Filter by element name.
+
+        Returns
+        -------
+        list
+            All matching elements across the full tree.
+        """
+        results = []
+        for child in self.children:
+            if hasattr(child, "find_all"):
+                results.extend(child.find_all(type=type, name=name))
+        return results
+
+    def count(self, type=None):
+        """Count elements by type across all packages.
+
+        Parameters
+        ----------
+        type : str or class, optional
+            Count only this type. If None, returns a dict of all types.
+
+        Returns
+        -------
+        int or dict
+            Count of matching elements, or dict of {type: count}.
+        """
+        if type is not None:
+            return len(self.find_all(type=type))
+
+        counts = {}
+        for child in self.children:
+            if hasattr(child, "count"):
+                child_counts = child.count()
+                for k, v in child_counts.items():
+                    counts[k] = counts.get(k, 0) + v
+        return counts
+
+    def traverse(self, callback, depth=0):
+        """Walk all packages and their trees, calling callback for each element."""
+        for child in self.children:
+            if hasattr(child, "traverse"):
+                child.traverse(callback, depth)
+
+    def to_dict(self):
+        """Export the model as a nested dictionary."""
+        return {
+            "name": "Model",
+            "children": [c.to_dict() if hasattr(c, "to_dict") else {"name": getattr(c, "name", None)} for c in self.children],
+        }
+
+    def to_graph(self):
+        """Export the model as a NetworkX graph.
+
+        Requires: pip install networkx (or: pip install sysmlpy[graph])
+        """
+        from sysmlpy.store import NetworkXStore, new_id
+
+        store = NetworkXStore()
+
+        def _add_element(elem, parent_id=None):
+            eid = new_id()
+            data = {
+                "name": getattr(elem, "name", None),
+                "sysml_type": getattr(elem, "sysml_type", None),
+                "python_type": type(elem).__name__,
+            }
+            store.put(eid, data, parent_id=parent_id)
+            if hasattr(elem, "children"):
+                for child in elem.children:
+                    _add_element(child, eid)
+
+        for child in self.children:
+            _add_element(child)
+        return store
+
+    def path_between(self, source_name, target_name):
+        """Find the path between two elements by name across all packages."""
+        for child in self.children:
+            if hasattr(child, "path_between"):
+                path = child.path_between(source_name, target_name)
+                if path is not None:
+                    return path
+        return None
+
 
 class Package(Searchable):
     """SysML v2 Package.  Exposes typed accessors and ``find()`` / ``all()``
@@ -800,6 +894,204 @@ class Package(Searchable):
         # Force updates to grammar if something has changed.
         self._ensure_body()
         return self.grammar
+
+    # ── Convenience functions ───────────────────────────────────────────
+
+    def find_all(self, type=None, name=None):
+        """Recursively find all matching elements in this package and children.
+
+        Parameters
+        ----------
+        type : str or class, optional
+            Filter by SysML type (e.g. 'part', Part).
+        name : str, optional
+            Filter by element name.
+
+        Returns
+        -------
+        list
+            All matching elements across the full tree.
+        """
+        results = []
+        for child in self.children:
+            match = True
+            if name is not None and getattr(child, "name", None) != name:
+                match = False
+            if type is not None:
+                child_type = getattr(child, "sysml_type", None)
+                if isinstance(type, str):
+                    if child_type != type:
+                        match = False
+                else:
+                    if not isinstance(child, type):
+                        match = False
+            if match:
+                results.append(child)
+            if hasattr(child, "find_all"):
+                results.extend(child.find_all(type=type, name=name))
+        return results
+
+    def count(self, type=None):
+        """Count elements by type across the full tree.
+
+        Parameters
+        ----------
+        type : str or class, optional
+            Count only this type. If None, returns a dict of all types.
+
+        Returns
+        -------
+        int or dict
+            Count of matching elements, or dict of {type: count}.
+        """
+        if type is not None:
+            return len(self.find_all(type=type))
+
+        counts = {}
+        for child in self.children:
+            t = getattr(child, "sysml_type", "unknown")
+            counts[t] = counts.get(t, 0) + 1
+            if hasattr(child, "count"):
+                child_counts = child.count()
+                for k, v in child_counts.items():
+                    counts[k] = counts.get(k, 0) + v
+        return counts
+
+    def traverse(self, callback, depth=0):
+        """Walk the element tree, calling callback for each element.
+
+        Parameters
+        ----------
+        callback : callable
+            Called as callback(element, depth) for each element.
+        depth : int
+            Current depth level (internal use).
+        """
+        for child in self.children:
+            callback(child, depth)
+            if hasattr(child, "traverse"):
+                child.traverse(callback, depth + 1)
+
+    def to_dict(self):
+        """Export the package and all children as a nested dictionary.
+
+        Returns
+        -------
+        dict
+            Nested dict representation of the package tree.
+        """
+        result = {
+            "name": getattr(self, "name", None),
+            "sysml_type": getattr(self, "sysml_type", None),
+            "children": [],
+        }
+        for child in self.children:
+            if hasattr(child, "to_dict"):
+                result["children"].append(child.to_dict())
+            else:
+                result["children"].append({
+                    "name": getattr(child, "name", None),
+                    "sysml_type": getattr(child, "sysml_type", None),
+                })
+        return result
+
+    def to_graph(self):
+        """Export the package tree as a NetworkX graph.
+
+        Requires: pip install networkx (or: pip install sysmlpy[graph])
+
+        Returns
+        -------
+        NetworkXStore
+            A graph store with elements as nodes and parent-child
+            relationships as edges.
+        """
+        from sysmlpy.store import NetworkXStore, new_id, REL_PARENT_CHILD
+
+        store = NetworkXStore()
+        id_map = {}
+
+        def _add_element(elem, parent_id=None):
+            eid = new_id()
+            id_map[id(elem)] = eid
+            data = {
+                "name": getattr(elem, "name", None),
+                "sysml_type": getattr(elem, "sysml_type", None),
+                "python_type": type(elem).__name__,
+            }
+            store.put(eid, data, parent_id=parent_id)
+            if hasattr(elem, "children"):
+                for child in elem.children:
+                    child_id = _add_element(child, eid)
+            return eid
+
+        _add_element(self)
+        return store
+
+    def path_between(self, source_name, target_name):
+        """Find the path between two elements by name.
+
+        Parameters
+        ----------
+        source_name : str
+            Name of the source element.
+        target_name : str
+            Name of the target element.
+
+        Returns
+        -------
+        list or None
+            List of element names forming the path, or None if no path exists.
+        """
+        source = self.find(name=source_name, recursive=True)
+        target = self.find(name=target_name, recursive=True)
+        if source is None or target is None:
+            return None
+        # find() returns a list
+        if isinstance(source, list):
+            source = source[0] if source else None
+        if isinstance(target, list):
+            target = target[0] if target else None
+        if source is None or target is None:
+            return None
+
+        # Build parent chain for both
+        def parent_chain(elem):
+            chain = [elem]
+            current = elem
+            while hasattr(current, "parent") and current.parent is not None:
+                chain.append(current.parent)
+                current = current.parent
+            return chain
+
+        source_chain = parent_chain(source)
+        target_chain = parent_chain(target)
+
+        # Find common ancestor
+        source_set = {id(e): e for e in source_chain}
+        for e in target_chain:
+            if id(e) in source_set:
+                common = e
+                break
+        else:
+            return None
+
+        # Build path: source -> ... -> common -> ... -> target
+        path = []
+        current = source
+        while current is not common:
+            path.append(getattr(current, "name", "?"))
+            current = getattr(current, "parent", None)
+        path.append(getattr(common, "name", "?"))
+
+        target_to_common = []
+        current = target
+        while current is not common:
+            target_to_common.append(getattr(current, "name", "?"))
+            current = getattr(current, "parent", None)
+        path.extend(reversed(target_to_common))
+
+        return path
 
 
 class _GrammarAnnotationWrapper:

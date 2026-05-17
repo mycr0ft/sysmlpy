@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sysmlpy"
-version = "0.11.0"
+version = "0.12.0"
 description = "SysML v2.0 Parser"
 authors = [
   { name="Jon R. Fox (mycr0ft)", email="jon.fox@drfox.com" },
@@ -107,7 +107,7 @@ build_command = "pip install poetry && poetry build"
 
 [tool.poetry]
 name = "sysmlpy"
-version = "0.11.0"
+version = "0.12.0"
 description = ""
 authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
 readme = "README.md"
@@ -118,6 +118,10 @@ python = "^3.9"
 pint = ">=0.24"
 pyyaml = ">=6.0"
 antlr4-python3-runtime = ">=4.13"
+networkx = { version = ">=3.0", optional = true }
+
+[tool.poetry.extras]
+graph = ["networkx"]
 
 [tool.poetry.scripts]
 sysmlpy = "sysmlpy.__main__:main"

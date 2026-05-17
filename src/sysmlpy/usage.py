@@ -600,24 +600,40 @@ class Usage(Searchable):
             class_name = sc.__class__.__name__ if not hasattr(sc, '__class__') else sc.__class__.__name__
             
             if class_name == "PartDefinition":
-                self.children.append(Part(definition=True).load_from_grammar(sc))
+                c = Part(definition=True).load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "ItemDefinition":
-                self.children.append(Item(definition=True).load_from_grammar(sc))
+                c = Item(definition=True).load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "PartUsage":
-                self.children.append(Part().load_from_grammar(sc))
+                c = Part().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "ItemUsage":
-                self.children.append(Item().load_from_grammar(sc))
+                c = Item().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "AttributeUsage":
-                self.children.append(Attribute().load_from_grammar(sc))
+                c = Attribute().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "AttributeDefinition":
-                self.children.append(Attribute(definition=True).load_from_grammar(sc))
+                c = Attribute(definition=True).load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "StructureUsageElement":
                 if hasattr(sc, 'children'):
                     inner = sc.children
                     if inner.__class__.__name__ == "PartUsage":
-                        self.children.append(Part().load_from_grammar(inner))
+                        c = Part().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
                     elif inner.__class__.__name__ == "ItemUsage":
-                        self.children.append(Item().load_from_grammar(inner))
+                        c = Item().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
             elif class_name == "Definition":
                 # Unwrap Definition to get the inner type
                 if hasattr(sc, 'body') and hasattr(sc.body, 'children') and sc.body.children:
@@ -626,7 +642,12 @@ class Usage(Searchable):
                             inner = body_item.children[0]
                             if hasattr(inner, 'children'):
                                 inner = inner.children
-                            self.children.append(Part(definition=True).load_from_grammar(inner) if inner.__class__.__name__ == 'PartDefinition' else Item(definition=True).load_from_grammar(inner))
+                            if inner.__class__.__name__ == 'PartDefinition':
+                                c = Part(definition=True).load_from_grammar(inner)
+                            else:
+                                c = Item(definition=True).load_from_grammar(inner)
+                            c.parent = self
+                            self.children.append(c)
 
         return self
 
