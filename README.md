@@ -12,6 +12,8 @@ and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://gith
 changed our unit library to pint.
 The project had diverged so much from sysml2py that a new name, sysmlpy, was selected.
 
+![Lines of Code Over Time](loc_history.svg)
+
 **v0.12.0:** 100% conformance test pass rate (123/123). Storage abstraction layer with in-memory and NetworkX graph backends. Convenience functions: find_all, count, traverse, to_dict, to_graph, path_between.
 
 ## Requirements
