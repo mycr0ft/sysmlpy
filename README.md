@@ -12,13 +12,16 @@ and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://gith
 changed our unit library to pint.
 The project had diverged so much from sysml2py that a new name, sysmlpy, was selected.
 
-**v0.11.0:** 100% conformance test pass rate (123/123). Full state machine, requirement, constraint, analysis case, element filter, and path expression support. ANTLR4 parser with complete visitor.
+**v0.12.0:** 100% conformance test pass rate (123/123). Storage abstraction layer with in-memory and NetworkX graph backends. Convenience functions: find_all, count, traverse, to_dict, to_graph, path_between.
 
 ## Requirements
 sysmlpy requires the following Python packages:
 - [pyyaml](https://github.com/yaml/pyyaml)
 - [pint](https://github.com/hgrecco/pint)
 - [antlr4-python3-runtime](https://github.com/antlr/antlr4)
+
+### Optional Dependencies
+- [networkx](https://networkx.org/) — graph analysis backend (install with `pip install sysmlpy[graph]`)
 
 ## Installation
 
@@ -27,6 +30,7 @@ Multiple installation methods are supported by sysmlpy, including:
 |                             **Logo**                              | **Platform** |                                    **Command**                                    |
 |:-----------------------------------------------------------------:|:------------:|:---------------------------------------------------------------------------------:|
 |       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                        ``python -m pip install sysmlpy``                        |
+|       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                 ``python -m pip install sysmlpy[graph]`` (with graph analysis)                  |
 |     ![GitHub logo](https://simpleicons.org/icons/github.svg)      |    GitHub    | ``python -m pip install https://github.com/mycr0ft/sysmlpy/archive/refs/heads/main.zip`` |
 
 ## Documentation
