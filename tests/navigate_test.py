@@ -1,10 +1,10 @@
 """
-Tests for sysml2py.navigate — typed property accessors and find() / all()
+Tests for sysmlpy.navigate — typed property accessors and find() / all()
 search on Model, Package, and Usage objects.
 """
 
 import pytest
-from sysml2py import loads, Part, Item, Action, Attribute, Package, Searchable
+from sysmlpy import loads, Part, Item, Action, Attribute, Package, Searchable
 
 # ---------------------------------------------------------------------------
 # Shared fixture
@@ -98,7 +98,7 @@ def test_model_packages_nonempty(model):
 
 
 def test_model_packages_are_packages(model):
-    from sysml2py import Package
+    from sysmlpy import Package
     for p in model.packages:
         assert isinstance(p, Package)
         assert p.sysml_type == "package"
@@ -350,7 +350,7 @@ def test_nested_part_has_typed_properties(pkg):
 
 def test_programmatic_model_navigation():
     """Navigation works on programmatically constructed models too."""
-    from sysml2py import Package, Part, Action, Attribute
+    from sysmlpy import Package, Part, Action, Attribute
 
     pkg = Package()
     pkg._set_name("MyPkg")
@@ -389,7 +389,7 @@ def test_programmatic_model_navigation():
 
 
 def test_all_on_programmatic_model():
-    from sysml2py import Model, Package, Part, Action
+    from sysmlpy import Model, Package, Part, Action
 
     m = Model()
     p = Package()

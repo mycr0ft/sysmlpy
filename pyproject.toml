@@ -5,8 +5,8 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [project]
-name = "sysml2py"
-version = "0.10.0"
+name = "sysmlpy"
+version = "0.11.0"
 description = "SysML v2.0 Parser"
 authors = [
   { name="Jon R. Fox (mycr0ft)", email="jon.fox@drfox.com" },
@@ -25,11 +25,11 @@ classifiers = [
 include-package-data = true
 
 [tool.setuptools.packages.find]
-where = ["src/sysml2py", "src"]
+where = ["src/sysmlpy", "src"]
 
 [tool.setuptools.package-data]
 grammar = ["*.tx"]
-"sysml2py" = [
+"sysmlpy" = [
     "library/**/*.sysml",
     "library/**/*.kerml",
     "library/LICENSE",
@@ -45,7 +45,7 @@ markers = [
 
 [tool.semantic_release]
 version_variable = [
-    "src/sysml2py/__init__.py:version",
+    "src/sysmlpy/__init__.py:version",
 ]
 version_toml=[
     "pyproject.toml:tool.poetry.version",
@@ -102,16 +102,16 @@ prerelease_token = "rc"
 build_command = "pip install poetry && poetry build"
 
 [project.urls]
-"Homepage" = "https://github.com/Westfall-io/sysml2py"
-"Bug Tracker" = "https://github.com/Westfall-io/sysml2py/issues"
+"Homepage" = "https://github.com/Westfall-io/sysmlpy"
+"Bug Tracker" = "https://github.com/Westfall-io/sysmlpy/issues"
 
 [tool.poetry]
-name = "sysml2py"
-version = "0.10.0"
+name = "sysmlpy"
+version = "0.11.0"
 description = ""
 authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
 readme = "README.md"
-packages = [{ include = "sysml2py", from = "src" }]
+packages = [{ include = "sysmlpy", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -120,7 +120,7 @@ pyyaml = ">=6.0"
 antlr4-python3-runtime = ">=4.13"
 
 [tool.poetry.scripts]
-sysml2py = "sysml2py.__main__:main"
+sysmlpy = "sysmlpy.__main__:main"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0,<9.0"

@@ -7,10 +7,10 @@ Created on Mon May 29 23:20:18 2023
 """
 import pytest
 
-from sysml2py import load, loads, load_grammar
-from sysml2py.formatting import classtree
+from sysmlpy import load, loads, load_grammar
+from sysmlpy.formatting import classtree
 
-from sysml2py.antlr_parser import SysMLSyntaxError
+from sysmlpy.antlr_parser import SysMLSyntaxError
 
 from .functions import strip_ws
 

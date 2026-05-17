@@ -1,14 +1,14 @@
 Quick Start
 ==========
 
-This guide explains sysml2py through working examples derived from the test suite.
+This guide explains sysmlpy through working examples derived from the test suite.
 
 Installation
 ------------
 
 ::
 
-    pip install sysml2py
+    pip install sysmlpy
 
 Or from source::
 
@@ -18,15 +18,15 @@ Or from source::
 Basic Workflow
 -------------
 
-sysml2py provides two-way translation between SysML v2 text and Python objects:
+sysmlpy provides two-way translation between SysML v2 text and Python objects:
 
 1. **Parse SysML text → Python object** using ``load_grammar()``
 2. **Build Python object → SysML text** using ``.dump()``
 
 ::
 
-    from sysml2py import Package, load_grammar as loads
-    from sysml2py.formatting import classtree
+    from sysmlpy import Package, load_grammar as loads
+    from sysmlpy.formatting import classtree
 
     # Parse text to Python
     text = "package Rocket;"
@@ -41,7 +41,7 @@ Packages
 
 Create a package::
 
-    from sysml2py import Package
+    from sysmlpy import Package
 
     p = Package()._set_name("Rocket")
     print(p.dump())
@@ -67,7 +67,7 @@ Items
 
 Create an item usage::
 
-    from sysml2py import Item
+    from sysmlpy import Item
 
     i = Item(name="Fuel")
     print(i.dump())
@@ -93,7 +93,7 @@ Parts
 
 Parts work like items::
 
-    from sysml2py import Part
+    from sysmlpy import Part
 
     p = Part(name="Engine")
     print(p.dump())
@@ -104,7 +104,7 @@ Attributes
 
 Attributes with values::
 
-    from sysml2py import Attribute, ureg
+    from sysmlpy import Attribute, ureg
 
     a = Attribute(name="mass")
     a.set_value(100 * ureg.kilogram)
@@ -113,7 +113,7 @@ Attributes with values::
 
 Composite structures::
 
-    from sysml2py import Part, Attribute
+    from sysmlpy import Part, Attribute
 
     p = Part(name="Stage1")
     p._set_child(Attribute(name="mass"))
@@ -129,7 +129,7 @@ Actions
 
 Actions (activities) can be defined with input and output parameters::
 
-    from sysml2py import Action
+    from sysmlpy import Action
 
     # Action definition with typed inputs/outputs
     a = Action(definition=True, name='Focus')
@@ -150,7 +150,7 @@ References
 
 References can reference other elements::
 
-    from sysml2py import Reference, Item
+    from sysmlpy import Reference, Item
 
     # Simple reference
     r = Reference(name='driver')
@@ -175,7 +175,7 @@ Typing (Subclassing)
 
 An item can be typed by a definition::
 
-    from sysml2py import Item
+    from sysmlpy import Item
 
     # Create definition
     fuel_def = Item(definition=True, name="Fuel")
@@ -191,7 +191,7 @@ Model
 
 A Model contains packages::
 
-    from sysml2py import Model, Package
+    from sysmlpy import Model, Package
 
     m = Model()
     m._set_child(Package(name="Rocket"))
@@ -205,7 +205,7 @@ Loading full text
 
 Parse complete SysML text::
 
-    from sysml2py import Model
+    from sysmlpy import Model
 
     text = """package Rocket {
            item def Fuel;
@@ -225,7 +225,7 @@ Python Representation
 
 All classes have ``__repr__`` that returns constructor-style output::
 
-    from sysml2py import Package, Item, Part, Attribute, Action, Reference
+    from sysmlpy import Package, Item, Part, Attribute, Action, Reference
 
     p = Package(name='Rocket')
     print(repr(p))
@@ -245,7 +245,7 @@ All classes have ``__repr__`` that returns constructor-style output::
 
 Anonymous elements show a UUID until named::
 
-    from sysml2py import Package
+    from sysmlpy import Package
     p = Package()
     print(repr(p))
     # → Package(name='a1b2c3d4-...')  # UUID

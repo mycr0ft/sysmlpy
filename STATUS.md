@@ -1,6 +1,6 @@
-# sysml2py — Project Status
+# sysmlpy — Project Status
 
-Current version: **v0.10.0**
+Current version: **v0.11.0**
 
 ---
 
@@ -77,7 +77,7 @@ The following grammar classes now have `get_definition()` for serialization (add
 
 ### Grammar Round-Trip Coverage (parse → dump)
 
-**34 / 56 tests passing (61%)** as of 2026-05-16.
+**34 / 56 tests passing (61%)** as of 2026-05-17.
 
 | Category | Pass | Total | Notes |
 |---|---|---|---|
@@ -148,13 +148,9 @@ These classes are instantiated during `Package.load_from_grammar()` and hold the
 
 Of the ~319 internal grammar classes in `grammar/classes.py`, approximately 175+ now have `get_definition()` implemented (up from ~145).
 
-### ANTLR4 Grammar Limitations (remaining XPect failures)
+### ANTLR4 Grammar Limitations
 
-The 1 remaining conformance failure is an ANTLR grammar issue, not Python code:
-
-| Test | Issue |
-|---|---|
-| `simpletests/ElementFilter.sysml` | `(as Type)` cast syntax not supported in ANTLR grammar |
+All known ANTLR grammar limitations have been resolved. The conformance suite passes at 100%.
 
 ### Other Incomplete Items
 
@@ -178,12 +174,11 @@ The 1 remaining conformance failure is an ANTLR grammar issue, not Python code:
 
 | Feature | Description |
 |---|---|
-| State machine bodies | `StateBodyItem`, entry/do/exit action members, `accept X then Y` transitions — blocks 5 state tests |
-| Requirement bodies | Requirement-specific body items (`subject`, `require constraint`, `frame`) — blocks 4 requirement tests |
-| Analysis case bodies | Subject, objective requirement, result expression — blocks 3 analysis tests |
-| `assert constraint` usage | `assertConstraintUsage` ANTLR visitor + class wrapping — blocks 2+ constraint tests |
-| Path expressions | ANTLR grammar support for `(path)` syntax covering remaining expression test |
-| Element filter casts | ANTLR grammar support for `(as Type)` cast syntax |
+| Grammar round-trip (dump) | Improve `get_definition()` coverage on grammar classes to increase parse→dump round-trip from 61% toward 100% |
+| State machine bodies | `StateBodyItem`, entry/do/exit action members — blocks 5 state round-trip tests |
+| Requirement bodies | Requirement-specific body items (`subject`, `require constraint`, `frame`) — blocks 4 requirement round-trip tests |
+| Analysis case bodies | Subject, objective requirement, result expression — blocks 3 analysis round-trip tests |
+| Typed-by preservation | Type relationships not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`) |
 
 ### Medium Priority
 
@@ -211,47 +206,39 @@ The 1 remaining conformance failure is an ANTLR grammar issue, not Python code:
 ## Conformance Test Suite
 
 Source: **SysML-v2-Pilot-Implementation-2026-03** (`org.omg.sysml.xpect.tests`)
-Library: **94 normative files** bundled at `src/sysml2py/library/` (kernel/ systems/ domain/)
+Library: **94 normative files** bundled at `src/sysmlpy/library/` (kernel/ systems/ domain/)
 Test files: **123 `.sysml` files** under `tests/sysmlv2/`, each with a `.error` sidecar
 
 Run with: `pytest -m conformance`
 
-### Current results (2026-05-16)
+### Current results (2026-05-17)
 
-**122 / 123 passing (99.2%)**
+**123 / 123 passing (100%)**
 
 | Category | Files | Pass | Fail | Pass % |
 |---|---|---|---|---|
-| `simpletests/` | 37 | 36 | 1 | 97% |
-| `validation/valid/` | 34 | 33 | 1 | 97% |
-| `validation/invalid/` | 47 | 46 | 1 | 98% |
-| `expression/` | 4 | 3 | 1 | 75% |
+| `simpletests/` | 37 | 37 | 0 | 100% |
+| `validation/valid/` | 34 | 34 | 0 | 100% |
+| `validation/invalid/` | 47 | 47 | 0 | 100% |
+| `expression/` | 4 | 4 | 0 | 100% |
 | `linking/` | 1 | 1 | 0 | 100% |
-| **Total** | **123** | **122** | **1** | **99%** |
+| **Total** | **123** | **123** | **0** | **100%** |
 
 ### Remaining Failures
 
-The single remaining failure is an ANTLR grammar syntax issue, not Python code:
+None. All 123 conformance tests pass.
 
-| Test | Error |
-|---|---|
-| `simpletests/ElementFilter.sysml` | `no viable alternative at input '(as'` — element filter cast syntax not supported in ANTLR grammar |
-
-### Key Fixes (v0.10.0 — 2026-05-16)
+### Key Fixes (v0.11.0 — 2026-05-17)
 
 | Fix | Tests unblocked |
 |---|---|
-| Add `get_definition()` to 25+ grammar classes (state actions, requirements, constraints, satisfaction, node declarations) | AssignmentTest, StateTest, RequirementTest, ConstraintTest |
-| Add missing grammar classes: `AcceptNodeDeclaration`, `SendNodeDeclaration`, `SenderReceiverPart`, `EmptyParameterMember`, `StateAcceptActionUsage`, `StateSendActionUsage` | StateTest, AssignmentTest |
-| Fix visitor bugs: `cud` → `cud_ctx` typo, `ud` uninitialized variable, missing `_visit_send_node_declaration`/`_visit_accept_node_declaration` | RequirementTest, StateTest, EnumerationTest |
-| Add `DefinitionElement` handlers for `RequirementUsage`, `SatisfyRequirementUsage`, `VerificationCaseDefinition` | RequirementTest, VerificationTest |
-| Fix `PackageBody` to handle `UsageElement` and `DefinitionElement` directly | TradeStudyTest |
-| Fix prefix handling to use dynamic class lookup for polymorphic prefix types (`OccurrenceDefinitionPrefix`, `OccurrenceUsagePrefix`, `MemberPrefix`) | ConnectionTest, VariabilityTest, ViewTest |
-| Make `RequirementBody`, `DefinitionDeclaration`, `NodeParameterMember`, `EffectBehaviorMember`, `GuardExpressionMember` lenient with `None`/missing values | VariabilityTest, VerificationTest, StateTest |
-| Handle variable multiplicity bounds (e.g., `[1..i]`) via `FeatureReferenceExpression` | MultiplicityTest |
-| Add `RequirementUsage`, `AssertConstraintUsage`, `SatisfyRequirementUsage` to `definition.py` `load_from_grammar` | RequirementTest, ConstraintTest |
-| Add `AnalysisCaseUsage` to top-level visitor `_visit_usage_element_dict` | AnalysisTest |
-| Fix `FlowConnectionDefinition` and `ActionDefinition` prefix handling | ConnectionTest, VariabilityTest |
+| Add `LPAREN AS typeReference RPAREN` to `baseExpression` in ANTLR grammar | `ElementFilter.sysml` — `(as Type)` cast syntax |
+| Add `ownedExpression DOT bodyExpression` to `ownedExpression` in ANTLR grammar | `PathExpressions.sysml` — lambda/filter expressions |
+| Handle `filterPackage` imports in `_visit_import_rule_dict` visitor | `ElementFilter.sysml` — `vehicle1_c1::*[@Security]` |
+| Fix `interface_part` UnboundLocalError in `_make_interface_usage_dict` | `InterfaceUsage_Invalid.sysml` |
+| Add `get_definition()` to `SuccessionFlowConnectionUsage` | `ActionUsage.sysml` |
+| Add `CaseDefinition` to `DefinitionElement` dispatch table | `CaseUsage.sysml` |
+| Fix `UsageExtensionKeyword` to handle `keyword` field directly | `CaseSubjectObjective_Invalid.sysml`, `Verification_invalid.sysml` |
 
 ### How to Add New Conformance Tests
 
@@ -271,5 +258,5 @@ The single remaining failure is an ANTLR grammar syntax issue, not Python code:
 | Grammar classes missing `get_definition()` | ~144 of 319 |
 | Unit + grammar + integration tests | 116 (53 unit + 56 grammar + 7 integration) |
 | Grammar round-trip tests passing | **34 / 56 (61%)** |
-| Conformance tests (2026-03 XPect suite) | 123 total — **122 passing (99%)** |
+| Conformance tests (2026-03 XPect suite) | 123 total — **123 passing (100%)** |
 | Bundled standard library files | 94 (36 kernel `.kerml` + 21 systems `.sysml` + 37 domain `.sysml`) |

@@ -37,16 +37,16 @@ Each `.sysml` file has a matching `.error` sidecar file.
 ## Why all `.error` files start empty
 
 All 123 `.sysml` files are **syntactically valid SysML** — they are official OMG
-reference test fixtures. sysml2py currently performs syntax parsing only (no
-semantic validation). From sysml2py's perspective the expected behaviour for
+reference test fixtures. sysmlpy currently performs syntax parsing only (no
+semantic validation). From sysmlpy's perspective the expected behaviour for
 every file is "parse without error", so all `.error` files start empty.
 
-Tests that currently **fail** reveal parser gaps to fix. As sysml2py improves,
+Tests that currently **fail** reveal parser gaps to fix. As sysmlpy improves,
 more tests will pass.
 
 The `validation/invalid/` files contain **semantically** invalid SysML with
 inline `// XPECT errors --> "..."` annotations showing what the reference
-implementation reports.  Once sysml2py adds semantic validation, those
+implementation reports.  Once sysmlpy adds semantic validation, those
 `.error` files will be populated with the corresponding validation-error
 messages.
 
@@ -76,7 +76,7 @@ as passing:
 echo -n "" > tests/sysmlv2/simpletests/ImportTest.error
 ```
 
-When sysml2py gains semantic validation and a `validation/invalid/` file should
+When sysmlpy gains semantic validation and a `validation/invalid/` file should
 raise a specific error, add the expected message to its `.error` file:
 
 ```

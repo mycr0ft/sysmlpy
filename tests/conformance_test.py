@@ -13,7 +13,7 @@ file controls what the test asserts:
 
 All 123 .sysml files are syntactically valid SysML (they are official OMG
 reference test fixtures).  The .error files are empty to start with because
-sysml2py currently performs syntax parsing only.  As semantic validation is
+sysmlpy currently performs syntax parsing only.  As semantic validation is
 added, the .error files for tests/sysmlv2/validation/invalid/ will be
 populated with the expected validation-error messages.
 
@@ -28,7 +28,7 @@ Skip this suite (e.g., during normal development):
 
 import pathlib
 import pytest
-from sysml2py import loads
+from sysmlpy import loads
 
 SYSMLV2_DIR = pathlib.Path(__file__).parent / "sysmlv2"
 
@@ -46,7 +46,7 @@ def _collect():
 @pytest.mark.conformance
 @pytest.mark.parametrize("sysml_file", list(_collect()))
 def test_parses_without_error(sysml_file):
-    """Parse the .sysml file with sysml2py and assert against the .error file.
+    """Parse the .sysml file with sysmlpy and assert against the .error file.
 
     An empty .error file means the file should parse cleanly.
     A non-empty .error file provides an expected exception message (regex).

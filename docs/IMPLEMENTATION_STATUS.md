@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document tracks which SysML v2 grammar elements are implemented as Python classes in sysml2py.
+This document tracks which SysML v2 grammar elements are implemented as Python classes in sysmlpy.
 
 ## Implemented Classes (Public API)
 

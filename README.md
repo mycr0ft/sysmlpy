@@ -1,33 +1,33 @@
-# sysml2py
-[![PyPI version](https://badge.fury.io/py/sysml2py.svg)](https://badge.fury.io/py/sysml2py)[![PyPI status](https://img.shields.io/pypi/status/sysml2py.svg)](https://pypi.python.org/pypi/sysml2py/)[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
+# sysmlpy
+[![PyPI version](https://badge.fury.io/py/sysmlpy.svg)](https://badge.fury.io/py/sysmlpy)[![PyPI status](https://img.shields.io/pypi/status/sysmlpy.svg)](https://pypi.python.org/pypi/sysmlpy/)[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://lbesson.mit-license.org/)
 
 ## Description
-sysml2py is an open source pure Python library for constructing python-based
+sysmlpy is an open source pure Python library for constructing python-based
 classes consistent with the [SysML v2.0 standard](https://github.com/Systems-Modeling/SysML-v2-Release).
 
 This is a fork of the original project by [Christopher Cox](https://github.com/chriscox-westfall),
-authored by [Jon Fox](mailto:jon.fox@drfox.com) at [mycr0ft/sysml2py](https://github.com/mycr0ft/sysml2py).
+authored by [Jon Fox](mailto:jon.fox@drfox.com) at [mycr0ft/sysmlpy](https://github.com/mycr0ft/sysmlpy).
 
-**v0.10.0:** 99% conformance test pass rate (122/123). Full state machine, requirement, constraint, and analysis case support. ANTLR4 parser with complete visitor.
+**v0.11.0:** 100% conformance test pass rate (123/123). Full state machine, requirement, constraint, analysis case, element filter, and path expression support. ANTLR4 parser with complete visitor.
 
 ## Requirements
-sysml2py requires the following Python packages:
+sysmlpy requires the following Python packages:
 - [pyyaml](https://github.com/yaml/pyyaml)
 - [pint](https://github.com/hgrecco/pint)
 - [antlr4-python3-runtime](https://github.com/antlr/antlr4)
 
 ## Installation
 
-Multiple installation methods are supported by sysml2py, including:
+Multiple installation methods are supported by sysmlpy, including:
 
 |                             **Logo**                              | **Platform** |                                    **Command**                                    |
 |:-----------------------------------------------------------------:|:------------:|:---------------------------------------------------------------------------------:|
-|       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                        ``python -m pip install sysml2py``                        |
-|     ![GitHub logo](https://simpleicons.org/icons/github.svg)      |    GitHub    | ``python -m pip install https://github.com/mycr0ft/sysml2py/archive/refs/heads/main.zip`` |
+|       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                        ``python -m pip install sysmlpy``                        |
+|     ![GitHub logo](https://simpleicons.org/icons/github.svg)      |    GitHub    | ``python -m pip install https://github.com/mycr0ft/sysmlpy/archive/refs/heads/main.zip`` |
 
 ## Documentation
 
-Documentation can be found [here.](https://mycr0ft.github.io/sysml2py/)
+Documentation can be found [here.](https://mycr0ft.github.io/sysmlpy/)
 
 ### Basic Usage
 
@@ -37,7 +37,7 @@ kg. It has a thrust attribute of 1000 N. These attributes are created and placed
 as a child of the part. Next, we recall the part value for thrust and add 199 N.
 Finally, we can dump the output from this class.
 ```
-  from sysml2py import Attribute, Part, ureg
+  from sysmlpy import Attribute, Part, ureg
 
   a = Attribute(name='mass')
   a.set_value(100 * ureg.kilogram)
@@ -88,7 +88,7 @@ Actions
 Actions (activities) can be defined with input and output parameters::
 
 ```
-from sysml2py import Action
+from sysmlpy import Action
 
 # Action definition with typed inputs/outputs
 a = Action(definition=True, name='Focus')
@@ -111,7 +111,7 @@ References
 References can reference other elements::
 
 ```
-from sysml2py import Reference, Item
+from sysmlpy import Reference, Item
 
 # Simple reference
 r = Reference(name='driver')
@@ -137,8 +137,8 @@ print(r3.dump())
 `loads()` parses SysML v2 text and `classtree()` converts the result back to text. This round-trip is the basis for the grammar test suite.
 
 ```python
-from sysml2py import loads
-from sysml2py.formatting import classtree
+from sysmlpy import loads
+from sysmlpy.formatting import classtree
 
 text = """package 'Action Example' {
     action def Focus { in scene : Scene; out image : Image; }
@@ -171,7 +171,7 @@ print(tree.dump())
 
 ## Conformance
 
-**99% of 123 OMG XPect conformance tests pass** (122/123). The single remaining failure (`ElementFilter.sysml`) is an ANTLR grammar limitation, not a Python code gap.
+**100% of 123 OMG XPect conformance tests pass** (123/123).
 
 ## License
-sysml2py is released under the MIT license, hence allowing commercial use of the library.
+sysmlpy is released under the MIT license, hence allowing commercial use of the library.

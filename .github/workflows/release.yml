@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/sysml2py
+      url: https://pypi.org/p/sysmlpy
     needs: [documentation, codecoverage]
     steps:
     - uses: actions/checkout@v3

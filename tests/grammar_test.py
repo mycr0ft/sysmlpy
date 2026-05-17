@@ -8,9 +8,9 @@ Created on Mon Jul 24 22:52:46 2023
 
 import pytest
 
-from sysml2py.grammar.classes import RootNamespace
-from sysml2py import load_grammar as loads
-from sysml2py.formatting import classtree
+from sysmlpy.grammar.classes import RootNamespace
+from sysmlpy import load_grammar as loads
+from sysmlpy.formatting import classtree
 
 from .functions import strip_ws
 
