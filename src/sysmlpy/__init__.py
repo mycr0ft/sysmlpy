@@ -13,7 +13,7 @@ __all__ = [
     "Store", "InMemoryStore", "NetworkXStore", "create_store", "new_id",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.12.1"
+__version__ = "0.12.2"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
