@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: write
@@ -14,6 +17,7 @@ jobs:
   documentation:
     name: Build MkDocs Documentation
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -35,6 +39,7 @@ jobs:
   codecoverage:
     name: Determine code and documentation coverage
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
@@ -54,12 +59,12 @@ jobs:
         coveralls
 
   versioning:
-    name: Semantic Versioning
+    name: Publish to PyPI
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     environment:
       name: pypi
       url: https://pypi.org/p/sysmlpy
-    needs: [documentation, codecoverage]
     permissions:
       contents: write
       id-token: write
@@ -67,18 +72,19 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Python Semantic Release
-      id: release
-      uses: python-semantic-release/python-semantic-release@v9
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        python-version: '3.13'
+    - name: Install build dependencies
+      run: pip install poetry
+    - name: Build package
+      run: poetry build
     - name: Publish package to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      if: ${{ steps.release.outputs.released }} == 'true'
       # Trusted Publishing — no token needed
-    - name: Publish package to GitHub Release
-      uses: python-semantic-release/upload-to-gh-release@main
-      if: ${{ steps.release.outputs.released }} == 'true'
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ steps.release.outputs.tag }}
+        generate_release_notes: true
+        draft: false
