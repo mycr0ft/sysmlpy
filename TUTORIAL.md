@@ -265,6 +265,153 @@ a.set_value(a.get_value() + 199 * ureg.newton)
 print(a.dump())  # attribute thrust = 1199.0 [newton];
 ```
 
+## Convenience Functions (v0.12.0+)
+
+These methods are available on `Model` and `Package` for navigating and analyzing large models.
+
+### find_all
+
+Recursively find all matching elements across the full tree:
+
+```python
+from sysmlpy import loads
+
+model = loads("""
+package Vehicle {
+    part def Engine;
+    part engine1: Engine {
+        attribute mass = 100 [kg];
+    }
+    part chassis {
+        part wheel1;
+        part wheel2;
+    }
+}
+""")
+
+# Find all parts by type string
+all_parts = model.find_all('part')
+print(f"Found {len(all_parts)} parts: {[p.name for p in all_parts]}")
+# → Found 3 parts: ['engine1', 'chassis', 'wheel1', 'wheel2']
+
+# Find by class
+from sysmlpy import Part
+all_parts = model.find_all(type=Part)
+
+# Find by name
+engines = model.find_all(name='engine1')
+```
+
+### count
+
+Count elements by type across the full tree:
+
+```python
+# Count specific type
+part_count = model.count('part')
+print(f"Parts: {part_count}")  # → Parts: 3
+
+# Count all types
+counts = model.count()
+print(counts)
+# → {'part': 3, 'attribute': 1}
+```
+
+### traverse
+
+Walk the element tree with a callback function:
+
+```python
+# Print tree structure with indentation
+def print_tree(elem, depth):
+    name = getattr(elem, 'name', '?')
+    stype = getattr(elem, 'sysml_type', '')
+    indent = "  " * depth
+    print(f"{indent}{stype}: {name}")
+
+model.traverse(print_tree)
+# → package: Vehicle
+# →   part: engine1
+# →     attribute: mass
+# →   part: chassis
+# →     part: wheel1
+# →     part: wheel2
+```
+
+### to_dict
+
+Export the model as a nested dictionary:
+
+```python
+d = model.to_dict()
+print(list(d.keys()))
+# → ['name', 'children']
+
+import json
+print(json.dumps(d, indent=2, default=str))
+# {
+#   "name": "Model",
+#   "children": [
+#     {
+#       "name": "Vehicle",
+#       "sysml_type": "package",
+#       "children": [...]
+#     }
+#   ]
+# }
+```
+
+### to_graph
+
+Export the model to a NetworkX graph for analysis:
+
+```python
+# Requires: pip install sysmlpy[graph]
+store = model.to_graph()
+
+# Graph statistics
+print(store.stats())
+# → {'nodes': 7, 'edges': 6, 'density': 0.286, ...}
+
+# Find connected components
+components = store.connected_components()
+print(f"Connected components: {len(components)}")
+
+# Find cycles (useful for detecting circular type references)
+cycles = store.cycles()
+print(f"Cycles: {len(cycles)}")
+
+# Node centrality (which elements have the most connections)
+centrality = store.centrality()
+top = sorted(centrality.items(), key=lambda x: x[1], reverse=True)[:3]
+for eid, score in top:
+    data = store.get(eid)
+    print(f"  {data['name']}: {score:.3f}")
+
+# Export to GraphML for visualization in Gephi or Cytoscape
+store.export_graphml("model.graphml")
+```
+
+### path_between
+
+Find the path between two elements by name:
+
+```python
+# Path from parent to child
+path = model.path_between('chassis', 'wheel1')
+print(path)
+# → ['chassis', 'wheel1']
+
+# Path between siblings (goes through common parent)
+path = model.path_between('wheel1', 'wheel2')
+print(path)
+# → ['wheel1', 'chassis', 'wheel2']
+
+# No path returns None
+path = model.path_between('engine1', 'nonexistent')
+print(path)  # → None
+```
+
 ## Loading Functions
 
 | Function | Description |
