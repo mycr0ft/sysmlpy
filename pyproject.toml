@@ -6,7 +6,7 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sysmlpy"
-version = "0.12.1"
+version = "0.1.0"
 description = "SysML v2.0 Parser"
 authors = [
   { name="Jon R. Fox (mycr0ft)", email="jon.fox@drfox.com" },
@@ -20,6 +20,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/Westfall-io/sysmlpy"
+"Bug Tracker" = "https://github.com/Westfall-io/sysmlpy/issues"
+
+
 
 [tool.setuptools]
 include-package-data = true
@@ -35,6 +41,7 @@ grammar = ["*.tx"]
     "library/LICENSE",
 ]
 
+
 [tool.pytest.ini_options]
 pythonpath = [
   "src"
@@ -42,6 +49,7 @@ pythonpath = [
 markers = [
     "conformance: SysML v2 Pilot Implementation 2026-03 parse conformance tests (deselect with '-m not conformance')",
 ]
+
 
 [tool.semantic_release]
 version_variable = [
@@ -101,13 +109,10 @@ prerelease = true
 prerelease_token = "rc"
 build_command = "pip install poetry && poetry build"
 
-[project.urls]
-"Homepage" = "https://github.com/Westfall-io/sysmlpy"
-"Bug Tracker" = "https://github.com/Westfall-io/sysmlpy/issues"
 
 [tool.poetry]
 name = "sysmlpy"
-version = "0.12.1"
+version = "0.1.0"
 description = ""
 authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
 readme = "README.md"
