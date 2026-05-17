@@ -1,0 +1,50 @@
+site_name: sysmlpy
+site_description: SysML v2.0 Parser for Python
+repo_url: https://github.com/mycr0ft/sysmlpy
+repo_name: mycr0ft/sysmlpy
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - search.share
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Tutorial: TUTORIAL.md
+  - Quick Start: quickstart.md
+  - Status: STATUS.md
+  - Changelog: CHANGELOG.md
+  - TODO: TODO.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.details

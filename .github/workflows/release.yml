@@ -9,19 +9,25 @@ permissions: write-all
 
 jobs:
   documentation:
-    name: Build Sphinx Documentation
+    name: Build MkDocs Documentation
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.13'
+    - name: Install dependencies
+      run: pip install -r docs/requirements.txt
+    - name: Build site
+      run: mkdocs build
     - id: deployment
-      uses: sphinx-notes/pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        documentation_path: ./docs/source
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./site
 
   codecoverage:
     name: Determine code and documentation coverage

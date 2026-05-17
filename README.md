@@ -5,8 +5,12 @@
 sysmlpy is an open source pure Python library for constructing python-based
 classes consistent with the [SysML v2.0 standard](https://github.com/Systems-Modeling/SysML-v2-Release).
 
-This is a fork of the original project by [Christopher Cox](https://github.com/chriscox-westfall),
-authored by [Jon Fox](mailto:jon.fox@drfox.com) at [mycr0ft/sysmlpy](https://github.com/mycr0ft/sysmlpy).
+This project began as a fork of the sysml2py project by [Christopher
+Cox](https://github.com/chriscox-westfall). Since April 2026 [Jon Fox](mailto:jon.fox@drfox.com) 
+decided to complete coverage of all SysMLv2 features over two months of weekends,
+and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://github.com/daltskin/sysml-v2-grammar] and
+changed our unit library to pint.
+The project had diverged so much from sysml2py that a new name, sysmlpy, was selected.
 
 **v0.11.0:** 100% conformance test pass rate (123/123). Full state machine, requirement, constraint, analysis case, element filter, and path expression support. ANTLR4 parser with complete visitor.
 
