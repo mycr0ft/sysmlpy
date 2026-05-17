@@ -1,0 +1,1906 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SysML v2.0 Parser for Python">
+      
+      
+      
+      
+        <link rel="prev" href="../quickstart/">
+      
+      
+        <link rel="next" href="../CHANGELOG/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Status - sysmlpy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sysmlpy-project-status" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="sysmlpy" class="md-header__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sysmlpy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Status
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="sysmlpy" class="md-nav__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sysmlpy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TUTORIAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Completed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#public-api-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#relationship-methods-on-all-usagedefinition-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship Methods (on all Usage/Definition classes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grammar-classes-with-get_definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Classes with get_definition()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grammar-round-trip-coverage-parse-dump" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Round-Trip Coverage (parse → dump)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In Progress
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In Progress">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grammar-round-trip-active-work-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Round-Trip (active work area)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-api-stubs-parse-works-dump-partial-or-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API Stubs (parse works, dump() partial or broken)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-grammar-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Grammar Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#antlr4-grammar-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ANTLR4 Grammar Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-incomplete-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Incomplete Items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#known-bugs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Bugs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not Started
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Not Started">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#high-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#low-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformance-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformance Test Suite
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conformance Test Suite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-results-2026-05-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current results (2026-05-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#remaining-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remaining Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-fixes-v0110-2026-05-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Fixes (v0.11.0 — 2026-05-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-add-new-conformance-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Add New Conformance Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary Counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TODO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completed
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Completed">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#public-api-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#relationship-methods-on-all-usagedefinition-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship Methods (on all Usage/Definition classes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grammar-classes-with-get_definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Classes with get_definition()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grammar-round-trip-coverage-parse-dump" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Round-Trip Coverage (parse → dump)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cicd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In Progress
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In Progress">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#grammar-round-trip-active-work-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Round-Trip (active work area)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#public-api-stubs-parse-works-dump-partial-or-broken" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Public API Stubs (parse works, dump() partial or broken)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#internal-grammar-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Grammar Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#antlr4-grammar-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ANTLR4 Grammar Limitations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-incomplete-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Incomplete Items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#known-bugs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Bugs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#not-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Not Started
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Not Started">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#high-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#low-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conformance-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conformance Test Suite
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Conformance Test Suite">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-results-2026-05-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current results (2026-05-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#remaining-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remaining Failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-fixes-v0110-2026-05-17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Fixes (v0.11.0 — 2026-05-17)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-add-new-conformance-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How to Add New Conformance Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary Counts
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
+<p>Current version: <strong>v0.11.0</strong></p>
+<hr />
+<h2 id="completed">Completed<a class="headerlink" href="#completed" title="Permanent link">&para;</a></h2>
+<h3 id="public-api-classes">Public API Classes<a class="headerlink" href="#public-api-classes" title="Permanent link">&para;</a></h3>
+<p>These classes are fully implemented, have programmatic construction, <code>dump()</code> serialization, and test coverage.</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>SysML Keyword(s)</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Package</code></td>
+<td><code>package</code></td>
+<td>Name, shortname, children, <code>load_from_grammar</code></td>
+</tr>
+<tr>
+<td><code>Model</code></td>
+<td><em>(root)</em></td>
+<td>Wraps packages; load from string</td>
+</tr>
+<tr>
+<td><code>Part</code></td>
+<td><code>part</code> / <code>part def</code></td>
+<td>Typed by, children, <code>load_from_grammar</code></td>
+</tr>
+<tr>
+<td><code>Item</code></td>
+<td><code>item</code> / <code>item def</code></td>
+<td>Typed by, children</td>
+</tr>
+<tr>
+<td><code>Attribute</code></td>
+<td><code>attribute</code> / <code>attribute def</code></td>
+<td><code>set_value</code>/<code>get_value</code> with <code>pint</code> units</td>
+</tr>
+<tr>
+<td><code>Port</code></td>
+<td><code>port</code> / <code>port def</code></td>
+<td>In/out/inout directed features, add attribute</td>
+</tr>
+<tr>
+<td><code>Action</code></td>
+<td><code>action</code> / <code>action def</code></td>
+<td>Add in/out parameters, typed by, specializes</td>
+</tr>
+<tr>
+<td><code>Reference</code></td>
+<td><code>ref</code></td>
+<td>Simple, typed, and redefinition (<code>ref :&gt;&gt; name : Type;</code>)</td>
+</tr>
+<tr>
+<td><code>Requirement</code></td>
+<td><code>requirement def</code> / <code>requirement</code></td>
+<td>Subject, actor, doc, constraint, assume constraint</td>
+</tr>
+<tr>
+<td><code>UseCase</code></td>
+<td><code>use case def</code> / <code>use case</code></td>
+<td>Subject, actor, include</td>
+</tr>
+<tr>
+<td><code>Interface</code></td>
+<td><code>interface def</code> / <code>interface</code></td>
+<td>Add end, add connection</td>
+</tr>
+<tr>
+<td><code>Message</code></td>
+<td><code>message</code></td>
+<td>From, to, of-type</td>
+</tr>
+<tr>
+<td><code>State</code></td>
+<td><code>state def</code> / <code>state</code></td>
+<td>Transitions, entry/do/exit actions, <code>.parent</code> property</td>
+</tr>
+<tr>
+<td><code>Transition</code></td>
+<td><code>transition</code></td>
+<td>Source, target, guard, trigger, effect</td>
+</tr>
+<tr>
+<td><code>Constraint</code></td>
+<td><code>constraint def</code> / <code>constraint</code></td>
+<td>Assert constraint, derivation forms</td>
+</tr>
+<tr>
+<td><code>AnalysisCase</code></td>
+<td><code>analysis def</code> / <code>analysis</code></td>
+<td>Subject, objective, result expression</td>
+</tr>
+<tr>
+<td><code>VerificationCase</code></td>
+<td><code>verification def</code> / <code>verification</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Concern</code></td>
+<td><code>concern def</code> / <code>concern</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>View</code></td>
+<td><code>view def</code> / <code>view</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Viewpoint</code></td>
+<td><code>viewpoint def</code> / <code>viewpoint</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Individual</code></td>
+<td><code>individual def</code> / <code>individual</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Metadata</code></td>
+<td><code>metadata def</code> / <code>metadata</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Rendering</code></td>
+<td><code>rendering def</code> / <code>rendering</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Allocation</code></td>
+<td><code>allocation def</code> / <code>allocation</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Flow</code></td>
+<td><code>flow def</code> / <code>flow</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Connection</code></td>
+<td><code>connection def</code> / <code>connection</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Calculation</code></td>
+<td><code>calc def</code> / <code>calc</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+<tr>
+<td><code>Enumeration</code></td>
+<td><code>enum def</code> / <code>enum</code></td>
+<td>Parse and load from grammar</td>
+</tr>
+</tbody>
+</table>
+<h3 id="relationship-methods-on-all-usagedefinition-classes">Relationship Methods (on all Usage/Definition classes)<a class="headerlink" href="#relationship-methods-on-all-usagedefinition-classes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Syntax</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_set_typed_by()</code></td>
+<td><code>: TypeName</code></td>
+</tr>
+<tr>
+<td><code>_set_specializes()</code></td>
+<td><code>:&gt; SuperDef</code> (definitions)</td>
+</tr>
+<tr>
+<td><code>_set_subsets()</code></td>
+<td><code>:&gt; superset</code> (usages)</td>
+</tr>
+<tr>
+<td><code>_set_redefines()</code></td>
+<td><code>:&gt;&gt; original</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="parser">Parser<a class="headerlink" href="#parser" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ANTLR4 parser</strong> — default parser, using OMG grammar v2026.03.0</li>
+<li><code>load()</code>, <code>loads()</code>, <code>load_grammar()</code> (public API)</li>
+<li><code>load_antlr()</code>, <code>load_grammar_antlr()</code> (explicit ANTLR4 path)</li>
+<li>Full ANTLR4 visitor (<code>antlr_visitor.py</code>, ~10,800 lines) converting parse tree to internal dict representation</li>
+<li>Supports comments, documentation blocks, and annotating elements</li>
+<li>Supports Case, AnalysisCase, VerificationCase, and TradeStudy definitions</li>
+<li>State machine support: entry/do/exit actions, accept/send/perform/assign nodes, transitions with guards</li>
+</ul>
+<h3 id="grammar-classes-with-get_definition">Grammar Classes with <code>get_definition()</code><a class="headerlink" href="#grammar-classes-with-get_definition" title="Permanent link">&para;</a></h3>
+<p>The following grammar classes now have <code>get_definition()</code> for serialization (added in v0.10.0):</p>
+<ul>
+<li><code>FeatureChainMember</code>, <code>FeatureBinding</code>, <code>ResultExpressionMember</code>, <code>UsagePrefix</code></li>
+<li><code>PerformActionUsage</code>, <code>AcceptNodeDeclaration</code>, <code>SendNodeDeclaration</code></li>
+<li><code>SenderReceiverPart</code>, <code>EmptyParameterMember</code>, <code>StateAcceptActionUsage</code>, <code>StateSendActionUsage</code></li>
+<li><code>EffectBehaviorMember</code>, <code>GuardExpressionMember</code>, <code>NodeParameterMember</code>, <code>ReferenceUsage</code></li>
+<li><code>AssertConstraintUsage</code>, <code>RequirementConstraintMember</code>, <code>RequirementConstraintKind</code></li>
+<li><code>RequirementConstraintUsage</code>, <code>RequirementUsage</code>, <code>SatisfyRequirementUsage</code></li>
+<li><code>SatisfactionSubjectMember</code>, <code>SatisfactionParameter</code>, <code>SatisfactionFeatureValue</code>, <code>SatisfactionReferenceExpression</code></li>
+<li><code>FlowConnectionDefinition</code>, <code>ActionDefinition</code>, <code>RequirementDefinition</code>, <code>RequirementBody</code></li>
+<li><code>MultiplicityRelatedElement</code> (handles <code>FeatureReferenceExpression</code> for variable bounds)</li>
+<li><code>QualifiedName</code> (handles both <code>names</code> and <code>parts</code> keys)</li>
+</ul>
+<h3 id="grammar-round-trip-coverage-parse-dump">Grammar Round-Trip Coverage (parse → dump)<a class="headerlink" href="#grammar-round-trip-coverage-parse-dump" title="Permanent link">&para;</a></h3>
+<p><strong>34 / 56 tests passing (61%)</strong> as of 2026-05-17.</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Pass</th>
+<th>Total</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Packages</td>
+<td>3</td>
+<td>3</td>
+<td>Comments, docs, package structure</td>
+</tr>
+<tr>
+<td>Part definitions</td>
+<td>1</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>Generalization / Subsetting / Redefinition</td>
+<td>3</td>
+<td>3</td>
+<td></td>
+</tr>
+<tr>
+<td>Enumerations</td>
+<td>2</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>Parts</td>
+<td>2</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>Items</td>
+<td>1</td>
+<td>1</td>
+<td></td>
+</tr>
+<tr>
+<td>Connections</td>
+<td>0</td>
+<td>1</td>
+<td>Multiplicity in <code>connect</code> syntax</td>
+</tr>
+<tr>
+<td>Ports</td>
+<td>2</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>Interfaces</td>
+<td>1</td>
+<td>2</td>
+<td>Interface decomposition still failing</td>
+</tr>
+<tr>
+<td>Binding connectors</td>
+<td>2</td>
+<td>2</td>
+<td></td>
+</tr>
+<tr>
+<td>Flow connections</td>
+<td>1</td>
+<td>3</td>
+<td>Definition and interface variants failing</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>5</td>
+<td>5</td>
+<td>All action tests now pass</td>
+</tr>
+<tr>
+<td>States</td>
+<td>0</td>
+<td>5</td>
+<td>State machine bodies not yet implemented</td>
+</tr>
+<tr>
+<td>Expressions</td>
+<td>4</td>
+<td>4</td>
+<td></td>
+</tr>
+<tr>
+<td>Calculations</td>
+<td>2</td>
+<td>3</td>
+<td>Nested <code>:&gt;&gt;</code> redefines in return not yet handled</td>
+</tr>
+<tr>
+<td>Constraints</td>
+<td>2</td>
+<td>7</td>
+<td><code>assert constraint</code>, derivation, time constraints remaining</td>
+</tr>
+<tr>
+<td>Requirements</td>
+<td>0</td>
+<td>4</td>
+<td>Requirement body items not yet implemented</td>
+</tr>
+<tr>
+<td>Analysis</td>
+<td>0</td>
+<td>3</td>
+<td>Analysis case bodies not yet implemented</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>34</strong></td>
+<td><strong>56</strong></td>
+<td><strong>61%</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="test-coverage">Test Coverage<a class="headerlink" href="#test-coverage" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Test file</th>
+<th>Count</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tests/class_test.py</code></td>
+<td>53 tests</td>
+<td>Programmatic API unit tests</td>
+</tr>
+<tr>
+<td><code>tests/grammar_test.py</code></td>
+<td>56 tests</td>
+<td>Grammar round-trip (parse → dump)</td>
+</tr>
+<tr>
+<td><code>tests/main_test.py</code></td>
+<td>7 tests</td>
+<td><code>load</code>/<code>loads</code>/<code>load_grammar</code> integration</td>
+</tr>
+<tr>
+<td><code>tests/conformance_test.py</code></td>
+<td>123 tests</td>
+<td>OMG XPect parse conformance suite</td>
+</tr>
+</tbody>
+</table>
+<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>README.md</code> — installation, basic usage examples</li>
+<li><code>docs/source/quickstart.md</code> — step-by-step usage guide</li>
+<li><code>docs/source/conf.py</code> / <code>index.rst</code> — Sphinx docs setup</li>
+<li><code>docs/IMPLEMENTATION_STATUS.md</code> / <code>IMPLEMENTATION_STATUS_V2.md</code> — internal grammar class tracking</li>
+</ul>
+<h3 id="cicd">CI/CD<a class="headerlink" href="#cicd" title="Permanent link">&para;</a></h3>
+<ul>
+<li>GitHub Actions: Black auto-format, pytest + coverage, PyPI release via <code>python-semantic-release</code></li>
+</ul>
+<hr />
+<h2 id="in-progress">In Progress<a class="headerlink" href="#in-progress" title="Permanent link">&para;</a></h2>
+<p>These features exist partially — either parse-in works but dump is incomplete, or implementation covers only some test cases.</p>
+<h3 id="grammar-round-trip-active-work-area">Grammar Round-Trip (active work area)<a class="headerlink" href="#grammar-round-trip-active-work-area" title="Permanent link">&para;</a></h3>
+<p>The visitor (<code>antlr_visitor.py</code>) and grammar classes (<code>grammar/classes.py</code>) are the primary targets for round-trip improvements.</p>
+<h3 id="public-api-stubs-parse-works-dump-partial-or-broken">Public API Stubs (parse works, <code>dump()</code> partial or broken)<a class="headerlink" href="#public-api-stubs-parse-works-dump-partial-or-broken" title="Permanent link">&para;</a></h3>
+<p>These classes are instantiated during <code>Package.load_from_grammar()</code> and hold the grammar tree, but the <code>dump()</code> / <code>get_definition()</code> path is incomplete for some body elements.</p>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>SysML Keyword(s)</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>State</code></td>
+<td><code>state def</code> / <code>state</code></td>
+<td><code>.parent</code> property, transitions, entry/do/exit actions implemented; some body edge cases remain</td>
+</tr>
+<tr>
+<td><code>Constraint</code></td>
+<td><code>constraint def</code> / <code>constraint</code></td>
+<td>Assert constraint and derivation forms now supported</td>
+</tr>
+<tr>
+<td><code>Connection</code></td>
+<td><code>connection def</code> / <code>connection</code></td>
+<td>Multiplicity on connect-ends not parsed</td>
+</tr>
+<tr>
+<td><code>Flow</code></td>
+<td><code>flow connection def</code> / <code>flow</code></td>
+<td>Definition and interface-body variants failing</td>
+</tr>
+<tr>
+<td><code>Calculation</code></td>
+<td><code>calc def</code> / <code>calc</code></td>
+<td>Nested <code>:&gt;&gt;</code> redefines in return not yet handled</td>
+</tr>
+<tr>
+<td><code>Enumeration</code></td>
+<td><code>enum def</code></td>
+<td>Largely working; edge cases remain</td>
+</tr>
+</tbody>
+</table>
+<h3 id="internal-grammar-classes">Internal Grammar Classes<a class="headerlink" href="#internal-grammar-classes" title="Permanent link">&para;</a></h3>
+<p>Of the ~319 internal grammar classes in <code>grammar/classes.py</code>, approximately 175+ now have <code>get_definition()</code> implemented (up from ~145).</p>
+<h3 id="antlr4-grammar-limitations">ANTLR4 Grammar Limitations<a class="headerlink" href="#antlr4-grammar-limitations" title="Permanent link">&para;</a></h3>
+<p>All known ANTLR grammar limitations have been resolved. The conformance suite passes at 100%.</p>
+<h3 id="other-incomplete-items">Other Incomplete Items<a class="headerlink" href="#other-incomplete-items" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Typed-by in <code>load_from_grammar</code></strong> — Type relationships are not preserved when loading elements from grammar (<code>usage.py</code>, marked <code class="highlight">Typed By</code>)</li>
+<li><strong>CHANGELOG</strong> — Not updated since v0.5.3; v0.6.0+ work needs a new entry</li>
+</ul>
+<h3 id="known-bugs">Known Bugs<a class="headerlink" href="#known-bugs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Location</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>definition.py</code></td>
+<td>Duplicate <code>elif inner_class == "ActionUsage"</code> block — dead code</td>
+</tr>
+<tr>
+<td><code>grammar/classes.py</code></td>
+<td><code>PackageBodyElement</code> name is hardcoded; <code>!TODO This isn't always the case</code></td>
+</tr>
+<tr>
+<td><code>grammar/classes.py</code></td>
+<td>Identified broken code path; <code class="highlight">This won&#39;t work</code></td>
+</tr>
+<tr>
+<td><code>definition.py</code> (<code>RootNamespace</code>)</td>
+<td><code>load_package_body()</code> raises <code>NotImplementedError</code> for <code>AliasMember</code> and <code>Import</code> nodes</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="not-started">Not Started<a class="headerlink" href="#not-started" title="Permanent link">&para;</a></h2>
+<h3 id="high-priority">High Priority<a class="headerlink" href="#high-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grammar round-trip (dump)</td>
+<td>Improve <code>get_definition()</code> coverage on grammar classes to increase parse→dump round-trip from 61% toward 100%</td>
+</tr>
+<tr>
+<td>State machine bodies</td>
+<td><code>StateBodyItem</code>, entry/do/exit action members — blocks 5 state round-trip tests</td>
+</tr>
+<tr>
+<td>Requirement bodies</td>
+<td>Requirement-specific body items (<code>subject</code>, <code>require constraint</code>, <code>frame</code>) — blocks 4 requirement round-trip tests</td>
+</tr>
+<tr>
+<td>Analysis case bodies</td>
+<td>Subject, objective requirement, result expression — blocks 3 analysis round-trip tests</td>
+</tr>
+<tr>
+<td>Typed-by preservation</td>
+<td>Type relationships not preserved when loading elements from grammar (<code>usage.py</code>, marked <code class="highlight">Typed By</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="medium-priority">Medium Priority<a class="headerlink" href="#medium-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flow connection definition/interface</td>
+<td><code>flow def</code> and <code>flow</code> in interface bodies — blocks 2 flow tests</td>
+</tr>
+<tr>
+<td>Connection multiplicity ends</td>
+<td><code>connect X[0..1] to Y[1]</code> multiplicity in connector ends — blocks 1 connection test</td>
+</tr>
+<tr>
+<td>Interface decomposition</td>
+<td>End-connector structure in decomposed interfaces — blocks 1 interface test</td>
+</tr>
+<tr>
+<td>Nested <code>:&gt;&gt;</code> redefines in return</td>
+<td><code>return attribute X : Type { :&gt;&gt; feature = expr; }</code> — blocks Calculation Usages 2</td>
+</tr>
+<tr>
+<td>Typed literal values</td>
+<td><code>LiteralInteger</code>, <code>LiteralReal</code>, <code>LiteralString</code> — needed for typed attribute values beyond <code>pint</code> quantities</td>
+</tr>
+<tr>
+<td>Multiplicity ranges (connect ends)</td>
+<td><code>[1..5]</code> or <code>[*]</code> on connector end members</td>
+</tr>
+</tbody>
+</table>
+<h3 id="low-priority">Low Priority<a class="headerlink" href="#low-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>~~Remove textX runtime~~</td>
+<td><strong>Done</strong> — textX tooling, grammar files, and CI references removed</td>
+</tr>
+<tr>
+<td>~~Action parameters via <code>loads()</code>~~</td>
+<td><strong>Done</strong> — action body items (in/out params) now round-trip correctly</td>
+</tr>
+<tr>
+<td>~~Binding connectors~~</td>
+<td><strong>Done</strong> — <code>bind X = Y</code> in action/part bodies round-trips correctly</td>
+</tr>
+<tr>
+<td>Grammar auto-update pipeline</td>
+<td>Automated refresh from the OMG KEBNF spec when new releases drop</td>
+</tr>
+<tr>
+<td>Activity nodes</td>
+<td><code>ActionNode</code>, <code>AssignmentNode</code>, <code>ControlNode</code>, <code>DecisionNode</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="conformance-test-suite">Conformance Test Suite<a class="headerlink" href="#conformance-test-suite" title="Permanent link">&para;</a></h2>
+<p>Source: <strong>SysML-v2-Pilot-Implementation-2026-03</strong> (<code>org.omg.sysml.xpect.tests</code>)
+Library: <strong>94 normative files</strong> bundled at <code>src/sysmlpy/library/</code> (kernel/ systems/ domain/)
+Test files: <strong>123 <code>.sysml</code> files</strong> under <code>tests/sysmlv2/</code>, each with a <code>.error</code> sidecar</p>
+<p>Run with: <code>pytest -m conformance</code></p>
+<h3 id="current-results-2026-05-17">Current results (2026-05-17)<a class="headerlink" href="#current-results-2026-05-17" title="Permanent link">&para;</a></h3>
+<p><strong>123 / 123 passing (100%)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Files</th>
+<th>Pass</th>
+<th>Fail</th>
+<th>Pass %</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>simpletests/</code></td>
+<td>37</td>
+<td>37</td>
+<td>0</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><code>validation/valid/</code></td>
+<td>34</td>
+<td>34</td>
+<td>0</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><code>validation/invalid/</code></td>
+<td>47</td>
+<td>47</td>
+<td>0</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><code>expression/</code></td>
+<td>4</td>
+<td>4</td>
+<td>0</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><code>linking/</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>123</strong></td>
+<td><strong>123</strong></td>
+<td><strong>0</strong></td>
+<td><strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="remaining-failures">Remaining Failures<a class="headerlink" href="#remaining-failures" title="Permanent link">&para;</a></h3>
+<p>None. All 123 conformance tests pass.</p>
+<h3 id="key-fixes-v0110-2026-05-17">Key Fixes (v0.11.0 — 2026-05-17)<a class="headerlink" href="#key-fixes-v0110-2026-05-17" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Fix</th>
+<th>Tests unblocked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add <code>LPAREN AS typeReference RPAREN</code> to <code>baseExpression</code> in ANTLR grammar</td>
+<td><code>ElementFilter.sysml</code> — <code>(as Type)</code> cast syntax</td>
+</tr>
+<tr>
+<td>Add <code>ownedExpression DOT bodyExpression</code> to <code>ownedExpression</code> in ANTLR grammar</td>
+<td><code>PathExpressions.sysml</code> — lambda/filter expressions</td>
+</tr>
+<tr>
+<td>Handle <code>filterPackage</code> imports in <code>_visit_import_rule_dict</code> visitor</td>
+<td><code>ElementFilter.sysml</code> — <code>vehicle1_c1::*[@Security]</code></td>
+</tr>
+<tr>
+<td>Fix <code>interface_part</code> UnboundLocalError in <code>_make_interface_usage_dict</code></td>
+<td><code>InterfaceUsage_Invalid.sysml</code></td>
+</tr>
+<tr>
+<td>Add <code>get_definition()</code> to <code>SuccessionFlowConnectionUsage</code></td>
+<td><code>ActionUsage.sysml</code></td>
+</tr>
+<tr>
+<td>Add <code>CaseDefinition</code> to <code>DefinitionElement</code> dispatch table</td>
+<td><code>CaseUsage.sysml</code></td>
+</tr>
+<tr>
+<td>Fix <code>UsageExtensionKeyword</code> to handle <code>keyword</code> field directly</td>
+<td><code>CaseSubjectObjective_Invalid.sysml</code>, <code>Verification_invalid.sysml</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-to-add-new-conformance-tests">How to Add New Conformance Tests<a class="headerlink" href="#how-to-add-new-conformance-tests" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Place <code>.sysml</code> file under <code>tests/sysmlv2/&lt;category&gt;/</code></li>
+<li>Add companion <code>.error</code> file (empty = expects parse success, non-empty = expected error regex)</li>
+<li>Tests are auto-discovered by <code>conformance_test.py:_collect()</code></li>
+</ol>
+<hr />
+<h2 id="summary-counts">Summary Counts<a class="headerlink" href="#summary-counts" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public API classes (complete)</td>
+<td>27</td>
+</tr>
+<tr>
+<td>Public API stubs (parse-only or partial)</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Grammar classes with <code>get_definition()</code></td>
+<td>~175+ of 319</td>
+</tr>
+<tr>
+<td>Grammar classes missing <code>get_definition()</code></td>
+<td>~144 of 319</td>
+</tr>
+<tr>
+<td>Unit + grammar + integration tests</td>
+<td>116 (53 unit + 56 grammar + 7 integration)</td>
+</tr>
+<tr>
+<td>Grammar round-trip tests passing</td>
+<td><strong>34 / 56 (61%)</strong></td>
+</tr>
+<tr>
+<td>Conformance tests (2026-03 XPect suite)</td>
+<td>123 total — <strong>123 passing (100%)</strong></td>
+</tr>
+<tr>
+<td>Bundled standard library files</td>
+<td>94 (36 kernel <code>.kerml</code> + 21 systems <code>.sysml</code> + 37 domain <code>.sysml</code>)</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

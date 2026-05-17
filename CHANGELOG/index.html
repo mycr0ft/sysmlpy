@@ -1,0 +1,3018 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SysML v2.0 Parser for Python">
+      
+      
+      
+      
+        <link rel="prev" href="../STATUS/">
+      
+      
+        <link rel="next" href="../TODO/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Changelog - sysmlpy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#changelog" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="sysmlpy" class="md-header__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sysmlpy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Changelog
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="sysmlpy" class="md-nav__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sysmlpy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TUTORIAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v090-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.9.0 (2026-05-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.9.0 (2026-05-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v080-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.8.0 (2026-05-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.8.0 (2026-05-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v070-2026-05-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.7.0 (2026-05-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.7.0 (2026-05-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wrench-antlr-visitor-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :wrench: ANTLR Visitor Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v060-2026-05-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.6.0 (2026-05-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.6.0 (2026-05-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rocket-major-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :rocket: Major Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Conformance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v053-2024-05-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.3 (2024-05-30)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.3 (2024-05-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v052-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.2 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.2 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v051-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.1 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.1 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v050-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.0 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.0 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :zap:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v044-2023-07-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.4 (2023-07-26)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.4 (2023-07-26)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v043-2023-07-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.3 (2023-07-25)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.3 (2023-07-25)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v042-2023-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.2 (2023-07-24)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.2 (2023-07-24)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v041-2023-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.1 (2023-07-24)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.1 (2023-07-24)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v040-2023-07-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.0 (2023-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.0 (2023-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heavy_plus_sign" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :heavy_plus_sign:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v031-2023-07-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.3.1 (2023-07-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.3.1 (2023-07-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v030-2023-07-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.3.0 (2023-07-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.3.0 (2023-07-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0210-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.10 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v029-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.9 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v028-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.8 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v027-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.7 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v026-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.6 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v025-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.5 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v024-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.4 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v023-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.3 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v022-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.2 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v021-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.1 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v020-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.0 (2023-06-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.2.0 (2023-06-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :construction:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zap_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :zap:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TODO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#v090-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.9.0 (2026-05-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.9.0 (2026-05-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v080-2026-05-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.8.0 (2026-05-16)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.8.0 (2026-05-16)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v070-2026-05-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.7.0 (2026-05-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.7.0 (2026-05-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wrench-antlr-visitor-fixes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :wrench: ANTLR Visitor Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v060-2026-05-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.6.0 (2026-05-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.6.0 (2026-05-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rocket-major-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :rocket: Major Changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-features_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug-fixes_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fixes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Conformance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v053-2024-05-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.3 (2024-05-30)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.3 (2024-05-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v052-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.2 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.2 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v051-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.1 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.1 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v050-2023-08-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.5.0 (2023-08-12)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.5.0 (2023-08-12)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :zap:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v044-2023-07-26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.4 (2023-07-26)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.4 (2023-07-26)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v043-2023-07-25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.3 (2023-07-25)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.3 (2023-07-25)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v042-2023-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.2 (2023-07-24)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.2 (2023-07-24)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v041-2023-07-24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.1 (2023-07-24)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.1 (2023-07-24)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v040-2023-07-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.4.0 (2023-07-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.4.0 (2023-07-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heavy_plus_sign" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :heavy_plus_sign:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v031-2023-07-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.3.1 (2023-07-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.3.1 (2023-07-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v030-2023-07-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.3.0 (2023-07-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.3.0 (2023-07-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#memo_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v0210-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.10 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v029-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.9 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v028-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.8 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v027-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.7 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v026-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.6 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v025-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.5 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v024-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.4 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v023-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.3 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v022-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.2 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v021-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.1 (2023-06-21)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#v020-2023-06-21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.2.0 (2023-06-21)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.2.0 (2023-06-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ambulance_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :ambulance:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bug_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :construction:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memo_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :memo:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparkles_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zap_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :zap:
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v090-2026-05-16">v0.9.0 (2026-05-16)<a class="headerlink" href="#v090-2026-05-16" title="Permanent link">&para;</a></h2>
+<h3 id="sparkles-features">:sparkles: Features<a class="headerlink" href="#sparkles-features" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:sparkles: <strong>Explicit transition support</strong> — <code>transition name first X then Y;</code> syntax now parsed and extracted with <code>.name</code>, <code>.source</code>, and <code>.target</code> attributes</li>
+<li>:sparkles: <strong><code>.parent</code> property on all elements</strong> — Every <code>Usage</code>, <code>Model</code>, <code>Package</code>, <code>Transition</code>, and wrapper class now exposes a <code>.parent</code> attribute that references the containing element, set at instantiation time</li>
+<li>:sparkles: <strong>State machine Python API</strong> — <code>State</code> class now exposes <code>.transitions</code>, <code>.entry_actions</code>, <code>.exit_actions</code>, and <code>.do_actions</code> properties populated from parsed grammar</li>
+<li>:sparkles: <strong><code>Transition</code> class</strong> — New public API class representing state machine transitions with <code>.name</code>, <code>.source</code>, <code>.trigger</code>, <code>.guard</code>, <code>.target</code>, <code>.effect</code>, and <code>.is_entry</code> attributes</li>
+</ul>
+<h3 id="bug-fixes">:bug: Fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: <strong><code>TransitionUsageMember</code> support</strong> — Added handling for explicit named transitions (<code>transition name first X then Y;</code>) in addition to <code>TargetTransitionUsageMember</code> (accept-style transitions)</li>
+<li>:bug: <strong>State transitions now extracted</strong> — <code>State.load_from_grammar()</code> iterates all members in each <code>StateBodyItem</code> (not just the first), correctly capturing <code>TargetTransitionUsageMember</code>, <code>TransitionUsageMember</code>, and <code>EntryTransitionMember</code></li>
+<li>:bug: <strong>Entry transition targets resolved</strong> — Fixed <code>_extract_target_from_succession()</code> method name mismatch that caused <code>AttributeError</code> on entry transitions</li>
+<li>:bug: <strong>Trigger extraction from PayloadParameter</strong> — Fixed trigger name extraction to read from <code>PayloadParameter.children</code> (PayloadFeature) instead of non-existent <code>.feature</code> attribute</li>
+<li>:bug: <strong><code>PerformedActionUsage.get_definition()</code> missing</strong> — Added <code>get_definition()</code> method to support round-trip serialization of state actions</li>
+<li>:bug: <strong><code>PerformActionUsageDeclaration.get_definition()</code> missing</strong> — Added <code>get_definition()</code> method to support round-trip serialization of performed actions in state entry/do/exit blocks</li>
+<li>:bug: <strong><code>EmptySuccessionMember</code> and <code>EmptySuccession</code> null handling</strong> — Fixed <code>KeyError</code> and <code>TypeError</code> when <code>ownedRelationship</code> is None</li>
+</ul>
+<h3 id="white_check_mark-test-results">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:white_check_mark: Grammar round-trip tests: <strong>54/56 passing</strong></li>
+<li>:white_check_mark: All 5 state-related tests pass</li>
+<li>:white_check_mark: Parent property verified: nested states, transitions, and actions correctly reference their parent element</li>
+<li>:white_check_mark: Explicit transitions verified: <code>transition name first X then Y;</code> extracts name, source, and target</li>
+</ul>
+<h2 id="v080-2026-05-16">v0.8.0 (2026-05-16)<a class="headerlink" href="#v080-2026-05-16" title="Permanent link">&para;</a></h2>
+<h3 id="sparkles-features_1">:sparkles: Features<a class="headerlink" href="#sparkles-features_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:sparkles: <strong><code>.parent</code> property on all elements</strong> — Every <code>Usage</code>, <code>Model</code>, <code>Package</code>, <code>Transition</code>, and wrapper class now exposes a <code>.parent</code> attribute that references the containing element, set at instantiation time</li>
+<li>:sparkles: <strong>State machine Python API</strong> — <code>State</code> class now exposes <code>.transitions</code>, <code>.entry_actions</code>, <code>.exit_actions</code>, and <code>.do_actions</code> properties populated from parsed grammar</li>
+<li>:sparkles: <strong><code>Transition</code> class</strong> — New public API class representing state machine transitions with <code>.trigger</code>, <code>.guard</code>, <code>.target</code>, <code>.effect</code>, and <code>.is_entry</code> attributes</li>
+</ul>
+<h3 id="bug-fixes_1">:bug: Fixes<a class="headerlink" href="#bug-fixes_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: <strong>State transitions now extracted</strong> — <code>State.load_from_grammar()</code> iterates all members in each <code>StateBodyItem</code> (not just the first), correctly capturing <code>TargetTransitionUsageMember</code> and <code>EntryTransitionMember</code></li>
+<li>:bug: <strong>Entry transition targets resolved</strong> — Fixed <code>_extract_target_from_succession()</code> method name mismatch that caused <code>AttributeError</code> on entry transitions</li>
+<li>:bug: <strong>Trigger extraction from PayloadParameter</strong> — Fixed trigger name extraction to read from <code>PayloadParameter.children</code> (PayloadFeature) instead of non-existent <code>.feature</code> attribute</li>
+<li>:bug: <strong><code>PerformedActionUsage.get_definition()</code> missing</strong> — Added <code>get_definition()</code> method to support round-trip serialization of state actions</li>
+<li>:bug: <strong><code>PerformActionUsageDeclaration.get_definition()</code> missing</strong> — Added <code>get_definition()</code> method to support round-trip serialization of performed actions in state entry/do/exit blocks</li>
+</ul>
+<h3 id="white_check_mark-test-results_1">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:white_check_mark: Grammar round-trip tests: <strong>54/56 passing</strong></li>
+<li>:white_check_mark: All 5 state-related tests pass</li>
+<li>:white_check_mark: Parent property verified: nested states, transitions, and actions correctly reference their parent element</li>
+</ul>
+<h2 id="v070-2026-05-15">v0.7.0 (2026-05-15)<a class="headerlink" href="#v070-2026-05-15" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fixes_2">:bug: Fixes<a class="headerlink" href="#bug-fixes_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: <strong>State machines with transitions no longer crash</strong> — <code>State.load_from_grammar()</code> added to extract nested states from <code>StateDefBody</code>/<code>StateUsageBody</code> structures</li>
+<li>:bug: <strong>Action parameters now extracted</strong> — <code>action.action_inputs</code> and <code>action.action_outputs</code> populate with <code>(name, type_name)</code> tuples (e.g., <code>[("inputParam", "Real")]</code>)</li>
+<li>:bug: <strong>Nested actions now accessible</strong> — <code>action.actions</code> returns nested <code>Action</code> objects parsed from <code>BehaviorUsageMember</code> bodies</li>
+<li>:bug: <strong>Action parameter type extraction fixed</strong> — <code>_extract_type_from_typings()</code> handles <code>TypedBy</code> → <code>FeatureTyping</code> → <code>OwnedFeatureTyping</code> → <code>FeatureType</code> path</li>
+<li>:bug: <strong>Action constructor fixed</strong> — <code>ActionUsage(None)</code> instead of <code>ActionUsage({})</code> to avoid grammar validation failure</li>
+</ul>
+<h3 id="sparkles-features_2">:sparkles: Features<a class="headerlink" href="#sparkles-features_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:sparkles: <code>State</code> class now supports <code>load_from_grammar()</code> with recursive nested state extraction</li>
+<li>:sparkles: <code>Action._extract_behavior_usage()</code> traverses <code>BehaviorUsageElement</code> indirection to find nested <code>ActionUsage</code>/<code>StateUsage</code></li>
+<li>:sparkles: <code>Action._process_nested_usage()</code> helper for handling nested behavior usages</li>
+<li>:sparkles: <code>Action._extract_type_from_typings()</code> helper for extracting type names from specialization chains</li>
+</ul>
+<h3 id="white_check_mark-test-results_2">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:white_check_mark: Grammar round-trip tests: <strong>51/56 passing</strong> (up from 50)</li>
+<li>:white_check_mark: State machines with transitions: parses without crash, states extracted</li>
+<li>:white_check_mark: Activity parameters: <code>action_inputs</code>/<code>action_outputs</code> correctly populated with types</li>
+<li>:white_check_mark: Nested actions: <code>action.actions</code> returns child <code>Action</code> objects</li>
+<li>:white_check_mark: Nested states: recursive state extraction works (e.g., <code>active.states</code> → <code>["flying", "hovering"]</code>)</li>
+<li>:white_check_mark: Requirement Groups: <code>perform action generateTorque: GenerateTorque</code> round-trips correctly</li>
+</ul>
+<h3 id="wrench-antlr-visitor-fixes">:wrench: ANTLR Visitor Fixes<a class="headerlink" href="#wrench-antlr-visitor-fixes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:wrench: Fixed <code>typedBy()</code> method name (was <code>typedby</code>) in 3 places</li>
+<li>:wrench: Fixed <code>featureTyping()</code> method name (was <code>featureType</code>) in 3 places</li>
+<li>:wrench: Extract type from <code>OwnedFeatureTypingContext.qualifiedName()</code> for perform action usages</li>
+<li>:wrench: Added <code>StateAssignmentActionUsage</code> grammar class (was missing)</li>
+<li>:wrench: Fixed <code>EntryActionMember</code>/<code>DoActionMember</code>/<code>ExitActionMember</code> dynamic class lookup</li>
+<li>:wrench: Fixed <code>TriggerFeatureValue</code>/<code>TriggerValuePart</code> null handling</li>
+<li>:wrench: Fixed <code>FeatureChainMember</code>/<code>NodeParameter</code> missing key handling</li>
+</ul>
+<h2 id="v060-2026-05-12">v0.6.0 (2026-05-12)<a class="headerlink" href="#v060-2026-05-12" title="Permanent link">&para;</a></h2>
+<h3 id="rocket-major-changes">:rocket: Major Changes<a class="headerlink" href="#rocket-major-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ANTLR4 as default parser</strong> — textX runtime removed; OMG grammar v2026.03.0 is now the only parser</li>
+<li><strong>Conformance suite</strong> — 123 OMG XPect tests: <strong>120 passing (98%)</strong>, up from 50 (41%)</li>
+<li><strong>New public API classes</strong> — <code>Requirement</code>, <code>UseCase</code>, <code>Interface</code>, <code>Message</code>, <code>Reference</code></li>
+<li><strong>New grammar serialization</strong> — <code>get_definition()</code> added to <code>InterfaceDefinition</code>, <code>InterfaceBody</code>, <code>InterfaceBodyItem</code>, <code>InterfaceUsage</code>, <code>AnnotatingElement</code>, <code>CommentSysML</code>, <code>Annotation</code>, <code>Documentation</code>, <code>ActionUsage</code>, <code>LiteralString</code>, <code>LiteralReal</code>, <code>LiteralInfinity</code></li>
+</ul>
+<h3 id="sparkles-features_3">:sparkles: Features<a class="headerlink" href="#sparkles-features_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:sparkles: ANTLR4 visitor support for comments, documentation blocks, and annotating elements</li>
+<li>:sparkles: Case, AnalysisCase, and VerificationCase definition visitors</li>
+<li>:sparkles: Auto-wrap bare top-level definitions in synthetic package</li>
+<li>:sparkles: <code>RequirementDefinition(None)</code> handling for programmatic construction</li>
+</ul>
+<h3 id="bug-fixes_3">:bug: Fixes<a class="headerlink" href="#bug-fixes_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: <code>Model.load()</code> now correctly skips non-Package <code>DefinitionElement</code>s (e.g., <code>AnnotatingElement</code>)</li>
+<li>:bug: <code>InterfaceBody</code> and <code>InterfaceBodyItem</code> <code>get_definition()</code> methods added</li>
+<li>:bug: <code>InterfaceDefinition</code> and <code>InterfaceUsage</code> handle both flat and nested body formats</li>
+<li>:bug: <code>UsageBody</code> nesting fixed in ANTLR visitor output</li>
+<li>:bug: <code>Requirement</code> constructor guards against <code>None</code> declaration access</li>
+<li>:bug: <code>Usage._get_definition()</code> handles missing <code>completion</code> attribute</li>
+<li>:bug: <code>Attribute._get_definition()</code> child parameter check fixed</li>
+<li>:bug: <code>Action._get_definition()</code> correctly distinguishes usage vs definition modes</li>
+</ul>
+<h3 id="white_check_mark-conformance">:white_check_mark: Conformance<a class="headerlink" href="#white_check_mark-conformance" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:white_check_mark: <code>simpletests/</code>: 10/37 → 35/37 passing</li>
+<li>:white_check_mark: <code>validation/valid/</code>: 17/34 → 33/34 passing</li>
+<li>:white_check_mark: <code>validation/invalid/</code>: 22/47 → 46/47 passing</li>
+<li>:white_check_mark: <code>expression/</code>: 0/4 → 3/4 passing</li>
+<li>:white_check_mark: <code>linking/</code>: 1/1 → 1/1 passing</li>
+</ul>
+<h3 id="memo">:memo:<a class="headerlink" href="#memo" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:memo: Updated STATUS.md, TODO.md, CHANGELOG.md with current conformance results</li>
+</ul>
+<h2 id="v053-2024-05-30">v0.5.3 (2024-05-30)<a class="headerlink" href="#v053-2024-05-30" title="Permanent link">&para;</a></h2>
+<h3 id="memo_1">:memo:<a class="headerlink" href="#memo_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:memo: Added full docstrings to init (<a href="https://github.com/Westfall-io/sysmlpy/commit/0e06f1d73b476706eae4dddf02ff3e3b3c052ada"><code>0e06f1d</code></a>)</li>
+</ul>
+<h3 id="other">Other<a class="headerlink" href="#other" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:green_heart: Deployment fix and updates for pypi (<a href="https://github.com/Westfall-io/sysmlpy/commit/ee894656417cdf5be5f2126f0374d15377bd12c6"><code>ee89465</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Updating release workflow as well (<a href="https://github.com/Westfall-io/sysmlpy/commit/8c72ce97d613b4d59d0773bb8498cdeb8bbc992d"><code>8c72ce9</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Removing distribute (<a href="https://github.com/Westfall-io/sysmlpy/commit/2dd552e55097193d3cf6d181015c51a6b1fd795f"><code>2dd552e</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Updating test script to ensure available resources for pytest (<a href="https://github.com/Westfall-io/sysmlpy/commit/6a9c29790e53f06e382d74f3b5e36bbfc1ed9de9"><code>6a9c297</code></a>)</p>
+</li>
+<li>
+<p>:arrow_up: Fixing issue with dependencies for astropy (<a href="https://github.com/Westfall-io/sysmlpy/commit/ac3b2ee6965e899854d4e0f4f1946a61bd4f9e67"><code>ac3b2ee</code></a>)</p>
+</li>
+<li>
+<p>:arrow_up: Fixing issue with dependencies and cython3 failing (<a href="https://github.com/Westfall-io/sysmlpy/commit/bb4feb6b4227c40a6f4b0f3d6cb6d87e43ec3565"><code>bb4feb6</code></a>)</p>
+</li>
+</ul>
+<h2 id="v052-2023-08-12">v0.5.2 (2023-08-12)<a class="headerlink" href="#v052-2023-08-12" title="Permanent link">&para;</a></h2>
+<h3 id="ambulance">:ambulance:<a class="headerlink" href="#ambulance" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:ambulance: Permissions fix (<a href="https://github.com/Westfall-io/sysmlpy/commit/8c5ea13b9d28aa2f846fc9f1e7f985eeae7e615d"><code>8c5ea13</code></a>)</p>
+</li>
+<li>
+<p>:ambulance: Added configuration to workflow (<a href="https://github.com/Westfall-io/sysmlpy/commit/e8b932b9ab4e3e16ff43cf4549c571e70a5cd218"><code>e8b932b</code></a>)</p>
+</li>
+</ul>
+<h2 id="v051-2023-08-12">v0.5.1 (2023-08-12)<a class="headerlink" href="#v051-2023-08-12" title="Permanent link">&para;</a></h2>
+<h3 id="ambulance_1">:ambulance:<a class="headerlink" href="#ambulance_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:ambulance: Correct workflow yaml (<a href="https://github.com/Westfall-io/sysmlpy/commit/8c410ee7e486b7624e31d19faf94c6692b110f88"><code>8c410ee</code></a>)</p>
+</li>
+<li>
+<p>:ambulance: Fix to upload to pypi (<a href="https://github.com/Westfall-io/sysmlpy/commit/3309eb5641f3671e6690bd61ac04b986c5d0a0c8"><code>3309eb5</code></a>)</p>
+</li>
+</ul>
+<h2 id="v050-2023-08-12">v0.5.0 (2023-08-12)<a class="headerlink" href="#v050-2023-08-12" title="Permanent link">&para;</a></h2>
+<h3 id="ambulance_2">:ambulance:<a class="headerlink" href="#ambulance_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:ambulance: Fix for attribute change when adding units (<a href="https://github.com/Westfall-io/sysmlpy/commit/1daacac3e81062bd35a5cac832f3cafccc9317a9"><code>1daacac</code></a>)</p>
+</li>
+<li>
+<p>:ambulance: Fixed critical grammar changes with SysML and KerML overwrites. (<a href="https://github.com/Westfall-io/sysmlpy/commit/34978bbd33a0793cb618605aa87950fda64d5f68"><code>34978bb</code></a>)</p>
+</li>
+</ul>
+<h3 id="bug">:bug:<a class="headerlink" href="#bug" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:bug: Removing optional from in flow statement that won&#39;t return programmatically. (<a href="https://github.com/Westfall-io/sysmlpy/commit/716961b003e51c286af8c63e2cad5d5806acef20"><code>716961b</code></a>)</p>
+</li>
+<li>
+<p>:bug: Fixed issue with Primary expression get definition response. (<a href="https://github.com/Westfall-io/sysmlpy/commit/55124661dd6f8c08efb2136db65bb22111012ae4"><code>5512466</code></a>)</p>
+</li>
+<li>
+<p>:bug: Updated secondary primary expression in attribute. (<a href="https://github.com/Westfall-io/sysmlpy/commit/97f20867c29b577ce0f3d6d3eb5dd1cabe0dafaf"><code>97f2086</code></a>)</p>
+</li>
+<li>
+<p>:bug: Fixed changes to primary expression in attribute (<a href="https://github.com/Westfall-io/sysmlpy/commit/ace773c595db76e208fe4d909f91ceae4171fef6"><code>ace773c</code></a>)</p>
+</li>
+<li>
+<p>:bug: Duplicate feature chaining in primary expression. (<a href="https://github.com/Westfall-io/sysmlpy/commit/821746349450467c3ab9b46bc86922d2476f8640"><code>8217463</code></a>)</p>
+</li>
+</ul>
+<h3 id="sparkles">:sparkles:<a class="headerlink" href="#sparkles" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:sparkles: Adding analysis grammar and tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/9400f9bef19757733b4d8a90d66f7e9678a42f6c"><code>9400f9b</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Adding requirement grammar classes and tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/0d7349852aa361fe45ff5ffbc457226675f87b73"><code>0d73498</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Adding constraint grammar and tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/6212fd0fa4cd2261cd0b17e3871b5367080a0005"><code>6212fd0</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: State grammar with appropriate tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b896efe2e0331383aa520621275ec8ae911f1871"><code>b896efe</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: State grammar classes initial implementation with first test. (<a href="https://github.com/Westfall-io/sysmlpy/commit/61d3df1571b25e554bad631d005d11ce9ac5c0a4"><code>61d3df1</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Added all calculation grammar classes and tests that pass. (<a href="https://github.com/Westfall-io/sysmlpy/commit/393fa4cce83471500401c3c7737a89c94e17f8cc"><code>393fa4c</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Adding grammar for expressions. (<a href="https://github.com/Westfall-io/sysmlpy/commit/f69c1ef446730912ef9feb34638cde7596cc6ecc"><code>f69c1ef</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Partial addition of constraint grammar classes (<a href="https://github.com/Westfall-io/sysmlpy/commit/5fc5c23aea9b8c27a151dfa21f89f06d5a8a237d"><code>5fc5c23</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Action definition with 2 of 4 tests complete. (<a href="https://github.com/Westfall-io/sysmlpy/commit/9530eed3aeda5bb059cdcff2555cc5c041d6e3bc"><code>9530eed</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Adding first action definition grammar classes. (<a href="https://github.com/Westfall-io/sysmlpy/commit/3454a5048789917e7a4e02092ab3c602ba180157"><code>3454a50</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Adding flow grammar and test. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4fe01c9f2394bada05cc703f95177c90a32f37ee"><code>4fe01c9</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Flow Connector added to grammar and initial test built. (<a href="https://github.com/Westfall-io/sysmlpy/commit/872b76ded8c366f1b429968041f4214817395e1d"><code>872b76d</code></a>)</p>
+</li>
+</ul>
+<h3 id="white_check_mark">:white_check_mark:<a class="headerlink" href="#white_check_mark" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:white_check_mark: Completed tests for state grammar. (<a href="https://github.com/Westfall-io/sysmlpy/commit/2c2213cbc96b4fe16e66f680f3a10672f09f05d3"><code>2c2213c</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Added two additional tests for expressions, tests all pass. (<a href="https://github.com/Westfall-io/sysmlpy/commit/afae0426a30b4cebffec8a974c7b7823dbb80f3c"><code>afae042</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Grammar changes now pass all tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/7771f053121a6edce9277b1de0536e2323d6276b"><code>7771f05</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Added final training example tests for action definition. (<a href="https://github.com/Westfall-io/sysmlpy/commit/a399f5b295dd17de4979c3f2937f3016524ef8d6"><code>a399f5b</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Second example test for flow connector. (<a href="https://github.com/Westfall-io/sysmlpy/commit/7d00034efbfd60e993a69a697210896cab16cfb5"><code>7d00034</code></a>)</p>
+</li>
+</ul>
+<h3 id="zap">:zap:<a class="headerlink" href="#zap" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:zap: Removing commits to push off main, should not run into pull error for semantic parsing (<a href="https://github.com/Westfall-io/sysmlpy/commit/77272f3202378dbf637ad38c8e1cf69c68484198"><code>77272f3</code></a>)</p>
+</li>
+<li>
+<p>:zap: Removing excess lines from code coverage. (<a href="https://github.com/Westfall-io/sysmlpy/commit/442bc0c32048c9575de9f9025963bcca5f0bdfbc"><code>442bc0c</code></a>)</p>
+</li>
+<li>
+<p>:zap: Now loads from a single compiled grammar file that overwrites any previous grammar from imports. (<a href="https://github.com/Westfall-io/sysmlpy/commit/2f90c7b57a6a9e738601d42b75863bfd03f457bc"><code>2f90c7b</code></a>)</p>
+</li>
+</ul>
+<h3 id="other_1">Other<a class="headerlink" href="#other_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:art: Updating semantic parsing with lessons learned from windstorm (<a href="https://github.com/Westfall-io/sysmlpy/commit/2f66dbf4b023d05397d2fa5267d0ae4d29846f87"><code>2f66dbf</code></a>)</li>
+</ul>
+<h2 id="v044-2023-07-26">v0.4.4 (2023-07-26)<a class="headerlink" href="#v044-2023-07-26" title="Permanent link">&para;</a></h2>
+<h3 id="bug_1">:bug:<a class="headerlink" href="#bug_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: Fixes for load_grammar functions. (<a href="https://github.com/Westfall-io/sysmlpy/commit/0e4581889f55928576e939026a8ab5c3debdccc0"><code>0e45818</code></a>)</li>
+</ul>
+<h3 id="other_2">Other<a class="headerlink" href="#other_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:test_tube: Fix for test that can&#39;t find grammar. (<a href="https://github.com/Westfall-io/sysmlpy/commit/18f7acab8be6b0d3d70ea7ee1f17fb8d3a11377d"><code>18f7aca</code></a>)</p>
+</li>
+<li>
+<p>:test_tube: Adding to coverage with failure tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/7c2e96eae65cb536027f01501b1dcc876d3a163e"><code>7c2e96e</code></a>)</p>
+</li>
+</ul>
+<h2 id="v043-2023-07-25">v0.4.3 (2023-07-25)<a class="headerlink" href="#v043-2023-07-25" title="Permanent link">&para;</a></h2>
+<h3 id="bug_2">:bug:<a class="headerlink" href="#bug_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:bug: Fixed issue with port subnodes. (<a href="https://github.com/Westfall-io/sysmlpy/commit/67720b19307df138dff10d5138f74aba1fa87734"><code>67720b1</code></a>)</p>
+</li>
+<li>
+<p>:bug: Fixed issue with usage classes with body objects. (<a href="https://github.com/Westfall-io/sysmlpy/commit/afc5522c64088595030f68d578af2f303613226e"><code>afc5522</code></a>)</p>
+</li>
+</ul>
+<h2 id="v042-2023-07-24">v0.4.2 (2023-07-24)<a class="headerlink" href="#v042-2023-07-24" title="Permanent link">&para;</a></h2>
+<h3 id="bug_3">:bug:<a class="headerlink" href="#bug_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: Enforce some syntax with Models always starting with packages. (<a href="https://github.com/Westfall-io/sysmlpy/commit/0cccdf1d5f97c864d82edffc9ec54bd93cf1cb54"><code>0cccdf1</code></a>)</li>
+</ul>
+<h3 id="other_3">Other<a class="headerlink" href="#other_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:green_heart: Adding github actions back into commit. (<a href="https://github.com/Westfall-io/sysmlpy/commit/e1ab9f4b7fa53591ce11de3f5813a67b7070dc8c"><code>e1ab9f4</code></a>)</li>
+</ul>
+<h2 id="v041-2023-07-24">v0.4.1 (2023-07-24)<a class="headerlink" href="#v041-2023-07-24" title="Permanent link">&para;</a></h2>
+<h3 id="bug_4">:bug:<a class="headerlink" href="#bug_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:bug: Fix poetry build for pypi builds. (<a href="https://github.com/Westfall-io/sysmlpy/commit/3c90e28707710002018569509f87e9266ccef446"><code>3c90e28</code></a>)</li>
+</ul>
+<h2 id="v040-2023-07-21">v0.4.0 (2023-07-21)<a class="headerlink" href="#v040-2023-07-21" title="Permanent link">&para;</a></h2>
+<h3 id="bug_5">:bug:<a class="headerlink" href="#bug_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:bug: Fix for definition naming. (<a href="https://github.com/Westfall-io/sysmlpy/commit/ff62dc10131d8c53fd4361f7100403dc1c4424f6"><code>ff62dc1</code></a>)</p>
+</li>
+<li>
+<p>:bug: Reverting change to author. (<a href="https://github.com/Westfall-io/sysmlpy/commit/ae5d19e5581b3493e985bd01bb356b1dcd3d1618"><code>ae5d19e</code></a>)</p>
+</li>
+<li>
+<p>:bug: Added test and definition file that was causing the error. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b7787d4ccba53e421e3f877a46eca331698e2950"><code>b7787d4</code></a>)</p>
+</li>
+<li>
+<p>:bug: Fixed an issue where something defined within a package could not be typed by another definition (<a href="https://github.com/Westfall-io/sysmlpy/commit/ee257eba9cdaec2a8ac52f65cf702881879aa445"><code>ee257eb</code></a>)</p>
+</li>
+</ul>
+<h3 id="heavy_plus_sign">:heavy_plus_sign:<a class="headerlink" href="#heavy_plus_sign" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:heavy_plus_sign: Using poetry package management, added dependencies. (<a href="https://github.com/Westfall-io/sysmlpy/commit/5c625dd6e51a6090a699aab229c335d8946d7bd5"><code>5c625dd</code></a>)</p>
+</li>
+<li>
+<p>:heavy_plus_sign: Adding pytest-html to test workflow. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4f2cedc50162ac2013b5dc60481a7bc646debad3"><code>4f2cedc</code></a>)</p>
+</li>
+</ul>
+<h3 id="memo_2">:memo:<a class="headerlink" href="#memo_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:memo: Updates to project info to assist sphinx build. (<a href="https://github.com/Westfall-io/sysmlpy/commit/939d2ff4867ccc792b78c8a1229ef937653093ec"><code>939d2ff</code></a>)</p>
+</li>
+<li>
+<p>:memo: Fixing spacing. (<a href="https://github.com/Westfall-io/sysmlpy/commit/25e78d01066b96146be587988e1735367747f52c"><code>25e78d0</code></a>)</p>
+</li>
+<li>
+<p>:memo: Adding more badges. (<a href="https://github.com/Westfall-io/sysmlpy/commit/76899b192545087066493c7a65c388266c09d01c"><code>76899b1</code></a>)</p>
+</li>
+<li>
+<p>:memo: Added trello to Readme (<a href="https://github.com/Westfall-io/sysmlpy/commit/26e304c10ea7599259d75f43992996887161183a"><code>26e304c</code></a>)</p>
+</li>
+</ul>
+<h3 id="sparkles_1">:sparkles:<a class="headerlink" href="#sparkles_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:sparkles: Added a new base model class to replace collapse function. Model will create packages and other custom classes for use. Additionally, packages can be created from grammar. (<a href="https://github.com/Westfall-io/sysmlpy/commit/3dc5fcad2e892b0e14c1c9f74cbea868df6844a5"><code>3dc5fca</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: Added port with ability to create subfeatures with directionality. (<a href="https://github.com/Westfall-io/sysmlpy/commit/94c0a19b08203a3db953858bf968de5c2f2084bc"><code>94c0a19</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: New package class. (<a href="https://github.com/Westfall-io/sysmlpy/commit/3766690bd848de0475eb047af1870da358dd51ab"><code>3766690</code></a>)</p>
+</li>
+</ul>
+<h3 id="white_check_mark_1">:white_check_mark:<a class="headerlink" href="#white_check_mark_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:white_check_mark: Adding child as optional to get def functions. (<a href="https://github.com/Westfall-io/sysmlpy/commit/da90c49e3b6d80258ea6bdc2391031ead534833f"><code>da90c49</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Correcting tests (<a href="https://github.com/Westfall-io/sysmlpy/commit/fba8dcef847f4d5c39ad97c72b9cb711236df335"><code>fba8dce</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Package tests added. (<a href="https://github.com/Westfall-io/sysmlpy/commit/803192b75749facc0d19cae596038663b3708714"><code>803192b</code></a>)</p>
+</li>
+</ul>
+<h3 id="other_4">Other<a class="headerlink" href="#other_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:construction_worker: Adding src to path for pytest in pyproject.toml (<a href="https://github.com/Westfall-io/sysmlpy/commit/510d672b98c747c7ad573aa1d7fbf28d2252b4a1"><code>510d672</code></a>)</p>
+</li>
+<li>
+<p>:construction_worker: Corrected test directory again. (<a href="https://github.com/Westfall-io/sysmlpy/commit/92d5dc2c1bf1f416d6e248ddbf4bb45727a3e5fe"><code>92d5dc2</code></a>)</p>
+</li>
+<li>
+<p>:construction_worker: Corrected test directory. (<a href="https://github.com/Westfall-io/sysmlpy/commit/2bfc6dfc1f6767a4caddd0e69fbc459fc5a0ed4a"><code>2bfc6df</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding coveralls to all branches. (<a href="https://github.com/Westfall-io/sysmlpy/commit/425024d1b7ebf80010c2f8a7e7d866b32ba4e5d8"><code>425024d</code></a>)</p>
+</li>
+<li>
+<p>:construction_worker: Adding html to artifacts. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4b74045fc81d32fe33629dc215d1126145f572c3"><code>4b74045</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding conftest.py (<a href="https://github.com/Westfall-io/sysmlpy/commit/dbd32b967febd7396de40ff7e73a9b75182e7507"><code>dbd32b9</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding path to init to correct test workflow. (<a href="https://github.com/Westfall-io/sysmlpy/commit/d29bfb6692d950bf384182dda96ebb017c8231af"><code>d29bfb6</code></a>)</p>
+</li>
+</ul>
+<h2 id="v031-2023-07-11">v0.3.1 (2023-07-11)<a class="headerlink" href="#v031-2023-07-11" title="Permanent link">&para;</a></h2>
+<h3 id="memo_3">:memo:<a class="headerlink" href="#memo_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:memo: Documentation changes. (<a href="https://github.com/Westfall-io/sysmlpy/commit/edfd629ec5ef6611d2b9643706cee6b1bf40ea47"><code>edfd629</code></a>)</li>
+</ul>
+<h2 id="v030-2023-07-11">v0.3.0 (2023-07-11)<a class="headerlink" href="#v030-2023-07-11" title="Permanent link">&para;</a></h2>
+<h3 id="memo_4">:memo:<a class="headerlink" href="#memo_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:memo: Updates to readme, also added a loadfromgrammar function to Usage. (<a href="https://github.com/Westfall-io/sysmlpy/commit/e999436193ccee31dfadaf5a193705cf61e99496"><code>e999436</code></a>)</li>
+</ul>
+<h3 id="sparkles_2">:sparkles:<a class="headerlink" href="#sparkles_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:sparkles: Added some rollup classes the abstract underlying grammar. They have functions to manipulate the grammar. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b1e01a465200e79f96a30da4f2ce5b861850ddd5"><code>b1e01a4</code></a>)</li>
+</ul>
+<h3 id="other_5">Other<a class="headerlink" href="#other_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:arrow_up: Merge from main and add astropy to main dependencies to handle units. (<a href="https://github.com/Westfall-io/sysmlpy/commit/98f260b888f54f9f6911b043387cd0fbc4d81c88"><code>98f260b</code></a>)</li>
+</ul>
+<h2 id="v0210-2023-06-21">v0.2.10 (2023-06-21)<a class="headerlink" href="#v0210-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v029-2023-06-21">v0.2.9 (2023-06-21)<a class="headerlink" href="#v029-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v028-2023-06-21">v0.2.8 (2023-06-21)<a class="headerlink" href="#v028-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v027-2023-06-21">v0.2.7 (2023-06-21)<a class="headerlink" href="#v027-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v026-2023-06-21">v0.2.6 (2023-06-21)<a class="headerlink" href="#v026-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v025-2023-06-21">v0.2.5 (2023-06-21)<a class="headerlink" href="#v025-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v024-2023-06-21">v0.2.4 (2023-06-21)<a class="headerlink" href="#v024-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v023-2023-06-21">v0.2.3 (2023-06-21)<a class="headerlink" href="#v023-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v022-2023-06-21">v0.2.2 (2023-06-21)<a class="headerlink" href="#v022-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v021-2023-06-21">v0.2.1 (2023-06-21)<a class="headerlink" href="#v021-2023-06-21" title="Permanent link">&para;</a></h2>
+<h2 id="v020-2023-06-21">v0.2.0 (2023-06-21)<a class="headerlink" href="#v020-2023-06-21" title="Permanent link">&para;</a></h2>
+<h3 id="ambulance_3">:ambulance:<a class="headerlink" href="#ambulance_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:ambulance: Fixing merge errors from black (<a href="https://github.com/Westfall-io/sysmlpy/commit/e101e70ea50ccd52cc5226c6860bcbe1b9411d3a"><code>e101e70</code></a>)</p>
+</li>
+<li>
+<p>:ambulance: Fix for build script (<a href="https://github.com/Westfall-io/sysmlpy/commit/4c6f238afcf37c8620f082dfee19a8a4282a47e3"><code>4c6f238</code></a>)</p>
+</li>
+</ul>
+<h3 id="bug_6">:bug:<a class="headerlink" href="#bug_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:bug: Adding textx to requirements. (<a href="https://github.com/Westfall-io/sysmlpy/commit/d3c1c767b39a68d67c0eea7802982de770c1bc48"><code>d3c1c76</code></a>)</p>
+</li>
+<li>
+<p>:bug: Workflow fixes (<a href="https://github.com/Westfall-io/sysmlpy/commit/9b883eaef9932e80299dc94ede0646a2ceb1a405"><code>9b883ea</code></a>)</p>
+</li>
+</ul>
+<h3 id="construction">:construction:<a class="headerlink" href="#construction" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:construction: Forgot to git pull (<a href="https://github.com/Westfall-io/sysmlpy/commit/4cf3100b719f9ee17beb556b116cf46fd9db1886"><code>4cf3100</code></a>)</p>
+</li>
+<li>
+<p>:construction: Adding more documentation and cleanup (<a href="https://github.com/Westfall-io/sysmlpy/commit/8a8675e3828beef65903491a578477e14ba5ffa5"><code>8a8675e</code></a>)</p>
+</li>
+<li>
+<p>:construction: More adds. (<a href="https://github.com/Westfall-io/sysmlpy/commit/42258b66704bb42a2f2b2632722bab30887cb8a9"><code>42258b6</code></a>)</p>
+</li>
+<li>
+<p>:construction: Fix yaml (<a href="https://github.com/Westfall-io/sysmlpy/commit/0fc1c2f860cfc3a5e61138c53cfc5b4b8a24ab84"><code>0fc1c2f</code></a>)</p>
+</li>
+<li>
+<p>:construction: Fixes and updates to CI/CD (<a href="https://github.com/Westfall-io/sysmlpy/commit/c0640f1ded084d7d178d0a1a0ad87e434c388d37"><code>c0640f1</code></a>)</p>
+</li>
+</ul>
+<h3 id="memo_5">:memo:<a class="headerlink" href="#memo_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:memo: Updates to version (<a href="https://github.com/Westfall-io/sysmlpy/commit/208cdd62db514b466b0b64aa70134e54cea46ce0"><code>208cdd6</code></a>)</p>
+</li>
+<li>
+<p>:memo: remove excess brackets (<a href="https://github.com/Westfall-io/sysmlpy/commit/e258d1cdccbf3614b6be37f6322ddee006756809"><code>e258d1c</code></a>)</p>
+</li>
+<li>
+<p>:memo: Docstring coverage add to README (<a href="https://github.com/Westfall-io/sysmlpy/commit/3720f3a07002b1129b90d552f7a291c8662c6c09"><code>3720f3a</code></a>)</p>
+</li>
+<li>
+<p>:memo: Time to add documentationgit add docsgit add docs (<a href="https://github.com/Westfall-io/sysmlpy/commit/f9335216ae484aa2145fd2178b206bcff510958b"><code>f933521</code></a>)</p>
+</li>
+</ul>
+<h3 id="sparkles_3">:sparkles:<a class="headerlink" href="#sparkles_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:sparkles: More tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/41d1f5eb343c4afe02224fd6b9d68bed3f5cebaa"><code>41d1f5e</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: More tests and classes. (<a href="https://github.com/Westfall-io/sysmlpy/commit/cd59e2e7b2ff2c2eeb599480293f09efabcd79d9"><code>cd59e2e</code></a>)</p>
+</li>
+<li>
+<p>:sparkles: More badge for readme. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4be8d54efb78fa6030c8c80702f13e9ce295c5da"><code>4be8d54</code></a>)</p>
+</li>
+</ul>
+<h3 id="white_check_mark_2">:white_check_mark:<a class="headerlink" href="#white_check_mark_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:white_check_mark: Adding import test, namespaces are bugged. (<a href="https://github.com/Westfall-io/sysmlpy/commit/6d35922290ee468a3604102ce78da9f7f2846b36"><code>6d35922</code></a>)</p>
+</li>
+<li>
+<p>:white_check_mark: Added test, updated workflow (<a href="https://github.com/Westfall-io/sysmlpy/commit/b21d14bdff81269f58f648ae44cc87466385b328"><code>b21d14b</code></a>)</p>
+</li>
+</ul>
+<h3 id="zap_1">:zap:<a class="headerlink" href="#zap_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>:zap: Adding code coverage badge to readme. (<a href="https://github.com/Westfall-io/sysmlpy/commit/c72fe8699891d30a588abdafc27d3f030900a31a"><code>c72fe86</code></a>)</li>
+</ul>
+<h3 id="other_6">Other<a class="headerlink" href="#other_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>:green_heart: Ignore repo upload. (<a href="https://github.com/Westfall-io/sysmlpy/commit/c5efb1139b987c89374ab3acf2586589e65d963e"><code>c5efb11</code></a>)</p>
+</li>
+<li>
+<p>:rocket: Moving to 0.1.2. (<a href="https://github.com/Westfall-io/sysmlpy/commit/e6b7c2d92da8d0a26f4baf438c363fca75f4141c"><code>e6b7c2d</code></a>)</p>
+</li>
+<li>
+<p>:construction_worker: Fix to build script to include grammar files. (<a href="https://github.com/Westfall-io/sysmlpy/commit/9a85d5547ba7c5343e1966d87d501583b2bc4c88"><code>9a85d55</code></a>)</p>
+</li>
+<li>
+<p>:rocket: Moving to 0.1.0 baseline, most of the base functionality is here. (<a href="https://github.com/Westfall-io/sysmlpy/commit/aa7333dffb77f364da4ee4f4c9375838e49d5568"><code>aa7333d</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixing?? (<a href="https://github.com/Westfall-io/sysmlpy/commit/21824c9c0f34b6f436b84f257bf373ceaf8cf98d"><code>21824c9</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixing? (<a href="https://github.com/Westfall-io/sysmlpy/commit/0f9b849174ca818f6de6076e4a8362ea32def4b6"><code>0f9b849</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixing code coverage with better import flat file usage. (<a href="https://github.com/Westfall-io/sysmlpy/commit/1a114792dcce922388f014acb26e8691e3a4fe02"><code>1a11479</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes for tests. (<a href="https://github.com/Westfall-io/sysmlpy/commit/e11d3e948c266bd6dc814cc68460f6d0bdc0e86a"><code>e11d3e9</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes to doc? (<a href="https://github.com/Westfall-io/sysmlpy/commit/1f27b220215f9c91836b7f5945cc8e62ad3fcaf3"><code>1f27b22</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: I broke it. (<a href="https://github.com/Westfall-io/sysmlpy/commit/38243bce4125a204eb74f4692572731fc07c31eb"><code>38243bc</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Let&#39;s see if this breaks github actions. (<a href="https://github.com/Westfall-io/sysmlpy/commit/3cf03e82e64da027ffd9aa9f727ff0183cc2ee82"><code>3cf03e8</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fix for correct path to code coverage check. (<a href="https://github.com/Westfall-io/sysmlpy/commit/2fccb2c5333a8a5001854b1f759eef91c9d60c6e"><code>2fccb2c</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes???? (<a href="https://github.com/Westfall-io/sysmlpy/commit/0955e8b6ee5ca7182ecd25a7a0fc80cea58b7dee"><code>0955e8b</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes??? (<a href="https://github.com/Westfall-io/sysmlpy/commit/2616e900bc0cec252b7d04bce61f47740782f229"><code>2616e90</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes?? (<a href="https://github.com/Westfall-io/sysmlpy/commit/b4147584a2d74aa9cd910932e36f58f6c865df66"><code>b414758</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes? (<a href="https://github.com/Westfall-io/sysmlpy/commit/37fa8a5bca43c05d4432cbfc894d30d4f0c8b6fc"><code>37fa8a5</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding code coverage detection. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b977536f2a1289ef8a69a00ec4761e277d7a2c1b"><code>b977536</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Seeing if I can drop the separate document workflow. (<a href="https://github.com/Westfall-io/sysmlpy/commit/7692fc71ed63a03b3266f3408fbac56f12d5496b"><code>7692fc7</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Need more in req.txt (<a href="https://github.com/Westfall-io/sysmlpy/commit/2a65bfcbf1599ae8999735a02b99366950fbca3f"><code>2a65bfc</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Testing if we need to change directory. (<a href="https://github.com/Westfall-io/sysmlpy/commit/96fc0c552930c697616caf7d9ef6fca68a1e4d77"><code>96fc0c5</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Test to check for new build changes to documentation. (<a href="https://github.com/Westfall-io/sysmlpy/commit/382c9debe679ef82abe288da8d1a26647c16bfd4"><code>382c9de</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes?? (<a href="https://github.com/Westfall-io/sysmlpy/commit/c6c0b0fdbf6db0924296fe5eb0a261be80d29667"><code>c6c0b0f</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Fixes? (<a href="https://github.com/Westfall-io/sysmlpy/commit/1d57172c96128dca989c7799c6b84ab22dd55b57"><code>1d57172</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding documentation to github action (<a href="https://github.com/Westfall-io/sysmlpy/commit/124645c3b0629f15090da7a71b1315fce26ebd1d"><code>124645c</code></a>)</p>
+</li>
+<li>
+<p>:fire: Removing mac files. (<a href="https://github.com/Westfall-io/sysmlpy/commit/18174bdc0d678666fa56e8a1233e7bd64a095a36"><code>18174bd</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Set write all (<a href="https://github.com/Westfall-io/sysmlpy/commit/6ed68a0149cd237eb8be070c3f63d8cc52ac278e"><code>6ed68a0</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Let&#39;s see if this works, adding permissions in the script/ (<a href="https://github.com/Westfall-io/sysmlpy/commit/e21687ad1f165f6da83b5ccca119f25bf2f885dc"><code>e21687a</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Trying this for autoformat. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4fa5563b5a4e7e49f5807e979480d1346ae08379"><code>4fa5563</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding autoformatting instead of checking (<a href="https://github.com/Westfall-io/sysmlpy/commit/b7b38dc71d7c0bdc4770d64fb7d2b3b79e8ad955"><code>b7b38dc</code></a>)</p>
+</li>
+<li>
+<p>:green_heart: Adding Black linting (<a href="https://github.com/Westfall-io/sysmlpy/commit/ee365aec7c3471a5843522a08c9afb951cef623c"><code>ee365ae</code></a>)</p>
+</li>
+<li>
+<p>:fire: Getting rid of mac files. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b41512a0aaea95c5a2791967ed01df9e67dba129"><code>b41512a</code></a>)</p>
+</li>
+<li>
+<p>:clown: Rework into textx which has similar syntax to current standard. (<a href="https://github.com/Westfall-io/sysmlpy/commit/b0f599120a4c2c2258011e610ad340072d02213e"><code>b0f5991</code></a>)</p>
+</li>
+<li>
+<p>:poop Removing more excess files. (<a href="https://github.com/Westfall-io/sysmlpy/commit/4bbe0f3a3e5795bb570cb378df8b4fb05f0f190c"><code>4bbe0f3</code></a>)</p>
+</li>
+<li>
+<p>:clown: Adding workflows (<a href="https://github.com/Westfall-io/sysmlpy/commit/e4cfccd1660a608333f64f0549e52cd9cb3491fb"><code>e4cfccd</code></a>)</p>
+</li>
+<li>
+<p>:clown_face: First commit of some data (<a href="https://github.com/Westfall-io/sysmlpy/commit/42c1782455b44ea207e586993c7d362769f5b156"><code>42c1782</code></a>)</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
