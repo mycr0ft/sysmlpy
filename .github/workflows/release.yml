@@ -10,16 +10,12 @@ on:
 permissions:
   contents: write
   id-token: write
-  pages: write
 
 jobs:
   documentation:
     name: Build MkDocs Documentation
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
@@ -29,7 +25,7 @@ jobs:
       run: pip install -r docs/requirements.txt
     - name: Build site
       run: mkdocs build
-    - id: deployment
+    - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
