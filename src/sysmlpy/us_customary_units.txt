@@ -1,0 +1,36 @@
+# Custom US Customary Units for sysmlpy
+# Reference: NIST SP 811 Appendix B
+# https://www.nist.gov/pml/special-publication-811/nist-guide-si-appendix-b-conversion-factors
+
+# BTU variants (pint's default BTU = 1055.056 J = Btu_IT)
+Btu_IT = british_thermal_unit
+Btu_mean = 1055.87 * joule
+Btu_39degF = 1059.67 * joule
+Btu_59degF = 1054.80 * joule
+Btu_60degF = 1054.68 * joule
+
+# Therm variants
+therm_EC = 1e5 * Btu_IT
+therm_US = 1.054804e8 * joule
+
+# Dry/Liquid volume variants (US)
+drypt = 5.506105e-4 * liter
+liqpt = 4.731765e-4 * liter
+dryqt = 1.101221e-3 * liter
+liqqt = 9.463529e-4 * liter
+
+# Fluid head pressure
+inH2O = 249.082 * pascal
+ftHg = 40636.66 * pascal
+
+# Misc
+clo = 0.155 * meter ** 2 * kelvin / watt
+quad = 1.055056e18 * joule
+footcandle = 10.76391 * lux
+footlambert = 3.426259 * candela / meter ** 2
+cord = 3.624556 * liter
+AT = 2.916667e-2 * kilogram
+
+# Aliases
+NM = nautical_mile
+gpm = gallon / minute

@@ -14,11 +14,22 @@ Created on Fri Jun 30 23:23:31 2023
 import uuid as uuidlib
 
 import pint
+import os
 
 ureg = pint.UnitRegistry()
 
+# Load custom US Customary unit definitions
+_us_customary_path = os.path.join(os.path.dirname(__file__), "us_customary_units.txt")
+if os.path.exists(_us_customary_path):
+    with open(_us_customary_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                ureg.define(line)
+
 from sysmlpy.formatting import classtree
 from sysmlpy.navigate import Searchable
+from sysmlpy.validator import validate_unit_conformance
 
 from sysmlpy.grammar.classes import (
     Identification,
@@ -715,6 +726,16 @@ class Attribute(Usage):
         if not isinstance(value, pint.Quantity):
             value = value * ureg.dimensionless
         if isinstance(value, pint.Quantity):
+            # Validate unit conformance to ISQ type if attribute is typed
+            if self.typedby is not None and not value.units.dimensionless:
+                type_name = getattr(self.typedby, 'name', None)
+                if type_name is not None:
+                    # Convert type name to ISQ value type format (e.g., 'mass' -> 'MassValue')
+                    isq_type = type_name.capitalize() + 'Value'
+                    is_conformant, message = validate_unit_conformance(isq_type, value)
+                    if not is_conformant:
+                        raise ValueError(message)
+
             # Only add units if not dimensionless
             if not value.units.dimensionless:
                 package_units = {
