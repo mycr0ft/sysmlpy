@@ -14,7 +14,7 @@ __all__ = [
     "to_plantuml", "PlantUMLGenerator",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.14.1"
+__version__ = "0.15.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
