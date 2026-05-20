@@ -1,0 +1,65 @@
+@startuml
+' ============================================================
+' Example 1: Usage vs Definition — Stereotype Differentiation
+' Shows how PartUsage and PartDefinition are distinguished
+' via stereotypes, not shapes.
+' ============================================================
+
+<style>
+root {
+    BackGroundColor white
+    FontName Helvetica
+    FontSize 14
+}
+rectangle {
+    RoundCorner 20
+    LineColor #444444
+    LineThickness 1
+    BackgroundColor white
+}
+arrow {
+    LineColor #555555
+    LineThickness 1.5
+}
+</style>
+
+skinparam wrapWidth 300
+hide circle
+
+title SysML v2 — Usage vs Definition
+
+' --- Definitions ---
+rectangle "Wheel" as WheelDef <<(D,#8B4513) part def>>
+rectangle "Axle" as AxleDef <<(D,#8B4513) part def>>
+rectangle "Vehicle" as VehicleDef <<(D,#8B4513) part def>>
+
+' --- Usages ---
+rectangle "frontLeft" as FL <<(P,#32CD32) part>>
+rectangle "frontRight" as FR <<(P,#32CD32) part>>
+rectangle "rearAxle" as RA <<(P,#32CD32) part>>
+
+' --- Typing relationships ---
+FL --:|> WheelDef : types
+FR --:|> WheelDef : types
+RA --:|> AxleDef : types
+
+' --- Containment (composite aggregation) ---
+VehicleDef *-- FL : owns
+VehicleDef *-- FR : owns
+VehicleDef *-- RA : owns
+
+note right of WheelDef
+  <<(D,#8B4513) part def>>
+  Definition = classifier/type
+  Rendered as rectangle
+  with stereotype badge
+end note
+
+note right of FL
+  <<(P,#32CD32) part>>
+  Usage = instance/occurrence
+  Same rectangle shape
+  Different stereotype badge
+end note
+
+@enduml

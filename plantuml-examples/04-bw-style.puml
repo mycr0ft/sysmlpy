@@ -1,0 +1,62 @@
+@startuml
+' ============================================================
+' Example 4: Standard B&W Style
+' Matches the reference implementation's "Standard B&W" style
+' with monochrome output and classic stereotypes.
+' ============================================================
+
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam roundcorner 20
+hide circle
+
+title SysML v2 — Standard B&W Style
+
+' === DEFINITIONS ===
+rectangle "Wheel" as WheelDef <<part def>>
+rectangle "Axle" as AxleDef <<part def>>
+rectangle "Vehicle" as VehicleDef <<part def>>
+
+' === USAGES ===
+rectangle "frontLeft" as FL <<part>>
+rectangle "frontRight" as FR <<part>>
+rectangle "rearAxle" as RA <<part>>
+
+' === TYPING ===
+FL --:|> WheelDef : types
+FR --:|> WheelDef : types
+RA --:|> AxleDef : types
+
+' === CONTAINMENT ===
+VehicleDef *-- FL : owns
+VehicleDef *-- FR : owns
+VehicleDef *-- RA : owns
+
+' === SPECIALIZATION ===
+WheelDef --|> AxleDef : specializes
+
+' === BINDING ===
+FL -[thickness=4]- RA : binding
+
+' === DEPENDENCY ===
+FL ..>> RA : dependency
+
+' === FLOW ===
+FL --> RA : flow
+
+legend right
+  <b>B&W Arrow Legend</b>
+  |= Relationship |= Notation |
+  | Specialization | --|> |
+  | Feature Typing | --:|> |
+  | Redefinition | --||> |
+  | Composite | *-- |
+  | Shared | o-- |
+  | Binding | -[thickness=4]- |
+  | Connector | -[thickness=2]-> |
+  | Dependency | ..>> |
+  | Flow | --> |
+  | Allocation | -[thickness=3,dotted]-> |
+endlegend
+
+@enduml

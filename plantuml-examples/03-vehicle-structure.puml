@@ -1,0 +1,99 @@
+@startuml
+' ============================================================
+' Example 3: Realistic Structure Diagram
+' A Vehicle assembly with ports, attributes, and connections
+' demonstrating compartments and mixed relationships.
+' ============================================================
+
+<style>
+root {
+    BackGroundColor white
+    FontName Helvetica
+    FontSize 13
+}
+rectangle {
+    RoundCorner 15
+    LineColor #444444
+    LineThickness 1.5
+    BackgroundColor white
+    Padding 10
+}
+arrow {
+    FontSize 11
+    LineColor #555555
+    LineThickness 1.5
+}
+</style>
+
+skinparam wrapWidth 400
+hide circle
+
+title SysML v2 — Vehicle Structure Diagram
+
+' === DEFINITIONS ===
+rectangle "Vehicle" as VDef <<(D,#8B4513) part def>> {
+  mass : MassValue
+  maxSpeed : SpeedValue
+  powerPort : PowerPort
+  dataBus : DataBus
+}
+
+rectangle "WheelAssembly" as WADef <<(D,#8B4513) part def>> {
+  radius : LengthValue
+  pressure : PressureValue
+  hubPort : HubPort
+  brakePort : BrakePort
+}
+
+rectangle "BrakeSystem" as BSDef <<(D,#8B4513) part def>> {
+  padThickness : LengthValue
+  fluidPort : FluidPort
+}
+
+rectangle "PowerPort" as PPDef <<port>>
+rectangle "DataBus" as DBDef <<port>>
+rectangle "HubPort" as HPDef <<port>>
+rectangle "BrakePort" as BPDef <<port>>
+
+' === USAGES ===
+rectangle "myVehicle" as MV <<(P,#32CD32) part>>
+rectangle "frontLeft" as FL <<(P,#32CD32) part>>
+rectangle "frontRight" as FR <<(P,#32CD32) part>>
+rectangle "brakes" as BR <<(P,#32CD32) part>>
+
+' === TYPING ===
+MV --:|> VDef : types
+FL --:|> WADef : types
+FR --:|> WADef : types
+BR --:|> BSDef : types
+
+' === COMPOSITE CONTAINMENT ===
+MV *-- FL : owns
+MV *-- FR : owns
+MV *-- BR : owns
+
+' === CONNECTORS ===
+FL -[thickness=2,#3498DB]-> BR : brakeLine
+FR -[thickness=2,#3498DB]-> BR : brakeLine
+
+' === BINDING ===
+FL.hubPort -[thickness=4,#E74C3C]- FL.axle : binds
+BR.fluidPort -[thickness=4,#E74C3C]- BR.masterCylinder : binds
+
+' === SPECIALIZATION ===
+WADef --|> VDef : specializes
+
+legend right
+  <b>Legend</b>
+  |= Element |= Notation |
+  | <<(D,#8B4513) part def>> | Definition (type) |
+  | <<(P,#32CD32) part>> | Usage (instance) |
+  | <<(P,#4169E1) port def>> | Port definition |
+  | --:|> | Feature typing |
+  | --|> | Specialization |
+  | *-- | Composite containment |
+  | -[thickness=2]-> | Connector |
+  | -[thickness=4]- | Binding |
+endlegend
+
+@enduml

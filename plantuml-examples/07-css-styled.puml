@@ -1,0 +1,94 @@
+@startuml
+' ============================================================
+' Example 7: CSS Styled Diagram
+' Demonstrates modern CSS styling for SysML v2 elements.
+' Note: CSS class selectors on arrows are not supported;
+' inline styling is used instead.
+' ============================================================
+
+!theme plain
+
+<style>
+root {
+    BackGroundColor white
+    FontName Helvetica
+}
+
+rectangle {
+    RoundCorner 15
+    LineColor #2C3E50
+    LineThickness 1.5
+    Padding 10
+    Shadowing 3
+}
+
+arrow {
+    LineColor #34495E
+    LineThickness 1.5
+    FontSize 11
+}
+
+.definition {
+    BackgroundColor #FDEBD0
+    LineColor #E67E22
+}
+.usage {
+    BackgroundColor #D5F5E3
+    LineColor #27AE60
+}
+.port {
+    BackgroundColor #EBF5FB
+    LineColor #3498DB
+    RoundCorner 5
+}
+</style>
+
+skinparam wrapWidth 400
+hide circle
+
+title SysML v2 — CSS Styled Diagram
+
+' === DEFINITIONS ===
+rectangle "Motor" as MotorDef <<part def>>
+rectangle "Pump" as PumpDef <<part def>>
+
+' === USAGES ===
+rectangle "driveMotor" as DM <<part>>
+rectangle "hydraulicPump" as HP <<part>>
+
+' === PORTS ===
+rectangle "shaftConn" as SC <<port>>
+rectangle "elecConn" as EC <<port>>
+
+' === TYPING (red, thick) ===
+DM -[#E74C3C,thickness=2]-> MotorDef : types
+HP -[#E74C3C,thickness=2]-> PumpDef : types
+
+' === CONTAINMENT ===
+DM *-- SC : owns
+DM *-- EC : owns
+
+' === BINDING (thick red) ===
+SC -[#E74C3C,thickness=4]- HP : binds
+
+' === CONNECTOR (blue) ===
+EC -[#3498DB,thickness=2]-> DM : power
+
+' === DEPENDENCY (dashed gray) ===
+HP -[#95A5A6,dotted]-> DM : depends on
+
+legend right
+  <b>CSS Style Legend</b>
+  |= Element |= Style |
+  | <<part def>> | Orange background, orange border |
+  | <<part>> | Green background, green border |
+  | <<port>> | Blue background, blue border |
+  |= Relationship |= Style |
+  | Typing | Red, thickness 2 |
+  | Containment | Dark, thickness 1.5 |
+  | Binding | Red, thickness 4 |
+  | Connector | Blue, thickness 2 |
+  | Dependency | Gray, dotted |
+endlegend
+
+@enduml
