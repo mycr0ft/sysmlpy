@@ -97,6 +97,11 @@ class Usage(Searchable):
     sysml_type = None
 
     def __init__(self):
+        """Initialize a base Usage element with default attributes.
+
+        Sets a UUID-based name, empty children list, and null references
+        for typedby and parent.
+        """
         self.name = str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
@@ -144,7 +149,22 @@ class Usage(Searchable):
         return self
 
     def usage_dump(self, child):
-        # This is a usage.
+        """Serialize this element as a usage for grammar tree output.
+
+        Wraps the grammar definition in the appropriate nesting layers
+        (OccurrenceUsageElement, UsageElement, PackageMember, etc.)
+        depending on the target context.
+
+        Parameters
+        ----------
+        child : str or None
+            Target context: "DefinitionBody", "PackageBody", or None.
+
+        Returns
+        -------
+        dict
+            Nested dict representing the serialized usage.
+        """
 
         self._ensure_body("usage")
 
@@ -174,6 +194,21 @@ class Usage(Searchable):
         return package
 
     def definition_dump(self, child):
+        """Serialize this element as a definition for grammar tree output.
+
+        Wraps the grammar definition in DefinitionElement/DefinitionMember
+        layers depending on the target context.
+
+        Parameters
+        ----------
+        child : str or None
+            Target context: "DefinitionBody", "PackageBody", or None.
+
+        Returns
+        -------
+        dict
+            Nested dict representing the serialized definition.
+        """
         # This is a definition.
 
         self._ensure_body("definition")
@@ -204,7 +239,21 @@ class Usage(Searchable):
         return package
 
     def _get_definition(self, child=None):
-        # Determine if this is a usage or definition based on grammar class name
+        """Build the grammar tree dict for this element.
+
+        Automatically detects whether this is a definition or usage based
+        on the grammar class name and delegates to the appropriate dump method.
+
+        Parameters
+        ----------
+        child : str or None
+            Target context for nesting.
+
+        Returns
+        -------
+        dict
+            Nested dict ready for serialization.
+        """
         grammar_cls_name = type(self.grammar).__name__
         is_def = grammar_cls_name.endswith('Definition')
         
@@ -236,9 +285,30 @@ class Usage(Searchable):
         return package
 
     def dump(self, child=None):
+        """Serialize this element to SysML v2 textual notation.
+
+        Parameters
+        ----------
+        child : bool, optional
+            If True, wraps output for embedding in a parent element.
+
+        Returns
+        -------
+        str
+            SysML v2 source code representing this element.
+        """
         return classtree(self._get_definition(child)).dump()
 
     def __repr__(self):
+        """Return a developer-friendly string representation of this element.
+
+        Includes class name, definition flag, name, and shortname when available.
+
+        Returns
+        -------
+        str
+            String representation suitable for debugging.
+        """
         # Safely get name
         try:
             name = getattr(self, 'name', None)
@@ -283,6 +353,21 @@ class Usage(Searchable):
                 return f"{cls_name}()"
 
     def _set_name(self, name, short=False):
+        """Set the declared name or short name on the grammar element.
+
+        Parameters
+        ----------
+        name : str
+            The name to set.
+        short : bool
+            If True, sets the short name (declaredShortName). Otherwise sets
+            the declared name.
+
+        Returns
+        -------
+        Usage
+            Self for chaining.
+        """
         if hasattr(self.grammar, "usage"):
             path = self.grammar.usage.declaration.declaration
         elif hasattr(self.grammar, "definition"):
@@ -305,15 +390,45 @@ class Usage(Searchable):
         return self
 
     def _get_name(self):
+        """Retrieve the declared name from the grammar element.
+
+        Returns
+        -------
+        str
+            The declared name.
+        """
         return self.grammar.usage.declaration.declaration.identification.declaredName
 
     def _set_child(self, child):
+        """Add a child element and set its parent reference.
+
+        Parameters
+        ----------
+        child : Usage
+            Child element to add.
+
+        Returns
+        -------
+        Usage
+            Self for chaining.
+        """
         self.children.append(child)
         child.parent = self
         return self
 
     def _get_child(self, featurechain):
-        # 'x.y.z'
+        """Retrieve a nested child by dot-separated name path.
+
+        Parameters
+        ----------
+        featurechain : str
+            Dot-separated path like "x.y.z".
+
+        Returns
+        -------
+        Usage or None
+            The matching child element, or None if not found.
+        """
         if isinstance(featurechain, str):
             fc = featurechain.split(".")
         else:
@@ -332,7 +447,27 @@ class Usage(Searchable):
                     return child._get_child(featurechain)
 
     def _set_typed_by(self, typed):
-        # Only set if the pointed object is a definition
+        """Set the typing relationship for this usage element.
+
+        Only accepts definition elements as the type source. Creates the
+        appropriate OwnedFeatureTyping grammar structure.
+
+        Parameters
+        ----------
+        typed : Usage
+            A definition element to type this usage by.
+
+        Returns
+        -------
+        Usage
+            Self for chaining.
+
+        Raises
+        ------
+        ValueError
+            If the typed element is not a definition, or if this element
+            is itself a definition.
+        """
         if "definition" in typed.grammar.__dict__:
             self.typedby = typed
             if "definition" in self.grammar.__dict__:
@@ -496,11 +631,34 @@ class Usage(Searchable):
         return self
 
     def _get_grammar(self):
+        """Ensure the grammar tree is up to date and return it.
+
+        Triggers body serialization before returning the grammar object.
+
+        Returns
+        -------
+        Grammar object
+            The underlying grammar instance.
+        """
         self._ensure_body()
         return self.grammar
 
     def load_from_grammar(self, grammar):
-        #!TODO Typed By
+        """Populate this element from a parsed grammar object.
+
+        Extracts name, children, and nested structure from the ANTLR-parsed
+        grammar tree. Recursively creates child elements for known types.
+
+        Parameters
+        ----------
+        grammar : object
+            Parsed grammar object (e.g., PartDefinition, PartUsage).
+
+        Returns
+        -------
+        Usage
+            Self for chaining.
+        """
         self.__init__()
         self.grammar = grammar
         children = []
@@ -690,6 +848,20 @@ class Usage(Searchable):
         return self
 
     def add_directed_feature(self, direction, name=str(uuidlib.uuid4())):
+        """Add a directional reference (in/out/inout) as a child.
+
+        Parameters
+        ----------
+        direction : str
+            One of 'in', 'out', or 'inout'.
+        name : str
+            Name for the reference. Defaults to a UUID.
+
+        Returns
+        -------
+        Usage
+            Self for chaining.
+        """
         self._set_child(DefaultReference()._set_name(name).set_direction(direction))
         return self
 
@@ -702,6 +874,16 @@ class Usage(Searchable):
 
 
 class Attribute(Usage):
+    """SysML v2 Attribute usage/definition.
+
+    Represents a property or characteristic of an element with an optional value.
+
+    Usage:
+        Attribute()                                  # attribute ;
+        Attribute(name='mass')                       # attribute mass;
+        Attribute(definition=True, name='MassValue') # attribute def MassValue;
+        Attribute(name='radius').set_value(5 * ureg.metre)  # attribute radius = 5 m;
+    """
     sysml_type = 'attribute'
     def __init__(self, definition=False, name=None):
         Usage.__init__(self)
@@ -750,6 +932,29 @@ class Attribute(Usage):
         return package
 
     def set_value(self, value):
+        """Set the value of this attribute with optional unit validation.
+
+        If the attribute is typed by an ISQ type, the unit is validated
+        for dimensional conformance. Dimensionless values skip validation.
+
+        Parameters
+        ----------
+        value : float, int, or pint.Quantity
+            The value to set. Non-Quantity values are treated as dimensionless.
+
+        Raises
+        ------
+        ValueError
+            If the attribute is typed and the unit is not conformant to the
+            expected ISQ type dimension.
+
+        Examples
+        --------
+        >>> attr = Attribute(name='mass')
+        >>> attr.set_value(5.0 * ureg.kilogram)
+        >>> attr.get_value()
+        <Quantity(5.0, 'kilogram')>
+        """
         if not isinstance(value, pint.Quantity):
             value = value * ureg.dimensionless
         if isinstance(value, pint.Quantity):
@@ -999,6 +1204,14 @@ class Attribute(Usage):
         return self
 
     def get_value(self):
+        """Get the current value of this attribute as a pint.Quantity.
+
+        Returns
+        -------
+        pint.Quantity
+            The attribute's value with units. Returns dimensionless if no
+            value has been set.
+        """
         valuepart = self.grammar.usage.completion.valuepart
         if valuepart is None:
             raise AttributeError("No valuepart found in grammar")
@@ -1054,8 +1267,29 @@ class Attribute(Usage):
 
 
 class Part(Usage):
+    """SysML v2 Part usage/definition.
+
+    Represents a physical or conceptual component within a system structure.
+
+    Usage:
+        Part()                                 # part ;
+        Part(name='engine')                    # part engine;
+        Part(definition=True, name='Engine')   # part def Engine;
+        Part(name='wheel', shortname='w')      # part w : Wheel;
+    """
     sysml_type = 'part'
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Part usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a PartDefinition. Otherwise creates PartUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name (rendered as `<shortname>`).
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = PartDefinition()
@@ -1069,8 +1303,29 @@ class Part(Usage):
 
 
 class Item(Usage):
+    """SysML v2 Item usage/definition.
+
+    Represents a discrete entity that can flow through connectors or be
+    contained within parts.
+
+    Usage:
+        Item()                                # item ;
+        Item(name='fuel')                     # item fuel;
+        Item(definition=True, name='Fuel')    # item def Fuel;
+    """
     sysml_type = 'item'
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize an Item usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an ItemDefinition. Otherwise creates ItemUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ItemDefinition()
@@ -1084,8 +1339,32 @@ class Item(Usage):
 
 
 class Port(Usage):
+    """SysML v2 Port usage/definition.
+
+    Represents an interaction point through which a part exchanges flows,
+    signals, or other interactions with its environment.
+
+    Usage:
+        Port()                                  # port ;
+        Port(name='input')                      # port input;
+        Port(definition=True, name='PowerPort') # port def PowerPort;
+        Port(name='ctrl', conjugated=True)      # port ~ctrl;  (conjugated)
+    """
     sysml_type = 'port'
     def __init__(self, definition=False, name=None, shortname=None, conjugated=False):
+        """Initialize a Port usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a PortDefinition. Otherwise creates PortUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        conjugated : bool
+            If True, marks the port as conjugated (reversed direction).
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = PortDefinition()
@@ -1188,8 +1467,29 @@ class Port(Usage):
 
 
 class Interface(Usage):
+    """SysML v2 Interface usage/definition.
+
+    Represents a set of interaction points (ends) and the connections
+    between them, defining how parts interact.
+
+    Usage:
+        Interface()                                    # interface ;
+        Interface(name='PowerInterface')               # interface PowerInterface;
+        Interface(definition=True, name='DataLink')    # interface def DataLink;
+    """
     sysml_type = 'interface'
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize an Interface usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an interface definition. Otherwise creates usage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
         self.children = []
@@ -1269,9 +1569,32 @@ class Interface(Usage):
 
 
 class Action(Usage):
+    """SysML v2 Action usage/definition.
+
+    Represents a behavior that transforms inputs to outputs, potentially
+    with nested sub-actions and control flow.
+
+    Usage:
+        Action()                                  # action ;
+        Action(name='compute')                    # action compute;
+        Action(definition=True, name='Compute')   # action def Compute;
+        Action(name='start', shortname='s')       # action s : StartAction;
+    """
     sysml_type = 'action'
     def __init__(self, definition=False, name=None, shortname=None, grammar=None):
-        # If grammar is provided (from load_from_grammar), use it
+        """Initialize an Action usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an ActionDefinition. Otherwise creates ActionUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        grammar : object, optional
+            Pre-parsed grammar object (used by load_from_grammar).
+        """
         if grammar is not None:
             self.grammar = grammar
         else:
@@ -1656,6 +1979,16 @@ class Action(Usage):
 
 
 class UseCase(Usage):
+    """SysML v2 UseCase usage/definition.
+
+    Represents a scenario describing interactions between actors and the
+    system to achieve a specific goal.
+
+    Usage:
+        UseCase()                                      # use case ;
+        UseCase(name='login')                          # use case login;
+        UseCase(definition=True, name='Login')         # use case def Login;
+    """
     sysml_type = 'use_case'
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
@@ -1790,6 +2123,16 @@ class UseCase(Usage):
 
 class Requirement(Usage):
     sysml_type = 'requirement'
+    """SysML v2 Requirement usage/definition.
+
+    Represents a condition or capability that must be satisfied by a system,
+    including textual documentation, attributes, and constraints.
+
+    Usage:
+        Requirement()                                          # requirement ;
+        Requirement(name='R1')                                 # requirement R1;
+        Requirement(definition=True, name='SafetyRequirement') # requirement def SafetyRequirement;
+    """
     def __init__(self, definition=False, name=None, shortname=None):
         if definition:
             self.grammar = RequirementDefinition(None)
@@ -2381,6 +2724,17 @@ class State(_BehaviorUsage):
         State(definition=True, name='Mode')  # state def Mode;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a State usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a StateDefinition. Otherwise creates StateUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = StateDefinition()
@@ -2531,6 +2885,17 @@ class Constraint(_NonOccurrenceUsage):
         Constraint(definition=True, name='Limit') # constraint def Limit;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Constraint usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a ConstraintDefinition. Otherwise creates ConstraintUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ConstraintDefinition()
@@ -2553,6 +2918,17 @@ class Connection(Usage):
         Connection(definition=True, name='DataLink')  # connection def DataLink;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Connection usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a ConnectionDefinition. Otherwise creates ConnectionUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ConnectionDefinition()
@@ -2575,6 +2951,17 @@ class Flow(Usage):
         Flow(definition=True, name='WaterFlow')      # flow def WaterFlow;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Flow connection usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a FlowConnectionDefinition. Otherwise creates FlowConnectionUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = FlowConnectionDefinition()
@@ -2597,6 +2984,17 @@ class Calculation(_NonOccurrenceUsage):
         Calculation(definition=True, name='Distance')   # calc def Distance;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Calculation usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a CalculationDefinition. Otherwise creates CalculationUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = CalculationDefinition()
@@ -2619,6 +3017,19 @@ class Enumeration(Usage):
         Enumeration(name='Color')  # enum def Color;
     """
     def __init__(self, definition=True, name=None, shortname=None):
+        """Initialize an Enumeration definition.
+
+        Note: SysML v2 only has EnumerationDefinition, no EnumerationUsage.
+
+        Parameters
+        ----------
+        definition : bool
+            Always True (ignored). Only definitions are supported.
+        name : str, optional
+            Enumeration name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         # EnumerationDefinition is the only form
         self.grammar = EnumerationDefinition()
@@ -2641,6 +3052,17 @@ class Allocation(Usage):
         Allocation(definition=True, name='AllocSpec') # allocation def AllocSpec;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize an Allocation usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an AllocationDefinition. Otherwise creates AllocationUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = AllocationDefinition()
@@ -2665,6 +3087,17 @@ class Metadata(_NonOccurrenceUsage):
         Metadata(definition=True, name='AuthorMeta')     # metadata def AuthorMeta;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Metadata usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a MetadataDefinition. Otherwise creates MetadataUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = MetadataDefinition()
@@ -2689,6 +3122,17 @@ class Rendering(Usage):
         Rendering(definition=True, name='DefRender')   # rendering def DefRender;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Rendering usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a RenderingDefinition. Otherwise creates RenderingUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = RenderingDefinition()
@@ -2713,6 +3157,17 @@ class Individual(Usage):
         Individual(definition=True, name='DefIndiv')     # individual def DefIndiv;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize an Individual usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an IndividualDefinition. Otherwise creates IndividualUsageSimple.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = IndividualDefinition()
@@ -2736,6 +3191,17 @@ class FlowDef(Usage):
         FlowDef(name='DataStream')   # flow def DataStream;
     """
     def __init__(self, name=None, shortname=None):
+        """Initialize a FlowDefinition (alternate simpler form).
+
+        Note: This is the simpler 'flow def' form, distinct from FlowConnectionDefinition.
+
+        Parameters
+        ----------
+        name : str, optional
+            Flow name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         self.grammar = FlowDefinition()
         
@@ -2757,6 +3223,17 @@ class View(Usage):
         View(definition=True, name='SysView')   # view def SysView;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a View usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a ViewDefinition. Otherwise creates ViewUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ViewDefinition()
@@ -2781,6 +3258,17 @@ class Viewpoint(_BehaviorUsage):
         Viewpoint(definition=True, name='VPDef')      # viewpoint def VPDef;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Viewpoint usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a ViewpointDefinition. Otherwise creates ViewpointUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ViewpointDefinition()
@@ -2805,6 +3293,17 @@ class Concern(_BehaviorUsage):
         Concern(definition=True, name='Safety')    # concern def Safety;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Concern usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a ConcernDefinition. Otherwise creates ConcernUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = ConcernDefinition()
@@ -2829,6 +3328,17 @@ class Case(_BehaviorUsage):
         Case(definition=True, name='CaseSpec')  # case def CaseSpec;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a Case usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a CaseDefinition. Otherwise creates CaseUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = CaseDefinition()
@@ -2853,6 +3363,17 @@ class AnalysisCase(_BehaviorUsage):
         AnalysisCase(definition=True, name='Thermal')   # analysis def Thermal;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize an AnalysisCase usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates an AnalysisCaseDefinition. Otherwise creates AnalysisCaseUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = AnalysisCaseDefinition()
@@ -2877,6 +3398,17 @@ class VerificationCase(_BehaviorUsage):
         VerificationCase(definition=True, name='Verify1')     # verification case def Verify1;
     """
     def __init__(self, definition=False, name=None, shortname=None):
+        """Initialize a VerificationCase usage or definition.
+
+        Parameters
+        ----------
+        definition : bool
+            If True, creates a VerificationCaseDefinition. Otherwise creates VerificationCaseUsage.
+        name : str, optional
+            Element name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         Usage.__init__(self)
         if definition:
             self.grammar = VerificationCaseDefinition()
@@ -2890,6 +3422,15 @@ class VerificationCase(_BehaviorUsage):
 
 
 class Reference(Usage):
+    """SysML v2 Reference usage.
+
+    Represents a reference to another element, optionally with redefinition
+    or type specification.
+
+    Usage:
+        Reference(name='ref1')                     # ref ref1;
+        Reference(name='r', redefines='original')  # ref r :>> original;
+    """
     sysml_type = 'reference'
     def __init__(self, name=None, shortname=None, redefines=None):
         self.name = name if name else str(uuidlib.uuid4())
@@ -2929,6 +3470,15 @@ class Reference(Usage):
 
 
 class DefaultReference(Usage):
+    """SysML v2 DefaultReference usage.
+
+    Represents a default reference, typically used for input/output parameters
+    in actions and behaviors.
+
+    Usage:
+        DefaultReference().set_direction('in')   # in ;
+        DefaultReference().set_direction('out')  # out ;
+    """
     def __init__(self):
         Usage.__init__(self)
         self.grammar = DefaultReferenceUsage()

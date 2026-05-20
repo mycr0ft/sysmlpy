@@ -14,7 +14,9 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.12.0:** 100% conformance test pass rate (123/123). Storage abstraction layer with in-memory and NetworkX graph backends. Convenience functions: find_all, count, traverse, to_dict, to_graph, path_between.
+**v0.14.0:** 100% conformance test pass rate (123/123). Storage abstraction layer with in-memory and NetworkX graph backends. Convenience functions: find_all, count, traverse, to_dict, to_graph, path_between.
+
+**v0.14.1:** ISQ unit validation (300+ type-to-dimension mappings), US Customary unit support (21 custom definitions), PlantUML diagram generation with stereotype-based styling, strict import visibility enforcement, and comprehensive API documentation.
 
 ## Requirements
 sysmlpy requires the following Python packages:
@@ -24,6 +26,7 @@ sysmlpy requires the following Python packages:
 
 ### Optional Dependencies
 - [networkx](https://networkx.org/) — graph analysis backend (install with `pip install sysmlpy[graph]`)
+- [plantuml](https://plantuml.com/) — PlantUML diagram rendering (requires Java + PlantUML JAR or [PlantUML server](https://www.plantuml.com/plantuml))
 
 ## Installation
 
@@ -178,6 +181,94 @@ print(tree.dump())
 ```
 
 **61% of the 56 grammar round-trip tests currently pass** (34/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, and constraints.
+
+## PlantUML Visualizations
+
+Generate SysML v2 structure diagrams from parsed models using the built-in PlantUML generator. Definitions render with sharp corners and usage elements with rounded corners. Relationships are differentiated by arrow style, thickness, and color — following the [official SysML v2 Pilot Implementation](https://github.com/Systems-Modeling/SysML-v2-Release) approach.
+
+```python
+from sysmlpy import loads
+from sysmlpy.plantuml import PlantUMLGenerator
+
+text = """package Vehicle {
+    part def Wheel {
+        attribute radius : LengthValue;
+        attribute pressure : PressureValue;
+    }
+
+    part def BrakeSystem {
+        attribute padThickness : LengthValue;
+    }
+
+    part def VehicleAssembly {
+        part frontLeft : Wheel;
+        part frontRight : Wheel;
+        part brakes : BrakeSystem;
+    }
+
+    part myVehicle : VehicleAssembly;
+}"""
+
+model = loads(text)
+gen = PlantUMLGenerator(model, title="Vehicle Structure")
+print(gen.generate())
+```
+
+Produces PlantUML source that renders as:
+
+```plantuml
+@startuml
+skinparam RoundCorner 0
+skinparam rectangle<<(D,#8B4513) part def>> {
+    RoundCorner 0
+    BackgroundColor #FFF8F0
+    BorderColor #8B4513
+}
+skinparam rectangle<<(P,#32CD32) part>> {
+    RoundCorner 15
+    BackgroundColor #F0FFF0
+    BorderColor #32CD32
+}
+
+title Vehicle Structure
+
+rectangle "Wheel" as Wheel <<(D,#8B4513) part def>>
+rectangle "BrakeSystem" as BrakeSystem <<(D,#8B4513) part def>>
+rectangle "VehicleAssembly" as VehicleAssembly <<(D,#8B4513) part def>>
+rectangle "myVehicle" as myVehicle <<(P,#32CD32) part>>
+
+VehicleAssembly *-- frontLeft : owns
+VehicleAssembly *-- frontRight : owns
+VehicleAssembly *-- brakes : owns
+myVehicle --:|> VehicleAssembly : types
+
+legend right
+  <b>Legend</b>
+  |= Element |= Notation |
+  | <<(D,#8B4513) part def>> | Definition (type) |
+  | <<(P,#32CD32) part>> | Usage (instance) |
+  | --:|> | Feature typing |
+  | *-- | Composite containment |
+endlegend
+@enduml
+```
+
+### Filtering and Focus
+
+The generator supports filtering to highlight specific elements:
+
+```python
+# Show only elements related to 'myVehicle'
+gen = PlantUMLGenerator(model, focus="myVehicle")
+
+# Show a custom set of elements
+gen = PlantUMLGenerator(model, elements=["Wheel", "BrakeSystem"])
+
+# Limit nesting depth
+gen = PlantUMLGenerator(model, max_depth=2)
+```
+
+See [`docs/plantuml-examples/`](docs/plantuml-examples/) for 9 rendered examples covering usage vs definition, relationships, vehicle structure, requirements, interconnections, state machines, and activity diagrams.
 
 ## Conformance
 

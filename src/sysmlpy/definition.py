@@ -37,6 +37,11 @@ class Model(Searchable):
     sysml_type = None  # Model is the root, not a SysML element itself
 
     def __init__(self):
+        """Initialize an empty root model container.
+
+        Creates a UUID-based name and empty children list. The model serves
+        as the root namespace for all packages and their contents.
+        """
         self.name = str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
@@ -44,6 +49,13 @@ class Model(Searchable):
         self.parent = None
 
     def __repr__(self):
+        """Return a developer-friendly string representation.
+
+        Returns
+        -------
+        str
+            String showing child elements for debugging.
+        """
         cls_name = self.__class__.__name__
         if self.children:
             children_repr = ', '.join(repr(c) for c in self.children)
@@ -149,6 +161,17 @@ class Model(Searchable):
         return self
 
     def _ensure_body(self):
+        """Rebuild the grammar body from current children and imports.
+
+        Serializes all child elements into PackageMember wrappers and
+        preserves any existing Import or AliasMember entries. Updates
+        self.grammar with the reconstructed RootNamespace.
+
+        Returns
+        -------
+        Model
+            Self for chaining.
+        """
         body = []
         for abc in self.children:
             v = abc._get_definition(child="PackageBody")
@@ -171,9 +194,36 @@ class Model(Searchable):
         return self
 
     def _get_definition(self):
+        """Return the serialized grammar tree for the model.
+
+        Returns
+        -------
+        dict
+            Grammar tree dict ready for serialization.
+        """
         return self.grammar.get_definition()
 
     def dump(self):
+        """Serialize the model to SysML v2 textual notation.
+
+        Returns
+        -------
+        str
+            SysML v2 source code representing the model.
+
+        Raises
+        ------
+        ValueError
+            If the model has no children to serialize.
+
+        Examples
+        --------
+        >>> model = sysmlpy.loads('package P { part def Wheel; }')
+        >>> print(model.dump())
+        package P {
+           part def Wheel ;
+        }
+        """
         if len(self.children) == 0:
             raise ValueError("Base Model has no elements to output.")
 
@@ -181,19 +231,41 @@ class Model(Searchable):
         return classtree(self._get_definition()).dump()
 
     def _set_child(self, child):
+        """Add a child package or element to the model.
+
+        Parameters
+        ----------
+        child : Package or Usage
+            Child element to add.
+
+        Returns
+        -------
+        Model
+            Self for chaining.
+        """
         self.children.append(child)
         child.parent = self
         return self
 
     def _get_child(self, featurechain):
-        # 'x.y.z'
+        """Retrieve a nested child by dot-separated name path.
+
+        Parameters
+        ----------
+        featurechain : str
+            Dot-separated path like "pkg.element".
+
+        Returns
+        -------
+        element or None
+            The matching child element, or None if not found.
+        """
         if isinstance(featurechain, str):
             fc = featurechain.split(".")
         else:
             raise TypeError
 
         if fc[0] == self.name:
-            # This first one must match self name, otherwise pass it all
             featurechain = ".".join(fc[1:])
 
         for child in self.children:
@@ -306,6 +378,15 @@ class Package(Searchable):
     sysml_type = "package"
 
     def __init__(self, name=None, shortname=None):
+        """Initialize a SysML v2 Package.
+
+        Parameters
+        ----------
+        name : str, optional
+            Package name.
+        shortname : str, optional
+            Abbreviated name.
+        """
         self.name = str(uuidlib.uuid4())
         self.children = []
         self.typedby = None
@@ -318,6 +399,13 @@ class Package(Searchable):
             self._set_name(shortname, short=True)
 
     def __repr__(self):
+        """Return a developer-friendly string representation.
+
+        Returns
+        -------
+        str
+            String showing name and shortname for debugging.
+        """
         name = getattr(self, 'name', None)
         shortname = getattr(self.grammar.declaration.identification, 'declaredShortName', None)
         
@@ -332,6 +420,20 @@ class Package(Searchable):
             return f"{cls_name}()"
 
     def _set_name(self, name, short=False):
+        """Set the declared name or short name on the package grammar.
+
+        Parameters
+        ----------
+        name : str
+            The name to set.
+        short : bool
+            If True, sets the short name. Otherwise sets the declared name.
+
+        Returns
+        -------
+        Package
+            Self for chaining.
+        """
         if short:
             if self.grammar.declaration.identification is None:
                 self.grammar.declaration.identification = Identification()
@@ -345,15 +447,45 @@ class Package(Searchable):
         return self
 
     def _get_name(self):
+        """Retrieve the declared name from the package grammar.
+
+        Returns
+        -------
+        str
+            The declared name.
+        """
         return self.grammar.declaration.identification.declaredName
 
     def _set_child(self, child):
+        """Add a child element to this package.
+
+        Parameters
+        ----------
+        child : Usage or Package
+            Child element to add.
+
+        Returns
+        -------
+        Package
+            Self for chaining.
+        """
         self.children.append(child)
         child.parent = self
         return self
 
     def _get_child(self, featurechain):
-        # 'x.y.z'
+        """Retrieve a nested child by dot-separated name path.
+
+        Parameters
+        ----------
+        featurechain : str
+            Dot-separated path like "pkg.element".
+
+        Returns
+        -------
+        element or None
+            The matching child element, or None if not found.
+        """
         if isinstance(featurechain, str):
             fc = featurechain.split(".")
         else:
@@ -372,6 +504,11 @@ class Package(Searchable):
                     return child._get_child(featurechain)
 
     def _ensure_body(self):
+        """Rebuild the package grammar body from current children and imports.
+
+        Serializes all child elements into PackageMember wrappers and
+        preserves any existing Import or AliasMember entries.
+        """
         body = []
         for abc in self.children:
             v = abc._get_definition(child="PackageBody")
@@ -392,6 +529,18 @@ class Package(Searchable):
             )
 
     def _get_definition(self, child=None):
+        """Build the grammar tree dict for this package.
+
+        Parameters
+        ----------
+        child : bool, optional
+            If False, wraps output in a PackageBodyElement.
+
+        Returns
+        -------
+        dict
+            Nested dict ready for serialization.
+        """
         self._ensure_body()
 
         package = {
@@ -418,6 +567,18 @@ class Package(Searchable):
         return package
 
     def dump(self, child=None):
+        """Serialize the package to SysML v2 textual notation.
+
+        Parameters
+        ----------
+        child : bool, optional
+            If False, wraps output in a PackageBodyElement. Default is None.
+
+        Returns
+        -------
+        str
+            SysML v2 source code representing the package.
+        """
         return classtree(self._get_definition(child=False)).dump()
 
     def add_import(self, namespace, visibility="private", recursive=False, membership=None):
@@ -555,6 +716,21 @@ class Package(Searchable):
         return self
 
     def load_from_grammar(self, grammar):
+        """Load package structure from a parsed grammar object.
+
+        Populates the package's name, children, and imports from the
+        ANTLR-parsed grammar tree.
+
+        Parameters
+        ----------
+        grammar : PackageGrammar
+            Parsed grammar object representing a SysML v2 package.
+
+        Returns
+        -------
+        Package
+            Self for chaining.
+        """
         # Get the identification values
         declared_name = grammar.declaration.identification.declaredName
         declared_shortname = grammar.declaration.identification.declaredShortName if hasattr(grammar.declaration.identification, 'declaredShortName') else None
@@ -1040,6 +1216,13 @@ class Package(Searchable):
         return self
 
     def _get_grammar(self):
+        """Ensure the grammar body is up to date and return the grammar object.
+
+        Returns
+        -------
+        PackageGrammar
+            The underlying grammar instance.
+        """
         # Force updates to grammar if something has changed.
         self._ensure_body()
         return self.grammar

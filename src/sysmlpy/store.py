@@ -241,6 +241,19 @@ class InMemoryStore(Store):
     def put(self, element_id: str, data: dict,
             parent_id: Optional[str] = None,
             rel_type: str = REL_PARENT_CHILD) -> None:
+        """Store an element and optionally link it to a parent.
+
+        Parameters
+        ----------
+        element_id : str
+            Unique identifier for the element.
+        data : dict
+            Element attributes (e.g., {'name': 'Wheel', 'sysml_type': 'part'}).
+        parent_id : str, optional
+            Parent element ID to establish a parent-child relationship.
+        rel_type : str, optional
+            Relationship type. Default is REL_PARENT_CHILD.
+        """
         self._elements[element_id] = data
 
         if parent_id is not None:
@@ -252,9 +265,33 @@ class InMemoryStore(Store):
             self._edges.setdefault(element_id, []).append((parent_id, rel_type, edge_data))
 
     def get(self, element_id: str) -> Optional[dict]:
+        """Retrieve an element's data by ID.
+
+        Parameters
+        ----------
+        element_id : str
+            Unique identifier for the element.
+
+        Returns
+        -------
+        dict or None
+            Element data dict, or None if not found.
+        """
         return self._elements.get(element_id)
 
     def delete(self, element_id: str) -> bool:
+        """Remove an element and all its relationships.
+
+        Parameters
+        ----------
+        element_id : str
+            Unique identifier for the element to remove.
+
+        Returns
+        -------
+        bool
+            True if the element was found and deleted, False otherwise.
+        """
         if element_id not in self._elements:
             return False
 
@@ -276,20 +313,84 @@ class InMemoryStore(Store):
         return True
 
     def children(self, parent_id: str, rel_type: str = REL_PARENT_CHILD) -> list[str]:
+        """Get the IDs of child elements for a given parent.
+
+        Parameters
+        ----------
+        parent_id : str
+            Parent element ID.
+        rel_type : str, optional
+            Filter by relationship type. Default is REL_PARENT_CHILD.
+
+        Returns
+        -------
+        list of str
+            List of child element IDs.
+        """
         return self._children.get(parent_id, []).copy()
 
     def parents(self, child_id: str, rel_type: Optional[str] = None) -> list[str]:
+        """Get the IDs of parent elements for a given child.
+
+        Parameters
+        ----------
+        child_id : str
+            Child element ID.
+        rel_type : str, optional
+            Filter by relationship type (unused in this implementation).
+
+        Returns
+        -------
+        list of str
+            List of parent element IDs.
+        """
         return self._parents.get(child_id, []).copy()
 
     def relationships(self, element_id: str,
                       rel_type: Optional[str] = None,
                       direction: str = "both") -> list[tuple[str, str, dict]]:
+        """Get all relationships for an element.
+
+        Parameters
+        ----------
+        element_id : str
+            Element ID to query.
+        rel_type : str, optional
+            Filter by relationship type.
+        direction : str, optional
+            Direction filter (unused in this implementation).
+
+        Returns
+        -------
+        list of tuple
+            List of (target_id, rel_type, edge_data) tuples.
+        """
         edges = self._edges.get(element_id, [])
         if rel_type:
             edges = [(t, r, d) for t, r, d in edges if r == rel_type]
         return edges.copy()
 
     def query(self, **filters) -> list[str]:
+        """Query elements by attribute filters.
+
+        Parameters
+        ----------
+        **filters : dict
+            Attribute name=value pairs to match. Supports glob patterns
+            with '*' for the 'name' field.
+
+        Returns
+        -------
+        list of str
+            List of matching element IDs.
+
+        Examples
+        --------
+        >>> store.query(sysml_type='part')
+        ['uuid1', 'uuid2']
+        >>> store.query(name='*Wheel*')
+        ['uuid3']
+        """
         results = []
         for eid, data in self._elements.items():
             match = True
@@ -307,15 +408,42 @@ class InMemoryStore(Store):
         return results
 
     def has(self, element_id: str) -> bool:
+        """Check if an element exists in the store.
+
+        Parameters
+        ----------
+        element_id : str
+            Element ID to check.
+
+        Returns
+        -------
+        bool
+            True if the element exists, False otherwise.
+        """
         return element_id in self._elements
 
     def __len__(self) -> int:
+        """Return the number of elements in the store.
+
+        Returns
+        -------
+        int
+            Number of stored elements.
+        """
         return len(self._elements)
 
     def ids(self) -> Iterator[str]:
+        """Iterate over all element IDs in the store.
+
+        Returns
+        -------
+        iterator of str
+            Iterator over element IDs.
+        """
         return iter(self._elements.keys())
 
     def clear(self) -> None:
+        """Remove all elements and relationships from the store."""
         self._elements.clear()
         self._children.clear()
         self._parents.clear()
@@ -336,6 +464,14 @@ class NetworkXStore(Store):
     """
 
     def __init__(self, directed: bool = True):
+        """Initialize a NetworkX-based graph store.
+
+        Parameters
+        ----------
+        directed : bool
+            If True (default), creates a MultiDiGraph. If False, creates
+            a MultiGraph for undirected relationships.
+        """
         import networkx as nx
         if directed:
             self._graph = nx.MultiDiGraph()
@@ -346,24 +482,74 @@ class NetworkXStore(Store):
     def put(self, element_id: str, data: dict,
             parent_id: Optional[str] = None,
             rel_type: str = REL_PARENT_CHILD) -> None:
-        self._graph.add_node(element_id, **data)
+        """Store an element as a graph node and optionally add an edge to a parent.
+
+        Parameters
+        ----------
+        element_id : str
+            Unique identifier for the element.
+        data : dict
+            Element attributes stored as node properties.
+        parent_id : str, optional
+            Parent element ID to create a directed edge.
+        rel_type : str, optional
+            Edge label/type. Default is REL_PARENT_CHILD.
+        """
 
         if parent_id is not None:
             self._graph.add_edge(parent_id, element_id,
-                                 rel_type=rel_type, **{"_rel": rel_type})
+                                  rel_type=rel_type, **{"_rel": rel_type})
 
     def get(self, element_id: str) -> Optional[dict]:
+        """Retrieve a node's attributes by ID.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to look up.
+
+        Returns
+        -------
+        dict or None
+            Node attributes dict, or None if not found.
+        """
         if not self._graph.has_node(element_id):
             return None
         return dict(self._graph.nodes[element_id])
 
     def delete(self, element_id: str) -> bool:
+        """Remove a node and all its incident edges.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to remove.
+
+        Returns
+        -------
+        bool
+            True if the node was found and deleted, False otherwise.
+        """
         if not self._graph.has_node(element_id):
             return False
         self._graph.remove_node(element_id)
         return True
 
     def children(self, parent_id: str, rel_type: str = REL_PARENT_CHILD) -> list[str]:
+        """Get child element IDs connected by outgoing edges of the given type.
+
+        Parameters
+        ----------
+        parent_id : str
+            Parent node ID.
+        rel_type : str
+            Filter by edge relationship type. Default is REL_PARENT_CHILD.
+
+        Returns
+        -------
+        list[str]
+            List of child node IDs.
+        """
         if not self._graph.has_node(parent_id):
             return []
         result = []
@@ -373,6 +559,20 @@ class NetworkXStore(Store):
         return result
 
     def parents(self, child_id: str, rel_type: Optional[str] = None) -> list[str]:
+        """Get parent element IDs connected by incoming edges.
+
+        Parameters
+        ----------
+        child_id : str
+            Child node ID.
+        rel_type : str, optional
+            Filter by edge relationship type. If None, returns all parents.
+
+        Returns
+        -------
+        list[str]
+            List of parent node IDs.
+        """
         if not self._graph.has_node(child_id):
             return []
         result = []
@@ -384,6 +584,22 @@ class NetworkXStore(Store):
     def relationships(self, element_id: str,
                       rel_type: Optional[str] = None,
                       direction: str = "both") -> list[tuple[str, str, dict]]:
+        """Get all relationships (edges) connected to a node.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to query.
+        rel_type : str, optional
+            Filter by edge relationship type.
+        direction : str
+            "out" (outgoing edges), "in" (incoming edges), or "both" (default).
+
+        Returns
+        -------
+        list[tuple[str, str, dict]]
+            List of (target_id, rel_type, edge_data) tuples.
+        """
         if not self._graph.has_node(element_id):
             return []
 
@@ -401,6 +617,19 @@ class NetworkXStore(Store):
         return edges
 
     def query(self, **filters) -> list[str]:
+        """Find nodes matching property filters.
+
+        Parameters
+        ----------
+        **filters : dict
+            Node attribute name=value pairs to match.
+            Supports glob patterns with '*' for the 'name' field.
+
+        Returns
+        -------
+        list[str]
+            List of matching node IDs.
+        """
         results = []
         for node, data in self._graph.nodes(data=True):
             match = True
@@ -418,15 +647,42 @@ class NetworkXStore(Store):
         return results
 
     def has(self, element_id: str) -> bool:
+        """Check if a node exists in the graph.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to check.
+
+        Returns
+        -------
+        bool
+            True if the node exists, False otherwise.
+        """
         return self._graph.has_node(element_id)
 
     def __len__(self) -> int:
+        """Return the number of nodes in the graph.
+
+        Returns
+        -------
+        int
+            Number of nodes.
+        """
         return self._graph.number_of_nodes()
 
     def ids(self) -> Iterator[str]:
+        """Iterate over all node IDs in the graph.
+
+        Returns
+        -------
+        iterator of str
+            Iterator over node IDs.
+        """
         return iter(self._graph.nodes())
 
     def clear(self) -> None:
+        """Remove all nodes and edges from the graph."""
         self._graph.clear()
 
     # ── Graph-specific methods ──────────────────────────────────────────
@@ -460,7 +716,18 @@ class NetworkXStore(Store):
             return None
 
     def connected_components(self, rel_type: Optional[str] = None) -> list[set[str]]:
-        """Return connected components of the graph."""
+        """Return weakly connected components of the graph.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        list[set[str]]
+            List of sets, each containing node IDs in a connected component.
+        """
         if rel_type:
             subgraph = self._nx.subgraph_view(
                 self._graph,
@@ -470,7 +737,18 @@ class NetworkXStore(Store):
         return list(self._nx.weakly_connected_components(self._graph))
 
     def cycles(self, rel_type: Optional[str] = None) -> list[list[str]]:
-        """Find all simple cycles in the graph."""
+        """Find all simple cycles in the graph.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        list[list[str]]
+            List of cycles, each represented as a list of node IDs.
+        """
         if rel_type:
             subgraph = self._nx.subgraph_view(
                 self._graph,
@@ -480,7 +758,18 @@ class NetworkXStore(Store):
         return list(self._nx.simple_cycles(self._graph))
 
     def centrality(self, rel_type: Optional[str] = None) -> dict[str, float]:
-        """Return degree centrality for all nodes."""
+        """Compute degree centrality for all nodes.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        dict[str, float]
+            Mapping of node ID to centrality score (0.0 to 1.0).
+        """
         if rel_type:
             subgraph = self._nx.subgraph_view(
                 self._graph,
@@ -490,17 +779,40 @@ class NetworkXStore(Store):
         return self._nx.degree_centrality(self._graph)
 
     def subgraph(self, element_ids: list[str]) -> "NetworkXStore":
-        """Return a new store containing only the specified elements."""
+        """Create a new store containing only the specified elements and their edges.
+
+        Parameters
+        ----------
+        element_ids : list[str]
+            Node IDs to include in the subgraph.
+
+        Returns
+        -------
+        NetworkXStore
+            A new store with a copy of the induced subgraph.
+        """
         new_store = NetworkXStore()
         new_store._graph = self._graph.subgraph(element_ids).copy()
         return new_store
 
     def export_graphml(self, path: str) -> None:
-        """Export the graph to GraphML format for visualization."""
+        """Export the graph to GraphML format for visualization in external tools.
+
+        Parameters
+        ----------
+        path : str
+            File path to write the GraphML file to.
+        """
         self._nx.write_graphml(self._graph, path)
 
     def stats(self) -> dict:
-        """Return graph statistics."""
+        """Compute summary statistics about the graph.
+
+        Returns
+        -------
+        dict
+            Dictionary with keys: nodes, edges, density, is_connected, avg_degree.
+        """
         return {
             "nodes": self._graph.number_of_nodes(),
             "edges": self._graph.number_of_edges(),
