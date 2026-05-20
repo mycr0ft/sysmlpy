@@ -126,9 +126,11 @@ pint = ">=0.24"
 pyyaml = ">=6.0"
 antlr4-python3-runtime = ">=4.13"
 networkx = { version = ">=3.0", optional = true }
+kuzu = { version = ">=0.7,<0.12", optional = true }
 
 [tool.poetry.extras]
 graph = ["networkx"]
+kuzu = ["kuzu"]
 
 [tool.poetry.scripts]
 sysmlpy = "sysmlpy.__main__:main"

@@ -822,6 +822,569 @@ class NetworkXStore(Store):
         }
 
 
+# ── Kuzu Store ──────────────────────────────────────────────────────────────
+
+class KuzuStore(Store):
+    """Embedded graph database storage backend using Kuzu.
+
+    Elements are nodes with properties stored as node attributes.
+    Relationships are directed edges with typed labels. This backend
+    provides disk persistence, ACID transactions, and Cypher query support.
+
+    Requires: pip install kuzu (or: pip install sysmlpy[kuzu])
+
+    Usage:
+        # In-memory (volatile)
+        store = KuzuStore()
+
+        # Disk-persistent
+        store = KuzuStore(database="/path/to/model.db")
+    """
+
+    def __init__(self, database: str = ":memory:"):
+        """Initialize a Kuzu-based graph store.
+
+        Parameters
+        ----------
+        database : str
+            Path to the database directory, or ":memory:" for in-memory mode.
+        """
+        import kuzu
+        self._db = kuzu.Database(database)
+        self._conn = kuzu.Connection(self._db)
+        self._init_schema()
+
+    def _init_schema(self) -> None:
+        """Create the node and relationship tables if they don't exist."""
+        self._conn.execute(
+            "CREATE NODE TABLE IF NOT EXISTS Element("
+            "id STRING PRIMARY KEY, "
+            "name STRING, "
+            "sysml_type STRING, "
+            "python_type STRING, "
+            "data STRING)"
+        )
+        self._conn.execute(
+            "CREATE REL TABLE IF NOT EXISTS Relationship("
+            "FROM Element TO Element, "
+            "rel_type STRING)"
+        )
+
+    def _escape(self, value: str) -> str:
+        """Escape a string value for safe embedding in a Cypher query."""
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def put(self, element_id: str, data: dict,
+            parent_id: Optional[str] = None,
+            rel_type: str = REL_PARENT_CHILD) -> None:
+        """Store an element as a graph node and optionally add an edge to a parent.
+
+        Parameters
+        ----------
+        element_id : str
+            Unique identifier for the element.
+        data : dict
+            Element attributes stored as node properties.
+        parent_id : str, optional
+            Parent element ID to create a directed edge.
+        rel_type : str, optional
+            Edge label/type. Default is REL_PARENT_CHILD.
+        """
+        name = self._escape(data.get("name", ""))
+        sysml_type = self._escape(data.get("sysml_type", ""))
+        python_type = self._escape(data.get("python_type", ""))
+        import json
+        data_json = self._escape(json.dumps(data))
+
+        eid = self._escape(element_id)
+        self._conn.execute(
+            f'CREATE (e:Element {{id: "{eid}", name: "{name}", '
+            f'sysml_type: "{sysml_type}", python_type: "{python_type}", '
+            f'data: "{data_json}"}})'
+        )
+
+        if parent_id is not None:
+            pid = self._escape(parent_id)
+            rt = self._escape(rel_type)
+            self._conn.execute(
+                f'MATCH (p:Element {{id: "{pid}"}}), (c:Element {{id: "{eid}"}}) '
+                f'CREATE (p)-[r:Relationship {{rel_type: "{rt}"}}]->(c)'
+            )
+
+    def get(self, element_id: str) -> Optional[dict]:
+        """Retrieve a node's attributes by ID.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to look up.
+
+        Returns
+        -------
+        dict or None
+            Node attributes dict, or None if not found.
+        """
+        eid = self._escape(element_id)
+        result = self._conn.execute(
+            f'MATCH (e:Element {{id: "{eid}"}}) RETURN e.data'
+        )
+        if result.has_next():
+            import json
+            row = result.get_next()
+            return json.loads(row[0])
+        return None
+
+    def delete(self, element_id: str) -> bool:
+        """Remove a node and all its incident edges.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to remove.
+
+        Returns
+        -------
+        bool
+            True if the node was found and deleted, False otherwise.
+        """
+        eid = self._escape(element_id)
+        result = self._conn.execute(
+            f'MATCH (e:Element {{id: "{eid}"}}) DETACH DELETE e RETURN count(e)'
+        )
+        if result.has_next():
+            return result.get_next()[0] > 0
+        return False
+
+    def children(self, parent_id: str, rel_type: str = REL_PARENT_CHILD) -> list[str]:
+        """Get child element IDs connected by outgoing edges of the given type.
+
+        Parameters
+        ----------
+        parent_id : str
+            Parent node ID.
+        rel_type : str
+            Filter by edge relationship type. Default is REL_PARENT_CHILD.
+
+        Returns
+        -------
+        list[str]
+            List of child node IDs.
+        """
+        pid = self._escape(parent_id)
+        rt = self._escape(rel_type)
+        result = self._conn.execute(
+            f'MATCH (p:Element {{id: "{pid}"}})-[r:Relationship {{rel_type: "{rt}"}}]->(c:Element) '
+            f'RETURN c.id ORDER BY c.name'
+        )
+        return [row[0] for row in self._fetch_all(result)]
+
+    def parents(self, child_id: str, rel_type: Optional[str] = None) -> list[str]:
+        """Get parent element IDs connected by incoming edges.
+
+        Parameters
+        ----------
+        child_id : str
+            Child node ID.
+        rel_type : str, optional
+            Filter by edge relationship type. If None, returns all parents.
+
+        Returns
+        -------
+        list[str]
+            List of parent node IDs.
+        """
+        cid = self._escape(child_id)
+        if rel_type:
+            rt = self._escape(rel_type)
+            result = self._conn.execute(
+                f'MATCH (p:Element)-[r:Relationship {{rel_type: "{rt}"}}]->(c:Element {{id: "{cid}"}}) '
+                f'RETURN p.id'
+            )
+        else:
+            result = self._conn.execute(
+                f'MATCH (p:Element)-[r:Relationship]->(c:Element {{id: "{cid}"}}) '
+                f'RETURN p.id'
+            )
+        return [row[0] for row in self._fetch_all(result)]
+
+    def relationships(self, element_id: str,
+                      rel_type: Optional[str] = None,
+                      direction: str = "both") -> list[tuple[str, str, dict]]:
+        """Get all relationships (edges) connected to a node.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to query.
+        rel_type : str, optional
+            Filter by edge relationship type.
+        direction : str
+            "out" (outgoing edges), "in" (incoming edges), or "both" (default).
+
+        Returns
+        -------
+        list[tuple[str, str, dict]]
+            List of (target_id, rel_type, edge_data) tuples.
+        """
+        eid = self._escape(element_id)
+        edges = []
+
+        if direction in ("out", "both"):
+            if rel_type:
+                rt = self._escape(rel_type)
+                result = self._conn.execute(
+                    f'MATCH (s:Element {{id: "{eid}"}})-[r:Relationship {{rel_type: "{rt}"}}]->(t:Element) '
+                    f'RETURN t.id, r.rel_type'
+                )
+            else:
+                result = self._conn.execute(
+                    f'MATCH (s:Element {{id: "{eid}"}})-[r:Relationship]->(t:Element) '
+                    f'RETURN t.id, r.rel_type'
+                )
+            for row in self._fetch_all(result):
+                edges.append((row[0], row[1], {"rel_type": row[1]}))
+
+        if direction in ("in", "both"):
+            if rel_type:
+                rt = self._escape(rel_type)
+                result = self._conn.execute(
+                    f'MATCH (s:Element)-[r:Relationship {{rel_type: "{rt}"}}]->(t:Element {{id: "{eid}"}}) '
+                    f'RETURN s.id, r.rel_type'
+                )
+            else:
+                result = self._conn.execute(
+                    f'MATCH (s:Element)-[r:Relationship]->(t:Element {{id: "{eid}"}}) '
+                    f'RETURN s.id, r.rel_type'
+                )
+            for row in self._fetch_all(result):
+                edges.append((row[0], row[1], {"rel_type": row[1]}))
+
+        return edges
+
+    def query(self, **filters) -> list[str]:
+        """Find nodes matching property filters.
+
+        Parameters
+        ----------
+        **filters : dict
+            Node attribute name=value pairs to match.
+            Supports glob patterns with '*' for the 'name' field.
+
+        Returns
+        -------
+        list[str]
+            List of matching node IDs.
+        """
+        conditions = []
+        for key, value in filters.items():
+            if key == "name" and "*" in str(value):
+                import fnmatch
+                # Kuzu doesn't support fnmatch, so we fetch all and filter
+                result = self._conn.execute("MATCH (e:Element) RETURN e.id, e.name")
+                return [row[0] for row in self._fetch_all(result)
+                        if fnmatch.fnmatch(row[1], value)]
+            else:
+                v = self._escape(str(value))
+                if key == "name":
+                    conditions.append(f'e.name = "{v}"')
+                elif key == "sysml_type":
+                    conditions.append(f'e.sysml_type = "{v}"')
+                elif key == "python_type":
+                    conditions.append(f'e.python_type = "{v}"')
+                else:
+                    # For custom fields, we need to parse the JSON data
+                    conditions.append(f'contains(e.data, "\"{self._escape(key)}\": \"{v}\")')
+
+        if conditions:
+            where = " WHERE " + " AND ".join(conditions)
+        else:
+            where = ""
+
+        result = self._conn.execute(f"MATCH (e:Element){where} RETURN e.id")
+        return [row[0] for row in self._fetch_all(result)]
+
+    def has(self, element_id: str) -> bool:
+        """Check if a node exists in the graph.
+
+        Parameters
+        ----------
+        element_id : str
+            Node ID to check.
+
+        Returns
+        -------
+        bool
+            True if the node exists, False otherwise.
+        """
+        eid = self._escape(element_id)
+        result = self._conn.execute(
+            f'MATCH (e:Element {{id: "{eid}"}}) RETURN count(e)'
+        )
+        if result.has_next():
+            return result.get_next()[0] > 0
+        return False
+
+    def __len__(self) -> int:
+        """Return the number of nodes in the graph.
+
+        Returns
+        -------
+        int
+            Number of nodes.
+        """
+        result = self._conn.execute("MATCH (e:Element) RETURN count(e)")
+        if result.has_next():
+            return result.get_next()[0]
+        return 0
+
+    def ids(self) -> Iterator[str]:
+        """Iterate over all node IDs in the graph.
+
+        Returns
+        -------
+        iterator of str
+            Iterator over node IDs.
+        """
+        result = self._conn.execute("MATCH (e:Element) RETURN e.id")
+        for row in self._fetch_all(result):
+            yield row[0]
+
+    def clear(self) -> None:
+        """Remove all nodes and edges from the graph."""
+        self._conn.execute("MATCH (e:Element) DETACH DELETE e")
+
+    def _fetch_all(self, result) -> list:
+        """Fetch all rows from a Kuzu query result."""
+        rows = []
+        while result.has_next():
+            rows.append(result.get_next())
+        return rows
+
+    # ── Graph-specific methods ──────────────────────────────────────────
+
+    def descendants(self, root_id: str, rel_type: str = REL_PARENT_CHILD) -> list[str]:
+        """Return all descendants via variable-length path traversal."""
+        rid = self._escape(root_id)
+        result = self._conn.execute(
+            f'MATCH (root:Element {{id: "{rid}"}})-[r:Relationship*1..30]->(x:Element) '
+            f'RETURN DISTINCT x.id'
+        )
+        return [row[0] for row in self._fetch_all(result)]
+
+    def ancestors(self, leaf_id: str, rel_type: str = REL_PARENT_CHILD) -> list[str]:
+        """Return all ancestors via reverse variable-length path traversal."""
+        lid = self._escape(leaf_id)
+        result = self._conn.execute(
+            f'MATCH (x:Element)-[r:Relationship*1..30]->(leaf:Element {{id: "{lid}"}}) '
+            f'RETURN DISTINCT x.id'
+        )
+        return [row[0] for row in self._fetch_all(result)]
+
+    def path(self, source_id: str, target_id: str,
+             rel_type: str = REL_PARENT_CHILD) -> Optional[list[str]]:
+        """Find shortest path using variable-length Cypher pattern."""
+        sid = self._escape(source_id)
+        tid = self._escape(target_id)
+        result = self._conn.execute(
+            f'MATCH p = (s:Element {{id: "{sid}"}})-[r:Relationship*1..30]->(t:Element {{id: "{tid}"}}) '
+            f'RETURN nodes(p) LIMIT 1'
+        )
+        if result.has_next():
+            row = result.get_next()
+            return [n["id"] for n in row[0]]
+        return None
+
+    def connected_components(self, rel_type: Optional[str] = None) -> list[set[str]]:
+        """Return connected components via BFS traversal.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        list[set[str]]
+            List of sets, each containing node IDs in a connected component.
+        """
+        all_ids = list(self.ids())
+        if not all_ids:
+            return []
+
+        visited = set()
+        components = []
+        rt = rel_type if rel_type else REL_PARENT_CHILD
+
+        for start_id in all_ids:
+            if start_id in visited:
+                continue
+            component = set()
+            queue = [start_id]
+            while queue:
+                current = queue.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+                component.add(current)
+                for child in self.children(current, rt):
+                    if child not in visited:
+                        queue.append(child)
+                for parent in self.parents(current, rt):
+                    if parent not in visited:
+                        queue.append(parent)
+            components.append(component)
+
+        return components
+
+    def cycles(self, rel_type: Optional[str] = None) -> list[list[str]]:
+        """Find all simple cycles in the graph.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        list[list[str]]
+            List of cycles, each represented as a list of node IDs.
+        """
+        result = self._conn.execute(
+            'MATCH p = (x:Element)-[r:Relationship*2..30]->(x) '
+            'RETURN nodes(p)'
+        )
+        cycles = []
+        seen = set()
+        while result.has_next():
+            row = result.get_next()
+            cycle = [n["id"] for n in row[0]]
+            key = tuple(sorted(cycle))
+            if key not in seen:
+                seen.add(key)
+                cycles.append(cycle)
+        return cycles
+
+    def centrality(self, rel_type: Optional[str] = None) -> dict[str, float]:
+        """Compute degree centrality for all nodes.
+
+        Parameters
+        ----------
+        rel_type : str, optional
+            If provided, only considers edges of this relationship type.
+
+        Returns
+        -------
+        dict[str, float]
+            Mapping of node ID to centrality score (0.0 to 1.0).
+        """
+        rt = rel_type if rel_type else REL_PARENT_CHILD
+        n = len(self)
+        if n <= 1:
+            return {eid: 0.0 for eid in self.ids()}
+
+        result = self._conn.execute(
+            f'MATCH (e:Element)-[r:Relationship {{rel_type: "{self._escape(rt)}"}}]-(other:Element) '
+            f'RETURN e.id, count(DISTINCT other.id) as degree'
+        )
+        centrality = {}
+        for row in self._fetch_all(result):
+            centrality[row[0]] = row[1] / (n - 1)
+
+        for eid in self.ids():
+            if eid not in centrality:
+                centrality[eid] = 0.0
+
+        return centrality
+
+    def subgraph(self, element_ids: list[str]) -> "KuzuStore":
+        """Create a new store containing only the specified elements and their edges.
+
+        Parameters
+        ----------
+        element_ids : list[str]
+            Node IDs to include in the subgraph.
+
+        Returns
+        -------
+        KuzuStore
+            A new in-memory store with the induced subgraph.
+        """
+        new_store = KuzuStore()
+        for eid in element_ids:
+            data = self.get(eid)
+            if data is not None:
+                new_store.put(eid, data)
+
+        for eid in element_ids:
+            for target, rt, _ in self.relationships(eid, direction="out"):
+                if target in element_ids:
+                    pid = self._escape(eid)
+                    tid = self._escape(target)
+                    rt_escaped = self._escape(rt)
+                    new_store._conn.execute(
+                        f'MATCH (p:Element {{id: "{pid}"}}), (c:Element {{id: "{tid}"}}) '
+                        f'CREATE (p)-[r:Relationship {{rel_type: "{rt_escaped}"}}]->(c)'
+                    )
+
+        return new_store
+
+    def export_graphml(self, path: str) -> None:
+        """Export the graph to GraphML format for visualization in external tools.
+
+        Parameters
+        ----------
+        path : str
+            File path to write the GraphML file to.
+        """
+        import xml.etree.ElementTree as ET
+
+        ns = "http://graphml.graphdrawing.org/xmlns"
+        graphml = ET.Element("graphml", xmlns=ns)
+        graph = ET.SubElement(graphml, "graph", edgedefault="directed")
+
+        ET.SubElement(graphml, "key", id="name", for_="node", attr_name="name", attr_type="string")
+        ET.SubElement(graphml, "key", id="sysml_type", for_="node", attr_name="sysml_type", attr_type="string")
+        ET.SubElement(graphml, "key", id="rel_type", for_="edge", attr_name="rel_type", attr_type="string")
+
+        for eid in self.ids():
+            data = self.get(eid)
+            node = ET.SubElement(graph, "node", id=eid)
+            if data:
+                name_el = ET.SubElement(node, "data", key="name")
+                name_el.text = data.get("name", "")
+                type_el = ET.SubElement(node, "data", key="sysml_type")
+                type_el.text = data.get("sysml_type", "")
+
+        for eid in self.ids():
+            for target, rt, _ in self.relationships(eid, direction="out"):
+                edge = ET.SubElement(graph, "edge", source=eid, target=target)
+                rt_el = ET.SubElement(edge, "data", key="rel_type")
+                rt_el.text = rt
+
+        tree = ET.ElementTree(graphml)
+        ET.indent(tree)
+        tree.write(path, encoding="utf-8", xml_declaration=True)
+
+    def stats(self) -> dict:
+        """Compute summary statistics about the graph.
+
+        Returns
+        -------
+        dict
+            Dictionary with keys: nodes, edges, density, avg_degree.
+        """
+        n = len(self)
+        result = self._conn.execute("MATCH ()-[r:Relationship]->() RETURN count(r)")
+        e = result.get_next()[0] if result.has_next() else 0
+        density = (2 * e) / (n * (n - 1)) if n > 1 else 0
+        return {
+            "nodes": n,
+            "edges": e,
+            "density": density,
+            "avg_degree": (2 * e) / n if n > 0 else 0,
+        }
+
+
 # ── ID Generation ───────────────────────────────────────────────────────────
 
 def new_id() -> str:
@@ -837,14 +1400,22 @@ def create_store(backend: str = "memory", **kwargs) -> Store:
     Parameters
     ----------
     backend : str
-        "memory" for InMemoryStore, "networkx" for NetworkXStore.
+        "memory" for InMemoryStore, "networkx" for NetworkXStore,
+        "kuzu" for KuzuStore.
     **kwargs
-        Passed to the store constructor.
+        Passed to the store constructor. For KuzuStore, use `database`
+        to specify the path (default ":memory:").
 
     Returns
     -------
     Store
         An initialized storage backend.
+
+    Examples
+    --------
+    >>> create_store("memory")
+    >>> create_store("networkx")
+    >>> create_store("kuzu", database="/tmp/model.db")
     """
     backends = {
         "memory": InMemoryStore,
@@ -852,6 +1423,8 @@ def create_store(backend: str = "memory", **kwargs) -> Store:
         "networkx": NetworkXStore,
         "nx": NetworkXStore,
         "graph": NetworkXStore,
+        "kuzu": KuzuStore,
+        "kuzudb": KuzuStore,
     }
     cls = backends.get(backend.lower())
     if cls is None:

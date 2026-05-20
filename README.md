@@ -26,7 +26,8 @@ sysmlpy requires the following Python packages:
 
 ### Optional Dependencies
 - [networkx](https://networkx.org/) — graph analysis backend (install with `pip install sysmlpy[graph]`)
-- [plantuml](https://plantuml.com/) — PlantUML diagram rendering (requires Java + PlantUML JAR or [PlantUML server](https://www.plantuml.com/plantuml))
+- [kuzu](https://kuzudb.com/) — embedded graph database with disk persistence and Cypher queries (install with `pip install sysmlpy[kuzu]`)
+- [PlantUML](https://plantuml.com/) **v1.2020.0+** — diagram rendering (requires Java + PlantUML JAR or [PlantUML server](https://www.plantuml.com/plantuml)). The generator uses `<style>` blocks and `skinparam` stereotype selectors introduced in v1.2020.
 
 ## Installation
 
