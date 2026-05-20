@@ -10,7 +10,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 __all__ = [
     "load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr",
     "Searchable",
-    "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "create_store", "new_id",
+    "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
     "to_plantuml", "PlantUMLGenerator",
 ]
 __author__ = "Jon Fox"
@@ -26,7 +26,7 @@ from sysmlpy.usage import (
 
 from sysmlpy.definition import Model, Package
 from sysmlpy.navigate import Searchable
-from sysmlpy.store import Store, InMemoryStore, NetworkXStore, KuzuStore, create_store, new_id
+from sysmlpy.store import Store, InMemoryStore, NetworkXStore, KuzuStore, CayleyStore, create_store, new_id
 
 from sysmlpy.usage import ureg
 
