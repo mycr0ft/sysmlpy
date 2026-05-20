@@ -7918,7 +7918,11 @@ class ImportPrefix:
             if definition["visibility"] is not None:
                 self.visibility = VisibilityIndicator(definition["visibility"])
             else:
-                self.visibility = None
+                raise ValueError(
+                    "Import declaration must specify visibility: "
+                    "'private', 'public', or 'protected'. "
+                    "Example: 'private import MyPackage::*'"
+                )
 
             if definition["isImportAll"]:
                 self.keyword = "import all "

@@ -420,6 +420,140 @@ class Package(Searchable):
     def dump(self, child=None):
         return classtree(self._get_definition(child=False)).dump()
 
+    def add_import(self, namespace, visibility="private", recursive=False, membership=None):
+        """Add an import declaration to this package.
+
+        Parameters
+        ----------
+        namespace : str or list
+            Namespace to import (e.g., 'ScalarValues' or ['ISQ', 'Mechanics']).
+            For namespace imports, use '::' suffix for wildcard (e.g., 'ScalarValues::*').
+        visibility : str, optional
+            Visibility keyword: 'private', 'public', or 'protected'. Default is 'private'.
+        recursive : bool, optional
+            If True, imports recursively (adds '::**' suffix). Default is False.
+        membership : str, optional
+            If provided, creates a membership import for a specific element
+            (e.g., 'SomeElement' imports 'namespace::SomeElement').
+
+        Returns
+        -------
+        Package
+            Self for chaining.
+
+        Examples
+        --------
+        >>> pkg.add_import('ScalarValues', visibility='private')
+        >>> pkg.add_import('ISQ::Mechanics', visibility='public')
+        >>> pkg.add_import('BaseTypes', visibility='protected', membership='SomeElement')
+        """
+        from sysmlpy.grammar.classes import (
+            Import, NamespaceImport, MembershipImport, ImportPrefix,
+            ImportedNamespace, ImportedMembership, VisibilityIndicator,
+            RelationshipBody, QualifiedName
+        )
+
+        if visibility not in ('private', 'public', 'protected'):
+            raise ValueError(
+                f"visibility must be 'private', 'public', or 'protected', not '{visibility}'"
+            )
+
+        # Parse namespace string
+        if isinstance(namespace, str):
+            # Handle wildcard suffix
+            is_wildcard = namespace.endswith('::*')
+            if is_wildcard:
+                namespace = namespace[:-3]  # Remove '::*'
+            parts = namespace.split('::')
+        elif isinstance(namespace, (list, tuple)):
+            parts = list(namespace)
+            is_wildcard = False
+        else:
+            raise TypeError("namespace must be str or list/tuple")
+
+        # Create visibility indicator
+        vis_def = {
+            "name": "VisibilityIndicator",
+            "private": "private" if visibility == "private" else "",
+            "protected": "protected" if visibility == "protected" else "",
+            "public": "public" if visibility == "public" else "",
+        }
+        vis = VisibilityIndicator(vis_def)
+
+        # Create import prefix
+        prefix_def = {
+            "name": "ImportPrefix",
+            "visibility": vis_def,
+            "isImportAll": False,
+        }
+        prefix = ImportPrefix(prefix_def)
+
+        if membership is not None:
+            # Membership import: import visibility namespace::membership
+            if isinstance(membership, str):
+                mem_parts = membership.split('::')
+            else:
+                mem_parts = list(membership)
+
+            mem_name = QualifiedName({"name": "QualifiedName", "names": parts + mem_parts})
+            imported_mem = ImportedMembership({
+                "name": "ImportedMembership",
+                "importedMembership": {"name": "QualifiedName", "names": parts + mem_parts},
+                "isRecursive": recursive,
+            })
+            imported_mem.name = mem_name
+
+            mem_import = MembershipImport({
+                "name": "MembershipImport",
+                "prefix": prefix_def,
+                "membership": imported_mem.get_definition(),
+            })
+            mem_import.prefix = prefix
+            mem_import.membership = imported_mem
+
+            import_rel = Import({
+                "name": "Import",
+                "body": {"name": "RelationshipBody", "ownedRelationship": []},
+                "ownedRelationship": mem_import.get_definition(),
+            })
+            import_rel.body = RelationshipBody({"name": "RelationshipBody", "ownedRelationship": []})
+            import_rel.children = [mem_import]
+        else:
+            # Namespace import: import visibility namespace::* or namespace
+            ns_name = QualifiedName({"name": "QualifiedName", "names": parts})
+            imported_ns = ImportedNamespace({
+                "name": "ImportedNamespace",
+                "namespace": {"name": "QualifiedName", "names": parts},
+                "isRecursive": recursive,
+            })
+            imported_ns.namespaces = ns_name
+            imported_ns.isRecursive = recursive
+
+            ns_import = NamespaceImport({
+                "name": "NamespaceImport",
+                "prefix": prefix_def,
+                "ownedRelatedElement": [],
+                "namespace": imported_ns.get_definition(),
+            })
+            ns_import.prefix = prefix
+            ns_import.namespace = imported_ns
+            ns_import.children = []
+
+            import_rel = Import({
+                "name": "Import",
+                "body": {"name": "RelationshipBody", "ownedRelationship": []},
+                "ownedRelationship": ns_import.get_definition(),
+            })
+            import_rel.body = RelationshipBody({"name": "RelationshipBody", "ownedRelationship": []})
+            import_rel.children = [ns_import]
+
+        # Add to grammar body
+        if not hasattr(self.grammar, 'body') or self.grammar.body is None:
+            self.grammar.body = PackageBody({"name": "PackageBody", "ownedRelationship": []})
+
+        self.grammar.body.children.append(import_rel)
+        return self
+
     def load_from_grammar(self, grammar):
         # Get the identification values
         declared_name = grammar.declaration.identification.declaredName
@@ -461,6 +595,21 @@ class Package(Searchable):
                     if hasattr(second, 'children'):
                         # NonOccurrenceUsageElement -> StructureUsageElement or BehaviorUsageElement
                         inner_element = second.children
+                    else:
+                        inner_element = second
+                else:
+                    continue
+            # Handle OccurrenceUsageMember (for ports, parts, items as occurrence usages)
+            elif first_child.__class__.__name__ == 'OccurrenceUsageMember':
+                if hasattr(first_child, 'children') and first_child.children:
+                    second = first_child.children[0]
+                    if hasattr(second, 'children'):
+                        # OccurrenceUsageElement -> StructureUsageElement -> PortUsage/PartUsage/etc
+                        struct_elem = second.children
+                        if hasattr(struct_elem, 'children'):
+                            inner_element = struct_elem.children
+                        else:
+                            inner_element = struct_elem
                     else:
                         inner_element = second
                 else:

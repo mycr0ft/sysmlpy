@@ -1,0 +1,86 @@
+@startuml
+' ============================================================
+' Example 8: State Machine Diagram
+' Shows states, transitions, guards, and effects using
+' PlantUML's native state diagram syntax.
+' ============================================================
+
+<style>
+root {
+    BackGroundColor white
+    FontName Helvetica
+    FontSize 13
+}
+state {
+    BackgroundColor #EBF5FB
+    LineColor #3498DB
+    LineThickness 1.5
+    RoundCorner 15
+    Padding 8
+}
+stateStart {
+    BackgroundColor #27AE60
+    LineColor #27AE60
+}
+stateEnd {
+    BackgroundColor #E74C3C
+    LineColor #E74C3C
+}
+arrow {
+    LineColor #34495E
+    LineThickness 1.5
+    FontSize 11
+}
+</style>
+
+skinparam wrapWidth 400
+
+title SysML v2 — State Machine: Brake System
+
+[*] --> Idle : initialize
+
+state Idle {
+  [*] --> Ready
+  Ready : brake pressure = 0
+}
+
+state "Brake Applied" as Applied {
+  [*] --> Pressing
+  Pressing --> Holding : pressure >= threshold
+  Holding : maintain pressure
+}
+
+state "ABS Active" as ABS {
+  [*] --> Modulating
+  Modulating --> Release : wheel slip detected
+  Release --> Reapply : slip reduced
+  Reapply --> Modulating
+}
+
+state "Fault" as Fault {
+  [*] --> Degraded
+  Degraded : reduced braking
+}
+
+Idle --> Applied : pedal pressed
+Applied --> Idle : pedal released
+Applied --> ABS : slip detected
+ABS --> Applied : slip resolved
+Applied --> Fault : fault detected
+ABS --> Fault : fault detected
+Fault --> Idle : fault cleared
+Fault --> [*] : system shutdown
+
+note right of ABS
+  Anti-lock braking modulates
+  pressure to prevent wheel lock
+  during hard braking
+end note
+
+note left of Fault
+  Any fault in the brake
+  system transitions to
+  degraded mode
+end note
+
+@enduml

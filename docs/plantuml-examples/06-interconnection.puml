@@ -1,0 +1,103 @@
+@startuml
+' ============================================================
+' Example 6: Interconnection (Internal Block) Diagram
+' Shows parts connected via ports with item flows,
+' bindings, and connector associations.
+' ============================================================
+
+<style>
+root {
+    BackGroundColor white
+    FontName Helvetica
+    FontSize 13
+}
+rectangle {
+    RoundCorner 12
+    LineColor #444444
+    LineThickness 1.5
+    BackgroundColor white
+    Padding 8
+}
+.port {
+    RoundCorner 0
+    LineColor #4169E1
+    LineThickness 1
+    BackgroundColor #E8F0FE
+    Padding 4
+}
+arrow {
+    FontSize 11
+    LineColor #555555
+    LineThickness 1.5
+}
+</style>
+
+skinparam wrapWidth 400
+hide circle
+
+title SysML v2 — Interconnection Diagram
+
+' === PARTS ===
+rectangle "Engine" as ENG <<part>> {
+  port exhaustPort
+  port powerOutput
+}
+
+rectangle "Transmission" as TRANS <<part>> {
+  port inputShaft
+  port outputShaft
+  port controlPort
+}
+
+rectangle "Driveshaft" as DS <<part>> {
+  port frontEnd
+  port rearEnd
+}
+
+rectangle "Differential" as DIFF <<part>> {
+  port input
+  port leftOutput
+  port rightOutput
+}
+
+rectangle "LeftWheel" as LW <<part>> {
+  port hub
+}
+
+rectangle "RightWheel" as RW <<part>> {
+  port hub
+}
+
+rectangle "ECU" as ECU <<part>> {
+  port controlSignal
+}
+
+' === CONNECTORS (medium blue arrows) ===
+ENG.powerOutput -[thickness=2,#3498DB]-> TRANS.inputShaft : driveShaft
+TRANS.outputShaft -[thickness=2,#3498DB]-> DS.frontEnd : driveshaft
+DS.rearEnd -[thickness=2,#3498DB]-> DIFF.input : input
+DIFF.leftOutput -[thickness=2,#3498DB]-> LW.hub : axle
+DIFF.rightOutput -[thickness=2,#3498DB]-> RW.hub : axle
+
+' === BINDING (thick red lines, no arrowhead) ===
+ECU.controlSignal -[thickness=4,#E74C3C]- TRANS.controlPort : binds
+
+' === ITEM FLOW (dotted arrows with payload) ===
+ENG -[#27AE60]-> TRANS : fuel mixture
+TRANS -[#27AE60]-> DS : torque
+DS -[#27AE60]-> DIFF : rotational energy
+
+' === DEPENDENCY ===
+ECU ..>> ENG : monitors
+ECU ..>> TRANS : controls
+
+legend right
+  <b>Interconnection Legend</b>
+  |= Relationship |= Notation |
+  | Connector | -[thickness=2,#3498DB]-> |
+  | Binding | -[thickness=4,#E74C3C]- |
+  | Item Flow | -[#27AE60]-> (dotted) |
+  | Dependency | ..>> (dotted dbl) |
+endlegend
+
+@enduml

@@ -11,9 +11,10 @@ __all__ = [
     "load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr",
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "create_store", "new_id",
+    "to_plantuml", "PlantUMLGenerator",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.12.2"
+__version__ = "0.13.1"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -222,5 +223,8 @@ def load_antlr(fp):
         )
 
     return loads(fp.read())
+
+
+from sysmlpy.plantuml import to_plantuml, PlantUMLGenerator
 
 

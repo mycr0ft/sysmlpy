@@ -645,6 +645,33 @@ class Usage(Searchable):
                         c = Item().load_from_grammar(inner)
                         c.parent = self
                         self.children.append(c)
+                    elif inner.__class__.__name__ == "PortUsage":
+                        c = Port().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "ConnectionUsage":
+                        c = Connection().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "FlowConnectionUsage":
+                        c = Flow().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+            elif class_name == "StructureDefinitionElement":
+                if hasattr(sc, 'children'):
+                    inner = sc.children
+                    if inner.__class__.__name__ == "PartDefinition":
+                        c = Part(definition=True).load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "ItemDefinition":
+                        c = Item(definition=True).load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "PortDefinition":
+                        c = Port(definition=True).load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
             elif class_name == "Definition":
                 # Unwrap Definition to get the inner type
                 if hasattr(sc, 'body') and hasattr(sc.body, 'children') and sc.body.children:
