@@ -14,9 +14,11 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.14.0:** 100% conformance test pass rate (123/123). Storage abstraction layer with in-memory and NetworkX graph backends. Convenience functions: find_all, count, traverse, to_dict, to_graph, path_between.
+**v0.17.0:** 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
 
-**v0.14.1:** ISQ unit validation (300+ type-to-dimension mappings), US Customary unit support (21 custom definitions), PlantUML diagram generation with stereotype-based styling, strict import visibility enforcement, and comprehensive API documentation.
+**v0.16.0:** 100% grammar round-trip test coverage (56/56). Analysis case usage, trade study, calculation redefinition, and case body member support. Import visibility defaults to private per SysML v2 spec.
+
+**v0.15.0:** ISQ unit validation (300+ type-to-dimension mappings), US Customary unit support (21 custom definitions), PlantUML diagram generation with stereotype-based styling, and comprehensive API documentation.
 
 ## Requirements
 sysmlpy requires the following Python packages:
@@ -27,6 +29,7 @@ sysmlpy requires the following Python packages:
 ### Optional Dependencies
 - [networkx](https://networkx.org/) — graph analysis backend (install with `pip install sysmlpy[graph]`)
 - [kuzu](https://kuzudb.com/) — embedded graph database with disk persistence and Cypher queries (install with `pip install sysmlpy[kuzu]`)
+- [cayley](https://cayley.io/) — graph database via HTTP API, supports BoltDB/LevelDB backends (install with `pip install sysmlpy[cayley]`)
 - [PlantUML](https://plantuml.com/) **v1.2020.0+** — diagram rendering (requires Java + PlantUML JAR or [PlantUML server](https://www.plantuml.com/plantuml)). The generator uses `<style>` blocks and `skinparam` stereotype selectors introduced in v1.2020.
 
 ## Installation
@@ -37,6 +40,7 @@ Multiple installation methods are supported by sysmlpy, including:
 |:-----------------------------------------------------------------:|:------------:|:---------------------------------------------------------------------------------:|
 |       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                        ``python -m pip install sysmlpy``                        |
 |       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |                 ``python -m pip install sysmlpy[graph]`` (with graph analysis)                  |
+|       ![PyPI logo](https://simpleicons.org/icons/pypi.svg)        |     PyPI     |              ``python -m pip install sysmlpy[cayley]`` (with Cayley graph DB)              |
 |     ![GitHub logo](https://simpleicons.org/icons/github.svg)      |    GitHub    | ``python -m pip install https://github.com/mycr0ft/sysmlpy/archive/refs/heads/main.zip`` |
 
 ## Documentation
@@ -181,7 +185,100 @@ tree = classtree(model)
 print(tree.dump())
 ```
 
-**61% of the 56 grammar round-trip tests currently pass** (34/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, and constraints.
+**100% of the 56 grammar round-trip tests pass** (56/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, and trade studies.
+
+## Storage Backends
+
+sysmlpy provides a unified `Store` protocol with multiple backend implementations. All backends support the same API: `put`, `get`, `delete`, `children`, `parents`, `relationships`, `query`, `has`, `ids`, `clear`, plus graph traversal methods (`descendants`, `ancestors`, `path`).
+
+```python
+from sysmlpy.store import create_store
+
+# In-memory (default, zero dependencies)
+store = create_store("memory")
+
+# NetworkX graph (analysis, shortest paths, centrality)
+store = create_store("networkx")
+
+# Kuzu embedded graph DB (disk persistence, Cypher queries)
+store = create_store("kuzu", database="/tmp/model.db")
+
+# Cayley remote graph DB (HTTP API, BoltDB/LevelDB backends)
+store = create_store("cayley", host="localhost", port=64210)
+```
+
+### InMemoryStore
+
+Dict-based backend with O(1) lookups. Zero external dependencies. Ideal for testing and small models.
+
+### NetworkXStore
+
+Graph backend using NetworkX `MultiDiGraph`. Enables graph analysis algorithms:
+
+```python
+from sysmlpy.store import NetworkXStore
+
+store = NetworkXStore()
+store.put(eid, {"name": "Engine", "sysml_type": "part"})
+
+# Graph analysis
+components = store.connected_components()
+centrality = store.centrality()
+cycles = store.cycles()
+stats = store.stats()  # nodes, edges, density, avg_degree
+subgraph = store.subgraph([eid1, eid2])
+store.export_graphml("model.graphml")
+```
+
+### KuzuStore
+
+Embedded graph database with disk persistence. Uses Cypher for queries. Data survives across process restarts.
+
+```python
+from sysmlpy.store import KuzuStore
+
+# Persistent database
+store = KuzuStore(database="/path/to/model.db")
+
+# In-memory mode
+store = KuzuStore()
+```
+
+### CayleyStore
+
+Remote graph database backend communicating with a [Cayley](https://cayley.io/) server over HTTP. Supports any Cayley backend (BoltDB, LevelDB, in-memory). Uses the quad model (subject, predicate, object, label) for flexible data representation.
+
+```python
+from sysmlpy.store import CayleyStore
+
+# Connect to local Cayley server
+store = CayleyStore()
+
+# Custom host/port with namespace isolation
+store = CayleyStore(host="cayley.example.com", port=64210, label="my_project")
+
+# Graph analysis
+store.put(eid, {"name": "Wheel", "sysml_type": "part"})
+descendants = store.descendants(root_id)
+ancestors = store.ancestors(leaf_id)
+path = store.path(source_id, target_id)
+components = store.connected_components()
+cycles = store.cycles()
+centrality = store.centrality()
+store.export_graphml("model.graphml")
+```
+
+**Running Cayley with Docker:**
+
+```bash
+# In-memory backend
+docker run -p 64210:64210 --rm cayley/cayley
+
+# Persistent BoltDB backend
+docker run -p 64210:64210 -v /data:/data --rm cayley/cayley -db boltdb -dbpath /data/cayley.db
+```
+
+**Quad Model:** Elements are stored as quads where the subject is the element UUID, predicates are property names (e.g., `name`, `sysml_type`), and objects are property values. Relationships are stored as quads where the predicate is the relationship type (e.g., `parent_child`, `typed_by`). Labels provide namespace isolation for multi-tenant scenarios.
 
 ## PlantUML Visualizations
 

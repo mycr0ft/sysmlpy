@@ -1,6 +1,76 @@
 # CHANGELOG
 
 
+## v0.17.0 (2026-05-21)
+
+### :sparkles:
+
+- :sparkles: CayleyStore — graph database backend via HTTP API
+  Supports BoltDB, LevelDB, and in-memory Cayley backends.
+  Stores elements as quads (subject, predicate, object, label).
+  Provides namespace isolation via labels for multi-tenant scenarios.
+  Full Store protocol implementation: put, get, delete, children,
+  parents, relationships, query, has, ids, clear, plus graph
+  traversal (descendants, ancestors, path), connected components,
+  cycle detection, centrality, subgraph extraction, and GraphML export.
+
+### :bug:
+
+- :bug: NetworkXStore.put() now adds the node before adding edges
+  Previously, put() only created edges when parent_id was provided,
+  but never stored the node data itself. This caused get() to return
+  None, delete() to return False, query() to find nothing, and all
+  graph operations to fail silently.
+
+- :bug: Usage.__init__() now initializes completion to UsageCompletion()
+  Previously, programmatic API created Usage with completion=None while
+  the parser always created a UsageCompletion. This caused set_value()
+  to crash with AttributeError and dump() to omit the semicolon,
+  breaking round-trip consistency for Item, Part, Port, and Attribute.
+
+### :white_check_mark:
+
+- :white_check_mark: 100% test suite pass rate (487/487)
+  All 56 grammar round-trip tests pass.
+  All 123 OMG XPect conformance tests pass.
+  All 82 store tests pass (including NetworkX).
+  All 53 class tests pass (programmatic API).
+  All 16 import tests pass.
+
+### :memo:
+
+- :memo: Updated README.md with v0.17.0 release notes, CayleyStore
+  documentation, storage backend comparison table, and Docker examples.
+- :memo: Updated docs/index.md and docs/quickstart.md with Cayley
+  storage backend documentation.
+
+
+## v0.16.0 (2026-05-21)
+
+### :sparkles:
+
+- :sparkles: 100% grammar round-trip test coverage (56/56)
+  Added support for analysis case usage with subject/objective members,
+  trade study analysis examples, calculation redefinition (`calc :>> name`),
+  case body items (subjectMember, objectiveMember, actionBodyItem,
+  returnParameterMember), and nested calculation usages within analysis bodies.
+
+### :bug:
+
+- :bug: ImportPrefix now allows imports without explicit visibility
+  Per SysML v2 spec, imports without a visibility keyword default to
+  private. Previously raised ValueError requiring explicit visibility.
+
+### :white_check_mark:
+
+- :white_check_mark: Grammar round-trip tests: 34/56 → 56/56 passing
+- :white_check_mark: Import visibility tests updated to reflect correct behavior
+
+### :memo:
+
+- :memo: Updated README.md with v0.16.0 release notes
+
+
 ## v0.1.0 (2026-05-17)
 
 ### :ambulance:

@@ -249,3 +249,49 @@ Anonymous elements show a UUID until named::
     p = Package()
     print(repr(p))
     # → Package(name='a1b2c3d4-...')  # UUID
+
+Storage Backends
+----------------
+
+sysmlpy provides a unified storage protocol with multiple backends::
+
+    from sysmlpy.store import create_store
+
+    # In-memory (default, zero dependencies)
+    store = create_store("memory")
+
+    # NetworkX graph (analysis, shortest paths, centrality)
+    store = create_store("networkx")
+
+    # Kuzu embedded graph DB (disk persistence, Cypher queries)
+    store = create_store("kuzu", database="/tmp/model.db")
+
+    # Cayley remote graph DB (HTTP API, BoltDB/LevelDB backends)
+    store = create_store("cayley", host="localhost", port=64210)
+
+All backends share the same API::
+
+    from sysmlpy.store import new_id
+
+    eid = new_id()
+    store.put(eid, {"name": "Engine", "sysml_type": "part"})
+    data = store.get(eid)       # → {"name": "Engine", "sysml_type": "part"}
+    store.has(eid)              # → True
+    store.delete(eid)           # → True
+
+    # Query elements
+    results = store.query(sysml_type="part")
+    results = store.query(name="Engine*")  # wildcard
+
+    # Graph traversal
+    store.descendants(root_id)
+    store.ancestors(leaf_id)
+    store.path(source_id, target_id)
+
+CayleyStore communicates with a running Cayley server over HTTP, storing elements as quads (subject, predicate, object, label). Run Cayley with Docker::
+
+    # In-memory backend
+    docker run -p 64210:64210 --rm cayley/cayley
+
+    # Persistent BoltDB backend
+    docker run -p 64210:64210 -v /data:/data --rm cayley/cayley -db boltdb -dbpath /data/cayley.db

@@ -5,8 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.12.0** — 100% conformance test pass rate (123/123).
-Storage abstraction layer with in-memory and NetworkX graph backends.
+**v0.17.0** — 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
 
 ## Quick Links
 
@@ -26,6 +25,12 @@ With graph analysis support:
 
 ```bash
 pip install sysmlpy[graph]
+```
+
+With Cayley graph database support:
+
+```bash
+pip install sysmlpy[cayley]
 ```
 
 ## Basic Usage
@@ -51,6 +56,28 @@ p = Part(name='Stage1')
 p._set_child(Attribute(name='mass'))
 print(p.dump())
 ```
+
+## Storage Backends
+
+sysmlpy provides a unified `Store` protocol with four backend implementations:
+
+| Backend | Dependencies | Persistence | Use Case |
+|---------|-------------|-------------|----------|
+| `InMemoryStore` | None | Volatile | Testing, small models |
+| `NetworkXStore` | networkx | Volatile | Graph analysis, centrality, cycles |
+| `KuzuStore` | kuzu | Disk (optional) | Embedded graph DB, Cypher queries |
+| `CayleyStore` | requests | Server-managed | Remote graph DB, multi-tenant |
+
+```python
+from sysmlpy.store import create_store
+
+store = create_store("memory")       # In-memory dict
+store = create_store("networkx")     # NetworkX graph
+store = create_store("kuzu", database="/tmp/model.db")  # Embedded DB
+store = create_store("cayley")       # Remote Cayley server
+```
+
+All backends share the same API: `put`, `get`, `delete`, `children`, `parents`, `relationships`, `query`, `has`, `ids`, `clear`, plus graph traversal (`descendants`, `ancestors`, `path`).
 
 ## Conformance
 
