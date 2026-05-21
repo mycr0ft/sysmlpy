@@ -406,27 +406,49 @@ class CaseBodyItem:
     # 	| ownedRelationship = SubjectMember
     # 	| ownedRelationship = ActorMember
     # 	| ownedRelationship = ObjectiveMember
+    #   | actionBodyItem
+    #   | returnParameterMember
     # ;
     def __init__(self, definition):
         self.child = None
         if definition is not None and valid_definition(definition, self.__class__.__name__):
-            child = definition["ownedRelationship"]
-            name = child["name"]
-            if name == "CalculationBodyItem":
-                self.child = CalculationBodyItem(child)
-            elif name == "SubjectMember":
-                self.child = SubjectMember(child)
-            elif name == "ActorMember":
-                self.child = ActorMember(child)
-            elif name == "ObjectiveMember":
-                self.child = ObjectiveMember(child)
-            else:  # pragma: no cover
-                raise ValueError("Invalid child name")
+            if "ownedRelationship" in definition and definition["ownedRelationship"] is not None:
+                child = definition["ownedRelationship"]
+                name = child["name"]
+                if name == "CalculationBodyItem":
+                    self.child = CalculationBodyItem(child)
+                elif name == "SubjectMember":
+                    self.child = SubjectMember(child)
+                elif name == "ActorMember":
+                    self.child = ActorMember(child)
+                elif name == "ObjectiveMember":
+                    self.child = ObjectiveMember(child)
+                else:  # pragma: no cover
+                    raise ValueError("Invalid child name")
+            elif "item" in definition:
+                item = definition["item"]
+                if item is not None:
+                    name = item.get("name")
+                    if name == "ActionBodyItem":
+                        self.child = ActionBodyItem(item)
+                    elif name == "ReturnParameterMember":
+                        self.child = ReturnParameterMember(item)
 
     def dump(self):
+        if self.child is None:
+            return ""
         return self.child.dump()
 
     def get_definition(self):
+        if self.child is None:
+            return {"name": self.__class__.__name__, "ownedRelationship": None, "item": None}
+        child_name = self.child.__class__.__name__
+        if child_name in ("ActionBodyItem", "ReturnParameterMember"):
+            return {
+                "name": self.__class__.__name__,
+                "ownedRelationship": None,
+                "item": self.child.get_definition()
+            }
         return {
             "name": self.__class__.__name__,
             "ownedRelationship": self.child.get_definition()
@@ -3062,12 +3084,17 @@ class CalculationUsage:
     def __init__(self, definition=None):
         self.prefix = None
         self.keyword = "calc"
+        self.owned_relationship = []
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
                 self.declaration = CalculationUsageDeclaration(definition["declaration"])
                 self.body = CalculationBody(definition["body"])
+                if "ownedRelationship" in definition and definition["ownedRelationship"]:
+                    for rel in definition["ownedRelationship"]:
+                        if rel["name"] == "OwnedReferenceSubsetting":
+                            self.owned_relationship.append(OwnedReferenceSubsetting(rel))
         else:
             self.declaration = CalculationUsageDeclaration()
             self.body = CalculationBody()
@@ -3077,7 +3104,11 @@ class CalculationUsage:
         if self.prefix is not None:
             output.append(self.prefix.dump())
         output.append(self.keyword)
-        output.append(self.declaration.dump())
+        if self.owned_relationship:
+            for rel in self.owned_relationship:
+                output.append(":>> " + rel.dump())
+        else:
+            output.append(self.declaration.dump())
         output.append(self.body.dump())
         return " ".join(output)
 
@@ -3087,6 +3118,8 @@ class CalculationUsage:
             output["prefix"] = self.prefix.get_definition()
         output["declaration"] = self.declaration.get_definition()
         output["body"] = self.body.get_definition()
+        if self.owned_relationship:
+            output["ownedRelationship"] = [rel.get_definition() for rel in self.owned_relationship]
         return output
 
 
@@ -7915,14 +7948,9 @@ class NamespaceImport:
 class ImportPrefix:
     def __init__(self, definition):
         if valid_definition(definition, "ImportPrefix"):
+            self.visibility = None
             if definition["visibility"] is not None:
                 self.visibility = VisibilityIndicator(definition["visibility"])
-            else:
-                raise ValueError(
-                    "Import declaration must specify visibility: "
-                    "'private', 'public', or 'protected'. "
-                    "Example: 'private import MyPackage::*'"
-                )
 
             if definition["isImportAll"]:
                 self.keyword = "import all "

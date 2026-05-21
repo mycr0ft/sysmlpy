@@ -4959,6 +4959,8 @@ def _make_calculation_usage_dict(ctx, prefix=None):
     name = None
     shortname = None
     typed_by = None
+    redefined_feature = None
+    
     if ctx is not None:
         cud = None
         # Try both actionUsageDeclaration and calculationUsageDeclaration
@@ -4970,6 +4972,21 @@ def _make_calculation_usage_dict(ctx, prefix=None):
         ud = None
         if cud and hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
             ud = cud.usageDeclaration()
+        
+        # Check for redefinitions in featureSpecializationPart
+        if ud and hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
+            fsp = ud.featureSpecializationPart()
+            if hasattr(fsp, 'featureSpecialization') and fsp.featureSpecialization():
+                specs = fsp.featureSpecialization()
+                if not isinstance(specs, list):
+                    specs = [specs]
+                for spec in specs:
+                    if hasattr(spec, 'redefinitions') and spec.redefinitions():
+                        redef_text = spec.redefinitions().getText()
+                        # Extract name from :>>name
+                        if redef_text.startswith(':>>'):
+                            redefined_feature = redef_text[3:].strip()
+                            name = redefined_feature
         
         if ud and hasattr(ud, 'identification') and ud.identification():
             ident = ud.identification()
@@ -4992,7 +5009,37 @@ def _make_calculation_usage_dict(ctx, prefix=None):
     body_parts = _visit_calculation_body_items(ctx)
     occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
     
-    return {
+    # Build declaration
+    declaration = {
+        "name": "CalculationUsageDeclaration",
+        "declaration": {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": specialization
+            }
+        },
+        "valuepart": None
+    }
+    
+    # Build ownedRelationship for redefinitions
+    owned_relationship = []
+    if redefined_feature:
+        owned_relationship.append({
+            "name": "OwnedReferenceSubsetting",
+            "referencedFeature": {
+                "name": "QualifiedName",
+                "names": [redefined_feature]
+            },
+            "ownedRelatedElement": []
+        })
+    
+    result = {
         "name": "PackageMember",
         "prefix": None,
         "ownedRelatedElement": {
@@ -5004,22 +5051,7 @@ def _make_calculation_usage_dict(ctx, prefix=None):
                     "ownedRelationship": {
                         "name": "CalculationUsage",
                         "prefix": occ_prefix or prefix,
-                        "declaration": {
-                            "name": "CalculationUsageDeclaration",
-                            "declaration": {
-                                "name": "UsageDeclaration",
-                                "declaration": {
-                                    "name": "FeatureDeclaration",
-                                    "identification": {
-                                        "name": "Identification",
-                                        "declaredShortName": shortname,
-                                        "declaredName": name
-                                    },
-                                    "specialization": specialization
-                                }
-                            },
-                            "valuepart": None
-                        },
+                        "declaration": declaration,
                         "body": {
                             "name": "CalculationBody",
                             "part": body_parts
@@ -5029,6 +5061,11 @@ def _make_calculation_usage_dict(ctx, prefix=None):
             }
         }
     }
+    
+    if owned_relationship:
+        result["ownedRelatedElement"]["ownedRelatedElement"]["ownedRelatedElement"]["ownedRelationship"]["ownedRelationship"] = owned_relationship
+    
+    return result
 
 
 def _make_nested_calculation_usage_dict(ctx, prefix=None):
@@ -10691,9 +10728,33 @@ def _make_nested_analysis_case_usage_dict(ctx, prefix=None):
     if ctx is None:
         return None
     
-    name, shortname = _get_usage_identification(ctx)
+    # Extract name and specialization from constraintUsageDeclaration
+    name = None
+    shortname = None
+    specialization = None
+    
+    if hasattr(ctx, 'constraintUsageDeclaration') and ctx.constraintUsageDeclaration():
+        cud = ctx.constraintUsageDeclaration()
+        if hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
+            ud = cud.usageDeclaration()
+            if hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name, shortname = _extract_name_shortname(name_text)
+        
+        # Extract specialization (typing) from constraintUsageDeclaration
+        typed_by = _get_action_usage_typed_by(cud)
+        if typed_by:
+            specialization = _build_specialization(typed_by)
+    
     occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
-    specialization = _build_full_specialization_from_ctx(ctx)
     
     # Get body items from caseBody
     body_items = []
@@ -10809,7 +10870,63 @@ def _visit_case_body_item(cbi):
     if cbi is None:
         return None
     
-    # Handle nonOccurrenceUsageMember (in/out params, subject)
+    # Handle subjectMember
+    if hasattr(cbi, 'subjectMember') and cbi.subjectMember():
+        sm = cbi.subjectMember()
+        if isinstance(sm, list):
+            sm = sm[0]
+        if sm:
+            inner = _visit_subject_member_dict(sm)
+            if inner:
+                return {
+                    "name": "CaseBodyItem",
+                    "item": None,
+                    "ownedRelationship": inner
+                }
+    
+    # Handle objectiveMember
+    if hasattr(cbi, 'objectiveMember') and cbi.objectiveMember():
+        om = cbi.objectiveMember()
+        if isinstance(om, list):
+            om = om[0]
+        if om:
+            inner = _visit_objective_member_dict(om)
+            if inner:
+                return {
+                    "name": "CaseBodyItem",
+                    "item": None,
+                    "ownedRelationship": inner
+                }
+    
+    # Handle returnParameterMember
+    if hasattr(cbi, 'returnParameterMember') and cbi.returnParameterMember():
+        rpm = cbi.returnParameterMember()
+        if isinstance(rpm, list):
+            rpm = rpm[0]
+        if rpm:
+            inner = _visit_return_parameter_member(rpm)
+            if inner:
+                return {
+                    "name": "CaseBodyItem",
+                    "item": inner,
+                    "ownedRelationship": None
+                }
+    
+    # Handle actionBodyItem (for nested calc/action usages)
+    if hasattr(cbi, 'actionBodyItem') and cbi.actionBodyItem():
+        abi = cbi.actionBodyItem()
+        if isinstance(abi, list):
+            abi = abi[0]
+        if abi:
+            inner = _visit_action_body_item(abi)
+            if inner:
+                return {
+                    "name": "CaseBodyItem",
+                    "item": inner,
+                    "ownedRelationship": None
+                }
+    
+    # Handle nonOccurrenceUsageMember (in/out params)
     if hasattr(cbi, 'nonOccurrenceUsageMember') and cbi.nonOccurrenceUsageMember():
         nom = cbi.nonOccurrenceUsageMember()
         if isinstance(nom, list):
