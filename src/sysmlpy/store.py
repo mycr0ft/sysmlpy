@@ -496,6 +496,8 @@ class NetworkXStore(Store):
             Edge label/type. Default is REL_PARENT_CHILD.
         """
 
+        self._graph.add_node(element_id, **data)
+
         if parent_id is not None:
             self._graph.add_edge(parent_id, element_id,
                                   rel_type=rel_type, **{"_rel": rel_type})

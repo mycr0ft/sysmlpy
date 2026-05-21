@@ -6905,7 +6905,7 @@ class Usage:
                 self.completion = UsageCompletion(definition["completion"]) if "completion" in definition else None
         else:
             self.declaration = UsageDeclaration()
-            self.completion = None
+            self.completion = UsageCompletion()
 
     def dump(self):
         output = []
