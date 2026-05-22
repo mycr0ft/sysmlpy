@@ -15,7 +15,7 @@ __all__ = [
     "analyze", "SemanticIssue", "SemanticAnalyzer",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.15.0"
+__version__ = "0.19.1"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
