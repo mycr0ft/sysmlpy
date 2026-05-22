@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.17.0** — 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
+**v0.19.0** — Semantic analysis engine with undefined symbol detection. Import resolution (namespace, membership, recursive). 530 tests passing. Symbol table with hierarchical scope resolution.
 
 ## Quick Links
 

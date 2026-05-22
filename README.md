@@ -14,6 +14,8 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
+**v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
+
 **v0.17.0:** 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
 
 **v0.16.0:** 100% grammar round-trip test coverage (56/56). Analysis case usage, trade study, calculation redefinition, and case body member support. Import visibility defaults to private per SysML v2 spec.
@@ -186,6 +188,48 @@ print(tree.dump())
 ```
 
 **100% of the 56 grammar round-trip tests pass** (56/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, and trade studies.
+
+## Semantic Analysis
+
+sysmlpy includes a semantic analysis engine that detects undefined symbol references in parsed models. It builds a hierarchical symbol table from the model tree, resolves imports, and cross-references all type/subsetting/redefinition references.
+
+```python
+from sysmlpy import loads, analyze
+
+model = loads("""
+    package Types {
+        part def Engine;
+    }
+    package Vehicle {
+        import Types::*;
+        part myCar : Engine;    # resolved via import
+        part myWheel : Wheel;   # undefined!
+    }
+""")
+
+issues = analyze(model)
+for issue in issues:
+    print(f"[{issue.severity}] {issue.code}: {issue.message}")
+# → [error] UNDEFINED_SYMBOL: Undefined symbol 'Wheel' referenced in Part 'myWheel'
+```
+
+### Import Resolution
+
+The analyzer resolves three import patterns:
+
+| Pattern | Example | Effect |
+|---------|---------|--------|
+| Namespace import | `import Types::*` | Makes all symbols from `Types` visible |
+| Membership import | `import Types::Engine` | Makes only `Engine` visible |
+| Recursive import | `import Types::*::**` | Imports from `Types` and all nested packages |
+
+### Symbol Resolution
+
+- **Hierarchical scopes**: Each package and definition creates a child scope
+- **Parent chain lookup**: References resolve through parent scopes
+- **Qualified names**: `P::A` and `Outer::Inner::DeepPart` resolve correctly
+- **Cross-package**: `import A::B::*` works across arbitrary package depth
+- **Library whitelist**: 80+ standard library symbols (`ScalarValues::Integer`, `ISQ::LengthValue`, etc.) are pre-recognized
 
 ## Storage Backends
 

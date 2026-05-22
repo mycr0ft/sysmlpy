@@ -12,6 +12,7 @@ __all__ = [
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
     "to_plantuml", "PlantUMLGenerator",
+    "analyze", "SemanticIssue", "SemanticAnalyzer",
 ]
 __author__ = "Jon Fox"
 __version__ = "0.15.0"
@@ -227,4 +228,5 @@ def load_antlr(fp):
 
 from sysmlpy.plantuml import to_plantuml, PlantUMLGenerator
 
+from sysmlpy.semantic import analyze, SemanticIssue, SemanticAnalyzer
 

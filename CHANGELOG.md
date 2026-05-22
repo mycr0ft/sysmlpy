@@ -1,7 +1,41 @@
 # CHANGELOG
 
 
-## v0.17.0 (2026-05-21)
+## v0.19.0 (2026-05-22)
+
+### :sparkles:
+
+- :sparkles: Semantic analysis engine with undefined symbol detection
+  New `analyze()` function walks the parsed model tree, builds a
+  hierarchical symbol table, and cross-references all type, subsetting,
+  and redefinition references against defined symbols.
+
+- :sparkles: Import resolution
+  Resolves `import Package::*` (namespace), `import Package::Element`
+  (membership), and `import Package::*::**` (recursive) imports.
+  Imported symbols become visible in the importing scope.
+
+- :sparkles: SymbolTable with hierarchical scope resolution
+  Each package and definition creates a child scope. References resolve
+  through parent scopes. Qualified names like `P::A` and
+  `Outer::Inner::DeepPart` resolve correctly across arbitrary depth.
+
+- :sparkles: 80+ standard library symbols whitelisted
+  ScalarValues, ISQ quantities, and base KerML/SysML types are
+  pre-recognized so they don't trigger false positives.
+
+### :white_check_mark:
+
+- :white_check_mark: 530 tests passing (43 semantic tests, 6 new import tests)
+- :white_check_mark: SemanticIssue dataclass with severity, code, message, element, reference
+
+### :memo:
+
+- :memo: Updated README.md with Semantic Analysis section, import resolution
+  documentation, and symbol resolution capabilities.
+
+
+## v0.17.1 (2026-05-21)
 
 ### :sparkles:
 
