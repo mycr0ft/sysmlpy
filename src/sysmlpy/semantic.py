@@ -482,11 +482,14 @@ class SemanticAnalyzer:
         symtab = SymbolTable()
         symtab.build_from_model(model)
 
-        # Step 2: Collect all references with scope paths
+        # Step 2: Validate imports (check if import targets exist)
+        issues.extend(self._validate_imports(symtab))
+
+        # Step 3: Collect all references with scope paths
         collector = ReferenceCollector()
         references = collector.collect(model)
 
-        # Step 3: Cross-reference using scope-aware lookup
+        # Step 4: Cross-reference using scope-aware lookup
         for ref_str, element, scope_path in references:
             if self._is_resolved(ref_str, symtab, scope_path):
                 continue
@@ -500,6 +503,91 @@ class SemanticAnalyzer:
             ))
 
         return issues
+
+    def _validate_imports(self, symtab: SymbolTable) -> list[SemanticIssue]:
+        """Validate that all import targets exist in the model."""
+        issues: list[SemanticIssue] = []
+        self._check_imports_in_scope(symtab, symtab, issues)
+        return issues
+
+    def _check_imports_in_scope(
+        self, symtab: SymbolTable, table: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Check imports in this scope and recurse into children."""
+        for imp in table._imports:
+            self._validate_single_import(symtab, table, imp, issues)
+
+        for child_table in table._children.values():
+            self._check_imports_in_scope(symtab, child_table, issues)
+
+    def _validate_single_import(
+        self, symtab: SymbolTable, table: SymbolTable, imp: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Validate a single Import object."""
+        if not imp.children:
+            return
+
+        import_child = imp.children[0]
+        child_type = type(import_child).__name__
+
+        if child_type == "MembershipImport":
+            self._validate_membership_import(symtab, table, import_child, issues)
+        elif child_type == "NamespaceImport":
+            self._validate_namespace_import(symtab, table, import_child, issues)
+
+    def _validate_membership_import(
+        self, symtab: SymbolTable, table: SymbolTable, mem_import: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Validate a MembershipImport targets an existing element."""
+        imported_mem = getattr(mem_import, "membership", None)
+        if imported_mem is None:
+            return
+
+        qn = getattr(imported_mem, "name", None)
+        if qn is None:
+            return
+
+        names = getattr(qn, "names", [])
+        if not names:
+            return
+
+        ref_str = "::".join(names)
+        element = symtab._resolve_qualified_name(ref_str, table)
+        if element is None:
+            issues.append(SemanticIssue(
+                severity="error",
+                code="UNRESOLVED_IMPORT",
+                message=f"Import target '{ref_str}' does not exist",
+                element=None,
+                reference=ref_str,
+            ))
+
+    def _validate_namespace_import(
+        self, symtab: SymbolTable, table: SymbolTable, ns_import: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Validate a NamespaceImport targets an existing namespace."""
+        imported_ns = getattr(ns_import, "namespace", None)
+        if imported_ns is None:
+            return
+
+        qn = getattr(imported_ns, "namespaces", None)
+        if qn is None:
+            return
+
+        names = getattr(qn, "names", [])
+        if not names:
+            return
+
+        ref_str = "::".join(names)
+        target_table = symtab._find_namespace_table(ref_str, table)
+        if target_table is None:
+            issues.append(SemanticIssue(
+                severity="error",
+                code="UNRESOLVED_IMPORT",
+                message=f"Import namespace '{ref_str}' does not exist",
+                element=None,
+                reference=ref_str,
+            ))
 
     def _is_resolved(self, ref_str: str, symtab: SymbolTable, scope_path: list[str]) -> bool:
         """Check if a qualified name reference can be resolved from the given scope."""

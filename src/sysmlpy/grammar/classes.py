@@ -220,6 +220,10 @@ class DefinitionElement:
                 self.children.append(
                     SatisfyRequirementUsage(definition["ownedRelatedElement"])
                 )
+            elif de == "InterfaceUsage":
+                self.children.append(
+                    InterfaceUsage(definition["ownedRelatedElement"])
+                )
             else:
                 print(f"Unknown DefinitionElement type: {de}")  # pragma: no cover
                 raise NotImplementedError  # pragma: no cover
@@ -6311,6 +6315,13 @@ class InterfaceUsageDeclaration:
 
         return " ".join(output)
 
+    def get_definition(self):
+        output = {"name": self.__class__.__name__}
+        output["declaration"] = self.declaration.get_definition() if self.declaration else None
+        output["part1"] = self.part.get_definition() if self.part else None
+        output["part2"] = None
+        return output
+
 
 class InterfacePart:
     def __init__(self, definition):
@@ -6324,6 +6335,13 @@ class InterfacePart:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "binarypart": self.children.get_definition() if self.children else None,
+            "narypart": None
+        }
 
 
 class BinaryInterfacePart:
@@ -6340,6 +6358,12 @@ class BinaryInterfacePart:
 
         return self.children[0].dump() + " to " + self.children[1].dump()
 
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [c.get_definition() for c in self.children]
+        }
+
 
 class InterfaceEndMember:
     def __init__(self, definition):
@@ -6348,6 +6372,12 @@ class InterfaceEndMember:
 
     def dump(self):
         return self.child.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": self.child.get_definition()
+        }
 
 
 class InterfaceEnd:
@@ -6378,6 +6408,13 @@ class InterfaceEnd:
             output.append(relationship.dump())
 
         return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaredName": self.name,
+            "ownedRelationship": [r.get_definition() for r in self.relationships]
+        }
 
 
 class PortUsage:

@@ -149,7 +149,6 @@ class TestDefinedNoFalsePositives:
         issues = analyze(model)
         assert not any(i.code == "UNDEFINED_SYMBOL" for i in issues)
 
-    @pytest.mark.skip(reason="Pre-existing grammar bug: InterfaceUsageDeclaration.get_definition missing")
     def test_interface_def_used_by_interface(self):
         model = loads("""
             package P {
@@ -533,6 +532,98 @@ class TestImportResolution:
         """)
         issues = analyze(model)
         assert not any(i.code == "UNDEFINED_SYMBOL" for i in issues)
+
+
+class TestUnresolvedImportDetection:
+    """Import targets that don't exist should be flagged."""
+
+    def test_import_from_nonexistent_package(self):
+        model = loads("""
+            package Vehicle {
+                import NonExistent::*;
+            }
+        """)
+        issues = analyze(model)
+        assert any(
+            i.code == "UNRESOLVED_IMPORT" and "NonExistent" in i.message
+            for i in issues
+        )
+
+    def test_import_specific_nonexistent_element(self):
+        model = loads("""
+            package Vehicle {
+                import NonExistent::Engine;
+            }
+        """)
+        issues = analyze(model)
+        assert any(
+            i.code == "UNRESOLVED_IMPORT" and "NonExistent::Engine" in i.message
+            for i in issues
+        )
+
+    def test_import_from_nested_nonexistent_package(self):
+        model = loads("""
+            package A {
+                package B {
+                    part def PartB;
+                }
+            }
+            package C {
+                import A::NonExistent::*;
+            }
+        """)
+        issues = analyze(model)
+        assert any(
+            i.code == "UNRESOLVED_IMPORT" and "A::NonExistent" in i.message
+            for i in issues
+        )
+
+    def test_valid_import_not_flagged(self):
+        model = loads("""
+            package Types {
+                part def Engine;
+            }
+            package Vehicle {
+                import Types::*;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "UNRESOLVED_IMPORT" for i in issues)
+
+    def test_valid_membership_import_not_flagged(self):
+        model = loads("""
+            package Types {
+                part def Engine;
+            }
+            package Vehicle {
+                import Types::Engine;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "UNRESOLVED_IMPORT" for i in issues)
+
+    def test_unresolved_import_and_undefined_symbol_both_reported(self):
+        model = loads("""
+            package Vehicle {
+                import NonExistent::*;
+                part myCar : SomeType;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "UNRESOLVED_IMPORT" for i in issues)
+        assert any(i.code == "UNDEFINED_SYMBOL" for i in issues)
+
+    def test_recursive_import_from_nonexistent(self):
+        model = loads("""
+            package Vehicle {
+                import NonExistent::*::**;
+            }
+        """)
+        issues = analyze(model)
+        assert any(
+            i.code == "UNRESOLVED_IMPORT" and "NonExistent" in i.message
+            for i in issues
+        )
 
 
 class TestSubsettingResolution:
