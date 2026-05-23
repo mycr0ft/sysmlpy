@@ -627,11 +627,7 @@ class TestUnresolvedImportDetection:
 
 
 class TestSubsettingResolution:
-    """Subsetting references should resolve to defined features.
-
-    Note: Subsetting to inherited features (from supertypes) is not yet
-    supported. This will be addressed in Phase 2 (import/supertype resolution).
-    """
+    """Subsetting references should resolve to defined features, including inherited ones."""
 
     def test_subsetting_to_defined_feature(self):
         model = loads("""
@@ -645,10 +641,42 @@ class TestSubsettingResolution:
             }
         """)
         issues = analyze(model)
-        # baseAttr is inherited from Base, not directly in Derived's scope
-        # This is a known limitation - Phase 2 will handle supertype resolution
-        # For now, we expect this to be flagged as undefined
-        assert any(i.code == "UNDEFINED_SYMBOL" and "baseAttr" in i.message for i in issues)
+        # baseAttr is inherited from Base - should resolve correctly
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "baseAttr" in i.message for i in issues)
+
+    def test_subsetting_to_undefined_feature(self):
+        model = loads("""
+            package P {
+                part def Base {
+                    attribute baseAttr;
+                }
+                part def Derived :> Base {
+                    attribute myAttr :> nonexistent;
+                }
+            }
+        """)
+        issues = analyze(model)
+        # nonexistent is not defined in Base or Derived
+        assert any(i.code == "UNDEFINED_SYMBOL" and "nonexistent" in i.message for i in issues)
+
+    def test_subsetting_through_multiple_inheritance_levels(self):
+        model = loads("""
+            package P {
+                part def Root {
+                    attribute rootAttr;
+                }
+                part def Middle :> Root {
+                    attribute middleAttr;
+                }
+                part def Leaf :> Middle {
+                    attribute leafAttr1 :> rootAttr;
+                    attribute leafAttr2 :> middleAttr;
+                }
+            }
+        """)
+        issues = analyze(model)
+        # Both rootAttr and middleAttr should resolve through inheritance chain
+        assert not any(i.code == "UNDEFINED_SYMBOL" for i in issues)
 
 
 class TestConvenienceFunction:
@@ -667,3 +695,51 @@ class TestConvenienceFunction:
         """)
         result = analyze(model)
         assert len(result) > 0
+
+
+class TestLibrarySymbolIndex:
+    """Verify library symbol loading from .kerml/.sysml files."""
+
+    def test_library_index_returns_nonempty(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert len(symbols) > 0
+
+    def test_library_contains_scalar_values(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert "ScalarValues::Integer" in symbols
+        assert "ScalarValues::Real" in symbols
+        assert "ScalarValues::String" in symbols
+        assert "ScalarValues::Boolean" in symbols
+
+    def test_library_contains_isq_types(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert "ISQBase::LengthValue" in symbols
+        assert "ISQBase::MassValue" in symbols
+        assert "ISQBase::DurationValue" in symbols
+
+    def test_library_contains_kerml_types(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert "KerML::Kernel::Class" in symbols
+        assert "KerML::Core::Classifier" in symbols
+        assert "KerML::Kernel::Association" in symbols
+
+    def test_library_contains_collections(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert "Collections::Collection" in symbols
+
+    def test_library_cache_is_reused(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        symbols1 = LibrarySymbolIndex.get_symbols()
+        symbols2 = LibrarySymbolIndex.get_symbols()
+        assert symbols1 is symbols2  # Same frozenset object
+
+    def test_clear_cache_resets(self):
+        from sysmlpy.semantic import LibrarySymbolIndex
+        LibrarySymbolIndex.clear_cache()
+        symbols = LibrarySymbolIndex.get_symbols()
+        assert len(symbols) > 0

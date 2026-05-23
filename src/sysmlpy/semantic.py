@@ -9,6 +9,9 @@ parsed model tree and cross-referencing all qualified name references.
 from __future__ import annotations
 
 import dataclasses
+import os
+import re
+from pathlib import Path
 from typing import Any, Optional
 
 
@@ -21,6 +24,192 @@ class SemanticIssue:
     message: str
     element: Any = None
     reference: str = ""
+
+
+# ---------------------------------------------------------------------------
+# Library Symbol Index
+# ---------------------------------------------------------------------------
+
+# Regex patterns for extracting symbols from library files
+_PACKAGE_RE = re.compile(
+    r'(?:standard\s+library\s+)?package\s+(\w+)\s*\{',
+    re.IGNORECASE,
+)
+_DEFINITION_RE = re.compile(
+    r'(?:abstract\s+)?'
+    r'(?:datatype|class|metaclass|attribute\s+def|part\s+def|item\s+def|port\s+def|'
+    r'action\s+def|state\s+def|constraint\s+def|calc\s+def|requirement\s+def|'
+    r'interface\s+def|connection\s+def|flow\s+def|enumeration\s+def|enum\s+def|'
+    r'use\s+case\s+def|case\s+def|analysis\s+case\s+def|verification\s+case\s+def|'
+    r'view\s+def|viewpoint\s+def|concern\s+def|allocation\s+def|metadata\s+def|'
+    r'rendering\s+def|individual\s+def|feature\s+def|reference\s+def|'
+    r'structure\s+def|behavior\s+def|occurrence\s+def|assertion\s+def|'
+    r'typedef|classifier)\s+'
+    r"""(['"]?\w+['"]?)""",
+    re.IGNORECASE,
+)
+
+
+class LibrarySymbolIndex:
+    """Index of all symbols defined in the standard library.
+
+    Scans .kerml and .sysml files to extract package-qualified symbol names.
+    Results are cached to avoid repeated file I/O.
+    """
+
+    _cache: Optional[frozenset[str]] = None
+    _library_root: Optional[Path] = None
+
+    @classmethod
+    def get_symbols(cls, library_root: Optional[Path] = None) -> frozenset[str]:
+        """Return all known library symbol names as qualified strings.
+
+        Parameters
+        ----------
+        library_root : Path, optional
+            Root directory of the standard library. Defaults to the bundled
+            library shipped with sysmlpy.
+
+        Returns
+        -------
+        frozenset[str]
+            Set of qualified names like ``"ScalarValues::Integer"``,
+            ``"ISQ::LengthValue"``, etc.
+        """
+        if cls._cache is not None:
+            return cls._cache
+
+        root = library_root or cls._default_library_root()
+        if root is None or not root.is_dir():
+            # Fall back to minimal hardcoded set
+            cls._cache = _KNOWN_LIBRARY_SYMBOLS
+            return cls._cache
+
+        symbols = set()
+        for ext in ("*.kerml", "*.sysml"):
+            for filepath in root.rglob(ext):
+                cls._extract_from_file(filepath, symbols)
+
+        cls._cache = frozenset(symbols)
+        return cls._cache
+
+    @classmethod
+    def _default_library_root(cls) -> Optional[Path]:
+        """Find the bundled library directory."""
+        try:
+            import sysmlpy
+            pkg_path = Path(sysmlpy.__file__).parent
+            lib_path = pkg_path / "library"
+            if lib_path.is_dir():
+                return lib_path
+        except ImportError:
+            pass
+
+        # Fallback: relative to this module
+        module_path = Path(__file__).parent
+        lib_path = module_path / "library"
+        if lib_path.is_dir():
+            return lib_path
+
+        return None
+
+    @classmethod
+    def _extract_from_file(cls, filepath: Path, symbols: set[str]) -> None:
+        """Extract symbol names from a single library file."""
+        try:
+            content = filepath.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return
+
+        # Track package nesting with brace depth
+        package_stack: list[tuple[str, int]] = []  # (name, depth_at_open)
+        brace_depth = 0
+
+        for line in content.splitlines():
+            # Strip comments
+            stripped = line.strip()
+            if stripped.startswith("doc") or stripped.startswith("/*") or stripped.startswith("*"):
+                continue
+
+            # Count braces in this line
+            open_braces = stripped.count("{")
+            close_braces = stripped.count("}")
+
+            # Check for package opening (before updating depth)
+            pkg_match = _PACKAGE_RE.search(stripped)
+            if pkg_match:
+                pkg_name = pkg_match.group(1)
+                package_stack.append((pkg_name, brace_depth))
+                # The package itself is a symbol
+                if len(package_stack) > 1:
+                    symbols.add("::".join(name for name, _ in package_stack))
+
+            # Check for definitions (use current package context)
+            def_match = _DEFINITION_RE.search(stripped)
+            if def_match and package_stack:
+                def_name = def_match.group(1).strip("'\"")
+                qualified = "::".join(name for name, _ in package_stack) + "::" + def_name
+                symbols.add(qualified)
+
+            # Update brace depth
+            brace_depth += open_braces - close_braces
+
+            # Pop packages that have been closed
+            while package_stack and package_stack[-1][1] >= brace_depth:
+                package_stack.pop()
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear the cached symbol index (useful for testing)."""
+        cls._cache = None
+
+
+# Backwards-compatible constant (populated lazily from library files)
+_KNOWN_LIBRARY_SYMBOLS: frozenset[str] = frozenset({
+    # Scalar values
+    "ScalarValues::Boolean", "ScalarValues::Integer", "ScalarValues::Natural",
+    "ScalarValues::Positive", "ScalarValues::Nonnegative",
+    "ScalarValues::Rational", "ScalarValues::Real", "ScalarValues::String",
+    "ScalarValues::Complex", "ScalarValues::UnlimitedNatural",
+    "ScalarValues::Number", "ScalarValues::ScalarValue",
+    # ISQ base quantities
+    "ISQ::Length", "ISQ::Mass", "ISQ::Time", "ISQ::ElectricCurrent",
+    "ISQ::ThermodynamicTemperature", "ISQ::AmountOfSubstance",
+    "ISQ::LuminousIntensity", "ISQ::Angle", "ISQ::SolidAngle",
+    "ISQ::Information",
+    # ISQ value types
+    "ISQ::LengthValue", "ISQ::MassValue", "ISQ::TimeValue",
+    "ISQ::ElectricCurrentValue", "ISQ::ThermodynamicTemperatureValue",
+    "ISQ::AmountOfSubstanceValue", "ISQ::LuminousIntensityValue",
+    "ISQ::AngleValue", "ISQ::SolidAngleValue", "ISQ::InformationValue",
+    # Common derived quantities
+    "ISQ::Area", "ISQ::Volume", "ISQ::Velocity", "ISQ::Acceleration",
+    "ISQ::Force", "ISQ::Pressure", "ISQ::Energy", "ISQ::Power",
+    "ISQ::ElectricCharge", "ISQ::Voltage", "ISQ::Capacitance",
+    "ISQ::Resistance", "ISQ::Conductance", "ISQ::MagneticFlux",
+    "ISQ::MagneticFluxDensity", "ISQ::Inductance", "ISQ::Frequency",
+    "ISQ::AreaValue", "ISQ::VolumeValue", "ISQ::VelocityValue",
+    "ISQ::AccelerationValue", "ISQ::ForceValue", "ISQ::PressureValue",
+    "ISQ::EnergyValue", "ISQ::PowerValue", "ISQ::ElectricChargeValue",
+    "ISQ::VoltageValue", "ISQ::CapacitanceValue", "ISQ::ResistanceValue",
+    "ISQ::ConductanceValue", "ISQ::MagneticFluxValue",
+    "ISQ::MagneticFluxDensityValue", "ISQ::InductanceValue",
+    "ISQ::FrequencyValue",
+    # Base KerML/SysML types
+    "KerML::Element", "KerML::Type", "KerML::Feature",
+    "KerML::Namespace", "KerML::Relationship",
+    "SysML::Occurrence", "SysML::Item", "SysML::Part",
+    "SysML::Port", "SysML::Action", "SysML::State",
+    "SysML::Requirement", "SysML::Connection",
+    "SysML::Flow", "SysML::Interface",
+    "SysML::Calculation", "SysML::Constraint",
+    "SysML::Enumeration", "SysML::Case",
+    "SysML::UseCase", "SysML::AnalysisCase",
+    "SysML::VerificationCase", "SysML::View",
+    "SysML::Viewpoint", "SysML::Concern",
+    "SysML::Allocation", "SysML::Metadata",
+    "SysML::Rendering", "SysML::Individual",
+})
 
 
 # ---------------------------------------------------------------------------
@@ -41,6 +230,7 @@ class SymbolTable:
         self._parent: Optional[SymbolTable] = None
         self._imports: list[Any] = []  # Import grammar objects
         self._imported_symbols: dict[str, Any] = {}  # Resolved imported symbols
+        self._definition_features: dict[str, dict[str, Any]] = {}  # definition_name -> {element, features, supertypes}
 
     # -- public API ----------------------------------------------------------
 
@@ -74,10 +264,14 @@ class SymbolTable:
         if name is not None and type(element).__name__ != "Model":
             table.register(name, element)
 
+        # Track definitions and their features/supertypes for inheritance resolution
+        elem_type = type(element).__name__
+        if getattr(element, "is_definition", False) and name is not None:
+            self._index_definition(element, name, table)
+
         # Create child scope for packages and definitions
         # Skip Model (it's just a root container, not a SysML namespace)
         child_table = table
-        elem_type = type(element).__name__
         is_container = getattr(element, "is_definition", False) or elem_type == "Package"
         if is_container and name is not None and elem_type != "Model":
             child_table = table._children.setdefault(name, SymbolTable())
@@ -256,6 +450,154 @@ class SymbolTable:
             return self
         if self._parent is not None:
             return self._parent._find_symbol_owner(name)
+        return None
+
+    def _index_definition(self, element: Any, name: str, table: SymbolTable) -> None:
+        """Index a definition's features and supertypes for inheritance resolution."""
+        grammar = getattr(element, "grammar", None)
+        if grammar is None:
+            return
+
+        # Extract supertype names from grammar
+        supertypes = self._extract_supertypes(grammar)
+
+        # Extract feature names defined directly in this definition
+        features = self._extract_features(grammar)
+
+        self._definition_features[name] = {
+            "element": element,
+            "features": features,
+            "supertypes": supertypes,
+            "scope": table,
+        }
+
+    def _extract_supertypes(self, grammar: Any) -> list[str]:
+        """Extract supertype names from a definition's grammar."""
+        supertypes = []
+
+        # Navigate to subclassificationpart
+        definition = getattr(grammar, "definition", None)
+        if definition is None:
+            return supertypes
+
+        declaration = getattr(definition, "declaration", None)
+        if declaration is None:
+            return supertypes
+
+        scp = getattr(declaration, "subclassificationpart", None)
+        if scp is None:
+            return supertypes
+
+        for child in getattr(scp, "children", []):
+            name_obj = getattr(child, "name", None)
+            if name_obj is not None:
+                names = getattr(name_obj, "names", [])
+                if names:
+                    supertypes.append(names[-1])  # Use simple name
+
+        return supertypes
+
+    def _extract_features(self, grammar: Any) -> set[str]:
+        """Extract feature names defined directly in a definition's grammar."""
+        features = set()
+
+        definition = getattr(grammar, "definition", None)
+        if definition is None:
+            return features
+
+        body = getattr(definition, "body", None)
+        if body is None:
+            return features
+
+        for body_item in getattr(body, "children", []):
+            for member in getattr(body_item, "children", []):
+                for usage_elem in getattr(member, "children", []):
+                    struct_elem = getattr(usage_elem, "children", None)
+                    if struct_elem is None:
+                        continue
+                    # struct_elem can be either:
+                    # 1. A Usage subclass directly (e.g., AttributeUsage)
+                    # 2. A StructureUsageElement wrapper containing a Usage
+                    feat_name = self._get_feature_name(struct_elem)
+                    if feat_name:
+                        features.add(feat_name)
+
+        return features
+
+    def _get_feature_name(self, usage: Any) -> Optional[str]:
+        """Extract the declared name from a Usage object or wrapper."""
+        try:
+            # Case 1: Direct Usage subclass (e.g., AttributeUsage, PartUsage)
+            # These have a 'usage' attribute
+            usage_attr = getattr(usage, "usage", None)
+            if usage_attr is not None:
+                decl = getattr(usage_attr, "declaration", None)
+                if decl is None:
+                    return getattr(usage, "name", None)
+                inner_decl = getattr(decl, "declaration", None)
+                if inner_decl is None:
+                    return None
+                ident = getattr(inner_decl, "identification", None)
+                if ident is None:
+                    return None
+                return getattr(ident, "declaredName", None)
+
+            # Case 2: Wrapper with children containing Usage
+            children = getattr(usage, "children", None)
+            if children is not None:
+                return self._get_feature_name(children)
+
+            return getattr(usage, "name", None)
+        except AttributeError:
+            return None
+
+    def resolve_inherited_feature(self, feature_name: str, defining_type: str, visited: Optional[set] = None) -> Optional[Any]:
+        """Resolve a feature name by walking the supertype chain of *defining_type*.
+
+        Returns the element that defines the feature, or None if not found.
+        """
+        if visited is None:
+            visited = set()
+
+        if defining_type in visited:
+            return None
+        visited.add(defining_type)
+
+        if defining_type not in self._definition_features:
+            return None
+
+        def_info = self._definition_features[defining_type]
+
+        # Check if feature is directly defined in this type
+        if feature_name in def_info["features"]:
+            return def_info["element"]
+
+        # Recursively check supertypes
+        for supertype in def_info["supertypes"]:
+            result = self.resolve_inherited_feature(feature_name, supertype, visited)
+            if result is not None:
+                return result
+
+        return None
+
+    def find_defining_type_for_feature(self, feature_name: str, context_type: str) -> Optional[str]:
+        """Find which type in the inheritance chain defines *feature_name*.
+
+        Returns the type name that defines the feature, or None.
+        """
+        if context_type not in self._definition_features:
+            return None
+
+        def_info = self._definition_features[context_type]
+
+        if feature_name in def_info["features"]:
+            return context_type
+
+        for supertype in def_info["supertypes"]:
+            result = self.find_defining_type_for_feature(feature_name, supertype)
+            if result is not None:
+                return result
+
         return None
 
 
@@ -591,7 +933,11 @@ class SemanticAnalyzer:
 
     def _is_resolved(self, ref_str: str, symtab: SymbolTable, scope_path: list[str]) -> bool:
         """Check if a qualified name reference can be resolved from the given scope."""
-        # Check known library symbols first
+        # Check known library symbols (loaded from .kerml/.sysml files)
+        if ref_str in LibrarySymbolIndex.get_symbols():
+            return True
+
+        # Also check the hardcoded fallback for backwards compatibility
         if ref_str in _KNOWN_LIBRARY_SYMBOLS:
             return True
 
@@ -606,6 +952,10 @@ class SemanticAnalyzer:
 
         # Direct lookup from current scope (walks up parent chain)
         if current.lookup(ref_str) is not None:
+            return True
+
+        # Check inherited features from supertypes
+        if self._resolve_inherited(ref_str, symtab, scope_path):
             return True
 
         # Try as qualified name: resolve path P::A
@@ -638,6 +988,17 @@ class SemanticAnalyzer:
             # Fall back to simple name lookup for the last part
             return current.lookup(parts[-1]) is not None
 
+        return False
+
+    def _resolve_inherited(self, ref_str: str, symtab: SymbolTable, scope_path: list[str]) -> bool:
+        """Check if *ref_str* is an inherited feature from a supertype in the scope chain."""
+        # Walk scope_path to find the nearest definition that has supertypes
+        for i in range(len(scope_path) - 1, -1, -1):
+            context_type = scope_path[i]
+            if context_type in symtab._definition_features:
+                result = symtab.find_defining_type_for_feature(ref_str, context_type)
+                if result is not None:
+                    return True
         return False
 
 
