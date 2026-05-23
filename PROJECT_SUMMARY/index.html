@@ -1,0 +1,1511 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SysML v2.0 Parser for Python">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>sysmlpy — Project Work Summary - sysmlpy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sysmlpy-project-work-summary" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="sysmlpy" class="md-header__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sysmlpy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              sysmlpy — Project Work Summary
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="sysmlpy" class="md-nav__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sysmlpy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TUTORIAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TODO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#project-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Project Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Project Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#whats-been-accomplished" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What's Been Accomplished
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What&#39;s Been Accomplished">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parsing-100-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing (100% Conformance)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grammar-round-trip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grammar Round-Trip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#semantic-analysis-v0170-v0200" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic Analysis (v0.17.0 → v0.20.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Semantic Analysis (v0.17.0 → v0.20.0)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implemented-ocl-well-formness-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implemented OCL Well-Formness Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage Backends
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test Coverage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Decisions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Design Decisions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-antlr4-over-textx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. ANTLR4 over textX
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-grammar-class-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Grammar Class Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-two-level-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Two-Level Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-semantic-analysis-is-opt-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Semantic Analysis is Opt-In
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-import-visibility-defaults-to-private" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Import Visibility Defaults to Private
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-multiplicity-is-stored-in-featurespecializationpart" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Multiplicity is Stored in FeatureSpecializationPart
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-issues-and-technical-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Issues and Technical Debt
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Known Issues and Technical Debt">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#high-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#low-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#future-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future Work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Future Work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#semantic-analysis-extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic Analysis Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parser-and-grammar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parser and Grammar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#library-and-standard-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library and Standard Compliance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#potential-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Potential Pitfalls
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Potential Pitfalls">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-grammar-class-children-property-is-fragile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Grammar Class children Property is Fragile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-visitor-dict-structure-is-not-typed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Visitor Dict Structure is Not Typed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-multiplicity-structure-is-deeply-nested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Multiplicity Structure is Deeply Nested
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-import-visibility-propagation-is-complex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Import Visibility Propagation is Complex
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-symbol-table-and-model-tree-are-separate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Symbol Table and Model Tree are Separate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-antlr-grammar-updates-require-visitor-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. ANTLR Grammar Updates Require Visitor Updates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-python-313-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Python 3.13 Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#running-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-ocl-constraint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New OCL Constraint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adding-a-new-storage-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Storage Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contact
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sysmlpy-project-work-summary">sysmlpy — Project Work Summary<a class="headerlink" href="#sysmlpy-project-work-summary" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>For:</strong> Future agents and team members
+<strong>Last Updated:</strong> May 23, 2026
+<strong>Current Version:</strong> v0.20.0
+<strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy</p>
+</blockquote>
+<hr />
+<h2 id="project-overview">Project Overview<a class="headerlink" href="#project-overview" title="Permanent link">&para;</a></h2>
+<p><strong>sysmlpy</strong> is a pure Python library for parsing, manipulating, and validating SysML v2.0 models. It uses an ANTLR4 parser (based on the <a href="https://github.com/daltskin/sysml-v2-grammar">OMG SysML v2 grammar</a>) and provides both a programmatic API for building models and a semantic analysis engine for validating them.</p>
+<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sysmlpy/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── src/sysmlpy/
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── __init__.py          # Public API: loads(), load(), analyze()
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── antlr_parser.py      # ANTLR4 lexer/parser setup
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── antlr_visitor.py     # ~11K lines: parse tree → internal dict
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── grammar/
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   ├── classes.py       # ~8.7K lines: grammar class hierarchy
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   │   └── antlr4/          # Generated ANTLR parser/lexer
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── definition.py        # Model, Package, RootNamespace classes
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── usage.py             # Part, Item, Attribute, Port, Action, etc.
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── semantic.py          # Semantic analysis engine (~1.8K lines)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── store.py             # Storage backends (memory, NetworkX, Kuzu, Cayley)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── plantuml.py          # PlantUML diagram generation
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── formatting.py        # classtree() for round-trip serialization
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── navigate.py          # Searchable mixin for model traversal
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── library/             # Bundled SysML v2 standard library (88 files)
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│       ├── kernel/          # KerML core (ScalarValues, Base, Collections, etc.)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│       ├── systems/         # SysML base (SysML.sysml)
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│       └── domain/          # ISQ, SI units, base quantities
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>├── tests/
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── class_test.py        # 53 programmatic API tests
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   ├── semantic_test.py     # 90 semantic analysis tests
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── store_test.py        # 82 storage backend tests (memory + networkx)
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── conformance_test.py  # 123 OMG XPect conformance tests
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   └── sysmlv2/             # Conformance test fixtures
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>└── docs/                    # Documentation
+</code></pre></div>
+<h3 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>SysML text → ANTLR4 Lexer/Parser → Parse Tree
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    → antlr_visitor.py (parse_to_dict) → Internal dict
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    → grammar/classes.py (grammar objects) → Model tree
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    → usage.py / definition.py (public classes) → User-facing API
+</code></pre></div>
+<hr />
+<h2 id="whats-been-accomplished">What's Been Accomplished<a class="headerlink" href="#whats-been-accomplished" title="Permanent link">&para;</a></h2>
+<h3 id="parsing-100-conformance">Parsing (100% Conformance)<a class="headerlink" href="#parsing-100-conformance" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>ANTLR4 parser</strong> with full SysML v2 grammar support</li>
+<li><strong>123/123 OMG XPect conformance tests pass</strong> (100%)</li>
+<li>Visitor converts parse trees to internal dict representation (~11K lines)</li>
+<li>Supports all SysML v2 element types: packages, parts, items, ports, actions, states, requirements, interfaces, flows, connections, calculations, constraints, enumerations, cases, views, viewpoints, etc.</li>
+</ul>
+<h3 id="grammar-round-trip">Grammar Round-Trip<a class="headerlink" href="#grammar-round-trip" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>56/56 grammar round-trip tests pass</strong> (100%)</li>
+<li>Every grammar class has <code>dump()</code> and <code>get_definition()</code> for serialization</li>
+<li><code>classtree()</code> converts Model tree back to text</li>
+</ul>
+<h3 id="semantic-analysis-v0170-v0200">Semantic Analysis (v0.17.0 → v0.20.0)<a class="headerlink" href="#semantic-analysis-v0170-v0200" title="Permanent link">&para;</a></h3>
+<p>The semantic analysis engine (<code>semantic.py</code>) provides comprehensive validation:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Status</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Symbol Resolution</strong></td>
+<td>✅ Complete</td>
+<td>Hierarchical symbol table with parent chain lookup</td>
+</tr>
+<tr>
+<td><strong>Import Resolution</strong></td>
+<td>✅ Complete</td>
+<td>Namespace (<code>::*</code>), membership, recursive (<code>::*::**</code>)</td>
+</tr>
+<tr>
+<td><strong>Import Visibility</strong></td>
+<td>✅ Complete</td>
+<td><code>private</code>/<code>public</code>/<code>protected</code> enforcement</td>
+</tr>
+<tr>
+<td><strong>Library Symbol Index</strong></td>
+<td>✅ Complete</td>
+<td>Scans 88 <code>.kerml</code>/<code>.sysml</code> files (~1,417 symbols)</td>
+</tr>
+<tr>
+<td><strong>Inheritance Resolution</strong></td>
+<td>✅ Complete</td>
+<td>Supertype chain traversal for subsetting/redefinition</td>
+</tr>
+<tr>
+<td><strong>OCL Constraints</strong></td>
+<td>✅ 8 of 8</td>
+<td>See table below</td>
+</tr>
+</tbody>
+</table>
+<h4 id="implemented-ocl-well-formness-checks">Implemented OCL Well-Formness Checks<a class="headerlink" href="#implemented-ocl-well-formness-checks" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Rule</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UNDEFINED_SYMBOL</code></td>
+<td>—</td>
+<td>Reference to non-existent type or feature</td>
+</tr>
+<tr>
+<td><code>DUPLICATE_NAME</code></td>
+<td>Namespace.duplicate_names</td>
+<td>Two members with same name in a scope</td>
+</tr>
+<tr>
+<td><code>CYCLIC_SPECIALIZATION</code></td>
+<td>Type.no_cyclic_specialization</td>
+<td>Type specializing itself (directly or indirectly)</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_SUBSETTING</code></td>
+<td>Feature.subsetting_compatible</td>
+<td>Subsetting ref to undefined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_REDEFINITION</code></td>
+<td>Feature.redefinition_compatible</td>
+<td>Redefinition ref to undefined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PART_DEFINITION</code></td>
+<td>Part.definition_compatible</td>
+<td>Part typed by non-PartDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PORT_DEFINITION</code></td>
+<td>Port.definition_compatible</td>
+<td>Port typed by non-PortDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_FEATURE_CHAIN</code></td>
+<td>Feature.chaining_compatible</td>
+<td>Chained features (<code>a.b.c</code>) with incompatible types</td>
+</tr>
+<tr>
+<td><code>INVALID_MULTIPLICITY_BOUNDS</code></td>
+<td>Multiplicity.bounds_valid</td>
+<td>Lower bound &gt; upper bound (e.g., <code>[5..2]</code>)</td>
+</tr>
+<tr>
+<td><code>UNRESOLVED_IMPORT</code></td>
+<td>—</td>
+<td>Import target does not exist</td>
+</tr>
+</tbody>
+</table>
+<h3 id="storage-backends">Storage Backends<a class="headerlink" href="#storage-backends" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>InMemoryStore</strong> — dict-based, zero dependencies</li>
+<li><strong>NetworkXStore</strong> — graph analysis (shortest paths, centrality, cycles)</li>
+<li><strong>KuzuStore</strong> — embedded graph DB with disk persistence and Cypher queries</li>
+<li><strong>CayleyStore</strong> — remote graph DB via HTTP API</li>
+</ul>
+<h3 id="test-coverage">Test Coverage<a class="headerlink" href="#test-coverage" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Suite</th>
+<th>Count</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grammar round-trip</td>
+<td>56</td>
+<td>✅ 56 pass</td>
+</tr>
+<tr>
+<td>Programmatic API</td>
+<td>53</td>
+<td>✅ 53 pass</td>
+</tr>
+<tr>
+<td>Semantic analysis</td>
+<td>90</td>
+<td>✅ 90 pass</td>
+</tr>
+<tr>
+<td>Storage backends</td>
+<td>82</td>
+<td>✅ 82 pass</td>
+</tr>
+<tr>
+<td>Conformance</td>
+<td>123</td>
+<td>✅ 123 pass</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>404</strong></td>
+<td><strong>✅ 404 pass, 0 fail</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-design-decisions">Key Design Decisions<a class="headerlink" href="#key-design-decisions" title="Permanent link">&para;</a></h2>
+<h3 id="1-antlr4-over-textx">1. ANTLR4 over textX<a class="headerlink" href="#1-antlr4-over-textx" title="Permanent link">&para;</a></h3>
+<p>The project originally used textX but migrated to ANTLR4 for better conformance with the OMG SysML v2 grammar. The textX runtime and all related files have been removed.</p>
+<h3 id="2-grammar-class-hierarchy">2. Grammar Class Hierarchy<a class="headerlink" href="#2-grammar-class-hierarchy" title="Permanent link">&para;</a></h3>
+<p>The <code>grammar/classes.py</code> file contains ~319 classes that mirror the SysML v2 metamodel. Each class has:
+- <code>__init__()</code> — constructs from a dict (produced by the visitor)
+- <code>dump()</code> — serializes back to SysML v2 text
+- <code>get_definition()</code> — serializes back to dict (for round-trip)
+- <code>children</code> property — returns child elements for tree traversal</p>
+<h3 id="3-two-level-model">3. Two-Level Model<a class="headerlink" href="#3-two-level-model" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Grammar objects</strong> (<code>grammar/classes.py</code>) — low-level representation of the parse tree</li>
+<li><strong>Public classes</strong> (<code>usage.py</code>, <code>definition.py</code>) — user-friendly API with methods like <code>set_value()</code>, <code>_set_child()</code>, <code>find()</code></li>
+</ul>
+<p>The <code>load_from_grammar()</code> method on each public class bridges the two levels.</p>
+<h3 id="4-semantic-analysis-is-opt-in">4. Semantic Analysis is Opt-In<a class="headerlink" href="#4-semantic-analysis-is-opt-in" title="Permanent link">&para;</a></h3>
+<p>The semantic analyzer (<code>analyze(model)</code>) is non-invasive and opt-in. It does not modify the model or affect parsing/loading. This was a deliberate design choice to maintain backward compatibility.</p>
+<h3 id="5-import-visibility-defaults-to-private">5. Import Visibility Defaults to Private<a class="headerlink" href="#5-import-visibility-defaults-to-private" title="Permanent link">&para;</a></h3>
+<p>Per the SysML v2 spec, imports without an explicit visibility keyword default to <code>private</code>. The <code>ImportPrefix</code> class accepts <code>None</code> visibility (a previous version incorrectly raised <code>ValueError</code>).</p>
+<h3 id="6-multiplicity-is-stored-in-featurespecializationpart">6. Multiplicity is Stored in FeatureSpecializationPart<a class="headerlink" href="#6-multiplicity-is-stored-in-featurespecializationpart" title="Permanent link">&para;</a></h3>
+<p>Multiplicity ranges (<code>[N]</code>, <code>[N..M]</code>, <code>[*]</code>) are stored as part of the <code>FeatureSpecializationPart</code> alongside typings, subsettings, and redefinitions. This is a quirk of the SysML v2 grammar where multiplicity is parsed as part of the feature specialization.</p>
+<hr />
+<h2 id="known-issues-and-technical-debt">Known Issues and Technical Debt<a class="headerlink" href="#known-issues-and-technical-debt" title="Permanent link">&para;</a></h2>
+<h3 id="high-priority">High Priority<a class="headerlink" href="#high-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Location</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Top-level attribute multiplicity not captured</strong></td>
+<td><code>antlr_visitor.py</code> ~line 9558</td>
+<td>Attributes defined at package level (not inside a definition) have <code>specialization=None</code> hardcoded, so multiplicity like <code>attribute x[5..2]</code> is lost. Nested attributes inside definitions work correctly.</td>
+</tr>
+<tr>
+<td><strong>Typed-by not preserved in load_from_grammar</strong></td>
+<td><code>usage.py</code> (marked <code class="highlight">Typed By</code>)</td>
+<td>When loading a model from grammar, type relationships (<code>: TypeName</code>) are not preserved on the public class objects.</td>
+</tr>
+<tr>
+<td><strong>Duplicate ActionUsage block</strong></td>
+<td><code>definition.py</code></td>
+<td>Dead code — duplicate <code>elif inner_class == "ActionUsage"</code> block.</td>
+</tr>
+<tr>
+<td><strong>PackageBodyElement name hardcoded</strong></td>
+<td><code>grammar/classes.py</code></td>
+<td>Comment says <code class="highlight">This isn&#39;t always the case</code>.</td>
+</tr>
+<tr>
+<td><strong>RootNamespace doesn't handle AliasMember/Import</strong></td>
+<td><code>definition.py</code></td>
+<td><code>load_package_body()</code> raises <code>NotImplementedError</code> for these node types.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="medium-priority">Medium Priority<a class="headerlink" href="#medium-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Location</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Feature chain type resolution incomplete</strong></td>
+<td><code>semantic.py</code> <code>_get_feature_type()</code></td>
+<td>Can resolve the type of the first feature in a chain but not subsequent features (requires full type resolution).</td>
+</tr>
+<tr>
+<td><strong>Connector end compatibility is a stub</strong></td>
+<td><code>semantic.py</code> <code>_check_connector_ends_compatible()</code></td>
+<td>Returns empty list — full implementation requires resolving types of both connector ends and checking assignability.</td>
+</tr>
+<tr>
+<td><strong>Library symbol extraction is regex-based</strong></td>
+<td><code>semantic.py</code> <code>LibrarySymbolIndex</code></td>
+<td>Uses regex patterns to extract symbols from <code>.kerml</code>/<code>.sysml</code> files rather than parsing them. May miss edge cases or produce false positives.</td>
+</tr>
+<tr>
+<td><strong><code>_find_definition_by_name</code> walks entire model</strong></td>
+<td><code>semantic.py</code></td>
+<td>O(n) search through the entire model tree. Could be optimized with an index.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="low-priority">Low Priority<a class="headerlink" href="#low-priority" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Location</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>No OCL constraint on succession source/target</strong></td>
+<td><code>semantic.py</code></td>
+<td>SuccessionAsUsage source and target should be actions — not validated.</td>
+</tr>
+<tr>
+<td><strong>No OCL constraint on requirement subject</strong></td>
+<td><code>semantic.py</code></td>
+<td>Requirements should have a subject parameter — not validated.</td>
+</tr>
+<tr>
+<td><strong>No OCL constraint on flow payload compatibility</strong></td>
+<td><code>semantic.py</code></td>
+<td>Flow payload must be compatible with source/target — not validated.</td>
+</tr>
+<tr>
+<td><strong>STATUS.md is stale</strong></td>
+<td><code>docs/STATUS.md</code></td>
+<td>Still reports v0.11.0 and outdated test counts.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="future-work">Future Work<a class="headerlink" href="#future-work" title="Permanent link">&para;</a></h2>
+<h3 id="semantic-analysis-extensions">Semantic Analysis Extensions<a class="headerlink" href="#semantic-analysis-extensions" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Full type resolution for feature chains</strong> — Currently only resolves the first feature's type. Full implementation would resolve types through the entire chain (<code>a.b.c</code> where <code>a: A</code>, <code>A</code> has <code>b: B</code>, <code>B</code> has <code>c: C</code>).</p>
+</li>
+<li>
+<p><strong>Connector end type compatibility</strong> — Validate that connected ends have compatible types (e.g., a <code>Port</code> end can only connect to another <code>Port</code> end).</p>
+</li>
+<li>
+<p><strong>Succession source/target validation</strong> — Ensure succession source and target are actions.</p>
+</li>
+<li>
+<p><strong>Requirement subject validation</strong> — Ensure requirements have a subject parameter.</p>
+</li>
+<li>
+<p><strong>Flow payload compatibility</strong> — Ensure flow payload is compatible with source and target ends.</p>
+</li>
+<li>
+<p><strong>Multiplicity bounds on expressions</strong> — Currently only validates literal integer bounds. Variable references (e.g., <code>[i..j]</code>) and expressions are not validated.</p>
+</li>
+<li>
+<p><strong>Cardinality constraint propagation</strong> — When a feature is subsetted, the subsetting feature's multiplicity must be a subset of the subsetted feature's multiplicity.</p>
+</li>
+</ol>
+<h3 id="parser-and-grammar">Parser and Grammar<a class="headerlink" href="#parser-and-grammar" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Fix top-level attribute multiplicity</strong> — The visitor hardcodes <code>specialization=None</code> for top-level attributes. This requires updating the visitor to call <code>_build_full_specialization_from_ctx</code> for attribute usages.</p>
+</li>
+<li>
+<p><strong>Typed-by preservation</strong> — Preserve type relationships when loading from grammar in <code>load_from_grammar()</code>.</p>
+</li>
+<li>
+<p><strong>AliasMember and Import handling</strong> — Implement <code>load_package_body()</code> support for these node types.</p>
+</li>
+</ol>
+<h3 id="library-and-standard-compliance">Library and Standard Compliance<a class="headerlink" href="#library-and-standard-compliance" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Parse library files instead of regex extraction</strong> — Replace <code>LibrarySymbolIndex._extract_from_file()</code> with actual parsing of <code>.kerml</code>/<code>.sysml</code> files for accurate symbol discovery.</p>
+</li>
+<li>
+<p><strong>Standard library loading</strong> — Currently library symbols are indexed but not loaded as actual model objects. Full implementation would parse library files and make them available for resolution.</p>
+</li>
+<li>
+<p><strong>OCL constraint library</strong> — Consider maintaining a machine-readable OCL constraint library that can be extended without code changes.</p>
+</li>
+</ol>
+<h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Symbol table indexing</strong> — Add an index for <code>_find_definition_by_name</code> to avoid O(n) model traversal.</p>
+</li>
+<li>
+<p><strong>Lazy semantic analysis</strong> — Currently all constraints are checked on every <code>analyze()</code> call. Consider lazy evaluation or incremental analysis.</p>
+</li>
+<li>
+<p><strong>Caching for library symbol index</strong> — Already implemented, but consider disk caching for faster startup.</p>
+</li>
+</ol>
+<h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Update STATUS.md</strong> — Bring in line with current state (v0.20.0, 404 tests, 100% conformance).</p>
+</li>
+<li>
+<p><strong>API documentation</strong> — Generate API docs from docstrings (Sphinx or MkDocs).</p>
+</li>
+<li>
+<p><strong>Semantic analysis guide</strong> — Dedicated documentation page for using <code>analyze()</code> and interpreting results.</p>
+</li>
+</ol>
+<hr />
+<h2 id="potential-pitfalls">Potential Pitfalls<a class="headerlink" href="#potential-pitfalls" title="Permanent link">&para;</a></h2>
+<h3 id="1-grammar-class-children-property-is-fragile">1. Grammar Class <code>children</code> Property is Fragile<a class="headerlink" href="#1-grammar-class-children-property-is-fragile" title="Permanent link">&para;</a></h3>
+<p>The <code>children</code> property on grammar classes uses <code>getattr(self, "children", [])</code> which returns an empty list for classes that don't have a <code>children</code> attribute. This is convenient but can mask bugs where a class should have children but doesn't.</p>
+<p><strong>Mitigation:</strong> Always verify the class has a <code>children</code> attribute before relying on it. Use <code>hasattr()</code> if uncertain.</p>
+<h3 id="2-visitor-dict-structure-is-not-typed">2. Visitor Dict Structure is Not Typed<a class="headerlink" href="#2-visitor-dict-structure-is-not-typed" title="Permanent link">&para;</a></h3>
+<p>The internal dict produced by <code>antlr_visitor.py</code> is not typed or validated. Changes to the visitor can silently break grammar classes that expect specific keys.</p>
+<p><strong>Mitigation:</strong> Run the full test suite after any visitor changes. Consider adding a schema validator for the dict structure.</p>
+<h3 id="3-multiplicity-structure-is-deeply-nested">3. Multiplicity Structure is Deeply Nested<a class="headerlink" href="#3-multiplicity-structure-is-deeply-nested" title="Permanent link">&para;</a></h3>
+<p>The multiplicity structure is 5 levels deep: <code>FeatureSpecializationPart → MultiplicityPart → OwnedMultiplicity → MultiplicityRange → MultiplicityExpressionMember → MultiplicityRelatedElement → LiteralInteger</code>. This makes it easy to get the navigation wrong.</p>
+<p><strong>Mitigation:</strong> Use the <code>_extract_bound_value_from_member()</code> helper in <code>semantic.py</code> as a reference for correct navigation.</p>
+<h3 id="4-import-visibility-propagation-is-complex">4. Import Visibility Propagation is Complex<a class="headerlink" href="#4-import-visibility-propagation-is-complex" title="Permanent link">&para;</a></h3>
+<p>The <code>_propagate_public_imports()</code> method handles three visibility levels with different propagation rules. Adding new visibility levels or changing rules requires careful testing.</p>
+<p><strong>Mitigation:</strong> The <code>TestImportVisibility</code> test class covers the key scenarios. Add new tests when modifying visibility logic.</p>
+<h3 id="5-symbol-table-and-model-tree-are-separate">5. Symbol Table and Model Tree are Separate<a class="headerlink" href="#5-symbol-table-and-model-tree-are-separate" title="Permanent link">&para;</a></h3>
+<p>The <code>SymbolTable</code> is built from the model tree but is a separate data structure. Changes to the model after <code>analyze()</code> is called will not be reflected in the symbol table.</p>
+<p><strong>Mitigation:</strong> Document that <code>analyze()</code> should be called after all model modifications are complete.</p>
+<h3 id="6-antlr-grammar-updates-require-visitor-updates">6. ANTLR Grammar Updates Require Visitor Updates<a class="headerlink" href="#6-antlr-grammar-updates-require-visitor-updates" title="Permanent link">&para;</a></h3>
+<p>When the OMG releases a new SysML v2 grammar, the ANTLR parser must be regenerated and the visitor updated to handle any new rules.</p>
+<p><strong>Mitigation:</strong> The conformance test suite (123 tests) serves as a regression test. Run it after any grammar update.</p>
+<h3 id="7-python-313-compatibility">7. Python 3.13 Compatibility<a class="headerlink" href="#7-python-313-compatibility" title="Permanent link">&para;</a></h3>
+<p>The project runs on Python 3.13.5. Some dependencies (like <code>antlr4-python3-runtime</code>) may have compatibility issues with newer Python versions.</p>
+<p><strong>Mitigation:</strong> Pin dependency versions in <code>pyproject.toml</code>. Test on multiple Python versions if expanding support.</p>
+<hr />
+<h2 id="quick-reference">Quick Reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
+<h3 id="running-tests">Running Tests<a class="headerlink" href="#running-tests" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># All tests</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>pytest<span class="w"> </span>tests/
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Specific suites</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>pytest<span class="w"> </span>tests/grammar_test.py<span class="w">        </span><span class="c1"># Round-trip</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>pytest<span class="w"> </span>tests/class_test.py<span class="w">          </span><span class="c1"># Programmatic API</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>pytest<span class="w"> </span>tests/semantic_test.py<span class="w">       </span><span class="c1"># Semantic analysis</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>pytest<span class="w"> </span>tests/store_test.py<span class="w">          </span><span class="c1"># Storage backends</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>pytest<span class="w"> </span>tests/conformance_test.py<span class="w">    </span><span class="c1"># OMG conformance (slow)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Skip conformance (fast development)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not conformance&quot;</span>
+</code></pre></div>
+<h3 id="adding-a-new-ocl-constraint">Adding a New OCL Constraint<a class="headerlink" href="#adding-a-new-ocl-constraint" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p>Add a check method to <code>SemanticAnalyzer</code> in <code>semantic.py</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_check_my_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">symtab</span><span class="p">:</span> <span class="n">SymbolTable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">SemanticIssue</span><span class="p">]:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">issues</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SemanticIssue</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="c1"># Walk model, check constraint, append issues</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">return</span> <span class="n">issues</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Call it from <code>analyze()</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">issues</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_check_my_constraint</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">symtab</span><span class="p">))</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Add tests to <code>tests/semantic_test.py</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestMyConstraint</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_violation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="n">issues</span> <span class="o">=</span> <span class="n">analyze</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">code</span> <span class="o">==</span> <span class="s2">&quot;MY_CONSTRAINT&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">issues</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+</ol>
+<h3 id="adding-a-new-storage-backend">Adding a New Storage Backend<a class="headerlink" href="#adding-a-new-storage-backend" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p>Subclass <code>Store</code> in <code>store.py</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyStore</span><span class="p">(</span><span class="n">Store</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span> <span class="o">...</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="c1"># ... implement all abstract methods</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Register in <code>create_store()</code>:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;my&quot;</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">return</span> <span class="n">MyStore</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Add tests to <code>tests/store_test.py</code> using the parameterized test patterns.</p>
+</li>
+</ol>
+<hr />
+<h2 id="contact">Contact<a class="headerlink" href="#contact" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Author:</strong> Jon R. Fox (mycr0ft) — jon.fox@drfox.com</li>
+<li><strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy</li>
+<li><strong>Issues:</strong> https://github.com/mycr0ft/sysmlpy/issues</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
