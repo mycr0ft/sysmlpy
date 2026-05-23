@@ -875,10 +875,6 @@ class Package(Searchable):
                 child = Action(grammar=inner_element).load_from_grammar(inner_element)
                 child.parent = self
                 self.children.append(child)
-            elif inner_class == "ActionUsage":
-                child = Action().load_from_grammar(inner_element)
-                child.parent = self
-                self.children.append(child)
             elif inner_class == "ConstraintDefinition":
                 c = Constraint(definition=True)
                 c.grammar = inner_element
