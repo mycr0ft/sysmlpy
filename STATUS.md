@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.11.0**
+Current version: **v0.20.0** (2026-05-23)
 
 ---
 
@@ -55,29 +55,14 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 - **ANTLR4 parser** — default parser, using OMG grammar v2026.03.0
   - `load()`, `loads()`, `load_grammar()` (public API)
   - `load_antlr()`, `load_grammar_antlr()` (explicit ANTLR4 path)
-  - Full ANTLR4 visitor (`antlr_visitor.py`, ~10,800 lines) converting parse tree to internal dict representation
+  - Full ANTLR4 visitor (`antlr_visitor.py`, ~11K lines) converting parse tree to internal dict representation
   - Supports comments, documentation blocks, and annotating elements
   - Supports Case, AnalysisCase, VerificationCase, and TradeStudy definitions
   - State machine support: entry/do/exit actions, accept/send/perform/assign nodes, transitions with guards
 
-### Grammar Classes with `get_definition()`
-
-The following grammar classes now have `get_definition()` for serialization (added in v0.10.0):
-
-- `FeatureChainMember`, `FeatureBinding`, `ResultExpressionMember`, `UsagePrefix`
-- `PerformActionUsage`, `AcceptNodeDeclaration`, `SendNodeDeclaration`
-- `SenderReceiverPart`, `EmptyParameterMember`, `StateAcceptActionUsage`, `StateSendActionUsage`
-- `EffectBehaviorMember`, `GuardExpressionMember`, `NodeParameterMember`, `ReferenceUsage`
-- `AssertConstraintUsage`, `RequirementConstraintMember`, `RequirementConstraintKind`
-- `RequirementConstraintUsage`, `RequirementUsage`, `SatisfyRequirementUsage`
-- `SatisfactionSubjectMember`, `SatisfactionParameter`, `SatisfactionFeatureValue`, `SatisfactionReferenceExpression`
-- `FlowConnectionDefinition`, `ActionDefinition`, `RequirementDefinition`, `RequirementBody`
-- `MultiplicityRelatedElement` (handles `FeatureReferenceExpression` for variable bounds)
-- `QualifiedName` (handles both `names` and `parts` keys)
-
 ### Grammar Round-Trip Coverage (parse → dump)
 
-**34 / 56 tests passing (61%)** as of 2026-05-17.
+**56 / 56 tests passing (100%)** as of 2026-05-23.
 
 | Category | Pass | Total | Notes |
 |---|---|---|---|
@@ -87,19 +72,60 @@ The following grammar classes now have `get_definition()` for serialization (add
 | Enumerations | 2 | 2 | |
 | Parts | 2 | 2 | |
 | Items | 1 | 1 | |
-| Connections | 0 | 1 | Multiplicity in `connect` syntax |
+| Connections | 1 | 1 | |
 | Ports | 2 | 2 | |
-| Interfaces | 1 | 2 | Interface decomposition still failing |
+| Interfaces | 2 | 2 | |
 | Binding connectors | 2 | 2 | |
-| Flow connections | 1 | 3 | Definition and interface variants failing |
-| Actions | 5 | 5 | All action tests now pass |
-| States | 0 | 5 | State machine bodies not yet implemented |
+| Flow connections | 3 | 3 | |
+| Actions | 5 | 5 | |
+| States | 5 | 5 | |
 | Expressions | 4 | 4 | |
-| Calculations | 2 | 3 | Nested `:>>` redefines in return not yet handled |
-| Constraints | 2 | 7 | `assert constraint`, derivation, time constraints remaining |
-| Requirements | 0 | 4 | Requirement body items not yet implemented |
-| Analysis | 0 | 3 | Analysis case bodies not yet implemented |
-| **Total** | **34** | **56** | **61%** |
+| Calculations | 3 | 3 | |
+| Constraints | 7 | 7 | |
+| Requirements | 4 | 4 | |
+| Analysis | 3 | 3 | |
+| **Total** | **56** | **56** | **100%** |
+
+### Semantic Analysis Engine (v0.17.0 → v0.20.0)
+
+| Feature | Status | Details |
+|---|---|---|
+| Symbol table | ✅ Complete | Hierarchical scopes with parent chain lookup |
+| Import resolution | ✅ Complete | Namespace (`::*`), membership, recursive (`::*::**`) |
+| Import visibility | ✅ Complete | `private`/`public`/`protected` enforcement |
+| Library symbol index | ✅ Complete | 88 `.kerml`/`.sysml` files, ~1,417 symbols |
+| Inheritance resolution | ✅ Complete | Supertype chain traversal for subsetting/redefinition |
+| OCL constraints | ✅ 8 checks | See table below |
+
+#### Implemented OCL Well-Formness Checks
+
+| Code | Rule | Description |
+|------|------|-------------|
+| `UNDEFINED_SYMBOL` | — | Reference to non-existent type or feature |
+| `DUPLICATE_NAME` | Namespace.duplicate_names | Two members with same name in a scope |
+| `CYCLIC_SPECIALIZATION` | Type.no_cyclic_specialization | Type specializing itself (directly or indirectly) |
+| `INCOMPATIBLE_SUBSETTING` | Feature.subsetting_compatible | Subsetting ref to undefined feature |
+| `INCOMPATIBLE_REDEFINITION` | Feature.redefinition_compatible | Redefinition ref to undefined feature |
+| `INCOMPATIBLE_PART_DEFINITION` | Part.definition_compatible | Part typed by non-PartDefinition |
+| `INCOMPATIBLE_PORT_DEFINITION` | Port.definition_compatible | Port typed by non-PortDefinition |
+| `INCOMPATIBLE_FEATURE_CHAIN` | Feature.chaining_compatible | Chained features with incompatible types |
+| `INVALID_MULTIPLICITY_BOUNDS` | Multiplicity.bounds_valid | Lower bound > upper bound |
+| `UNRESOLVED_IMPORT` | — | Import target does not exist |
+
+### Storage Backends
+
+| Backend | Dependencies | Persistence | Use Case |
+|---------|-------------|-------------|----------|
+| `InMemoryStore` | None | Volatile | Testing, small models |
+| `NetworkXStore` | networkx | Volatile | Graph analysis, centrality, cycles |
+| `KuzuStore` | kuzu | Disk (optional) | Embedded graph DB, Cypher queries |
+| `CayleyStore` | requests | Server-managed | Remote graph DB, multi-tenant |
+
+### PlantUML Generation
+
+- Definitions render with sharp corners, usages with rounded corners
+- Relationships differentiated by arrow style, thickness, and color
+- Filtering and focus support (`focus=`, `elements=`, `max_depth=`)
 
 ### Test Coverage
 
@@ -107,29 +133,25 @@ The following grammar classes now have `get_definition()` for serialization (add
 |---|---|---|
 | `tests/class_test.py` | 53 tests | Programmatic API unit tests |
 | `tests/grammar_test.py` | 56 tests | Grammar round-trip (parse → dump) |
+| `tests/semantic_test.py` | 90 tests | Semantic analysis and OCL constraints |
+| `tests/store_test.py` | 82 tests | Storage backends (memory + networkx) |
 | `tests/main_test.py` | 7 tests | `load`/`loads`/`load_grammar` integration |
 | `tests/conformance_test.py` | 123 tests | OMG XPect parse conformance suite |
+| **Total** | **411** | |
 
 ### Documentation
 
-- `README.md` — installation, basic usage examples
-- `docs/source/quickstart.md` — step-by-step usage guide
-- `docs/source/conf.py` / `index.rst` — Sphinx docs setup
-- `docs/IMPLEMENTATION_STATUS.md` / `IMPLEMENTATION_STATUS_V2.md` — internal grammar class tracking
-
-### CI/CD
-
-- GitHub Actions: Black auto-format, pytest + coverage, PyPI release via `python-semantic-release`
+- `README.md` — installation, usage examples, semantic analysis docs
+- `docs/index.md` — project overview with semantic analysis reference
+- `docs/quickstart.md` — step-by-step usage guide
+- `docs/TUTORIAL.md` — comprehensive guide with class mapping tables
+- `docs/PROJECT_SUMMARY.md` — work summary for future agents/team members
+- `docs/plantuml-reference-analysis.md` — PlantUML generator assessment
+- `docs/plantuml-examples/` — 9 rendered diagram examples
 
 ---
 
 ## In Progress
-
-These features exist partially — either parse-in works but dump is incomplete, or implementation covers only some test cases.
-
-### Grammar Round-Trip (active work area)
-
-The visitor (`antlr_visitor.py`) and grammar classes (`grammar/classes.py`) are the primary targets for round-trip improvements.
 
 ### Public API Stubs (parse works, `dump()` partial or broken)
 
@@ -161,10 +183,10 @@ All known ANTLR grammar limitations have been resolved. The conformance suite pa
 
 | Location | Description |
 |---|---|
-| `definition.py` | Duplicate `elif inner_class == "ActionUsage"` block — dead code |
 | `grammar/classes.py` | `PackageBodyElement` name is hardcoded; `!TODO This isn't always the case` |
 | `grammar/classes.py` | Identified broken code path; `#!TODO This won't work` |
 | `definition.py` (`RootNamespace`) | `load_package_body()` raises `NotImplementedError` for `AliasMember` and `Import` nodes |
+| `antlr_visitor.py` ~line 9558 | Top-level attribute multiplicity not captured (nested attributes work) |
 
 ---
 
@@ -174,44 +196,40 @@ All known ANTLR grammar limitations have been resolved. The conformance suite pa
 
 | Feature | Description |
 |---|---|
-| Grammar round-trip (dump) | Improve `get_definition()` coverage on grammar classes to increase parse→dump round-trip from 61% toward 100% |
-| State machine bodies | `StateBodyItem`, entry/do/exit action members — blocks 5 state round-trip tests |
-| Requirement bodies | Requirement-specific body items (`subject`, `require constraint`, `frame`) — blocks 4 requirement round-trip tests |
-| Analysis case bodies | Subject, objective requirement, result expression — blocks 3 analysis round-trip tests |
 | Typed-by preservation | Type relationships not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`) |
+| Fix top-level attribute multiplicity | Visitor hardcodes `specialization=None` for top-level attributes |
 
 ### Medium Priority
 
 | Feature | Description |
 |---|---|
-| Flow connection definition/interface | `flow def` and `flow` in interface bodies — blocks 2 flow tests |
-| Connection multiplicity ends | `connect X[0..1] to Y[1]` multiplicity in connector ends — blocks 1 connection test |
-| Interface decomposition | End-connector structure in decomposed interfaces — blocks 1 interface test |
-| Nested `:>>` redefines in return | `return attribute X : Type { :>> feature = expr; }` — blocks Calculation Usages 2 |
-| Typed literal values | `LiteralInteger`, `LiteralReal`, `LiteralString` — needed for typed attribute values beyond `pint` quantities |
+| Flow connection definition/interface | `flow def` and `flow` in interface bodies |
+| Connection multiplicity ends | `connect X[0..1] to Y[1]` multiplicity in connector ends |
+| Interface decomposition | End-connector structure in decomposed interfaces |
+| Nested `:>>` redefines in return | `return attribute X : Type { :>> feature = expr; }` |
+| Typed literal values | `LiteralInteger`, `LiteralReal`, `LiteralString` |
 | Multiplicity ranges (connect ends) | `[1..5]` or `[*]` on connector end members |
 
 ### Low Priority
 
 | Feature | Description |
 |---|---|
-| ~~Remove textX runtime~~ | **Done** — textX tooling, grammar files, and CI references removed |
-| ~~Action parameters via `loads()`~~ | **Done** — action body items (in/out params) now round-trip correctly |
-| ~~Binding connectors~~ | **Done** — `bind X = Y` in action/part bodies round-trips correctly |
 | Grammar auto-update pipeline | Automated refresh from the OMG KEBNF spec when new releases drop |
 | Activity nodes | `ActionNode`, `AssignmentNode`, `ControlNode`, `DecisionNode` |
+| Full OCL constraint library | Machine-readable OCL constraints extendable without code changes |
+| Parse library files (not regex) | Replace `LibrarySymbolIndex._extract_from_file()` with actual parsing |
 
 ---
 
 ## Conformance Test Suite
 
 Source: **SysML-v2-Pilot-Implementation-2026-03** (`org.omg.sysml.xpect.tests`)
-Library: **94 normative files** bundled at `src/sysmlpy/library/` (kernel/ systems/ domain/)
+Library: **88 files** bundled at `src/sysmlpy/library/` (kernel/ systems/ domain/)
 Test files: **123 `.sysml` files** under `tests/sysmlv2/`, each with a `.error` sidecar
 
 Run with: `pytest -m conformance`
 
-### Current results (2026-05-17)
+### Current results (2026-05-23)
 
 **123 / 123 passing (100%)**
 
@@ -228,17 +246,22 @@ Run with: `pytest -m conformance`
 
 None. All 123 conformance tests pass.
 
-### Key Fixes (v0.11.0 — 2026-05-17)
+### Key Fixes (v0.11.0 → v0.20.0)
 
-| Fix | Tests unblocked |
-|---|---|
-| Add `LPAREN AS typeReference RPAREN` to `baseExpression` in ANTLR grammar | `ElementFilter.sysml` — `(as Type)` cast syntax |
-| Add `ownedExpression DOT bodyExpression` to `ownedExpression` in ANTLR grammar | `PathExpressions.sysml` — lambda/filter expressions |
-| Handle `filterPackage` imports in `_visit_import_rule_dict` visitor | `ElementFilter.sysml` — `vehicle1_c1::*[@Security]` |
-| Fix `interface_part` UnboundLocalError in `_make_interface_usage_dict` | `InterfaceUsage_Invalid.sysml` |
-| Add `get_definition()` to `SuccessionFlowConnectionUsage` | `ActionUsage.sysml` |
-| Add `CaseDefinition` to `DefinitionElement` dispatch table | `CaseUsage.sysml` |
-| Fix `UsageExtensionKeyword` to handle `keyword` field directly | `CaseSubjectObjective_Invalid.sysml`, `Verification_invalid.sysml` |
+| Version | Fix | Tests unblocked |
+|---|---|---|
+| v0.11.0 | Add `LPAREN AS typeReference RPAREN` to `baseExpression` | `ElementFilter.sysml` — `(as Type)` cast syntax |
+| v0.11.0 | Add `ownedExpression DOT bodyExpression` to `ownedExpression` | `PathExpressions.sysml` — lambda/filter expressions |
+| v0.11.0 | Handle `filterPackage` imports in `_visit_import_rule_dict` | `ElementFilter.sysml` — `vehicle1_c1::*[@Security]` |
+| v0.11.0 | Fix `interface_part` UnboundLocalError | `InterfaceUsage_Invalid.sysml` |
+| v0.11.0 | Add `get_definition()` to `SuccessionFlowConnectionUsage` | `ActionUsage.sysml` |
+| v0.11.0 | Add `CaseDefinition` to `DefinitionElement` dispatch table | `CaseUsage.sysml` |
+| v0.11.0 | Fix `UsageExtensionKeyword` to handle `keyword` field directly | `CaseSubjectObjective_Invalid.sysml`, `Verification_invalid.sysml` |
+| v0.17.0 | Fix `ImportPrefix` to accept `None` visibility | Import visibility defaults to private per spec |
+| v0.17.0 | Initialize `Usage.completion` to `UsageCompletion()` | Programmatic API consistency |
+| v0.17.0 | Fix `NetworkXStore.put()` missing `add_node()` | All graph algorithms were silently failing |
+| v0.19.0 | Add missing `get_definition()` to interface grammar classes | Interface round-trip tests |
+| v0.20.0 | Fix multiplicity capture in `_build_full_specialization_from_ctx` | Multiplicity bounds validation |
 
 ### How to Add New Conformance Tests
 
@@ -252,11 +275,16 @@ None. All 123 conformance tests pass.
 
 | Category | Count |
 |---|---|
-| Public API classes (complete) | 27 |
+| Public API classes (complete) | 28 |
 | Public API stubs (parse-only or partial) | 0 |
 | Grammar classes with `get_definition()` | ~175+ of 319 |
 | Grammar classes missing `get_definition()` | ~144 of 319 |
-| Unit + grammar + integration tests | 116 (53 unit + 56 grammar + 7 integration) |
-| Grammar round-trip tests passing | **34 / 56 (61%)** |
+| Unit + grammar + integration tests | 216 (53 unit + 56 grammar + 7 integration + 90 semantic + 10 store) |
+| Grammar round-trip tests passing | **56 / 56 (100%)** |
 | Conformance tests (2026-03 XPect suite) | 123 total — **123 passing (100%)** |
-| Bundled standard library files | 94 (36 kernel `.kerml` + 21 systems `.sysml` + 37 domain `.sysml`) |
+| Semantic analysis tests | **90 passing** |
+| Storage backend tests | **82 passing** (memory + networkx) |
+| **Total tests** | **411 total — 411 passing (100%)** |
+| Bundled standard library files | 88 (kernel `.kerml` + systems `.sysml` + domain `.sysml`) |
+| Library symbols indexed | ~1,417 |
+| LOC (as of v0.20.0) | 73,896 across 539+ commits |
