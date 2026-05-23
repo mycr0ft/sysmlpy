@@ -2,7 +2,7 @@
 
 > **For:** Future agents and team members
 > **Last Updated:** May 23, 2026
-> **Current Version:** v0.20.0
+> **Current Version:** v0.20.1
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -69,7 +69,7 @@ SysML text → ANTLR4 Lexer/Parser → Parse Tree
 - Every grammar class has `dump()` and `get_definition()` for serialization
 - `classtree()` converts Model tree back to text
 
-### Semantic Analysis (v0.17.0 → v0.20.0)
+### Semantic Analysis (v0.17.0 → v0.20.1)
 
 The semantic analysis engine (`semantic.py`) provides comprehensive validation:
 
