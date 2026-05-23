@@ -387,6 +387,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#semantic-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic Analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#author" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -644,6 +655,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#semantic-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Semantic Analysis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#author" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -689,7 +711,7 @@
 <p>A pure Python implementation for parsing SysML v2.0 models.
 Uses the ANTLR4 parser for full SysML v2 grammar support.</p>
 <h2 id="version">Version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h2>
-<p><strong>v0.19.0</strong> — Semantic analysis engine with undefined symbol detection. Import resolution (namespace, membership, recursive). 530 tests passing. Symbol table with hierarchical scope resolution.</p>
+<p><strong>v0.20.0</strong> — Full OCL well-formedness validation: duplicate names, cyclic specialization, subsetting/redefinition compatibility, part/port definition compatibility, feature chain validation, multiplicity bounds checking. Supertype/inheritance resolution. Standard library symbol index (88 files, ~1,417 symbols). Import visibility enforcement (private/public/protected). 90 semantic tests, 288 total tests passing.</p>
 <h2 id="quick-links">Quick Links<a class="headerlink" href="#quick-links" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="TUTORIAL/">Tutorial</a> — comprehensive guide with class mapping tables</li>
@@ -776,6 +798,67 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.</p>
 <p>All backends share the same API: <code>put</code>, <code>get</code>, <code>delete</code>, <code>children</code>, <code>parents</code>, <code>relationships</code>, <code>query</code>, <code>has</code>, <code>ids</code>, <code>clear</code>, plus graph traversal (<code>descendants</code>, <code>ancestors</code>, <code>path</code>).</p>
 <h2 id="conformance">Conformance<a class="headerlink" href="#conformance" title="Permanent link">&para;</a></h2>
 <p><strong>100% of 123 OMG XPect conformance tests pass</strong> (123/123).</p>
+<h2 id="semantic-analysis">Semantic Analysis<a class="headerlink" href="#semantic-analysis" title="Permanent link">&para;</a></h2>
+<p>Run <code>analyze(model)</code> to validate a parsed model against SysML v2 well-formedness rules:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">analyze</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;package P { part x : MissingType; }&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">issues</span> <span class="o">=</span> <span class="n">analyze</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">for</span> <span class="n">issue</span> <span class="ow">in</span> <span class="n">issues</span><span class="p">:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>The analyzer checks:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>UNDEFINED_SYMBOL</code></td>
+<td>Reference to a non-existent type or feature</td>
+</tr>
+<tr>
+<td><code>DUPLICATE_NAME</code></td>
+<td>Two members with the same name in a scope</td>
+</tr>
+<tr>
+<td><code>CYCLIC_SPECIALIZATION</code></td>
+<td>A type specializing itself (directly or indirectly)</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_SUBSETTING</code></td>
+<td>Subsetting reference to undefined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_REDEFINITION</code></td>
+<td>Redefinition reference to undefined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PART_DEFINITION</code></td>
+<td>Part typed by non-PartDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PORT_DEFINITION</code></td>
+<td>Port typed by non-PortDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_FEATURE_CHAIN</code></td>
+<td>Feature chain with incompatible types</td>
+</tr>
+<tr>
+<td><code>INVALID_MULTIPLICITY_BOUNDS</code></td>
+<td>Lower bound &gt; upper bound (e.g., <code>[5..2]</code>)</td>
+</tr>
+<tr>
+<td><code>UNRESOLVED_IMPORT</code></td>
+<td>Import target does not exist</td>
+</tr>
+</tbody>
+</table>
+<p>Import visibility is enforced: <code>private</code> (default) limits symbols to the importing scope, <code>public</code> re-exports to siblings and children, and <code>protected</code> is visible to children only.</p>
 <h2 id="author">Author<a class="headerlink" href="#author" title="Permanent link">&para;</a></h2>
 <p>Authored by <a href="https://github.com/mycr0ft">Jon Fox</a></p>
 <h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
