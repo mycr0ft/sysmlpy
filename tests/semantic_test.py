@@ -743,3 +743,427 @@ class TestLibrarySymbolIndex:
         LibrarySymbolIndex.clear_cache()
         symbols = LibrarySymbolIndex.get_symbols()
         assert len(symbols) > 0
+
+
+class TestImportVisibility:
+    """Verify that import visibility (private/public/protected) is enforced."""
+
+    def test_private_import_not_visible_in_sibling_package(self):
+        """Private imports (default) should not be visible to sibling packages."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                private import P::BaseType;
+                part x : BaseType;
+            }
+            package R {
+                part y : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        # Q's private import of BaseType should not be visible to sibling R
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_public_import_visible_in_sibling_package(self):
+        """Public imports should be visible to sibling packages."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                public import P::BaseType;
+                part x : BaseType;
+            }
+            package R {
+                part y : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        # Q's public import of BaseType should be visible to sibling R
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_protected_import_visible_in_child_not_sibling(self):
+        """Protected imports should be visible to child packages but not siblings."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                protected import P::BaseType;
+                part x : BaseType;
+                package QChild {
+                    part z : BaseType;
+                }
+            }
+            package R {
+                part y : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        # Q's protected import should be visible to QChild but not to sibling R
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_default_import_is_private(self):
+        """Imports without explicit visibility default to private."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                import P::BaseType;
+                part x : BaseType;
+            }
+            package R {
+                part y : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        # Default import is private, so R cannot see BaseType
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_public_import_re_exported_through_multiple_levels(self):
+        """Public imports should propagate through multiple nesting levels."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                public import P::BaseType;
+                package Q1 {
+                    package Q2 {
+                        part deep : BaseType;
+                    }
+                }
+            }
+        """)
+        issues = analyze(model)
+        # Public import should propagate through Q -> Q1 -> Q2
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_protected_import_visible_to_all_descendants(self):
+        """Protected imports should be visible to all descendants (children, grandchildren, etc.)."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                protected import P::BaseType;
+                package Q1 {
+                    part x : BaseType;
+                    package Q2 {
+                        part y : BaseType;
+                    }
+                }
+            }
+        """)
+        issues = analyze(model)
+        # Protected import should be visible to Q1 and Q2 (all descendants)
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_protected_import_not_visible_to_siblings(self):
+        """Protected imports should not be visible to sibling packages."""
+        model = loads("""
+            package P {
+                part def BaseType;
+            }
+            package Q {
+                protected import P::BaseType;
+                part x : BaseType;
+            }
+            package R {
+                part y : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        # Q's protected import should not be visible to sibling R
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+
+class TestDuplicateNames:
+    """Namespace.duplicate_names: No two members may have the same name in a scope."""
+
+    def test_duplicate_part_names_in_package(self):
+        model = loads("""
+            package P {
+                part x;
+                part x;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "DUPLICATE_NAME" and "x" in i.message for i in issues)
+
+    def test_duplicate_definition_names_in_package(self):
+        model = loads("""
+            package P {
+                part def Base;
+                part def Base;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "DUPLICATE_NAME" and "Base" in i.message for i in issues)
+
+    def test_no_duplicates_in_different_packages(self):
+        model = loads("""
+            package P1 { part x; }
+            package P2 { part x; }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "DUPLICATE_NAME" for i in issues)
+
+    def test_no_duplicates_in_nested_packages(self):
+        model = loads("""
+            package P {
+                package Q1 { part x; }
+                package Q2 { part x; }
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "DUPLICATE_NAME" for i in issues)
+
+
+class TestCyclicSpecialization:
+    """Type.no_cyclic_specialization: A type cannot specialize itself cyclically."""
+
+    def test_direct_cyclic_specialization(self):
+        model = loads("""
+            package P {
+                part def A :> B;
+                part def B :> A;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "CYCLIC_SPECIALIZATION" for i in issues)
+
+    def test_indirect_cyclic_specialization(self):
+        model = loads("""
+            package P {
+                part def A :> B;
+                part def B :> C;
+                part def C :> A;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "CYCLIC_SPECIALIZATION" for i in issues)
+
+    def test_no_cycle_in_valid_hierarchy(self):
+        model = loads("""
+            package P {
+                part def Base;
+                part def Middle :> Base;
+                part def Leaf :> Middle;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "CYCLIC_SPECIALIZATION" for i in issues)
+
+    def test_self_specialization(self):
+        model = loads("""
+            package P {
+                part def A :> A;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "CYCLIC_SPECIALIZATION" for i in issues)
+
+
+class TestSubsettingCompatible:
+    """Feature.subsetting_compatible: Subsetting feature must reference a defined feature."""
+
+    def test_subsetting_to_undefined_feature(self):
+        model = loads("""
+            package P {
+                part def MyDef {
+                    attribute myAttr :> nonexistent;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INCOMPATIBLE_SUBSETTING" for i in issues)
+
+    def test_subsetting_to_defined_feature_no_error(self):
+        model = loads("""
+            package P {
+                part def Base {
+                    attribute baseAttr;
+                }
+                part def Derived :> Base {
+                    attribute myAttr :> baseAttr;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INCOMPATIBLE_SUBSETTING" for i in issues)
+
+
+class TestRedefinitionCompatible:
+    """Feature.redefinition_compatible: Redefining feature must reference a defined feature."""
+
+    def test_redefinition_to_undefined_feature(self):
+        model = loads("""
+            package P {
+                part def MyDef {
+                    attribute myAttr :>> nonexistent;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INCOMPATIBLE_REDEFINITION" for i in issues)
+
+    def test_redefinition_to_defined_feature_no_error(self):
+        model = loads("""
+            package P {
+                part def Base {
+                    attribute baseAttr;
+                }
+                part def Derived :> Base {
+                    attribute myAttr :>> baseAttr;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INCOMPATIBLE_REDEFINITION" for i in issues)
+
+
+class TestPartDefinitionCompatible:
+    """Part.definition_compatible: A part usage's definition must be a PartDefinition."""
+
+    def test_part_typed_by_part_definition(self):
+        model = loads("""
+            package P {
+                part def MyPartDef;
+                part myPart : MyPartDef;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INCOMPATIBLE_PART_DEFINITION" for i in issues)
+
+    def test_part_typed_by_attribute_definition(self):
+        model = loads("""
+            package P {
+                attribute def MyAttrDef;
+                part myPart : MyAttrDef;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INCOMPATIBLE_PART_DEFINITION" for i in issues)
+
+
+class TestPortDefinitionCompatible:
+    """Port.definition_compatible: A port usage's definition must be a PortDefinition."""
+
+    def test_port_typed_by_port_definition(self):
+        model = loads("""
+            package P {
+                port def MyPortDef;
+                port myPort : MyPortDef;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INCOMPATIBLE_PORT_DEFINITION" for i in issues)
+
+    def test_port_typed_by_part_definition(self):
+        model = loads("""
+            package P {
+                part def MyPartDef;
+                port myPort : MyPartDef;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INCOMPATIBLE_PORT_DEFINITION" for i in issues)
+
+
+class TestFeatureChainingCompatible:
+    """Feature.chaining_compatible: Chained features must have compatible types."""
+
+    def test_valid_feature_chain(self):
+        model = loads("""
+            package P {
+                part def Engine {
+                    attribute power;
+                }
+                part def Car {
+                    part engine : Engine;
+                }
+                part myCar : Car {
+                    attribute carPower :> engine::power;
+                }
+            }
+        """)
+        issues = analyze(model)
+        # engine::power should resolve: Car has engine (Engine), Engine has power
+        assert not any(i.code == "INCOMPATIBLE_FEATURE_CHAIN" for i in issues)
+
+    def test_invalid_feature_chain(self):
+        model = loads("""
+            package P {
+                part def Engine {
+                    attribute power;
+                }
+                part def Car {
+                    part engine : Engine;
+                    attribute name;
+                }
+                part myCar : Car {
+                    attribute carName :> engine::name;
+                }
+            }
+        """)
+        issues = analyze(model)
+        # engine::name should fail: Engine doesn't have 'name' feature
+        assert any(i.code == "INCOMPATIBLE_FEATURE_CHAIN" for i in issues)
+
+
+class TestMultiplicityBoundsValid:
+    """Multiplicity.bounds_valid: Lower bound must be <= upper bound."""
+
+    def test_invalid_multiplicity_bounds(self):
+        model = loads("""
+            package P {
+                part myPart[5..2];
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)
+
+    def test_valid_multiplicity_bounds(self):
+        model = loads("""
+            package P {
+                part myPart[2..5];
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)
+
+    def test_valid_single_multiplicity(self):
+        model = loads("""
+            package P {
+                part myPart[3];
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)
+
+    def test_valid_unbounded_multiplicity(self):
+        model = loads("""
+            package P {
+                part myPart[0..*];
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)
+
+    def test_invalid_bounds_on_attribute(self):
+        # Note: Attribute multiplicity support requires a visitor fix.
+        # The visitor currently hardcodes specialization=None for top-level attributes.
+        # This test uses a nested attribute inside a part definition instead.
+        model = loads("""
+            package P {
+                part def MyDef {
+                    attribute myAttr[10..1];
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)

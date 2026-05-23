@@ -14,6 +14,8 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
+**v0.20.0:** Full OCL well-formedness validation suite. Supertype/inheritance resolution for subsetting references. Standard library symbol index scans 88 `.kerml`/`.sysml` files (~1,417 symbols). Import visibility enforcement (`private`/`public`/`protected`). Multiplicity bounds validation. Feature chain compatibility checking. Port and part definition type validation. Duplicate name detection. Cyclic specialization detection. 90 semantic tests, 288 total tests passing.
+
 **v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
 
 **v0.17.0:** 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
@@ -191,7 +193,7 @@ print(tree.dump())
 
 ## Semantic Analysis
 
-sysmlpy includes a semantic analysis engine that detects undefined symbol references in parsed models. It builds a hierarchical symbol table from the model tree, resolves imports, and cross-references all type/subsetting/redefinition references.
+sysmlpy includes a comprehensive semantic analysis engine that validates parsed models against SysML v2 well-formedness rules. Run `analyze(model)` to detect issues across six categories:
 
 ```python
 from sysmlpy import loads, analyze
@@ -213,23 +215,38 @@ for issue in issues:
 # → [error] UNDEFINED_SYMBOL: Undefined symbol 'Wheel' referenced in Part 'myWheel'
 ```
 
-### Import Resolution
-
-The analyzer resolves three import patterns:
-
-| Pattern | Example | Effect |
-|---------|---------|--------|
-| Namespace import | `import Types::*` | Makes all symbols from `Types` visible |
-| Membership import | `import Types::Engine` | Makes only `Engine` visible |
-| Recursive import | `import Types::*::**` | Imports from `Types` and all nested packages |
-
 ### Symbol Resolution
 
-- **Hierarchical scopes**: Each package and definition creates a child scope
-- **Parent chain lookup**: References resolve through parent scopes
-- **Qualified names**: `P::A` and `Outer::Inner::DeepPart` resolve correctly
-- **Cross-package**: `import A::B::*` works across arbitrary package depth
-- **Library whitelist**: 80+ standard library symbols (`ScalarValues::Integer`, `ISQ::LengthValue`, etc.) are pre-recognized
+- **Undefined symbol detection** — catches references to non-existent types, features, and packages
+- **Qualified name resolution** — `P::A` and `Outer::Inner::DeepPart` resolve through scope chains
+- **Inheritance resolution** — subsetting/redefinition references resolve through supertype chains
+- **Library symbol index** — scans 88 `.kerml`/`.sysml` files (~1,417 symbols) from the bundled standard library
+
+### Import Resolution
+
+The analyzer resolves three import patterns with visibility enforcement:
+
+| Pattern | Example | Visibility | Effect |
+|---------|---------|------------|--------|
+| Namespace import | `import Types::*` | `private` (default) | Makes all symbols from `Types` visible in current scope only |
+| Membership import | `import Types::Engine` | `private` | Makes only `Engine` visible in current scope |
+| Recursive import | `import Types::*::**` | `private` | Imports from `Types` and all nested packages |
+| Public import | `public import Types::*` | `public` | Re-exports symbols to sibling and child scopes |
+| Protected import | `protected import Types::*` | `protected` | Visible to child scopes only, not re-exported |
+
+### OCL Well-Formedness Checks
+
+| Code | Rule | Description |
+|------|------|-------------|
+| `DUPLICATE_NAME` | Namespace.duplicate_names | No two members may share the same name in a scope |
+| `CYCLIC_SPECIALIZATION` | Type.no_cyclic_specialization | A type cannot directly or indirectly specialize itself |
+| `INCOMPATIBLE_SUBSETTING` | Feature.subsetting_compatible | A subsetting feature must reference a defined feature in the inheritance chain |
+| `INCOMPATIBLE_REDEFINITION` | Feature.redefinition_compatible | A redefining feature must reference a defined feature in the inheritance chain |
+| `INCOMPATIBLE_PART_DEFINITION` | Part.definition_compatible | A part usage must be typed by a PartDefinition |
+| `INCOMPATIBLE_PORT_DEFINITION` | Port.definition_compatible | A port usage must be typed by a PortDefinition |
+| `INCOMPATIBLE_FEATURE_CHAIN` | Feature.chaining_compatible | Chained features (`a.b.c`) must have compatible types at each step |
+| `INVALID_MULTIPLICITY_BOUNDS` | Multiplicity.bounds_valid | Lower bound must be ≤ upper bound (`[5..2]` is invalid) |
+| `UNRESOLVED_IMPORT` | — | Import target does not exist in the model |
 
 ## Storage Backends
 

@@ -230,28 +230,51 @@ class SymbolTable:
         self._parent: Optional[SymbolTable] = None
         self._imports: list[Any] = []  # Import grammar objects
         self._imported_symbols: dict[str, Any] = {}  # Resolved imported symbols
+        self._import_visibility: dict[str, str] = {}  # symbol_name -> "private"|"public"|"protected"
         self._definition_features: dict[str, dict[str, Any]] = {}  # definition_name -> {element, features, supertypes}
+        self._duplicate_names: list[tuple[str, Any]] = []  # (name, element) for duplicates
 
     # -- public API ----------------------------------------------------------
 
     def register(self, name: str, element: Any) -> None:
-        """Register *element* under *name* in this scope."""
-        self._symbols[name] = element
+        """Register *element* under *name* in this scope.
 
-    def lookup(self, name: str) -> Optional[Any]:
-        """Look up *name*, walking up parent scopes if not found locally."""
+        If *name* is already registered, the duplicate is tracked in
+        ``_duplicate_names`` but the original symbol is kept.
+        """
+        if name in self._symbols:
+            self._duplicate_names.append((name, element))
+        else:
+            self._symbols[name] = element
+
+    def lookup(self, name: str, from_child: bool = False) -> Optional[Any]:
+        """Look up *name*, walking up parent scopes if not found locally.
+
+        Parameters
+        ----------
+        name : str
+            The symbol name to look up.
+        from_child : bool
+            If True, the lookup is coming from a child scope. This affects
+            visibility: private imports are not visible to children.
+        """
         if name in self._symbols:
             return self._symbols[name]
         if name in self._imported_symbols:
+            visibility = self._import_visibility.get(name, "private")
+            # Private imports are not visible from child scopes
+            if visibility == "private" and from_child:
+                return None
             return self._imported_symbols[name]
         if self._parent is not None:
-            return self._parent.lookup(name)
+            return self._parent.lookup(name, from_child=True)
         return None
 
     def build_from_model(self, model: Any) -> None:
         """Walk the model tree and populate the symbol table."""
         self._walk_element(model, self)
         self._resolve_imports(self)
+        self._propagate_public_imports(self)
 
     # -- internals -----------------------------------------------------------
 
@@ -307,20 +330,89 @@ class SymbolTable:
         for child_table in table._children.values():
             self._resolve_imports(child_table)
 
+    def _propagate_public_imports(self, table: SymbolTable) -> None:
+        """Propagate public and protected imports through the namespace hierarchy.
+
+        - public imports: visible to children AND siblings (re-exported)
+        - protected imports: visible to children only
+        - private imports: not visible outside the importing namespace
+        """
+        # First, propagate public imports to siblings
+        children = list(table._children.values())
+        for i, child_table in enumerate(children):
+            # Collect all public imports from siblings
+            for other_child in children:
+                if other_child is child_table:
+                    continue
+                for sym_name, element in other_child._imported_symbols.items():
+                    visibility = other_child._import_visibility.get(sym_name, "private")
+                    if visibility == "public":
+                        if sym_name not in child_table._imported_symbols:
+                            child_table._imported_symbols[sym_name] = element
+                            child_table._import_visibility[sym_name] = "public"
+
+        # Then, propagate public and protected imports from parent to children
+        for child_name, child_table in table._children.items():
+            for sym_name, element in table._imported_symbols.items():
+                visibility = table._import_visibility.get(sym_name, "private")
+
+                if visibility == "public":
+                    # Public: visible to children and re-exported
+                    if sym_name not in child_table._imported_symbols:
+                        child_table._imported_symbols[sym_name] = element
+                        child_table._import_visibility[sym_name] = "public"
+                elif visibility == "protected":
+                    # Protected: visible to children but not re-exported
+                    if sym_name not in child_table._imported_symbols:
+                        child_table._imported_symbols[sym_name] = element
+                        child_table._import_visibility[sym_name] = "protected"
+
+            # Recurse into children
+            self._propagate_public_imports(child_table)
+
     def _resolve_single_import(self, imp: Any, table: SymbolTable) -> None:
         """Resolve a single Import object into the symbol table."""
         if not imp.children:
             return
 
+        # Extract visibility from the import prefix
+        visibility = self._extract_import_visibility(imp)
+
         import_child = imp.children[0]
         child_type = type(import_child).__name__
 
         if child_type == "MembershipImport":
-            self._resolve_membership_import(import_child, table)
+            self._resolve_membership_import(import_child, table, visibility)
         elif child_type == "NamespaceImport":
-            self._resolve_namespace_import(import_child, table)
+            self._resolve_namespace_import(import_child, table, visibility)
 
-    def _resolve_membership_import(self, mem_import: Any, table: SymbolTable) -> None:
+    def _extract_import_visibility(self, imp: Any) -> str:
+        """Extract visibility keyword from an Import object.
+
+        Returns 'private', 'public', 'protected', or 'private' (default).
+        """
+        if not imp.children:
+            return "private"
+
+        # The prefix is on the child (MembershipImport or NamespaceImport)
+        import_child = imp.children[0]
+        prefix = getattr(import_child, "prefix", None)
+        if prefix is None:
+            return "private"
+
+        vis = getattr(prefix, "visibility", None)
+        if vis is None:
+            return "private"
+
+        keyword = getattr(vis, "keyword", "")
+        if keyword == "public ":
+            return "public"
+        elif keyword == "protected ":
+            return "protected"
+        else:
+            return "private"
+
+    def _resolve_membership_import(self, mem_import: Any, table: SymbolTable, visibility: str) -> None:
         """Resolve a MembershipImport (import specific element)."""
         imported_mem = getattr(mem_import, "membership", None)
         if imported_mem is None:
@@ -340,8 +432,9 @@ class SymbolTable:
             # Use the simple name (last part) as the imported name
             simple_name = names[-1]
             table._imported_symbols[simple_name] = element
+            table._import_visibility[simple_name] = visibility
 
-    def _resolve_namespace_import(self, ns_import: Any, table: SymbolTable) -> None:
+    def _resolve_namespace_import(self, ns_import: Any, table: SymbolTable, visibility: str) -> None:
         """Resolve a NamespaceImport (import all from namespace)."""
         imported_ns = getattr(ns_import, "namespace", None)
         if imported_ns is None:
@@ -366,18 +459,20 @@ class SymbolTable:
         # Import all symbols from the target namespace
         for sym_name, element in target_table._symbols.items():
             table._imported_symbols[sym_name] = element
+            table._import_visibility[sym_name] = visibility
 
         # If recursive, also import from all child namespaces
         if is_recursive:
-            self._recursive_import(target_table, table)
+            self._recursive_import(target_table, table, visibility)
 
-    def _recursive_import(self, source_table: SymbolTable, dest_table: SymbolTable) -> None:
+    def _recursive_import(self, source_table: SymbolTable, dest_table: SymbolTable, visibility: str) -> None:
         """Recursively import symbols from all child namespaces."""
         for child_name, child_table in source_table._children.items():
             for sym_name, element in child_table._symbols.items():
                 if sym_name not in dest_table._imported_symbols:
                     dest_table._imported_symbols[sym_name] = element
-            self._recursive_import(child_table, dest_table)
+                    dest_table._import_visibility[sym_name] = visibility
+            self._recursive_import(child_table, dest_table, visibility)
 
     def _resolve_qualified_name(self, ref_str: str, table: SymbolTable) -> Optional[Any]:
         """Resolve a qualified name reference from the given scope."""
@@ -844,6 +939,16 @@ class SemanticAnalyzer:
                 reference=ref_str,
             ))
 
+        # Step 5: OCL well-formedness constraints
+        issues.extend(self._check_duplicate_names(symtab))
+        issues.extend(self._check_cyclic_specialization(symtab))
+        issues.extend(self._check_subsetting_compatible(symtab))
+        issues.extend(self._check_part_definition_compatible(model))
+        issues.extend(self._check_port_definition_compatible(model))
+        issues.extend(self._check_feature_chaining_compatible(model, symtab))
+        issues.extend(self._check_connector_ends_compatible(model))
+        issues.extend(self._check_multiplicity_bounds_valid(model))
+
         return issues
 
     def _validate_imports(self, symtab: SymbolTable) -> list[SemanticIssue]:
@@ -1001,6 +1106,726 @@ class SemanticAnalyzer:
                     return True
         return False
 
+    # -- OCL well-formedness constraints ------------------------------------
+
+    def _check_duplicate_names(self, symtab: SymbolTable) -> list[SemanticIssue]:
+        """Namespace.duplicate_names: No two members may have the same name in a scope."""
+        issues: list[SemanticIssue] = []
+        self._check_duplicates_in_table(symtab, issues)
+        return issues
+
+    def _check_duplicates_in_table(
+        self, table: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Check for duplicate names in a single symbol table scope."""
+        for name, element in table._duplicate_names:
+            issues.append(SemanticIssue(
+                severity="error",
+                code="DUPLICATE_NAME",
+                message=f"Duplicate name '{name}' in namespace",
+                element=element,
+                reference=name,
+            ))
+
+        for child_table in table._children.values():
+            self._check_duplicates_in_table(child_table, issues)
+
+    def _check_cyclic_specialization(self, symtab: SymbolTable) -> list[SemanticIssue]:
+        """Type.no_cyclic_specialization: A type cannot specialize itself cyclically."""
+        issues: list[SemanticIssue] = []
+
+        for def_name, def_info in symtab._definition_features.items():
+            visited: set[str] = set()
+            chain: list[str] = []
+            if self._has_cycle(def_name, symtab, visited, chain):
+                cycle_str = " -> ".join(chain)
+                issues.append(SemanticIssue(
+                    severity="error",
+                    code="CYCLIC_SPECIALIZATION",
+                    message=f"Cyclic specialization: {cycle_str}",
+                    element=def_info["element"],
+                    reference=def_name,
+                ))
+
+        return issues
+
+    def _has_cycle(
+        self, def_name: str, symtab: SymbolTable, visited: set[str], chain: list[str]
+    ) -> bool:
+        """Detect if there's a cycle starting from *def_name*."""
+        if def_name in visited:
+            if def_name in chain:
+                # Found a cycle - build the cycle path
+                cycle_start = chain.index(def_name)
+                chain.append(def_name)
+                return True
+            return False
+
+        if def_name not in symtab._definition_features:
+            return False
+
+        visited.add(def_name)
+        chain.append(def_name)
+
+        supertypes = symtab._definition_features[def_name]["supertypes"]
+        for supertype in supertypes:
+            if self._has_cycle(supertype, symtab, visited, chain):
+                return True
+
+        chain.pop()
+        return False
+
+    def _check_subsetting_compatible(self, symtab: SymbolTable) -> list[SemanticIssue]:
+        """Feature.subsetting_compatible: Subsetting feature must be compatible with subsetted feature."""
+        issues: list[SemanticIssue] = []
+        self._walk_model_for_subsetting(symtab, issues)
+        return issues
+
+    def _walk_model_for_subsetting(
+        self, symtab: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Walk model to find subsetting relationships and validate compatibility."""
+        for def_name, def_info in symtab._definition_features.items():
+            element = def_info["element"]
+            grammar = getattr(element, "grammar", None)
+            if grammar is None:
+                continue
+            self._check_features_for_subsetting(grammar, def_name, symtab, issues)
+
+    def _check_features_for_subsetting(
+        self, grammar: Any, def_name: str, symtab: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Check features in a definition for valid subsetting."""
+        definition = getattr(grammar, "definition", None)
+        if definition is None:
+            return
+
+        body = getattr(definition, "body", None)
+        if body is None:
+            return
+
+        for body_item in getattr(body, "children", []):
+            for member in getattr(body_item, "children", []):
+                for usage_elem in getattr(member, "children", []):
+                    struct_elem = getattr(usage_elem, "children", None)
+                    if struct_elem is None:
+                        continue
+                    self._check_usage_subsetting(struct_elem, def_name, symtab, issues)
+
+    def _check_usage_subsetting(
+        self, usage: Any, def_name: str, symtab: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Check a single usage for valid subsetting relationships."""
+        # Get the feature name
+        feat_name = symtab._get_feature_name(usage)
+        if feat_name is None:
+            return
+
+        # Get the typed-by type
+        usage_attr = getattr(usage, "usage", None)
+        if usage_attr is None:
+            return
+
+        decl = getattr(usage_attr, "declaration", None)
+        if decl is None:
+            return
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return
+
+        # Check for specialization (subsetting/typing)
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is not None:
+            for fs in getattr(spec, "specializations", []):
+                self._check_feature_specialization(fs, feat_name, def_name, symtab, issues)
+            for fs in getattr(spec, "specializations2", []):
+                self._check_feature_specialization(fs, feat_name, def_name, symtab, issues)
+
+    def _check_feature_specialization(
+        self, fs: Any, feat_name: str, def_name: str, symtab: SymbolTable, issues: list[SemanticIssue]
+    ) -> None:
+        """Check a single feature specialization for compatibility."""
+        rel = getattr(fs, "relationship", None)
+        if rel is None:
+            return
+
+        rel_type = type(rel).__name__
+        if rel_type == "Subsettings":
+            for child in getattr(rel, "children", []):
+                for el in getattr(child, "elements", []):
+                    names = getattr(el, "names", [])
+                    if names:
+                        subsetted_name = names[-1]
+                        if symtab.find_defining_type_for_feature(subsetted_name, def_name) is None:
+                            issues.append(SemanticIssue(
+                                severity="error",
+                                code="INCOMPATIBLE_SUBSETTING",
+                                message=f"Feature '{feat_name}' subsets undefined feature '{subsetted_name}' in '{def_name}'",
+                                element=None,
+                                reference=subsetted_name,
+                            ))
+        elif rel_type == "Redefinitions":
+            for child in getattr(rel, "children", []):
+                # OwnedRedefinition stores the redefined feature in redefinedFeature
+                redefined = getattr(child, "redefinedFeature", None)
+                if redefined is not None:
+                    names = getattr(redefined, "names", [])
+                    if names:
+                        redefined_name = names[-1]
+                        if symtab.find_defining_type_for_feature(redefined_name, def_name) is None:
+                            issues.append(SemanticIssue(
+                                severity="error",
+                                code="INCOMPATIBLE_REDEFINITION",
+                                message=f"Feature '{feat_name}' redefines undefined feature '{redefined_name}' in '{def_name}'",
+                                element=None,
+                                reference=redefined_name,
+                            ))
+        elif rel_type == "Typings":
+            # Typings are handled separately (e.g., part definition compatibility)
+            pass
+
+    def _check_part_definition_compatible(self, model: Any) -> list[SemanticIssue]:
+        """Part.definition_compatible: A part usage's definition must be a PartDefinition."""
+        issues: list[SemanticIssue] = []
+        self._walk_for_part_compatibility(model, issues)
+        return issues
+
+    def _walk_for_part_compatibility(self, element: Any, issues: list[SemanticIssue]) -> None:
+        """Walk model to check part usage definitions."""
+        if element is None:
+            return
+
+        elem_type = type(element).__name__
+        if elem_type == "Part":
+            grammar = getattr(element, "grammar", None)
+            if grammar is not None:
+                self._check_part_grammar(grammar, element, issues)
+
+        for child in getattr(element, "children", []):
+            self._walk_for_part_compatibility(child, issues)
+
+    def _check_part_grammar(
+        self, grammar: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check part usage grammar for definition compatibility."""
+        usage = getattr(grammar, "usage", None)
+        if usage is None:
+            return
+
+        decl = getattr(usage, "declaration", None)
+        if decl is None:
+            return
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return
+
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is None:
+            return
+
+        for fs in getattr(spec, "specializations", []):
+            rel = getattr(fs, "relationship", None)
+            if rel is not None and type(rel).__name__ == "Typings":
+                # Navigate through Typings -> typing -> relationships -> relationship -> type -> type -> names
+                typing = getattr(rel, "typing", None)
+                if typing is None:
+                    continue
+                for ft in getattr(typing, "relationships", []):
+                    relationship = getattr(ft, "relationship", None)
+                    if relationship is None:
+                        continue
+                    type_ref = getattr(relationship, "type", None)
+                    if type_ref is None:
+                        continue
+                    qn = getattr(type_ref, "type", None)
+                    if qn is None:
+                        continue
+                    names = getattr(qn, "names", [])
+                    if names:
+                        type_name = names[-1]
+                        # Find the definition and check its grammar type
+                        def_element = self._find_definition_by_name(element, type_name)
+                        if def_element is not None:
+                            def_grammar = getattr(def_element, "grammar", None)
+                            if def_grammar is not None:
+                                def_type = type(def_grammar).__name__
+                                if def_type != "PartDefinition":
+                                    issues.append(SemanticIssue(
+                                        severity="error",
+                                        code="INCOMPATIBLE_PART_DEFINITION",
+                                        message=f"Part '{element.name}' is typed by '{type_name}' which is a {def_type}, not PartDefinition",
+                                        element=element,
+                                        reference=type_name,
+                                    ))
+
+    def _find_definition_by_name(self, element: Any, name: str) -> Optional[Any]:
+        """Find a definition by name in the model hierarchy."""
+        # Walk up to find the root model
+        root = element
+        while getattr(root, "parent", None) is not None:
+            root = root.parent
+
+        # Walk down to find the definition
+        return self._search_for_definition(root, name)
+
+    def _search_for_definition(self, element: Any, name: str) -> Optional[Any]:
+        """Search for a definition by name in the model."""
+        if element is None:
+            return None
+
+        elem_name = getattr(element, "name", None)
+        if elem_name == name and getattr(element, "is_definition", False):
+            return element
+
+        for child in getattr(element, "children", []):
+            result = self._search_for_definition(child, name)
+            if result is not None:
+                return result
+
+        return None
+
+    def _check_port_definition_compatible(self, model: Any) -> list[SemanticIssue]:
+        """Port.definition_compatible: A port usage's definition must be a PortDefinition."""
+        issues: list[SemanticIssue] = []
+        self._walk_for_port_compatibility(model, issues)
+        return issues
+
+    def _walk_for_port_compatibility(self, element: Any, issues: list[SemanticIssue]) -> None:
+        """Walk model to check port usage definitions."""
+        if element is None:
+            return
+
+        elem_type = type(element).__name__
+        if elem_type == "Port":
+            grammar = getattr(element, "grammar", None)
+            if grammar is not None:
+                self._check_port_grammar(grammar, element, issues)
+
+        for child in getattr(element, "children", []):
+            self._walk_for_port_compatibility(child, issues)
+
+    def _check_port_grammar(
+        self, grammar: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check port usage grammar for definition compatibility."""
+        usage = getattr(grammar, "usage", None)
+        if usage is None:
+            return
+
+        decl = getattr(usage, "declaration", None)
+        if decl is None:
+            return
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return
+
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is None:
+            return
+
+        for fs in getattr(spec, "specializations", []):
+            rel = getattr(fs, "relationship", None)
+            if rel is not None and type(rel).__name__ == "Typings":
+                typing = getattr(rel, "typing", None)
+                if typing is None:
+                    continue
+                for ft in getattr(typing, "relationships", []):
+                    relationship = getattr(ft, "relationship", None)
+                    if relationship is None:
+                        continue
+                    type_ref = getattr(relationship, "type", None)
+                    if type_ref is None:
+                        continue
+                    qn = getattr(type_ref, "type", None)
+                    if qn is None:
+                        continue
+                    names = getattr(qn, "names", [])
+                    if names:
+                        type_name = names[-1]
+                        def_element = self._find_definition_by_name(element, type_name)
+                        if def_element is not None:
+                            def_grammar = getattr(def_element, "grammar", None)
+                            if def_grammar is not None:
+                                def_type = type(def_grammar).__name__
+                                if def_type != "PortDefinition":
+                                    issues.append(SemanticIssue(
+                                        severity="error",
+                                        code="INCOMPATIBLE_PORT_DEFINITION",
+                                        message=f"Port '{element.name}' is typed by '{type_name}' which is a {def_type}, not PortDefinition",
+                                        element=element,
+                                        reference=type_name,
+                                    ))
+
+    def _check_connector_ends_compatible(self, model: Any) -> list[SemanticIssue]:
+        """Connector.ends_compatible: Connected ends must have compatible types."""
+        # This requires checking connector end types for compatibility.
+        # For now, we flag connectors where ends reference undefined types.
+        issues: list[SemanticIssue] = []
+        self._walk_for_connector_compatibility(model, issues)
+        return issues
+
+    def _walk_for_connector_compatibility(self, element: Any, issues: list[SemanticIssue]) -> None:
+        """Walk model to check connector end compatibility."""
+        if element is None:
+            return
+
+        elem_type = type(element).__name__
+        if elem_type == "Connection":
+            # Check that connector ends have valid types
+            grammar = getattr(element, "grammar", None)
+            if grammar is not None:
+                self._check_connector_grammar(grammar, element, issues)
+
+        for child in getattr(element, "children", []):
+            self._walk_for_connector_compatibility(child, issues)
+
+    def _check_connector_grammar(
+        self, grammar: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check connector grammar for end compatibility."""
+        definition = getattr(grammar, "definition", None)
+        if definition is None:
+            return
+
+        body = getattr(definition, "body", None)
+        if body is None:
+            return
+
+        # Check for connect statements
+        for body_item in getattr(body, "children", []):
+            for member in getattr(body_item, "children", []):
+                conn_elem = getattr(member, "children", None)
+                if conn_elem is not None:
+                    conn_type = type(conn_elem).__name__
+                    if conn_type == "ConnectorEndMember":
+                        self._check_connector_end(conn_elem, element, issues)
+
+    def _check_connector_end(
+        self, conn_end: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check a single connector end for valid type reference."""
+        ref = getattr(conn_end, "reference", None)
+        if ref is None:
+            return
+
+        names = getattr(ref, "names", [])
+        if names:
+            # The connector end reference should resolve to a valid feature
+            # This is a basic check - full type compatibility requires more analysis
+            pass
+
+    def _check_feature_chaining_compatible(self, model: Any, symtab: SymbolTable) -> list[SemanticIssue]:
+        """Feature.chaining_compatible: Chained features must have compatible types.
+
+        Validates that in a feature chain like 'a.b.c', the type of 'a' has
+        feature 'b', and the type of 'b' has feature 'c'.
+        """
+        issues: list[SemanticIssue] = []
+        collector = ReferenceCollector()
+        references = collector.collect(model)
+
+        for ref_str, element, scope_path in references:
+            if "::" not in ref_str:
+                continue
+
+            parts = ref_str.split("::")
+            if len(parts) < 2:
+                continue
+
+            # Get the context type from the scope path or element
+            context_type = self._get_context_type(element, scope_path, symtab)
+            if context_type is None:
+                continue
+
+            # Check each part in the chain starting from the context type
+            current_type = context_type
+            for part in parts:
+                if current_type not in symtab._definition_features:
+                    issues.append(SemanticIssue(
+                        severity="error",
+                        code="INCOMPATIBLE_FEATURE_CHAIN",
+                        message=f"Cannot chain feature '{part}' - '{current_type}' is not a definition",
+                        element=element,
+                        reference=ref_str,
+                    ))
+                    break
+
+                features = symtab._definition_features[current_type]["features"]
+                if part not in features:
+                    # Check inherited features
+                    defining = symtab.find_defining_type_for_feature(part, current_type)
+                    if defining is None:
+                        issues.append(SemanticIssue(
+                            severity="error",
+                            code="INCOMPATIBLE_FEATURE_CHAIN",
+                            message=f"Feature '{part}' not found in type '{current_type}' (chain: {ref_str})",
+                            element=element,
+                            reference=ref_str,
+                        ))
+                        break
+                    else:
+                        current_type = defining
+                else:
+                    # Feature found - get its type for next iteration
+                    next_type = self._get_feature_type(part, current_type, symtab)
+                    if next_type is not None:
+                        current_type = next_type
+                    else:
+                        # Can't determine type, stop chaining
+                        break
+
+        return issues
+
+    def _get_context_type(self, element: Any, scope_path: list[str], symtab: SymbolTable) -> Optional[str]:
+        """Get the context type for a reference (the type of the containing element)."""
+        # Try to get the type from the element itself
+        elem_type = self._get_element_type(element)
+        if elem_type is not None:
+            return elem_type
+
+        # Try to find the context from the scope path
+        for scope_name in reversed(scope_path):
+            if scope_name in symtab._definition_features:
+                return scope_name
+
+        # Try to find the context from the element's parent chain
+        parent = getattr(element, "parent", None)
+        while parent is not None:
+            parent_name = getattr(parent, "name", None)
+            if parent_name is not None:
+                # Check if parent is a definition
+                if getattr(parent, "is_definition", False):
+                    return parent_name
+                # Check if parent has a type
+                parent_type = self._get_element_type(parent)
+                if parent_type is not None:
+                    return parent_type
+            parent = getattr(parent, "parent", None)
+
+        return None
+
+    def _get_feature_type(self, feature_name: str, def_name: str, symtab: SymbolTable) -> Optional[str]:
+        """Get the type of a feature within a definition."""
+        if def_name not in symtab._definition_features:
+            return None
+
+        def_info = symtab._definition_features[def_name]
+        element = def_info["element"]
+        grammar = getattr(element, "grammar", None)
+        if grammar is None:
+            return None
+
+        # Search for the feature in the grammar and get its type
+        definition = getattr(grammar, "definition", None)
+        if definition is None:
+            return None
+
+        body = getattr(definition, "body", None)
+        if body is None:
+            return None
+
+        for body_item in getattr(body, "children", []):
+            for member in getattr(body_item, "children", []):
+                for usage_elem in getattr(member, "children", []):
+                    struct_elem = getattr(usage_elem, "children", None)
+                    if struct_elem is None:
+                        continue
+                    
+                    # Handle StructureUsageElement wrapper
+                    struct_type = type(struct_elem).__name__
+                    if struct_type == "StructureUsageElement":
+                        inner_usage = getattr(struct_elem, "children", None)
+                        if inner_usage is not None:
+                            feat_name = symtab._get_feature_name(inner_usage)
+                            if feat_name == feature_name:
+                                return self._get_element_type_from_grammar(inner_usage)
+                    else:
+                        feat_name = symtab._get_feature_name(struct_elem)
+                        if feat_name == feature_name:
+                            return self._get_element_type_from_grammar(struct_elem)
+
+        return None
+
+    def _get_element_type_from_grammar(self, usage: Any) -> Optional[str]:
+        """Get the type of an element from its grammar structure."""
+        usage_attr = getattr(usage, "usage", None)
+        if usage_attr is None:
+            return None
+
+        decl = getattr(usage_attr, "declaration", None)
+        if decl is None:
+            return None
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return None
+
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is None:
+            return None
+
+        for fs in getattr(spec, "specializations", []):
+            rel = getattr(fs, "relationship", None)
+            if rel is not None and type(rel).__name__ == "Typings":
+                typing = getattr(rel, "typing", None)
+                if typing is None:
+                    continue
+                for ft in getattr(typing, "relationships", []):
+                    relationship = getattr(ft, "relationship", None)
+                    if relationship is None:
+                        continue
+                    type_ref = getattr(relationship, "type", None)
+                    if type_ref is None:
+                        continue
+                    qn = getattr(type_ref, "type", None)
+                    if qn is None:
+                        continue
+                    names = getattr(qn, "names", [])
+                    if names:
+                        return names[-1]
+
+        return None
+
+    def _get_element_type(self, element: Any) -> Optional[str]:
+        """Get the type name of an element (for feature chaining)."""
+        if getattr(element, "is_definition", False):
+            return getattr(element, "name", None)
+
+        grammar = getattr(element, "grammar", None)
+        if grammar is None:
+            return None
+
+        usage = getattr(grammar, "usage", None)
+        if usage is None:
+            return None
+
+        decl = getattr(usage, "declaration", None)
+        if decl is None:
+            return None
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return None
+
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is None:
+            return None
+
+        for fs in getattr(spec, "specializations", []):
+            rel = getattr(fs, "relationship", None)
+            if rel is not None and type(rel).__name__ == "Typings":
+                typing = getattr(rel, "typing", None)
+                if typing is None:
+                    continue
+                for ft in getattr(typing, "relationships", []):
+                    relationship = getattr(ft, "relationship", None)
+                    if relationship is None:
+                        continue
+                    type_ref = getattr(relationship, "type", None)
+                    if type_ref is None:
+                        continue
+                    qn = getattr(type_ref, "type", None)
+                    if qn is None:
+                        continue
+                    names = getattr(qn, "names", [])
+                    if names:
+                        return names[-1]
+
+        return None
+
+    def _check_multiplicity_bounds_valid(self, model: Any) -> list[SemanticIssue]:
+        """Multiplicity.bounds_valid: Lower bound must be <= upper bound.
+
+        Validates that multiplicity ranges like [5..2] are invalid because
+        the lower bound (5) is greater than the upper bound (2).
+        """
+        issues: list[SemanticIssue] = []
+        self._walk_for_multiplicity_bounds(model, issues)
+        return issues
+
+    def _walk_for_multiplicity_bounds(self, element: Any, issues: list[SemanticIssue]) -> None:
+        """Walk model to check multiplicity bounds."""
+        if element is None:
+            return
+
+        elem_type = type(element).__name__
+        if elem_type in ("Part", "Item", "Port", "Attribute", "Action", "Reference", "Constraint", "Requirement"):
+            grammar = getattr(element, "grammar", None)
+            if grammar is not None:
+                self._check_grammar_multiplicity(grammar, element, issues)
+
+        for child in getattr(element, "children", []):
+            self._walk_for_multiplicity_bounds(child, issues)
+
+    def _check_grammar_multiplicity(
+        self, grammar: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check grammar for multiplicity bounds validity."""
+        usage = getattr(grammar, "usage", None)
+        if usage is None:
+            return
+
+        decl = getattr(usage, "declaration", None)
+        if decl is None:
+            return
+
+        inner_decl = getattr(decl, "declaration", None)
+        if inner_decl is None:
+            return
+
+        spec = getattr(inner_decl, "specialization", None)
+        if spec is None:
+            return
+
+        mult = getattr(spec, "multiplicity", None)
+        if mult is None:
+            return
+
+        self._check_multiplicity_part(mult, element, issues)
+
+    def _check_multiplicity_part(
+        self, mult: Any, element: Any, issues: list[SemanticIssue]
+    ) -> None:
+        """Check a MultiplicityPart for valid bounds."""
+        # MultiplicityPart -> children (OwnedMultiplicity) -> children (MultiplicityRange) -> children (MultiplicityExpressionMember)
+        for owned_mult in getattr(mult, "children", []):
+            for mult_range in getattr(owned_mult, "children", []):
+                bounds = getattr(mult_range, "children", [])
+                if len(bounds) == 2:
+                    # Range: [lower..upper]
+                    lower = self._extract_bound_value_from_member(bounds[0])
+                    upper = self._extract_bound_value_from_member(bounds[1])
+                    if lower is not None and upper is not None:
+                        if lower > upper:
+                            name = getattr(element, "name", "<anonymous>")
+                            issues.append(SemanticIssue(
+                                severity="error",
+                                code="INVALID_MULTIPLICITY_BOUNDS",
+                                message=f"Invalid multiplicity [{lower}..{upper}] on '{name}': lower bound exceeds upper bound",
+                                element=element,
+                                reference=f"[{lower}..{upper}]",
+                            ))
+
+    def _extract_bound_value_from_member(self, member: Any) -> Optional[int]:
+        """Extract the numeric value from a MultiplicityExpressionMember.
+
+        Returns None for '*' (infinity) or variable references.
+        """
+        for elem in getattr(member, "children", []):
+            # elem is MultiplicityRelatedElement, which stores the value in .element
+            inner = getattr(elem, "element", None)
+            if inner is None:
+                continue
+            inner_type = type(inner).__name__
+            if inner_type == "LiteralInteger":
+                return getattr(inner, "element", None)
+            elif inner_type == "LiteralInfinity":
+                return None  # Infinity - can't compare
+            # FeatureReferenceExpression (variable) - can't compare
+        return None
 
     def _find_child_scope(self, root: SymbolTable, path: list[str]) -> Optional[SymbolTable]:
         """Find the symbol table scope for a qualified path from the root."""

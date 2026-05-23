@@ -10215,11 +10215,15 @@ def _build_full_specialization_from_ctx(ctx):
         return None
     
     specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
-    if not specs:
-        return None
-    
     if not isinstance(specs, list):
         specs = [specs]
+    
+    # Extract multiplicity first (before the early return check)
+    multiplicity = _get_multiplicity_part(fsp)
+    
+    # Only return None if there are neither specializations nor multiplicity
+    if not specs and multiplicity is None:
+        return None
     
     specialization_list = []
     
@@ -10347,14 +10351,6 @@ def _build_full_specialization_from_ctx(ctx):
                         "ownedRelationship": owned
                     }
                 })
-    
-    if not specialization_list and fsp is None:
-        return None
-    
-    multiplicity = _get_multiplicity_part(fsp)
-    
-    if not specialization_list and multiplicity is None:
-        return None
     
     return {
         "name": "FeatureSpecializationPart",
