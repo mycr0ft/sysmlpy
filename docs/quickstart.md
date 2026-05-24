@@ -295,3 +295,52 @@ CayleyStore communicates with a running Cayley server over HTTP, storing element
 
     # Persistent BoltDB backend
     docker run -p 64210:64210 -v /data:/data --rm cayley/cayley -db boltdb -dbpath /data/cayley.db
+
+Multi-File Projects
+-------------------
+
+sysmlpy supports loading multiple SysML files into a shared model with automatic
+cross-file import resolution.
+
+Load multiple files::
+
+    from sysmlpy import load_files, analyze
+
+    model = load_files([
+        'models/Shared/Types.sysml',
+        'models/SystemGateway/SystemGatewayMain.sysml',
+    ])
+    issues = analyze(model)
+
+Packages with the same name are automatically merged::
+
+    # types1.sysml: package Types { part def Engine; }
+    # types2.sysml: package Types { part def Wheel; }
+    model = load_files(['types1.sysml', 'types2.sysml'])
+    # Both Engine and Wheel are in the same Types package
+
+Load an entire project directory::
+
+    from sysmlpy import load_project
+
+    # Load all .sysml and .kerml files recursively
+    model = load_project('models/')
+
+    # Load from an entry point (only reachable files)
+    model = load_project('models/', entry='models/main.sysml')
+
+Load a file with automatic dependency resolution::
+
+    from sysmlpy import load_with_dependencies
+
+    model = load_with_dependencies(
+        'models/SystemGateway/SystemGatewayMain.sysml',
+        search_paths=['models/SystemGateway', 'models/Shared'],
+    )
+
+Standard library imports (ScalarValues, ISQ, etc.) are validated when a library
+path is provided::
+
+    import sysmlpy
+    library_path = '/path/to/sysmlpy/library'
+    model = load_files(['main.sysml'], library=library_path)

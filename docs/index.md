@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.20.0** — Full OCL well-formedness validation: duplicate names, cyclic specialization, subsetting/redefinition compatibility, part/port definition compatibility, feature chain validation, multiplicity bounds checking. Supertype/inheritance resolution. Standard library symbol index (88 files, ~1,417 symbols). Import visibility enforcement (private/public/protected). 90 semantic tests, 288 total tests passing.
+**v0.21.0** — Multi-file project loading: `load_files()`, `load_project()`, and `load_with_dependencies()` for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests.
 
 ## Quick Links
 
@@ -112,6 +112,39 @@ The analyzer checks:
 | `UNRESOLVED_IMPORT` | Import target does not exist |
 
 Import visibility is enforced: `private` (default) limits symbols to the importing scope, `public` re-exports to siblings and children, and `protected` is visible to children only.
+
+## Multi-File Projects
+
+sysmlpy supports loading multiple SysML files with automatic cross-file import resolution:
+
+```python
+from sysmlpy import load_files, load_project, load_with_dependencies, analyze
+
+# Load specific files (packages with same name are merged)
+model = load_files([
+    'models/Shared/Types.sysml',
+    'models/SystemGateway/SystemGatewayMain.sysml',
+])
+
+# Load entire project directory
+model = load_project('models/')
+
+# Load with automatic dependency resolution
+model = load_with_dependencies(
+    'models/main.sysml',
+    search_paths=['models/SystemGateway', 'models/Shared'],
+)
+
+# Validate - cross-file references resolve correctly
+issues = analyze(model)
+```
+
+Standard library imports (`ScalarValues`, `ISQ`, etc.) are validated when a library path is provided:
+
+```python
+import sysmlpy
+model = load_files(['main.sysml'], library=sysmlpy.__path__[0] + '/library')
+```
 
 ## Author
 

@@ -176,7 +176,7 @@ def test_Training_Packages_Package_Example():
 
 def test_Training_PartDefinition_PartDefinition_Example():
     text = """package 'Part Definition Example' {
-    	import ScalarValues::*;
+    	private import ScalarValues::*;
 
     	part def Vehicle {
     		attribute mass : Real;
@@ -279,7 +279,7 @@ def test_Training_Redefinition_Redefinition_Example():
 
 def test_Training_EnumerationDefinitions_Enumeration_Example_1():
     text = """package 'Enumeration Definitions-1' {
-    	import ScalarValues::Real;
+    	private import ScalarValues::Real;
 
     	enum def TrafficLightColor {
     		enum green;
@@ -302,8 +302,8 @@ def test_Training_EnumerationDefinitions_Enumeration_Example_1():
 
 def test_Training_EnumerationDefinitions_Enumeration_Example_2():
     text = """package 'Enumeration Definitions-2' {
-    	import ScalarValues::*;
-    	import 'Enumeration Definitions-1'::*;
+    	private import ScalarValues::*;
+    	private import 'Enumeration Definitions-1'::*;
 
     	attribute def ClassificationLevel {
     		attribute code : String;
@@ -410,7 +410,7 @@ def test_Training_Parts_Parts_Example_2():
 
 def test_Training_Items_Items_Example():
     text = """package 'Items Example' {
-    	import ScalarValues::*;
+    	private import ScalarValues::*;
 
     	item def Fuel;
     	item def Person;
@@ -568,7 +568,7 @@ def test_Training_Interfaces_InterfaceDecomposition_Example():
 
 def test_Training_Interfaces_Interface_Example():
     text = """package 'Interface Example' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
 
@@ -593,7 +593,7 @@ def test_Training_Interfaces_Interface_Example():
 
 def test_Training_Binding_Connectors_Example_1():
     text = """package 'Binding Connectors Example-1' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
     	part def FuelPump;
@@ -628,7 +628,7 @@ def test_Training_Binding_Connectors_Example_1():
 
 def test_Training_Binding_Connectors_Example_2():
     text = """package 'Binding Connectors Example-2' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
     	part def FuelPump;
@@ -660,7 +660,7 @@ def test_Training_Binding_Connectors_Example_2():
 
 def test_Training_Flow_Connection_Definition_Example():
     text = """package 'Flow Connection Definition Example' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
 
@@ -687,7 +687,7 @@ def test_Training_Flow_Connection_Definition_Example():
 
 def test_Training_Flow_Connection_Interface_Example():
     text = """package 'Flow Connection Interface Example' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
 
@@ -715,7 +715,7 @@ def test_Training_Flow_Connection_Interface_Example():
 
 def test_Training_Flow_Connection_Usage_Example():
     text = """package 'Flow Connection Usage Example' {
-    	import 'Port Example'::*;
+    	private import 'Port Example'::*;
 
     	part def Vehicle;
 
@@ -1083,8 +1083,8 @@ def test_Training_States_State_Decomp2():
 # 28. Expressions
 def test_Training_Expressions_Car_Mass_Rollup_Example():
     text = """package 'Car Mass Rollup Example 1' {
-    	import ScalarValues::*;
-    	import MassRollup1::*;
+    	private import ScalarValues::*;
+    	private import MassRollup1::*;
     	
     	part def CarPart :> MassedThing {			
     		attribute serialNumber: String;
@@ -1100,7 +1100,7 @@ def test_Training_Expressions_Car_Mass_Rollup_Example():
     		part transmission :> simpleThing, carParts;
     	}
     	
-    	import SI::kg;
+    	private import SI::kg;
     	part c :> car {
     		attribute :>> simpleMass = 1000[kg];
     		part :>> engine {
@@ -1119,8 +1119,8 @@ def test_Training_Expressions_Car_Mass_Rollup_Example():
 
 def test_Training_Expressions_Car_Mass_Rollup_Example_2():
     text = """package 'Car Mass Rollup 1' {
-    	import ScalarValues::*;
-    	import MassRollup2::*;
+    	private import ScalarValues::*;
+    	private import MassRollup2::*;
     	
     	part def CarPart :> MassedThing {			
     		attribute serialNumber: String;
@@ -1136,7 +1136,7 @@ def test_Training_Expressions_Car_Mass_Rollup_Example_2():
     		part transmission :> carParts;
     	}
     	
-    	import SI::kg;
+    	private import SI::kg;
     	part c :> car {
     		attribute :>> simpleMass = 1000[kg];
     		part :>> engine {
@@ -1155,7 +1155,7 @@ def test_Training_Expressions_Car_Mass_Rollup_Example_2():
 
 def test_Training_Expressions_Mass_Rollup_1():
     text = """package MassRollup1 {
-    	import NumericalFunctions::*;
+    	private import NumericalFunctions::*;
     	
     	part def MassedThing {
     		attribute simpleMass :> ISQ::mass; 
@@ -1180,7 +1180,7 @@ def test_Training_Expressions_Mass_Rollup_1():
 
 def test_Training_Expressions_Mass_Rollup_2():
     text = """package MassRollup2 {
-    	import NumericalFunctions::*;
+    	private import NumericalFunctions::*;
     	
     	part def MassedThing {
     		attribute simpleMass :> ISQ::mass; 
@@ -1208,8 +1208,8 @@ def test_Training_Expressions_Mass_Rollup_2():
 # 29. Calculations
 def test_Training_Calculations_Calculation_Definitions():
     text = """package 'Calculation Definitions' {
-    	import ScalarValues::Real;
-    	import ISQ::*;
+    	private import ScalarValues::Real;
+    	private import ISQ::*;
     	
     	calc def Power { in whlpwr : PowerValue; in Cd : Real; in Cf : Real; in tm : MassValue; in v : SpeedValue;
     		attribute drag = Cd * v;
@@ -1237,7 +1237,7 @@ def test_Training_Calculations_Calculation_Definitions():
 
 def test_Training_Calculations_Calculation_Usages_1():
     text = """package 'Calculation Usages-1' {
-    	import 'Calculation Definitions'::*;
+    	private import 'Calculation Definitions'::*;
     	
     	part def VehicleDynamics {
     		attribute C_d : Real;
@@ -1283,7 +1283,7 @@ def test_Training_Calculations_Calculation_Usages_1():
 
 def test_Training_Calculations_Calculation_Usages_2():
     text = """package 'Calculation Usages-2' {
-	import 'Calculation Definitions'::*;
+	private import 'Calculation Definitions'::*;
 	
 	attribute def DynamicState {
 		attribute v: SpeedValue;
@@ -1317,7 +1317,7 @@ def test_Training_Calculations_Calculation_Usages_2():
 # 30. Constraints
 def test_Training_Constraints_Analytical_Constraints():
     text = """package 'Analytical Constraints' {
-    	import 'Calculation Definitions'::*;
+    	private import 'Calculation Definitions'::*;
     	
     	constraint def StraightLineDynamicsEquations {
     		in p : PowerValue;
@@ -1365,9 +1365,9 @@ def test_Training_Constraints_Analytical_Constraints():
 
 def test_Training_Constraints_Constraint_Assertions_1():
     text = """package 'Constraint Assertions-1' {
-    	import ISQ::*;
-    	import SI::*;
-    	import NumericalFunctions::*;
+    	private import ISQ::*;
+    	private import SI::*;
+    	private import NumericalFunctions::*;
     	
     	part def Engine;
     	part def Transmission;
@@ -1403,9 +1403,9 @@ def test_Training_Constraints_Constraint_Assertions_1():
 
 def test_Training_Constraints_Constraint_Assertions_2():
     text = """package 'Constraint Assertions-2' {
-    	import ISQ::*;
-    	import SI::*;
-    	import NumericalFunctions::*;
+    	private import ISQ::*;
+    	private import SI::*;
+    	private import NumericalFunctions::*;
     	
     	part def Engine;
     	part def Transmission;
@@ -1446,9 +1446,9 @@ def test_Training_Constraints_Constraint_Assertions_2():
 
 def test_Training_Constraints_Constraints_Example_1():
     text = """package 'Constraints Example-1' {
-    	import ISQ::*;
-    	import SI::*;
-    	import NumericalFunctions::*;
+    	private import ISQ::*;
+    	private import SI::*;
+    	private import NumericalFunctions::*;
     	
     	part def Engine;
     	part def Transmission;
@@ -1484,9 +1484,9 @@ def test_Training_Constraints_Constraints_Example_1():
 
 def test_Training_Constraints_Constraints_Example_2():
     text = """package 'Constraints Example-2' {
-    	import ISQ::*;
-    	import SI::*;
-    	import NumericalFunctions::*;
+    	private import ISQ::*;
+    	private import SI::*;
+    	private import NumericalFunctions::*;
     	
     	part def Engine;
     	part def Transmission;
@@ -1522,7 +1522,7 @@ def test_Training_Constraints_Constraints_Example_2():
 
 def test_Training_Constraints_Derivation_Constraints():
     text = """package 'Derivation Constraints' {
-    	import 'Constraints Example-1'::*;
+    	private import 'Constraints Example-1'::*;
     	
     	part vehicle1 : Vehicle {
     		attribute totalMass : MassValue;			
@@ -1552,13 +1552,13 @@ def test_Training_Constraints_Derivation_Constraints():
 
 def test_Training_Constraints_Time_Constraints():
     text = """package 'Time Constraints' {
-    	import ISQ::TemperatureValue;
-    	import ISQ::DurationValue;
-    	import Time::TimeInstantValue;
-    	import Time::TimeOf;
-    	import Time::DurationOf;
-    	import SI::h;
-    	import SI::s;
+    	private import ISQ::TemperatureValue;
+    	private import ISQ::DurationValue;
+    	private import Time::TimeInstantValue;
+    	private import Time::TimeOf;
+    	private import Time::DurationOf;
+    	private import SI::h;
+    	private import SI::s;
 
     	attribute def MaintenanceDone;
     	
@@ -1596,8 +1596,8 @@ def test_Training_Constraints_Time_Constraints():
 # 31. Requirements
 def test_Training_Requirements_Requirement_Definitions():
     text = """package 'Requirement Definitions' {
-    	import ISQ::*;
-    	import SI::*;
+    	private import ISQ::*;
+    	private import SI::*;
 
     	requirement def MassLimitationRequirement {
     		doc /* The actual mass shall be less than or equal to the required mass. */
@@ -1644,8 +1644,8 @@ def test_Training_Requirements_Requirement_Definitions():
 
 def test_Training_Requirements_Requirement_Groups():
     text = """package 'Requirement Groups' {
-    	import 'Requirement Definitions'::*;
-    	import 'Requirement Usages'::*;
+    	private import 'Requirement Definitions'::*;
+    	private import 'Requirement Usages'::*;
     	
     	part def Engine {
     		port clutchPort: ClutchPort;
@@ -1683,7 +1683,7 @@ def test_Training_Requirements_Requirement_Groups():
 
 def test_Training_Requirements_Requirement_Satisfaction():
     text = """package 'Requirement Satisfaction' {
-    	import 'Requirement Groups'::*;
+    	private import 'Requirement Groups'::*;
     	
     	action 'provide power' {
     		action 'generate torque';
@@ -1715,8 +1715,8 @@ def test_Training_Requirements_Requirement_Satisfaction():
 
 def test_Training_Requirements_Requirement_Usages():
     text = """package 'Requirement Usages' {
-    	import SI::*;
-    	import 'Requirement Definitions'::*;
+    	private import SI::*;
+    	private import 'Requirement Definitions'::*;
     	
     	requirement <'1.1'> fullVehicleMassLimit : VehicleMassLimitationRequirement {
     		subject vehicle : Vehicle;
@@ -1747,13 +1747,13 @@ def test_Training_Requirements_Requirement_Usages():
 # 32. Analysis
 def test_Training_Analysis_Analysis_Case_Definition_Example():
     text = """package 'Analysis Case Definition Example' {
-    	import 'Calculation Definitions'::*;
-    	import 'Analytical Constraints'::*;
-    	import USCustomaryUnits::*;
-    	import SequenceFunctions::size;
-    	import Quantities::ScalarQuantityValue;
-    	import ControlFunctions::*;
-    	import ScalarValues::Positive;
+    	private import 'Calculation Definitions'::*;
+    	private import 'Analytical Constraints'::*;
+    	private import USCustomaryUnits::*;
+    	private import SequenceFunctions::size;
+    	private import Quantities::ScalarQuantityValue;
+    	private import ControlFunctions::*;
+    	private import ScalarValues::Positive;
     	
     	attribute def DistancePerVolumeValue :> ScalarQuantityValue;
     
@@ -1837,7 +1837,7 @@ def test_Training_Analysis_Analysis_Case_Definition_Example():
 
 def test_Training_Analysis_Analysis_Case_Usage_Example():
     text = """package 'Analysis Case Usage Example' {
-    	import 'Analysis Case Definition Example'::*;
+    	private import 'Analysis Case Definition Example'::*;
     	
     	part vehicleFuelEconomyAnalysisContext {
     		requirement vehicleFuelEconomyRequirements {
@@ -1874,8 +1874,8 @@ def test_Training_Analysis_Analysis_Case_Usage_Example():
 
 def test_Training_Analysis_Trade_Study_Analysis_Example():
     text = """package 'Trade Study Analysis Example' {
-    	import ScalarValues::Real;
-    	import TradeStudies::*;
+    	private import ScalarValues::Real;
+    	private import TradeStudies::*;
     	
     	part def Engine;
     	part engine4cyl : Engine;

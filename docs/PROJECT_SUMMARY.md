@@ -2,7 +2,7 @@
 
 > **For:** Future agents and team members
 > **Last Updated:** May 23, 2026
-> **Current Version:** v0.20.1
+> **Current Version:** v0.21.0
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -16,7 +16,7 @@
 ```
 sysmlpy/
 ├── src/sysmlpy/
-│   ├── __init__.py          # Public API: loads(), load(), analyze()
+│   ├── __init__.py          # Public API: loads(), load(), analyze(), load_files(), load_project()
 │   ├── antlr_parser.py      # ANTLR4 lexer/parser setup
 │   ├── antlr_visitor.py     # ~11K lines: parse tree → internal dict
 │   ├── grammar/
@@ -25,6 +25,7 @@ sysmlpy/
 │   ├── definition.py        # Model, Package, RootNamespace classes
 │   ├── usage.py             # Part, Item, Attribute, Port, Action, etc.
 │   ├── semantic.py          # Semantic analysis engine (~1.8K lines)
+│   ├── project.py           # Multi-file project loading (load_files, load_project)
 │   ├── store.py             # Storage backends (memory, NetworkX, Kuzu, Cayley)
 │   ├── plantuml.py          # PlantUML diagram generation
 │   ├── formatting.py        # classtree() for round-trip serialization
@@ -37,6 +38,7 @@ sysmlpy/
 │   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
 │   ├── class_test.py        # 53 programmatic API tests
 │   ├── semantic_test.py     # 90 semantic analysis tests
+│   ├── project_test.py      # 12 multi-file loading tests
 │   ├── store_test.py        # 82 storage backend tests (memory + networkx)
 │   ├── conformance_test.py  # 123 OMG XPect conformance tests
 │   └── sysmlv2/             # Conformance test fixtures
@@ -82,6 +84,21 @@ The semantic analysis engine (`semantic.py`) provides comprehensive validation:
 | **Inheritance Resolution** | ✅ Complete | Supertype chain traversal for subsetting/redefinition |
 | **OCL Constraints** | ✅ 8 of 8 | See table below |
 
+### Multi-File Projects (v0.21.0)
+
+Three new API functions enable cross-file import resolution:
+
+| Function | Description |
+|----------|-------------|
+| `load_files(files, library=None)` | Load multiple files; merge packages with same name |
+| `load_project(root, entry=None)` | Load all `.sysml`/`.kerml` files in a directory |
+| `load_with_dependencies(entry, search_paths)` | Load entry file and recursively resolve imports |
+
+- Package merging: files defining the same package namespace are combined
+- Import resolution: cross-file type references resolve correctly
+- Standard library validation: `ScalarValues`, `ISQ`, etc. recognized as valid
+- 12 new tests in `tests/project_test.py`
+
 #### Implemented OCL Well-Formness Checks
 
 | Code | Rule | Description |
@@ -111,9 +128,10 @@ The semantic analysis engine (`semantic.py`) provides comprehensive validation:
 | Grammar round-trip | 56 | ✅ 56 pass |
 | Programmatic API | 53 | ✅ 53 pass |
 | Semantic analysis | 90 | ✅ 90 pass |
+| Multi-file loading | 12 | ✅ 12 pass |
 | Storage backends | 82 | ✅ 82 pass |
 | Conformance | 123 | ✅ 123 pass |
-| **Total** | **404** | **✅ 404 pass, 0 fail** |
+| **Total** | **416** | **✅ 416 pass, 0 fail** |
 
 ---
 
@@ -142,9 +160,9 @@ The `load_from_grammar()` method on each public class bridges the two levels.
 
 The semantic analyzer (`analyze(model)`) is non-invasive and opt-in. It does not modify the model or affect parsing/loading. This was a deliberate design choice to maintain backward compatibility.
 
-### 5. Import Visibility Defaults to Private
+### 5. Import Visibility is Required
 
-Per the SysML v2 spec, imports without an explicit visibility keyword default to `private`. The `ImportPrefix` class accepts `None` visibility (a previous version incorrectly raised `ValueError`).
+Per the SysML v2 spec (section 7.5.3), imports must have an explicit visibility keyword (`private`, `public`, or `protected`). The grammar enforces this — omitting the keyword produces a syntax error. The previous version allowed omission and defaulted to `private`.
 
 ### 6. Multiplicity is Stored in FeatureSpecializationPart
 
@@ -153,6 +171,14 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 ---
 
 ## Known Issues and Technical Debt
+
+### Resolved
+
+| Issue | Resolution |
+|-------|------------|
+| **Import visibility optional in grammar** | Made `visibilityIndicator` required in `SysMLv2Parser.g4` (v0.21.0) |
+| **No multi-file loading support** | Added `load_files()`, `load_project()`, `load_with_dependencies()` (v0.21.0) |
+| **Standard library imports not validated** | Semantic analyzer now checks `LibrarySymbolIndex` for import targets (v0.21.0) |
 
 ### High Priority
 
@@ -214,7 +240,7 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 
 11. **Parse library files instead of regex extraction** — Replace `LibrarySymbolIndex._extract_from_file()` with actual parsing of `.kerml`/`.sysml` files for accurate symbol discovery.
 
-12. **Standard library loading** — Currently library symbols are indexed but not loaded as actual model objects. Full implementation would parse library files and make them available for resolution.
+12. **Standard library loading** — ~~Currently library symbols are indexed but not loaded as actual model objects.~~ Partially resolved in v0.21.0: `load_files()` and `load_with_dependencies()` accept a `library` parameter that validates standard library imports. Full resolution would parse library files and make them available for symbol resolution in `analyze()`.
 
 13. **OCL constraint library** — Consider maintaining a machine-readable OCL constraint library that can be extended without code changes.
 
@@ -228,11 +254,13 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 
 ### Documentation
 
-17. **Update STATUS.md** — Bring in line with current state (v0.20.0, 404 tests, 100% conformance).
+17. **Update STATUS.md** — Bring in line with current state (v0.21.0, 416 tests, 100% conformance).
 
 18. **API documentation** — Generate API docs from docstrings (Sphinx or MkDocs).
 
 19. **Semantic analysis guide** — Dedicated documentation page for using `analyze()` and interpreting results.
+
+20. **Multi-file project guide** — Document `load_files()`, `load_project()`, and `load_with_dependencies()` with examples for common project structures.
 
 ---
 
@@ -268,6 +296,12 @@ The `SymbolTable` is built from the model tree but is a separate data structure.
 
 **Mitigation:** Document that `analyze()` should be called after all model modifications are complete.
 
+### 8. Multi-File Package Merging
+
+When `load_files()` merges packages with the same name, children are appended without deduplication. If two files define the same element name within the same package, both will exist in the merged model and may trigger `DUPLICATE_NAME` warnings during analysis.
+
+**Mitigation:** Use `analyze()` after loading to detect duplicate names. Ensure project files define non-overlapping elements within shared packages.
+
 ### 6. ANTLR Grammar Updates Require Visitor Updates
 
 When the OMG releases a new SysML v2 grammar, the ANTLR parser must be regenerated and the visitor updated to handle any new rules.
@@ -294,6 +328,7 @@ pytest tests/
 pytest tests/grammar_test.py        # Round-trip
 pytest tests/class_test.py          # Programmatic API
 pytest tests/semantic_test.py       # Semantic analysis
+pytest tests/project_test.py        # Multi-file loading
 pytest tests/store_test.py          # Storage backends
 pytest tests/conformance_test.py    # OMG conformance (slow)
 
@@ -328,20 +363,30 @@ pytest -m "not conformance"
 ### Adding a New Storage Backend
 
 1. Subclass `Store` in `store.py`:
-   ```python
-   class MyStore(Store):
-       def put(self, element_id: str, data: dict) -> None: ...
-       def get(self, element_id: str) -> Optional[dict]: ...
-       # ... implement all abstract methods
-   ```
+    ```python
+    class MyStore(Store):
+        def put(self, element_id: str, data: dict) -> None: ...
+        def get(self, element_id: str) -> Optional[dict]: ...
+        # ... implement all abstract methods
+    ```
 
 2. Register in `create_store()`:
-   ```python
-   elif backend == "my":
-       return MyStore(**kwargs)
-   ```
+    ```python
+    elif backend == "my":
+        return MyStore(**kwargs)
+    ```
 
 3. Add tests to `tests/store_test.py` using the parameterized test patterns.
+
+### Adding Multi-File Loading Support
+
+The `project.py` module handles multi-file loading:
+
+1. `load_files()` parses each file and merges packages with the same name
+2. `load_project()` discovers all `.sysml`/`.kerml` files in a directory
+3. `load_with_dependencies()` extracts imports via regex and recursively loads dependencies
+
+To extend import resolution, modify `_extract_imports()` and `_find_import_file()` in `project.py`.
 
 ---
 

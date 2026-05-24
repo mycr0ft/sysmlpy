@@ -14,7 +14,7 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.20.0:** Full OCL well-formedness validation suite. Supertype/inheritance resolution for subsetting references. Standard library symbol index scans 88 `.kerml`/`.sysml` files (~1,417 symbols). Import visibility enforcement (`private`/`public`/`protected`). Multiplicity bounds validation. Feature chain compatibility checking. Port and part definition type validation. Duplicate name detection. Cyclic specialization detection. 90 semantic tests, 288 total tests passing.
+**v0.21.0:** Multi-file project loading: `load_files()`, `load_project()`, and `load_with_dependencies()` for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests, 300+ total tests passing.
 
 **v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
 
@@ -247,6 +247,39 @@ The analyzer resolves three import patterns with visibility enforcement:
 | `INCOMPATIBLE_FEATURE_CHAIN` | Feature.chaining_compatible | Chained features (`a.b.c`) must have compatible types at each step |
 | `INVALID_MULTIPLICITY_BOUNDS` | Multiplicity.bounds_valid | Lower bound must be ≤ upper bound (`[5..2]` is invalid) |
 | `UNRESOLVED_IMPORT` | — | Import target does not exist in the model |
+
+## Multi-File Projects
+
+sysmlpy supports loading multiple SysML files into a shared model with automatic cross-file import resolution:
+
+```python
+from sysmlpy import load_files, load_project, load_with_dependencies, analyze
+
+# Option 1: Load specific files (packages with same name are merged)
+model = load_files([
+    'models/Shared/Types.sysml',
+    'models/SystemGateway/SystemGatewayMain.sysml',
+])
+
+# Option 2: Load entire project directory
+model = load_project('models/')
+
+# Option 3: Load with automatic dependency resolution
+model = load_with_dependencies(
+    'models/SystemGateway/SystemGatewayMain.sysml',
+    search_paths=['models/SystemGateway', 'models/Shared'],
+)
+
+# Validate — cross-file references resolve correctly
+issues = analyze(model)
+```
+
+Standard library imports (`ScalarValues`, `ISQ`, etc.) are validated when a library path is provided:
+
+```python
+import sysmlpy
+model = load_files(['main.sysml'], library=sysmlpy.__path__[0] + '/library')
+```
 
 ## Storage Backends
 

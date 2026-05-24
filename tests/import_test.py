@@ -11,14 +11,15 @@ import sysmlpy
 class TestImportVisibility:
     """Tests for import visibility validation."""
 
-    def test_import_without_visibility_works(self):
-        """Import without visibility keyword should default to private."""
-        model = sysmlpy.loads("""
-        package P {
-            import OtherPackage::*;
-        }
-        """)
-        assert model is not None
+    def test_import_without_visibility_raises_error(self):
+        """Import without visibility keyword should raise a syntax error."""
+        from sysmlpy.antlr_parser import SysMLSyntaxError
+        with pytest.raises(SysMLSyntaxError):
+            sysmlpy.loads("""
+            package P {
+                import OtherPackage::*;
+            }
+            """)
 
     def test_private_import_works(self):
         """Private import should parse successfully."""
@@ -47,14 +48,15 @@ class TestImportVisibility:
         """)
         assert model is not None
 
-    def test_membership_import_without_visibility_works(self):
-        """Membership import without visibility should default to private."""
-        model = sysmlpy.loads("""
-        package P {
-            import OtherPackage::SomeElement;
-        }
-        """)
-        assert model is not None
+    def test_membership_import_without_visibility_raises_error(self):
+        """Membership import without visibility should raise a syntax error."""
+        from sysmlpy.antlr_parser import SysMLSyntaxError
+        with pytest.raises(SysMLSyntaxError):
+            sysmlpy.loads("""
+            package P {
+                import OtherPackage::SomeElement;
+            }
+            """)
 
     def test_membership_import_with_visibility_works(self):
         """Membership import with visibility should parse successfully."""

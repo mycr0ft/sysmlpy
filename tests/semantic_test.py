@@ -450,7 +450,7 @@ class TestImportResolution:
                 part def Wheel;
             }
             package Vehicle {
-                import Types::*;
+                private import Types::*;
                 part myCar : Engine;
             }
         """)
@@ -463,7 +463,7 @@ class TestImportResolution:
                 part def Engine;
             }
             package Vehicle {
-                import Types::Engine;
+                private import Types::Engine;
                 part myCar : Engine;
             }
         """)
@@ -477,7 +477,7 @@ class TestImportResolution:
                 part def Wheel;
             }
             package Vehicle {
-                import Types::Engine;
+                private import Types::Engine;
                 part myCar : Engine;
                 part myWheel : Wheel;
             }
@@ -499,7 +499,7 @@ class TestImportResolution:
                 }
             }
             package Vehicle {
-                import Types::*::**;
+                private import Types::*::**;
                 part myCar : Engine;
                 part myHybrid : Motor;
             }
@@ -510,7 +510,7 @@ class TestImportResolution:
     def test_unresolved_import_target(self):
         model = loads("""
             package Vehicle {
-                import NonExistent::*;
+                private import NonExistent::*;
                 part myCar : SomeType;
             }
         """)
@@ -526,7 +526,7 @@ class TestImportResolution:
                 }
             }
             package C {
-                import A::B::*;
+                private import A::B::*;
                 part x : PartB;
             }
         """)
@@ -540,7 +540,7 @@ class TestUnresolvedImportDetection:
     def test_import_from_nonexistent_package(self):
         model = loads("""
             package Vehicle {
-                import NonExistent::*;
+                private import NonExistent::*;
             }
         """)
         issues = analyze(model)
@@ -552,7 +552,7 @@ class TestUnresolvedImportDetection:
     def test_import_specific_nonexistent_element(self):
         model = loads("""
             package Vehicle {
-                import NonExistent::Engine;
+                private import NonExistent::Engine;
             }
         """)
         issues = analyze(model)
@@ -569,7 +569,7 @@ class TestUnresolvedImportDetection:
                 }
             }
             package C {
-                import A::NonExistent::*;
+                private import A::NonExistent::*;
             }
         """)
         issues = analyze(model)
@@ -584,7 +584,7 @@ class TestUnresolvedImportDetection:
                 part def Engine;
             }
             package Vehicle {
-                import Types::*;
+                private import Types::*;
             }
         """)
         issues = analyze(model)
@@ -596,7 +596,7 @@ class TestUnresolvedImportDetection:
                 part def Engine;
             }
             package Vehicle {
-                import Types::Engine;
+                private import Types::Engine;
             }
         """)
         issues = analyze(model)
@@ -605,7 +605,7 @@ class TestUnresolvedImportDetection:
     def test_unresolved_import_and_undefined_symbol_both_reported(self):
         model = loads("""
             package Vehicle {
-                import NonExistent::*;
+                private import NonExistent::*;
                 part myCar : SomeType;
             }
         """)
@@ -616,7 +616,7 @@ class TestUnresolvedImportDetection:
     def test_recursive_import_from_nonexistent(self):
         model = loads("""
             package Vehicle {
-                import NonExistent::*::**;
+                private import NonExistent::*::**;
             }
         """)
         issues = analyze(model)
@@ -812,7 +812,7 @@ class TestImportVisibility:
                 part def BaseType;
             }
             package Q {
-                import P::BaseType;
+                private import P::BaseType;
                 part x : BaseType;
             }
             package R {

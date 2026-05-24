@@ -999,6 +999,13 @@ class SemanticAnalyzer:
             return
 
         ref_str = "::".join(names)
+        
+        # Check library symbols first
+        if ref_str in LibrarySymbolIndex.get_symbols():
+            return
+        if ref_str in _KNOWN_LIBRARY_SYMBOLS:
+            return
+        
         element = symtab._resolve_qualified_name(ref_str, table)
         if element is None:
             issues.append(SemanticIssue(
@@ -1026,6 +1033,15 @@ class SemanticAnalyzer:
             return
 
         ref_str = "::".join(names)
+        
+        # Check library symbols first
+        if ref_str in LibrarySymbolIndex.get_symbols():
+            return
+        # Also check if any library symbol starts with this namespace
+        lib_symbols = LibrarySymbolIndex.get_symbols()
+        if any(sym.startswith(ref_str + "::") for sym in lib_symbols):
+            return
+        
         target_table = symtab._find_namespace_table(ref_str, table)
         if target_table is None:
             issues.append(SemanticIssue(

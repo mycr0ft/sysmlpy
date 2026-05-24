@@ -9,13 +9,14 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 __all__ = [
     "load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr",
+    "load_files", "load_project", "load_with_dependencies",
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
     "to_plantuml", "PlantUMLGenerator",
     "analyze", "SemanticIssue", "SemanticAnalyzer",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.20.1"
+__version__ = "0.21.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -229,4 +230,6 @@ def load_antlr(fp):
 from sysmlpy.plantuml import to_plantuml, PlantUMLGenerator
 
 from sysmlpy.semantic import analyze, SemanticIssue, SemanticAnalyzer
+
+from sysmlpy.project import load_files, load_project, load_with_dependencies
 
