@@ -552,6 +552,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#stylistic-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stylistic Checks
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -837,6 +848,17 @@
     <span class="md-ellipsis">
       
         PlantUML View Renderings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stylistic-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stylistic Checks
       
     </span>
   </a>
@@ -1182,6 +1204,34 @@ print(as_interconnection_diagram(model))
     &#39;skinparam rectangle { LineThickness 2.5 }&#39;,
 ])
 </code></pre></div>
+<h2 id="stylistic-checks">Stylistic Checks<a class="headerlink" href="#stylistic-checks" title="Permanent link">&para;</a></h2>
+<p>The <code>analyze()</code> function now includes stylistic checks that warn about
+naming convention violations and file-package mismatches::</p>
+<div class="highlight"><pre><span></span><code>from sysmlpy import loads, analyze
+
+model = loads(&quot;package mypkg { part def engine; }&quot;)
+
+# Default: stylistic checks enabled
+issues = analyze(model)
+# → NAMING_CONVENTION warnings for &#39;mypkg&#39;, &#39;engine&#39;
+
+# With filename check
+issues = analyze(model, filename=&quot;Engine.sysml&quot;)
+# → FILE_PACKAGE_MISMATCH warning for &#39;mypkg&#39; vs &#39;Engine&#39;
+
+# Disable stylistic checks
+issues = analyze(model, style_checks=False)
+</code></pre></div>
+<p>Naming conventions enforced:</p>
+<ul>
+<li><strong>Definitions</strong> (<code>part def</code>, <code>action def</code>, etc.): PascalCase (<code>Engine</code>)</li>
+<li><strong>Usages</strong> (<code>part</code>, <code>action</code>, etc.): camelCase (<code>myEngine</code>)</li>
+<li><strong>Packages</strong>: PascalCase (<code>MyPackage</code>)</li>
+<li><strong>Attributes</strong>: camelCase (<code>powerLevel</code>)</li>
+<li><strong>Ports</strong>: camelCase (<code>intakePort</code>)</li>
+</ul>
+<p>All stylistic issues have severity <code>"warning"</code> rather than <code>"error"</code>,
+so they don't block validation but still highlight potential issues.</p>
 
 
 

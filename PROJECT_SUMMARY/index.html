@@ -544,7 +544,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="PlantUML View Renderings (v0.25.2)">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stylistic-checks-v0255" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stylistic Checks (v0.25.5)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stylistic Checks (v0.25.5)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1007,7 +1018,7 @@
 <blockquote>
 <p><strong>For:</strong> Future agents and team members
 <strong>Last Updated:</strong> May 23, 2026
-<strong>Current Version:</strong> v0.25.2
+<strong>Current Version:</strong> v0.25.5
 <strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy</p>
 </blockquote>
 <hr />
@@ -1183,6 +1194,37 @@
 <li><strong>Views render as folder elements</strong> with purple styling (color) or white (B&amp;W)</li>
 <li>10 new tests in <code>tests/plantuml_test.py</code> (39 total PlantUML tests)</li>
 </ul>
+<h3 id="stylistic-checks-v0255">Stylistic Checks (v0.25.5)<a class="headerlink" href="#stylistic-checks-v0255" title="Permanent link">&para;</a></h3>
+<p>The <code>analyze()</code> function now includes stylistic checks that warn about naming convention violations and file-package mismatches:</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Code</th>
+<th>Severity</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Naming conventions</td>
+<td><code>NAMING_CONVENTION</code></td>
+<td>warning</td>
+<td>Definitions should be PascalCase, usages camelCase, packages PascalCase, attributes/ports camelCase</td>
+</tr>
+<tr>
+<td>File-package match</td>
+<td><code>FILE_PACKAGE_MISMATCH</code></td>
+<td>warning</td>
+<td>Top-level package name should match filename (minus extension)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>New <code>analyze()</code> parameters: <code>filename</code> (for file-package matching), <code>style_checks</code> (enable/disable, default <code>True</code>)</li>
+<li>All stylistic issues have severity <code>"warning"</code> rather than <code>"error"</code></li>
+<li>17 new tests in <code>tests/semantic_test.py</code></li>
+</ul>
 <h4 id="implemented-ocl-well-formness-checks">Implemented OCL Well-Formness Checks<a class="headerlink" href="#implemented-ocl-well-formness-checks" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -1274,8 +1316,8 @@
 </tr>
 <tr>
 <td>Semantic analysis</td>
-<td>90</td>
-<td>✅ 90 pass</td>
+<td>107</td>
+<td>✅ 107 pass</td>
 </tr>
 <tr>
 <td>Multi-file loading</td>
@@ -1299,8 +1341,8 @@
 </tr>
 <tr>
 <td><strong>Total</strong></td>
-<td><strong>460</strong></td>
-<td><strong>✅ 460 pass, 0 fail</strong></td>
+<td><strong>477</strong></td>
+<td><strong>✅ 477 pass, 0 fail</strong></td>
 </tr>
 </tbody>
 </table>
