@@ -14,7 +14,7 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.23.1:** Updated GitHub Actions to latest versions (setup-python@v6, checkout@v4, upload-artifact@v4, add-and-commit@v9).
+**v0.25.2:** View rendering convenience functions: `as_graphical_rendering()`, `as_interconnection_diagram()`, `as_tree_diagram()`, `as_element_table()`, `as_textual_notation()`. Black-and-white default style for journal article rendering. Custom style support via `custom_style` parameter. Views render as folder elements. 39 PlantUML tests passing.
 
 **v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
 

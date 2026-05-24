@@ -6,6 +6,13 @@ PlantUML generator for SysML v2 models parsed by sysmlpy.
 Follows the approach of the official SysML v2 Pilot Implementation:
 maps SysML v2 relationships to PlantUML arrow approximations with
 thickness/color differentiation and stereotype-based element styling.
+
+Supports multiple rendering styles per SysML v2 View semantics:
+- Graphical rendering (default): elements as shapes with relationship arrows
+- Interconnection diagram: focus on connectors, bindings, and flows
+- Tree diagram: hierarchical containment structure
+- Element table: tabular listing of elements and properties
+- Textual notation: structured text representation
 """
 
 from sysmlpy.usage import Usage
@@ -267,7 +274,7 @@ def _get_redefines_names(element):
     return names
 
 
-def _get_stereotype(element):
+def _get_stereotype(element, style="bw"):
     """Get the stereotype string for an element."""
     sysml_type = getattr(element, 'sysml_type', None)
     if sysml_type is None:
@@ -276,6 +283,10 @@ def _get_stereotype(element):
     is_def = getattr(element, 'is_definition', False)
     stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
     label = stereotype_map.get(sysml_type, sysml_type)
+
+    if style == "bw":
+        # Simple label without colors for journal rendering
+        return f"<<{label}>>"
 
     color_info = STEREOTYPE_COLORS.get(sysml_type, ("T", "#3498DB"))
     letter, color = color_info
@@ -310,6 +321,14 @@ def _get_element_id(element, id_map):
     return id_map[elem_id]
 
 
+def _arrow_to_rel_type(arrow):
+    """Map a PlantUML arrow string back to a relationship type name."""
+    for rel_type, pattern in ARROW_STYLES.items():
+        if pattern in arrow or arrow in pattern:
+            return rel_type
+    return None
+
+
 class PlantUMLGenerator:
     """
     Generates PlantUML text from a sysmlpy Model.
@@ -329,12 +348,14 @@ class PlantUMLGenerator:
         puml = PlantUMLGenerator(model, elements=[wheel, axle]).generate()
     """
 
-    def __init__(self, model, style="color", direction="TB", include_legend=True,
-                 focus=None, elements=None, max_depth=None, show_external=False):
+    def __init__(self, model, style="bw", direction="TB", include_legend=True,
+                 focus=None, elements=None, max_depth=None, show_external=False,
+                 custom_style=None):
         """
         Args:
             model: A sysmlpy Model instance
-            style: "color" for colored stereotypes, "bw" for monochrome
+            style: "bw" for black-and-white (default, journal-ready),
+                   "color" for colored stereotypes
             direction: "TB" for top-to-bottom, "LR" for left-to-right
             include_legend: Whether to include a relationship legend
             focus: A single element to focus on (renders it and its subtree)
@@ -342,6 +363,9 @@ class PlantUMLGenerator:
             max_depth: Maximum depth to traverse from focus element (None = unlimited)
             show_external: If True, show relationships to elements outside the selection
                           as dashed/ghosted lines. If False, hide them entirely.
+            custom_style: Optional list of PlantUML style lines to append to the
+                         default style. Useful for custom formatting while keeping
+                         the base style consistent.
         """
         self.model = model
         self.style = style
@@ -351,6 +375,7 @@ class PlantUMLGenerator:
         self.elements_filter = elements
         self.max_depth = max_depth
         self.show_external = show_external
+        self.custom_style = custom_style or []
         self.id_map = {}
         self.elements = []
         self.relationships = []
@@ -464,77 +489,186 @@ class PlantUMLGenerator:
     def _generate_style(self):
         """Generate CSS style block."""
         if self.style == "bw":
-            return [
+            lines = [
                 "skinparam monochrome true",
                 "skinparam wrapWidth 300",
-                "skinparam roundcorner 20",
+                "skinparam defaultFontSize 12",
+                "skinparam defaultFontName Helvetica",
+                "",
+                "# Definitions: sharp corners, hatched background",
+                "skinparam rectangle<<part def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "    StereotypeFontSize 11",
+                "}",
+                "skinparam rectangle<<item def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<attribute def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<port def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<action def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<state def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<requirement def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<view def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<viewpoint def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<enumeration def>> {",
+                "    RoundCorner 0",
+                "    BackgroundColor white",
+                "}",
+                "",
+                "# Usages: rounded corners, plain background",
+                "skinparam rectangle<<part>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<item>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<attribute>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<port>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<action>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<state>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<requirement>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<view>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<viewpoint>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "skinparam rectangle<<enumeration>> {",
+                "    RoundCorner 15",
+                "    BackgroundColor white",
+                "}",
+                "",
+                "# Views as folders",
+                "skinparam folder<<view def>> {",
+                "    BackgroundColor white",
+                "}",
+                "skinparam folder<<view>> {",
+                "    BackgroundColor white",
+                "}",
+            ]
+        else:
+            lines = [
+                "<style>",
+                "root {",
+                "    BackGroundColor white",
+                "    FontName Helvetica",
+                "    FontSize 13",
+                "}",
+                "rectangle {",
+                "    LineColor #444444",
+                "    LineThickness 1.5",
+                "    BackgroundColor white",
+                "    Padding 10",
+                "}",
+                "arrow {",
+                "    LineColor #555555",
+                "    LineThickness 1.5",
+                "    FontSize 11",
+                "}",
+                "</style>",
+                "",
+                "skinparam wrapWidth 400",
+                "",
+                "skinparam rectangle<<part def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<item def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<attribute def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<port def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<action def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<state def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<requirement def>> {",
+                "    RoundCorner 0",
+                "}",
+                "skinparam rectangle<<part>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<item>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<attribute>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<port>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<action>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<state>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam rectangle<<requirement>> {",
+                "    RoundCorner 15",
+                "}",
+                "skinparam folder<<view def>> {",
+                "    BackgroundColor #F5E6FF",
+                "    BorderColor #8E44AD",
+                "}",
+                "skinparam folder<<view>> {",
+                "    BackgroundColor #F5E6FF",
+                "    BorderColor #8E44AD",
+                "}",
             ]
 
-        return [
-            "<style>",
-            "root {",
-            "    BackGroundColor white",
-            "    FontName Helvetica",
-            "    FontSize 13",
-            "}",
-            "rectangle {",
-            "    LineColor #444444",
-            "    LineThickness 1.5",
-            "    BackgroundColor white",
-            "    Padding 10",
-            "}",
-            "arrow {",
-            "    LineColor #555555",
-            "    LineThickness 1.5",
-            "    FontSize 11",
-            "}",
-            "</style>",
-            "",
-            "skinparam wrapWidth 400",
-            "",
-            "skinparam rectangle<<part def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<item def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<attribute def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<port def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<action def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<state def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<requirement def>> {",
-            "    RoundCorner 0",
-            "}",
-            "skinparam rectangle<<part>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<item>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<attribute>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<port>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<action>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<state>> {",
-            "    RoundCorner 15",
-            "}",
-            "skinparam rectangle<<requirement>> {",
-            "    RoundCorner 15",
-            "}",
-        ]
+        # Append custom style overrides
+        if self.custom_style:
+            lines.append("")
+            lines.extend(self.custom_style)
+
+        return lines
 
     def _traverse(self, element, parent=None):
         """Recursively traverse the model tree, collecting elements and relationships."""
@@ -562,7 +696,7 @@ class PlantUMLGenerator:
         if is_included or self.show_external:
             alias = _get_element_id(element, self.id_map)
             name = _get_element_name(element)
-            stereotype = _get_stereotype(element)
+            stereotype = _get_stereotype(element, style=self.style)
             self.elements.append((alias, name, stereotype, element, is_included))
 
         # Containment relationship (parent -> child)
@@ -642,6 +776,8 @@ class PlantUMLGenerator:
 
         if sysml_type == 'state':
             keyword = "state"
+        elif sysml_type == 'view':
+            keyword = "folder"
         elif sysml_type == 'action':
             keyword = "rectangle"
         else:
@@ -681,20 +817,23 @@ class PlantUMLGenerator:
         return legend
 
 
-def to_plantuml(model, style="color", direction="TB", include_legend=True,
-                focus=None, elements=None, max_depth=None, show_external=False):
+def to_plantuml(model, style="bw", direction="TB", include_legend=True,
+                focus=None, elements=None, max_depth=None, show_external=False,
+                custom_style=None):
     """
     Convenience function to generate PlantUML text from a sysmlpy Model.
 
     Args:
         model: A sysmlpy Model instance (from sysmlpy.loads())
-        style: "color" or "bw"
+        style: "bw" for black-and-white (default, journal-ready),
+               "color" for colored stereotypes
         direction: "TB" or "LR"
         include_legend: bool
         focus: A single element to focus on (renders it and its subtree)
         elements: A list of specific elements to include
         max_depth: Maximum depth to traverse from focus (None = unlimited)
         show_external: If True, show relationships to elements outside selection
+        custom_style: Optional list of PlantUML style lines to append
 
     Returns:
         str: PlantUML text
@@ -702,5 +841,562 @@ def to_plantuml(model, style="color", direction="TB", include_legend=True,
     gen = PlantUMLGenerator(model, style=style, direction=direction,
                             include_legend=include_legend, focus=focus,
                             elements=elements, max_depth=max_depth,
-                            show_external=show_external)
+                            show_external=show_external,
+                            custom_style=custom_style)
     return gen.generate()
+
+
+# ============================================================
+# View Rendering Convenience Functions
+# Per SysML v2 View semantics, views can be rendered in multiple ways.
+# These functions provide ready-made configurations for common patterns.
+# ============================================================
+
+
+def as_graphical_rendering(model, focus=None, style="bw", direction="TB",
+                           include_legend=True, max_depth=None,
+                           show_external=False, custom_style=None):
+    """Generate a graphical rendering of a model or view.
+
+    This is the default rendering: elements as shapes (rectangles, folders)
+    with relationship arrows (typing, specialization, containment, etc.).
+
+    Corresponds to SysML v2 ``GraphicalRendering``.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders subtree)
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    gen = PlantUMLGenerator(model, style=style, direction=direction,
+                            include_legend=include_legend, focus=focus,
+                            max_depth=max_depth, show_external=show_external,
+                            custom_style=custom_style)
+    return gen.generate()
+
+
+def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
+                                include_legend=True, max_depth=None,
+                                custom_style=None):
+    """Generate an interconnection diagram.
+
+    Focuses on connectors, bindings, and flows between parts and ports.
+    Shows external interfaces and how components are wired together.
+
+    Corresponds to SysML v2 interconnection views.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders subtree)
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    # Style
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<port def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+            "",
+            "skinparam rectangle<<port def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "}",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "Interconnection Diagram"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Interconnection — {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    # Collect parts, ports, and connections
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            max_depth=max_depth, include_legend=False)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+
+    id_map = gen.id_map
+    elements = gen.elements
+    relationships = gen.relationships
+
+    # Filter to show only parts, ports, and connection relationships
+    connection_types = {"binding", "connector", "flow", "allocation"}
+    element_types = {"part", "port", "interface"}
+
+    for alias, name, stereotype, elem, is_included in elements:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type in element_types:
+            lines.append(f'rectangle "{name}" as {alias} {stereotype}')
+
+    lines.append("")
+
+    for src, arrow, dst, label, is_external in relationships:
+        # Only show connection-type relationships
+        rel_type = _arrow_to_rel_type(arrow)
+        if rel_type in connection_types:
+            if is_external and not gen.show_external:
+                continue
+            if is_external:
+                arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+            if label:
+                lines.append(f'{src} {arrow} {dst} : {label}')
+            else:
+                lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Interconnection Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Binding | -[thickness=4]- |",
+            "  | Connector | -[thickness=2]-> |",
+            "  | Flow | --> |",
+            "  | Allocation | -[dotted]-> |",
+            "endlegend",
+        ])
+        lines.append("")
+
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_tree_diagram(model, focus=None, style="bw", direction="TB",
+                    max_depth=None, custom_style=None):
+    """Generate a tree diagram showing hierarchical containment.
+
+    Uses nested PlantUML containers to show the ownership hierarchy
+    of the model. Definitions have sharp corners, usages have rounded corners.
+
+    Corresponds to SysML v2 tree/structure views.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders subtree)
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        max_depth: Maximum depth to traverse from focus
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<item def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<item>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<action def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<view def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<view>> {",
+            "    RoundCorner 15",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+            "",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "}",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "Tree Diagram"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Tree — {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    # Build tree structure
+    id_map = {}
+    visited = set()
+
+    def render_tree(element, depth=0):
+        elem_id = id(element)
+        if elem_id in visited:
+            return []
+        visited.add(elem_id)
+
+        if max_depth is not None and depth >= max_depth:
+            return []
+
+        result = []
+        sysml_type = getattr(element, 'sysml_type', '')
+        is_def = getattr(element, 'is_definition', False)
+
+        # Skip Model and Package containers
+        if isinstance(element, (Model, Package)):
+            children = getattr(element, 'children', [])
+            for child in children:
+                result.extend(render_tree(child, depth))
+            return result
+
+        name = getattr(element, 'name', None) or "unnamed"
+        name = name.replace('"', "''")
+
+        stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
+        label = stereotype_map.get(sysml_type, sysml_type)
+        stereotype = f"<<{label}>>"
+
+        keyword = "rectangle"
+        if sysml_type == 'state':
+            keyword = "state"
+        elif sysml_type == 'view':
+            keyword = "folder"
+
+        alias = _get_element_id(element, id_map)
+
+        children = getattr(element, 'children', [])
+        if children:
+            result.append(f'{keyword} "{name}" as {alias} {stereotype} {{')
+            for child in children:
+                child_lines = render_tree(child, depth + 1)
+                for cl in child_lines:
+                    result.append(f"    {cl}")
+            result.append("}")
+        else:
+            result.append(f'{keyword} "{name}" as {alias} {stereotype}')
+
+        return result
+
+    # Start from focus or model children
+    if focus is not None:
+        tree_lines = render_tree(focus)
+    else:
+        tree_lines = []
+        for child in model.children:
+            tree_lines.extend(render_tree(child))
+
+    lines.extend(tree_lines)
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_element_table(model, focus=None, style="bw", custom_style=None):
+    """Generate a tabular element listing.
+
+    Produces a PlantUML table showing elements with their name, type,
+    definition/usage status, and parent container.
+
+    Corresponds to SysML v2 ``TabularRendering`` / ``asElementTable``.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (lists its subtree)
+        style: "bw" (default) or "color" (affects header shading)
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    title = "Element Table"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Element Table — {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    # Collect elements
+    elements = []
+    visited = set()
+
+    def collect(element, parent_name=None):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if isinstance(element, Model):
+            for child in element.children:
+                collect(child, parent_name=None)
+            return
+
+        if isinstance(element, Package):
+            for child in element.children:
+                collect(child, parent_name=parent_name)
+            return
+
+        name = getattr(element, 'name', None) or "unnamed"
+        sysml_type = getattr(element, 'sysml_type', '') or ""
+        is_def = getattr(element, 'is_definition', False)
+        kind = "def" if is_def else "usage"
+        stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
+        label = stereotype_map.get(sysml_type, sysml_type)
+
+        elements.append((name, label, kind, parent_name or "(root)"))
+
+        children = getattr(element, 'children', [])
+        for child in children:
+            collect(child, parent_name=name)
+
+    if focus is not None:
+        collect(focus)
+    else:
+        for child in model.children:
+            collect(child)
+
+    # Generate table
+    lines.append("|= Name |= Type |= Kind |= Parent |")
+    for name, label, kind, parent in elements:
+        safe_name = name.replace("|", "\\|").replace('"', "''")
+        safe_parent = parent.replace("|", "\\|")
+        lines.append(f"| {safe_name} | {label} | {kind} | {safe_parent} |")
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_textual_notation(model, focus=None, style="bw", custom_style=None):
+    """Generate a textual notation rendering.
+
+    Uses PlantUML notes to display the hierarchical structure as
+    indented text, similar to the SysML v2 textual concrete syntax.
+
+    Corresponds to SysML v2 ``TextualRendering`` / ``asTextualNotation``.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        style: "bw" (default) or "color"
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "skinparam defaultFontName Monospaced",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Monospaced",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    title = "Textual Notation"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Textual — {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    # Build textual representation
+    text_lines = []
+    visited = set()
+
+    def build_text(element, indent=0):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if isinstance(element, Model):
+            for child in element.children:
+                build_text(child, indent)
+            return
+
+        if isinstance(element, Package):
+            for child in element.children:
+                build_text(child, indent)
+            return
+
+        name = getattr(element, 'name', None) or "unnamed"
+        sysml_type = getattr(element, 'sysml_type', '') or ""
+        is_def = getattr(element, 'is_definition', False)
+        stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
+        label = stereotype_map.get(sysml_type, sysml_type)
+
+        prefix = "  " * indent
+        text_lines.append(f"{prefix}{label} {name}")
+
+        children = getattr(element, 'children', [])
+        for child in children:
+            build_text(child, indent + 1)
+
+    if focus is not None:
+        build_text(focus)
+    else:
+        for child in model.children:
+            build_text(child)
+
+    # Output as a single note
+    lines.append("note as TextualNotation")
+    for tl in text_lines:
+        lines.append(tl)
+    lines.append("end note")
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)

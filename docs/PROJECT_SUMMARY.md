@@ -2,7 +2,7 @@
 
 > **For:** Future agents and team members
 > **Last Updated:** May 23, 2026
-> **Current Version:** v0.23.1
+> **Current Version:** v0.25.2
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -99,6 +99,24 @@ Three new API functions enable cross-file import resolution:
 - Standard library validation: `ScalarValues`, `ISQ`, etc. recognized as valid
 - 12 new tests in `tests/project_test.py`
 
+### PlantUML View Renderings (v0.25.2)
+
+Five view rendering convenience functions for generating PlantUML diagrams:
+
+| Function | Corresponds to | Description |
+|----------|---------------|-------------|
+| `as_graphical_rendering()` | `GraphicalRendering` | Elements as shapes with relationship arrows |
+| `as_interconnection_diagram()` | Interconnection view | Focus on connectors, bindings, flows |
+| `as_tree_diagram()` | Tree/structure view | Nested containers showing hierarchy |
+| `as_element_table()` | `TabularRendering` | Tabular listing of elements |
+| `as_textual_notation()` | `TextualRendering` | Indented text in a PlantUML note |
+
+- **Default style is B&W** (`style="bw"`) — suitable for journal article rendering
+- **Color mode** available via `style="color"`
+- **Custom style support** via `custom_style` parameter for user-defined overrides
+- **Views render as folder elements** with purple styling (color) or white (B&W)
+- 10 new tests in `tests/plantuml_test.py` (39 total PlantUML tests)
+
 #### Implemented OCL Well-Formness Checks
 
 | Code | Rule | Description |
@@ -128,10 +146,11 @@ Three new API functions enable cross-file import resolution:
 | Grammar round-trip | 56 | ✅ 56 pass |
 | Programmatic API | 53 | ✅ 53 pass |
 | Semantic analysis | 90 | ✅ 90 pass |
-| Multi-file loading | 12 | ✅ 12 pass |
+| Multi-file loading | 17 | ✅ 17 pass |
+| PlantUML rendering | 39 | ✅ 39 pass |
 | Storage backends | 82 | ✅ 82 pass |
 | Conformance | 123 | ✅ 123 pass |
-| **Total** | **416** | **✅ 416 pass, 0 fail** |
+| **Total** | **460** | **✅ 460 pass, 0 fail** |
 
 ---
 

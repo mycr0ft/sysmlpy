@@ -344,3 +344,42 @@ path is provided::
     import sysmlpy
     library_path = '/path/to/sysmlpy/library'
     model = load_files(['main.sysml'], library=library_path)
+
+PlantUML View Renderings
+------------------------
+
+sysmlpy provides five view rendering functions for generating PlantUML diagrams,
+all defaulting to black-and-white output suitable for journal articles::
+
+    from sysmlpy.plantuml import (
+        as_graphical_rendering,
+        as_interconnection_diagram,
+        as_tree_diagram,
+        as_element_table,
+        as_textual_notation,
+    )
+
+    model = sysmlpy.loads("package P { part def Engine { port intake; } }")
+
+    # Graphical: elements as shapes with relationship arrows (default B&W)
+    print(as_graphical_rendering(model))
+
+    # Tree: nested containers showing hierarchy
+    print(as_tree_diagram(model))
+
+    # Element table: tabular listing
+    print(as_element_table(model))
+
+    # Textual notation: indented text in a note
+    print(as_textual_notation(model))
+
+    # Interconnection: focus on connectors and flows
+    print(as_interconnection_diagram(model))
+
+All rendering functions accept ``style="color"`` for colored output and
+``custom_style`` for user-defined PlantUML style overrides::
+
+    puml = as_tree_diagram(model, custom_style=[
+        'skinparam defaultFontSize 14',
+        'skinparam rectangle { LineThickness 2.5 }',
+    ])

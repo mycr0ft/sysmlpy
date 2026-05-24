@@ -463,3 +463,210 @@ class TestPlantUMLFiltering:
         puml = to_plantuml(model, elements=[wheel, axle])
 
         assert "Selected Elements (2)" in puml
+
+
+class TestViewRenderings:
+    """Tests for SysML v2 view rendering convenience functions."""
+
+    def test_as_graphical_rendering_basic(self):
+        """Graphical rendering produces valid PlantUML."""
+        from sysmlpy.plantuml import as_graphical_rendering
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_graphical_rendering(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Engine" in puml
+        assert "part def" in puml
+
+    def test_as_graphical_rendering_with_focus(self):
+        """Graphical rendering with focus shows subtree."""
+        from sysmlpy.plantuml import as_graphical_rendering
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_graphical_rendering(model, focus=engine)
+
+        assert "Engine" in puml
+        assert "power" in puml
+
+    def test_as_tree_diagram_nested_containers(self):
+        """Tree diagram uses nested containers for hierarchy."""
+        from sysmlpy.plantuml import as_tree_diagram
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+                attribute power;
+            }
+        }
+        """)
+        puml = as_tree_diagram(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        # Should have nested structure
+        assert "Engine" in puml
+        assert "intake" in puml
+        assert "power" in puml
+        # Check nesting via braces
+        assert "{" in puml
+        assert "}" in puml
+
+    def test_as_tree_diagram_with_focus(self):
+        """Tree diagram with focus shows only subtree."""
+        from sysmlpy.plantuml import as_tree_diagram
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_tree_diagram(model, focus=engine)
+
+        assert "Engine" in puml
+        assert "intake" in puml
+        # Wheel should not appear when focused on Engine
+        assert "Wheel" not in puml
+
+    def test_as_element_table_basic(self):
+        """Element table produces tabular output."""
+        from sysmlpy.plantuml import as_element_table
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part myEngine : Engine;
+        }
+        """)
+        puml = as_element_table(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "|= Name |= Type |= Kind |= Parent |" in puml
+        assert "Engine" in puml
+        assert "myEngine" in puml
+        assert "part def" in puml
+        assert "part" in puml
+
+    def test_as_element_table_with_focus(self):
+        """Element table with focus shows only subtree elements."""
+        from sysmlpy.plantuml import as_element_table
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+                attribute torque;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_element_table(model, focus=engine)
+
+        assert "Engine" in puml
+        assert "power" in puml
+        assert "torque" in puml
+        # Wheel should not appear
+        assert "Wheel" not in puml
+
+    def test_as_textual_notation_basic(self):
+        """Textual notation produces indented text in a note."""
+        from sysmlpy.plantuml import as_textual_notation
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+            }
+        }
+        """)
+        puml = as_textual_notation(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "note as TextualNotation" in puml
+        assert "end note" in puml
+        assert "part def Engine" in puml
+        assert "port intake" in puml
+
+    def test_as_textual_notation_with_focus(self):
+        """Textual notation with focus shows only subtree."""
+        from sysmlpy.plantuml import as_textual_notation
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_textual_notation(model, focus=engine)
+
+        assert "part def Engine" in puml
+        assert "port intake" in puml
+        assert "Wheel" not in puml
+
+    def test_as_interconnection_diagram_basic(self):
+        """Interconnection diagram produces valid PlantUML."""
+        from sysmlpy.plantuml import as_interconnection_diagram
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+            }
+            part myEngine : Engine;
+        }
+        """)
+        puml = as_interconnection_diagram(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Interconnection" in puml
+
+    def test_view_renderings_all_start_and_end(self):
+        """All view rendering functions produce valid PlantUML delimiters."""
+        from sysmlpy.plantuml import (
+            as_graphical_rendering,
+            as_tree_diagram,
+            as_element_table,
+            as_textual_notation,
+            as_interconnection_diagram,
+        )
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+
+        for func in [
+            as_graphical_rendering,
+            as_tree_diagram,
+            as_element_table,
+            as_textual_notation,
+            as_interconnection_diagram,
+        ]:
+            puml = func(model)
+            assert puml.startswith("@startuml"), f"{func.__name__} missing @startuml"
+            assert puml.rstrip().endswith("@enduml"), f"{func.__name__} missing @enduml"

@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.23.1** — Updated GitHub Actions to latest versions (setup-python@v6, checkout@v4, upload-artifact@v4, add-and-commit@v9).
+**v0.25.2** — View rendering convenience functions (graphical, interconnection, tree, element table, textual notation). B&W default style for journal rendering. Custom style support. Views as folder elements. 39 PlantUML tests.
 
 ## Quick Links
 
