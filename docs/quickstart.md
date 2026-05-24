@@ -383,3 +383,35 @@ All rendering functions accept ``style="color"`` for colored output and
         'skinparam defaultFontSize 14',
         'skinparam rectangle { LineThickness 2.5 }',
     ])
+
+Stylistic Checks
+----------------
+
+The ``analyze()`` function now includes stylistic checks that warn about
+naming convention violations and file-package mismatches::
+
+    from sysmlpy import loads, analyze
+
+    model = loads("package mypkg { part def engine; }")
+
+    # Default: stylistic checks enabled
+    issues = analyze(model)
+    # → NAMING_CONVENTION warnings for 'mypkg', 'engine'
+
+    # With filename check
+    issues = analyze(model, filename="Engine.sysml")
+    # → FILE_PACKAGE_MISMATCH warning for 'mypkg' vs 'Engine'
+
+    # Disable stylistic checks
+    issues = analyze(model, style_checks=False)
+
+Naming conventions enforced:
+
+- **Definitions** (``part def``, ``action def``, etc.): PascalCase (``Engine``)
+- **Usages** (``part``, ``action``, etc.): camelCase (``myEngine``)
+- **Packages**: PascalCase (``MyPackage``)
+- **Attributes**: camelCase (``powerLevel``)
+- **Ports**: camelCase (``intakePort``)
+
+All stylistic issues have severity ``"warning"`` rather than ``"error"``,
+so they don't block validation but still highlight potential issues.

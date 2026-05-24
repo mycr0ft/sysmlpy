@@ -2,7 +2,7 @@
 
 > **For:** Future agents and team members
 > **Last Updated:** May 23, 2026
-> **Current Version:** v0.25.2
+> **Current Version:** v0.25.5
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -117,6 +117,19 @@ Five view rendering convenience functions for generating PlantUML diagrams:
 - **Views render as folder elements** with purple styling (color) or white (B&W)
 - 10 new tests in `tests/plantuml_test.py` (39 total PlantUML tests)
 
+### Stylistic Checks (v0.25.5)
+
+The `analyze()` function now includes stylistic checks that warn about naming convention violations and file-package mismatches:
+
+| Check | Code | Severity | Description |
+|-------|------|----------|-------------|
+| Naming conventions | `NAMING_CONVENTION` | warning | Definitions should be PascalCase, usages camelCase, packages PascalCase, attributes/ports camelCase |
+| File-package match | `FILE_PACKAGE_MISMATCH` | warning | Top-level package name should match filename (minus extension) |
+
+- New `analyze()` parameters: `filename` (for file-package matching), `style_checks` (enable/disable, default `True`)
+- All stylistic issues have severity `"warning"` rather than `"error"`
+- 17 new tests in `tests/semantic_test.py`
+
 #### Implemented OCL Well-Formness Checks
 
 | Code | Rule | Description |
@@ -145,12 +158,12 @@ Five view rendering convenience functions for generating PlantUML diagrams:
 |-------|-------|--------|
 | Grammar round-trip | 56 | ✅ 56 pass |
 | Programmatic API | 53 | ✅ 53 pass |
-| Semantic analysis | 90 | ✅ 90 pass |
+| Semantic analysis | 107 | ✅ 107 pass |
 | Multi-file loading | 17 | ✅ 17 pass |
 | PlantUML rendering | 39 | ✅ 39 pass |
 | Storage backends | 82 | ✅ 82 pass |
 | Conformance | 123 | ✅ 123 pass |
-| **Total** | **460** | **✅ 460 pass, 0 fail** |
+| **Total** | **477** | **✅ 477 pass, 0 fail** |
 
 ---
 

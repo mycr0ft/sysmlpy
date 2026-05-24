@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.25.2** — View rendering convenience functions (graphical, interconnection, tree, element table, textual notation). B&W default style for journal rendering. Custom style support. Views as folder elements. 39 PlantUML tests.
+**v0.25.5** — Stylistic checks: naming conventions (PascalCase defs, camelCase usages), file-package name matching. `analyze()` accepts `filename` and `style_checks` parameters. 17 new semantic tests.
 
 ## Quick Links
 

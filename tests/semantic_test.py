@@ -1172,3 +1172,218 @@ class TestMultiplicityBoundsValid:
         """)
         issues = analyze(model)
         assert any(i.code == "INVALID_MULTIPLICITY_BOUNDS" for i in issues)
+
+
+class TestNamingConventions:
+    """Tests for stylistic naming convention checks."""
+
+    def test_pascal_case_definition_ok(self):
+        """PascalCase definitions should not trigger warnings."""
+        model = loads("""
+            package P {
+                part def Engine;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_lowercase_definition_warning(self):
+        """Lowercase definitions should trigger a warning."""
+        model = loads("""
+            package P {
+                part def engine;
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        assert len(naming) == 1
+        assert "engine" in naming[0].message
+        assert "PascalCase" in naming[0].message
+
+    def test_camel_case_usage_ok(self):
+        """camelCase usages should not trigger warnings."""
+        model = loads("""
+            package P {
+                part def Engine;
+                part myEngine : Engine;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_pascal_case_usage_warning(self):
+        """PascalCase usages should trigger a warning."""
+        model = loads("""
+            package P {
+                part def Engine;
+                part MyEngine : Engine;
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        assert len(naming) == 1
+        assert "MyEngine" in naming[0].message
+        assert "camelCase" in naming[0].message
+
+    def test_pascal_case_package_ok(self):
+        """PascalCase packages should not trigger warnings."""
+        model = loads("""
+            package MyPackage {
+                part def Engine;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_lowercase_package_warning(self):
+        """Lowercase packages should trigger a warning."""
+        model = loads("""
+            package mypackage {
+                part def Engine;
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        assert len(naming) == 1
+        assert "mypackage" in naming[0].message
+        assert "PascalCase" in naming[0].message
+
+    def test_camel_case_attribute_ok(self):
+        """camelCase attributes should not trigger warnings."""
+        model = loads("""
+            package P {
+                part def Engine {
+                    attribute powerLevel;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_pascal_case_attribute_warning(self):
+        """PascalCase attributes should trigger a warning."""
+        model = loads("""
+            package P {
+                part def Engine {
+                    attribute PowerLevel;
+                }
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        assert len(naming) == 1
+        assert "PowerLevel" in naming[0].message
+        assert "camelCase" in naming[0].message
+
+    def test_camel_case_port_ok(self):
+        """camelCase ports should not trigger warnings."""
+        model = loads("""
+            package P {
+                part def Engine {
+                    port intakePort;
+                }
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_pascal_case_port_warning(self):
+        """PascalCase ports should trigger a warning."""
+        model = loads("""
+            package P {
+                part def Engine {
+                    port IntakePort;
+                }
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        assert len(naming) == 1
+        assert "IntakePort" in naming[0].message
+        assert "camelCase" in naming[0].message
+
+    def test_style_checks_disabled(self):
+        """Disabling style checks should suppress naming warnings."""
+        model = loads("""
+            package mypackage {
+                part def engine {
+                    attribute PowerLevel;
+                    port IntakePort;
+                }
+                part MyEngine : engine;
+            }
+        """)
+        issues = analyze(model, style_checks=False)
+        assert not any(i.code == "NAMING_CONVENTION" for i in issues)
+
+    def test_naming_warnings_are_warnings_not_errors(self):
+        """Naming convention issues should have severity 'warning'."""
+        model = loads("""
+            package mypackage {
+                part def engine;
+            }
+        """)
+        issues = analyze(model)
+        naming = [i for i in issues if i.code == "NAMING_CONVENTION"]
+        for issue in naming:
+            assert issue.severity == "warning"
+
+
+class TestFilePackageMatch:
+    """Tests for file-package name matching checks."""
+
+    def test_matching_filename_ok(self):
+        """Matching filename and package name should not trigger warnings."""
+        model = loads("""
+            package Engine {
+                part def EngineDef;
+            }
+        """)
+        issues = analyze(model, filename="Engine.sysml")
+        assert not any(i.code == "FILE_PACKAGE_MISMATCH" for i in issues)
+
+    def test_mismatching_filename_warning(self):
+        """Mismatching filename should trigger a warning."""
+        model = loads("""
+            package WrongName {
+                part def EngineDef;
+            }
+        """)
+        issues = analyze(model, filename="Engine.sysml")
+        mismatch = [i for i in issues if i.code == "FILE_PACKAGE_MISMATCH"]
+        assert len(mismatch) == 1
+        assert "WrongName" in mismatch[0].message
+        assert "Engine.sysml" in mismatch[0].message
+        assert "Engine" in mismatch[0].message
+
+    def test_no_filename_no_check(self):
+        """Not providing filename should not trigger file-package warnings."""
+        model = loads("""
+            package WrongName {
+                part def EngineDef;
+            }
+        """)
+        issues = analyze(model)  # No filename provided
+        assert not any(i.code == "FILE_PACKAGE_MISMATCH" for i in issues)
+
+    def test_kerml_extension(self):
+        """Should work with .kerml extension."""
+        model = loads("""
+            package MyKernel {
+                part def KernelPart;
+            }
+        """)
+        issues = analyze(model, filename="MyKernel.kerml")
+        assert not any(i.code == "FILE_PACKAGE_MISMATCH" for i in issues)
+
+    def test_file_package_warnings_are_warnings(self):
+        """File-package mismatch issues should have severity 'warning'."""
+        model = loads("""
+            package WrongName {
+                part def EngineDef;
+            }
+        """)
+        issues = analyze(model, filename="Engine.sysml")
+        mismatch = [i for i in issues if i.code == "FILE_PACKAGE_MISMATCH"]
+        for issue in mismatch:
+            assert issue.severity == "warning"

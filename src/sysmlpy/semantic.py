@@ -14,6 +14,8 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+from sysmlpy.definition import Model, Package
+
 
 @dataclasses.dataclass
 class SemanticIssue:
@@ -937,6 +939,8 @@ class SemanticAnalyzer:
         model: Any,
         *,
         library: Path | Sequence[Path] | str | Sequence[str] | None = None,
+        filename: str | Path | None = None,
+        style_checks: bool = True,
     ) -> list[SemanticIssue]:
         """Run semantic analysis on *model* and return a list of issues."""
         issues: list[SemanticIssue] = []
@@ -977,6 +981,12 @@ class SemanticAnalyzer:
         issues.extend(self._check_feature_chaining_compatible(model, symtab))
         issues.extend(self._check_connector_ends_compatible(model))
         issues.extend(self._check_multiplicity_bounds_valid(model))
+
+        # Step 6: Stylistic checks (warnings, not errors)
+        if style_checks:
+            issues.extend(self._check_naming_conventions(model))
+            if filename is not None:
+                issues.extend(self._check_file_package_match(model, filename))
 
         return issues
 
@@ -1912,6 +1922,152 @@ class SemanticAnalyzer:
             # FeatureReferenceExpression (variable) - can't compare
         return None
 
+    # -----------------------------------------------------------------------
+    # Stylistic Checks (warnings, not errors)
+    # -----------------------------------------------------------------------
+
+    def _check_naming_conventions(self, model: Any) -> list[SemanticIssue]:
+        """Check naming conventions across the model.
+
+        Conventions:
+        - Definitions (defs) should be CamelCase/PascalCase
+        - Usages should be camelCase
+        - Packages should be PascalCase
+        - Attributes should be camelCase
+        - Ports should be camelCase
+        """
+        issues: list[SemanticIssue] = []
+        self._traverse_for_naming(model, [], issues)
+        return issues
+
+    def _traverse_for_naming(
+        self, element: Any, path: list[str], issues: list[SemanticIssue]
+    ) -> None:
+        """Recursively traverse and check naming conventions."""
+        name = getattr(element, "name", None)
+        if name is None or len(name) > 30:  # Skip UUIDs
+            children = getattr(element, "children", [])
+            for child in children:
+                self._traverse_for_naming(child, path, issues)
+            return
+
+        is_def = getattr(element, "is_definition", False)
+        sysml_type = getattr(element, "sysml_type", "")
+
+        if isinstance(element, Package):
+            # Packages should be PascalCase
+            if not self._is_pascal_case(name):
+                issues.append(SemanticIssue(
+                    severity="warning",
+                    code="NAMING_CONVENTION",
+                    message=f"Package '{name}' should be PascalCase (e.g., '{self._to_pascal_case(name)}')",
+                    element=element,
+                    reference=name,
+                ))
+        elif is_def:
+            # Definitions should be PascalCase
+            if not self._is_pascal_case(name):
+                issues.append(SemanticIssue(
+                    severity="warning",
+                    code="NAMING_CONVENTION",
+                    message=f"Definition '{name}' should be PascalCase (e.g., '{self._to_pascal_case(name)}')",
+                    element=element,
+                    reference=name,
+                ))
+        elif sysml_type == "attribute":
+            # Attributes should be camelCase
+            if not self._is_camel_case(name):
+                issues.append(SemanticIssue(
+                    severity="warning",
+                    code="NAMING_CONVENTION",
+                    message=f"Attribute '{name}' should be camelCase (e.g., '{self._to_camel_case(name)}')",
+                    element=element,
+                    reference=name,
+                ))
+        elif sysml_type == "port":
+            # Ports should be camelCase
+            if not self._is_camel_case(name):
+                issues.append(SemanticIssue(
+                    severity="warning",
+                    code="NAMING_CONVENTION",
+                    message=f"Port '{name}' should be camelCase (e.g., '{self._to_camel_case(name)}')",
+                    element=element,
+                    reference=name,
+                ))
+        else:
+            # Other usages should be camelCase
+            if not self._is_camel_case(name):
+                issues.append(SemanticIssue(
+                    severity="warning",
+                    code="NAMING_CONVENTION",
+                    message=f"Usage '{name}' should be camelCase (e.g., '{self._to_camel_case(name)}')",
+                    element=element,
+                    reference=name,
+                ))
+
+        children = getattr(element, "children", [])
+        for child in children:
+            self._traverse_for_naming(child, path + [name], issues)
+
+    @staticmethod
+    def _is_pascal_case(name: str) -> bool:
+        """Check if a name is PascalCase (starts with uppercase, no leading underscore)."""
+        if not name:
+            return False
+        return name[0].isupper() and not name.startswith("_")
+
+    @staticmethod
+    def _is_camel_case(name: str) -> bool:
+        """Check if a name is camelCase (starts with lowercase, no leading underscore)."""
+        if not name:
+            return False
+        return name[0].islower() and not name.startswith("_")
+
+    @staticmethod
+    def _to_pascal_case(name: str) -> str:
+        """Convert a name to PascalCase suggestion."""
+        # Simple conversion: capitalize first letter
+        if not name:
+            return name
+        return name[0].upper() + name[1:]
+
+    @staticmethod
+    def _to_camel_case(name: str) -> str:
+        """Convert a name to camelCase suggestion."""
+        # Simple conversion: lowercase first letter
+        if not name:
+            return name
+        return name[0].lower() + name[1:]
+
+    def _check_file_package_match(
+        self, model: Any, filename: str | Path
+    ) -> list[SemanticIssue]:
+        """Check that the top-level package name matches the filename.
+
+        Per SysML v2 convention, a file named ``MyPackage.sysml`` should
+        contain a top-level package named ``MyPackage``.
+        """
+        issues: list[SemanticIssue] = []
+        filename = Path(filename)
+        expected_name = filename.stem  # e.g., "MyPackage" from "MyPackage.sysml"
+
+        # Find top-level packages
+        for child in getattr(model, "children", []):
+            if isinstance(child, Package):
+                pkg_name = getattr(child, "name", None)
+                if pkg_name is not None and pkg_name != expected_name:
+                    issues.append(SemanticIssue(
+                        severity="warning",
+                        code="FILE_PACKAGE_MISMATCH",
+                        message=f"Top-level package '{pkg_name}' does not match filename '{filename.name}'. "
+                                f"Expected package name '{expected_name}'.",
+                        element=child,
+                        reference=pkg_name,
+                    ))
+
+        return issues
+
+
     def _find_child_scope(self, root: SymbolTable, path: list[str]) -> Optional[SymbolTable]:
         """Find the symbol table scope for a qualified path from the root."""
         current = root
@@ -1931,6 +2087,8 @@ def analyze(
     model: Any,
     *,
     library: Path | Sequence[Path] | str | Sequence[str] | None = None,
+    filename: str | Path | None = None,
+    style_checks: bool = True,
 ) -> list[SemanticIssue]:
     """Run semantic analysis on *model* and return issues.
 
@@ -1941,10 +2099,17 @@ def analyze(
     library : Path, str, sequence, or None, optional
         Path(s) to library directories for resolving standard library symbols.
         Defaults to the bundled library shipped with sysmlpy.
+    filename : str or Path, optional
+        Source filename for file-package name matching checks.
+    style_checks : bool
+        If True (default), run stylistic checks (naming conventions,
+        file-package matching). Set to False to skip warnings.
 
     Returns
     -------
     list[SemanticIssue]
         List of semantic issues found.
     """
-    return SemanticAnalyzer().analyze(model, library=library)
+    return SemanticAnalyzer().analyze(
+        model, library=library, filename=filename, style_checks=style_checks
+    )
