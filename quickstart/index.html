@@ -541,6 +541,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#plantuml-view-renderings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PlantUML View Renderings
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -815,6 +826,17 @@
     <span class="md-ellipsis">
       
         Multi-File Projects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#plantuml-view-renderings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PlantUML View Renderings
       
     </span>
   </a>
@@ -1124,6 +1146,41 @@ path is provided::</p>
 <div class="highlight"><pre><span></span><code>import sysmlpy
 library_path = &#39;/path/to/sysmlpy/library&#39;
 model = load_files([&#39;main.sysml&#39;], library=library_path)
+</code></pre></div>
+<h2 id="plantuml-view-renderings">PlantUML View Renderings<a class="headerlink" href="#plantuml-view-renderings" title="Permanent link">&para;</a></h2>
+<p>sysmlpy provides five view rendering functions for generating PlantUML diagrams,
+all defaulting to black-and-white output suitable for journal articles::</p>
+<div class="highlight"><pre><span></span><code>from sysmlpy.plantuml import (
+    as_graphical_rendering,
+    as_interconnection_diagram,
+    as_tree_diagram,
+    as_element_table,
+    as_textual_notation,
+)
+
+model = sysmlpy.loads(&quot;package P { part def Engine { port intake; } }&quot;)
+
+# Graphical: elements as shapes with relationship arrows (default B&amp;W)
+print(as_graphical_rendering(model))
+
+# Tree: nested containers showing hierarchy
+print(as_tree_diagram(model))
+
+# Element table: tabular listing
+print(as_element_table(model))
+
+# Textual notation: indented text in a note
+print(as_textual_notation(model))
+
+# Interconnection: focus on connectors and flows
+print(as_interconnection_diagram(model))
+</code></pre></div>
+<p>All rendering functions accept <code>style="color"</code> for colored output and
+<code>custom_style</code> for user-defined PlantUML style overrides::</p>
+<div class="highlight"><pre><span></span><code>puml = as_tree_diagram(model, custom_style=[
+    &#39;skinparam defaultFontSize 14&#39;,
+    &#39;skinparam rectangle { LineThickness 2.5 }&#39;,
+])
 </code></pre></div>
 
 
