@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.21.0** — Multi-file project loading: `load_files()`, `load_project()`, and `load_with_dependencies()` for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests.
+**v0.21.1** — Multi-file project loading: `load_files()`, `load_project()`, and `load_with_dependencies()` for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests.
 
 ## Quick Links
 
