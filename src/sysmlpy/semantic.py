@@ -58,17 +58,20 @@ class LibrarySymbolIndex:
     """
 
     _cache: Optional[frozenset[str]] = None
-    _library_root: Optional[Path] = None
+    _library_roots: Optional[list[Path]] = None
 
     @classmethod
-    def get_symbols(cls, library_root: Optional[Path] = None) -> frozenset[str]:
+    def get_symbols(
+        cls,
+        library_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> frozenset[str]:
         """Return all known library symbol names as qualified strings.
 
         Parameters
         ----------
-        library_root : Path, optional
-            Root directory of the standard library. Defaults to the bundled
-            library shipped with sysmlpy.
+        library_roots : Path or sequence of Path, optional
+            Root directory or directories of the standard library.
+            Defaults to the bundled library shipped with sysmlpy.
 
         Returns
         -------
@@ -79,19 +82,37 @@ class LibrarySymbolIndex:
         if cls._cache is not None:
             return cls._cache
 
-        root = library_root or cls._default_library_root()
-        if root is None or not root.is_dir():
+        roots = cls._resolve_roots(library_roots)
+        if not roots:
             # Fall back to minimal hardcoded set
             cls._cache = _KNOWN_LIBRARY_SYMBOLS
             return cls._cache
 
         symbols = set()
-        for ext in ("*.kerml", "*.sysml"):
-            for filepath in root.rglob(ext):
-                cls._extract_from_file(filepath, symbols)
+        for root in roots:
+            if not root.is_dir():
+                continue
+            for ext in ("*.kerml", "*.sysml"):
+                for filepath in root.rglob(ext):
+                    cls._extract_from_file(filepath, symbols)
 
         cls._cache = frozenset(symbols)
         return cls._cache
+
+    @classmethod
+    def _resolve_roots(
+        cls,
+        library_roots: Optional[Path | Sequence[Path]],
+    ) -> list[Path]:
+        """Resolve library roots from the given argument."""
+        if library_roots is None:
+            default = cls._default_library_root()
+            return [default] if default is not None else []
+
+        if isinstance(library_roots, Path):
+            return [library_roots]
+
+        return list(library_roots)
 
     @classmethod
     def _default_library_root(cls) -> Optional[Path]:
@@ -911,16 +932,24 @@ _KNOWN_LIBRARY_SYMBOLS = frozenset({
 class SemanticAnalyzer:
     """Analyzes a parsed SysML model for semantic issues."""
 
-    def analyze(self, model: Any) -> list[SemanticIssue]:
+    def analyze(
+        self,
+        model: Any,
+        *,
+        library: Path | Sequence[Path] | str | Sequence[str] | None = None,
+    ) -> list[SemanticIssue]:
         """Run semantic analysis on *model* and return a list of issues."""
         issues: list[SemanticIssue] = []
+
+        # Normalize library paths
+        lib_roots = self._normalize_library_paths(library)
 
         # Step 1: Build symbol table
         symtab = SymbolTable()
         symtab.build_from_model(model)
 
         # Step 2: Validate imports (check if import targets exist)
-        issues.extend(self._validate_imports(symtab))
+        issues.extend(self._validate_imports(symtab, lib_roots))
 
         # Step 3: Collect all references with scope paths
         collector = ReferenceCollector()
@@ -928,7 +957,7 @@ class SemanticAnalyzer:
 
         # Step 4: Cross-reference using scope-aware lookup
         for ref_str, element, scope_path in references:
-            if self._is_resolved(ref_str, symtab, scope_path):
+            if self._is_resolved(ref_str, symtab, scope_path, lib_roots):
                 continue
             issues.append(SemanticIssue(
                 severity="error",
@@ -951,24 +980,48 @@ class SemanticAnalyzer:
 
         return issues
 
-    def _validate_imports(self, symtab: SymbolTable) -> list[SemanticIssue]:
+    @staticmethod
+    def _normalize_library_paths(
+        library: Path | Sequence[Path] | str | Sequence[str] | None,
+    ) -> list[Path]:
+        """Normalize library argument to a list of Path objects."""
+        if library is None:
+            return []
+        if isinstance(library, (str, Path)):
+            return [Path(library)]
+        return [Path(p) for p in library]
+
+    def _validate_imports(
+        self,
+        symtab: SymbolTable,
+        lib_roots: list[Path] | None = None,
+    ) -> list[SemanticIssue]:
         """Validate that all import targets exist in the model."""
         issues: list[SemanticIssue] = []
-        self._check_imports_in_scope(symtab, symtab, issues)
+        self._check_imports_in_scope(symtab, symtab, issues, lib_roots)
         return issues
 
     def _check_imports_in_scope(
-        self, symtab: SymbolTable, table: SymbolTable, issues: list[SemanticIssue]
+        self,
+        symtab: SymbolTable,
+        table: SymbolTable,
+        issues: list[SemanticIssue],
+        lib_roots: list[Path] | None = None,
     ) -> None:
         """Check imports in this scope and recurse into children."""
         for imp in table._imports:
-            self._validate_single_import(symtab, table, imp, issues)
+            self._validate_single_import(symtab, table, imp, issues, lib_roots)
 
         for child_table in table._children.values():
-            self._check_imports_in_scope(symtab, child_table, issues)
+            self._check_imports_in_scope(symtab, child_table, issues, lib_roots)
 
     def _validate_single_import(
-        self, symtab: SymbolTable, table: SymbolTable, imp: Any, issues: list[SemanticIssue]
+        self,
+        symtab: SymbolTable,
+        table: SymbolTable,
+        imp: Any,
+        issues: list[SemanticIssue],
+        lib_roots: list[Path] | None = None,
     ) -> None:
         """Validate a single Import object."""
         if not imp.children:
@@ -978,12 +1031,17 @@ class SemanticAnalyzer:
         child_type = type(import_child).__name__
 
         if child_type == "MembershipImport":
-            self._validate_membership_import(symtab, table, import_child, issues)
+            self._validate_membership_import(symtab, table, import_child, issues, lib_roots)
         elif child_type == "NamespaceImport":
-            self._validate_namespace_import(symtab, table, import_child, issues)
+            self._validate_namespace_import(symtab, table, import_child, issues, lib_roots)
 
     def _validate_membership_import(
-        self, symtab: SymbolTable, table: SymbolTable, mem_import: Any, issues: list[SemanticIssue]
+        self,
+        symtab: SymbolTable,
+        table: SymbolTable,
+        mem_import: Any,
+        issues: list[SemanticIssue],
+        lib_roots: list[Path] | None = None,
     ) -> None:
         """Validate a MembershipImport targets an existing element."""
         imported_mem = getattr(mem_import, "membership", None)
@@ -1001,7 +1059,7 @@ class SemanticAnalyzer:
         ref_str = "::".join(names)
         
         # Check library symbols first
-        if ref_str in LibrarySymbolIndex.get_symbols():
+        if ref_str in LibrarySymbolIndex.get_symbols(lib_roots):
             return
         if ref_str in _KNOWN_LIBRARY_SYMBOLS:
             return
@@ -1017,7 +1075,12 @@ class SemanticAnalyzer:
             ))
 
     def _validate_namespace_import(
-        self, symtab: SymbolTable, table: SymbolTable, ns_import: Any, issues: list[SemanticIssue]
+        self,
+        symtab: SymbolTable,
+        table: SymbolTable,
+        ns_import: Any,
+        issues: list[SemanticIssue],
+        lib_roots: list[Path] | None = None,
     ) -> None:
         """Validate a NamespaceImport targets an existing namespace."""
         imported_ns = getattr(ns_import, "namespace", None)
@@ -1035,10 +1098,10 @@ class SemanticAnalyzer:
         ref_str = "::".join(names)
         
         # Check library symbols first
-        if ref_str in LibrarySymbolIndex.get_symbols():
+        if ref_str in LibrarySymbolIndex.get_symbols(lib_roots):
             return
         # Also check if any library symbol starts with this namespace
-        lib_symbols = LibrarySymbolIndex.get_symbols()
+        lib_symbols = LibrarySymbolIndex.get_symbols(lib_roots)
         if any(sym.startswith(ref_str + "::") for sym in lib_symbols):
             return
         
@@ -1052,10 +1115,16 @@ class SemanticAnalyzer:
                 reference=ref_str,
             ))
 
-    def _is_resolved(self, ref_str: str, symtab: SymbolTable, scope_path: list[str]) -> bool:
+    def _is_resolved(
+        self,
+        ref_str: str,
+        symtab: SymbolTable,
+        scope_path: list[str],
+        lib_roots: list[Path] | None = None,
+    ) -> bool:
         """Check if a qualified name reference can be resolved from the given scope."""
         # Check known library symbols (loaded from .kerml/.sysml files)
-        if ref_str in LibrarySymbolIndex.get_symbols():
+        if ref_str in LibrarySymbolIndex.get_symbols(lib_roots):
             return True
 
         # Also check the hardcoded fallback for backwards compatibility
@@ -1858,17 +1927,24 @@ class SemanticAnalyzer:
 # Convenience function
 # ---------------------------------------------------------------------------
 
-def analyze(model: Any) -> list[SemanticIssue]:
+def analyze(
+    model: Any,
+    *,
+    library: Path | Sequence[Path] | str | Sequence[str] | None = None,
+) -> list[SemanticIssue]:
     """Run semantic analysis on *model* and return issues.
 
     Parameters
     ----------
     model : Model
         A parsed SysML model.
+    library : Path, str, sequence, or None, optional
+        Path(s) to library directories for resolving standard library symbols.
+        Defaults to the bundled library shipped with sysmlpy.
 
     Returns
     -------
     list[SemanticIssue]
         List of semantic issues found.
     """
-    return SemanticAnalyzer().analyze(model)
+    return SemanticAnalyzer().analyze(model, library=library)

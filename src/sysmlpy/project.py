@@ -19,7 +19,7 @@ from sysmlpy.definition import Model, Package
 def load_files(
     files: Sequence[str | Path],
     *,
-    library: str | Path | None = None,
+    library: Sequence[str | Path] | str | Path | None = None,
 ) -> Model:
     """Load multiple SysML files into a shared model.
 
@@ -31,8 +31,9 @@ def load_files(
     ----------
     files : sequence of str or Path
         Paths to the SysML (.sysml or .kerml) files to load.
-    library : str or Path, optional
-        Path to SysML v2 library files for resolving standard library imports.
+    library : str, Path, sequence of str/Path, or None, optional
+        Path(s) to SysML v2 library files for resolving standard library
+        imports.  Multiple directories can be provided as a list or tuple.
 
     Returns
     -------
@@ -46,6 +47,12 @@ def load_files(
     ...     'models/SystemGateway/SystemGatewayMain.sysml',
     ... ])
     >>> issues = sysmlpy.analyze(model)
+
+    >>> # Multiple library directories
+    >>> model = load_files(
+    ...     ['main.sysml'],
+    ...     library=['/path/to/kernel', '/path/to/custom'],
+    ... )
     """
     model = Model()
 
@@ -64,7 +71,7 @@ def load_project(
     root: str | Path,
     *,
     entry: str | Path | None = None,
-    library: str | Path | None = None,
+    library: Sequence[str | Path] | str | Path | None = None,
     recursive: bool = True,
 ) -> Model:
     """Load a SysML project directory with automatic import resolution.
@@ -81,8 +88,8 @@ def load_project(
         Entry-point file.  If given, only files reachable from this file
         through import statements are loaded.  If None, all .sysml/.kerml
         files under *root* are loaded.
-    library : str or Path, optional
-        Path to SysML v2 library files for resolving standard library imports.
+    library : str, Path, sequence of str/Path, or None, optional
+        Path(s) to SysML v2 library files for resolving standard library imports.
     recursive : bool
         If True (default), search subdirectories of *root* for files.
 
@@ -98,6 +105,12 @@ def load_project(
 
     >>> # Load starting from an entry file
     >>> model = load_project('models/', entry='models/SystemGateway/SystemGateway.sysml')
+
+    >>> # Multiple library directories
+    >>> model = load_project(
+    ...     'models/',
+    ...     library=['/path/to/kernel', '/path/to/custom'],
+    ... )
     """
     root = Path(root)
     if not root.is_dir():
@@ -121,7 +134,7 @@ def load_with_dependencies(
     entry: str | Path,
     *,
     search_paths: Sequence[str | Path] | None = None,
-    library: str | Path | None = None,
+    library: Sequence[str | Path] | str | Path | None = None,
 ) -> Model:
     """Load a SysML file and all files it imports.
 
@@ -136,8 +149,8 @@ def load_with_dependencies(
         Directories to search for imported files.  Defaults to the directory
         containing *entry* and all its ancestor directories up to the current
         working directory.
-    library : str or Path, optional
-        Path to SysML v2 library files for resolving standard library imports.
+    library : str, Path, sequence of str/Path, or None, optional
+        Path(s) to SysML v2 library files for resolving standard library imports.
 
     Returns
     -------
@@ -149,6 +162,12 @@ def load_with_dependencies(
     >>> model = load_with_dependencies(
     ...     'models/SystemGateway/SystemGatewayMain.sysml',
     ...     search_paths=['models/SystemGateway', 'models/Shared'],
+    ... )
+
+    >>> # Multiple library directories
+    >>> model = load_with_dependencies(
+    ...     'main.sysml',
+    ...     library=['/path/to/kernel', '/path/to/custom'],
     ... )
     """
     entry_path = Path(entry)
@@ -212,12 +231,15 @@ def _extract_imports(content: str) -> list[str]:
     """Extract imported namespace names from SysML content.
 
     Returns a list of qualified names like ``['ScalarValues', 'ISQ']``.
+    Handles quoted package names (e.g., ``'Some Package'``) and the
+    ``all`` keyword (e.g., ``import all Types::*``).
     """
     imports = []
-    # Match: [private|public|protected] import <QualifiedName> [::*] [::**];
+    # Match: [private|public|protected] import [all] <QualifiedName> [::*] [::**];
+    # Qualified name parts can be identifiers or quoted strings
     pattern = _re.compile(
-        r'(?:private|public|protected)\s+import\s+'
-        r'([A-Za-z_][A-Za-z0-9_]*(?:::[A-Za-z_][A-Za-z0-9_]*)*)'
+        r'(?:private|public|protected)\s+import\s+(?:all\s+)?'
+        r"((?:[A-Za-z_][A-Za-z0-9_]*|'[^']*')(?:::(?:[A-Za-z_][A-Za-z0-9_]*|'[^']*'))*)"
         r'(?:\:\:\*)?(?:\:\:\*\*)?\s*;'
     )
     for match in pattern.finditer(content):
@@ -233,10 +255,14 @@ def _find_import_file(
     """Find a file that defines the imported namespace.
 
     Searches for files whose package declaration matches the import name.
+    Handles quoted package names by stripping quotes for file matching.
     """
+    # Strip quotes from import name for file matching
+    clean_name = import_name.replace("'", "")
+    
     # Convert qualified name to potential file name patterns
     # e.g., 'SystemGateway::Types' could be in Types.sysml or SystemGatewayTypes.sysml
-    parts = import_name.split("::")
+    parts = clean_name.split("::")
     short_name = parts[-1]
 
     for search_path in search_paths:
@@ -263,11 +289,21 @@ def _find_import_file(
 
 
 def _defines_package(content: str, package_name: str) -> bool:
-    """Check if *content* defines a package with the given name."""
-    # Match: package <name> {
-    pattern = _re.compile(
-        r'\bpackage\s+' + _re.escape(package_name) + r'\s*\{'
-    )
+    """Check if *content* defines a package with the given name.
+
+    Handles both quoted (``'Some Package'``) and unquoted names.
+    """
+    # Match: package <name> {  (name can be identifier or quoted string)
+    if package_name.startswith("'"):
+        # Quoted name – match exactly including quotes
+        pattern = _re.compile(
+            r'\bpackage\s+' + _re.escape(package_name) + r'\s*\{'
+        )
+    else:
+        # Unquoted name – use word boundary
+        pattern = _re.compile(
+            r'\bpackage\s+' + _re.escape(package_name) + r'\s*\{'
+        )
     return bool(pattern.search(content))
 
 

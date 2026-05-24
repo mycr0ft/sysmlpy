@@ -235,3 +235,114 @@ package Test {
             # UNRESOLVED_IMPORT should not be reported for ScalarValues
             unresolved = [i for i in issues if i.code == "UNRESOLVED_IMPORT" and "ScalarValues" in i.message]
             assert len(unresolved) == 0
+
+
+class TestQuotedPackageNames:
+    """Tests for quoted package name support."""
+
+    def test_load_files_with_quoted_package_names(self):
+        """Quoted package names should be handled correctly."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            types = Path(tmpdir) / "Types.sysml"
+            types.write_text("""
+package 'My Types' {
+    part def Engine;
+}
+""")
+            main = Path(tmpdir) / "Main.sysml"
+            main.write_text("""
+package Main {
+    private import 'My Types'::*;
+    part myEngine : Engine;
+}
+""")
+            model = load_files([types, main])
+            issues = analyze(model)
+            undefined = [i for i in issues if i.code == "UNDEFINED_SYMBOL" and "Engine" in i.message]
+            assert len(undefined) == 0
+
+    def test_import_extraction_quoted_names(self):
+        """Import extraction should handle quoted package names."""
+        from sysmlpy.project import _extract_imports
+
+        assert _extract_imports("private import 'Enumeration Definitions'::*;") == ["'Enumeration Definitions'"]
+        assert _extract_imports("private import 'Port Example'::SomePort;") == ["'Port Example'::SomePort"]
+        assert _extract_imports("private import A::'B Name'::*;") == ["A::'B Name'"]
+
+    def test_import_extraction_all_keyword(self):
+        """Import extraction should handle the 'all' keyword."""
+        from sysmlpy.project import _extract_imports
+
+        assert _extract_imports("private import all Types::*;") == ["Types"]
+        assert _extract_imports("public import all ScalarValues::*;") == ["ScalarValues"]
+        assert _extract_imports("protected import all A::B::*::**;") == ["A::B"]
+
+
+class TestMultipleLibraries:
+    """Tests for multiple library directory support."""
+
+    def test_analyze_with_multiple_library_paths(self):
+        """analyze() should accept multiple library directories."""
+        import sysmlpy
+        from sysmlpy.semantic import LibrarySymbolIndex
+
+        LibrarySymbolIndex.clear_cache()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a custom library with additional types
+            custom_lib = Path(tmpdir) / "custom"
+            custom_lib.mkdir()
+            (custom_lib / "CustomTypes.kerml").write_text("""
+package CustomTypes {
+    part def CustomPart;
+}
+""")
+            file_path = Path(tmpdir) / "test.sysml"
+            file_path.write_text("""
+package Test {
+    private import ScalarValues::*;
+    private import CustomTypes::*;
+    attribute x : Real;
+    part myPart : CustomPart;
+}
+""")
+            # Get the bundled library path
+            library_path = Path(sysmlpy.__file__).parent / "library"
+
+            model = load_files([file_path])
+            issues = analyze(model, library=[library_path, custom_lib])
+
+            # UNRESOLVED_IMPORT should not be reported for ScalarValues or CustomTypes
+            unresolved = [i for i in issues if i.code == "UNRESOLVED_IMPORT"]
+            assert len(unresolved) == 0
+
+    def test_analyze_with_single_library_path(self):
+        """analyze() should accept a single library path (str or Path)."""
+        import sysmlpy
+        from sysmlpy.semantic import LibrarySymbolIndex
+
+        LibrarySymbolIndex.clear_cache()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            file_path = Path(tmpdir) / "test.sysml"
+            file_path.write_text("""
+package Test {
+    private import ScalarValues::*;
+    attribute x : Real;
+}
+""")
+            library_path = Path(sysmlpy.__file__).parent / "library"
+
+            model = load_files([file_path])
+
+            # Test with Path
+            LibrarySymbolIndex.clear_cache()
+            issues = analyze(model, library=library_path)
+            unresolved = [i for i in issues if i.code == "UNRESOLVED_IMPORT"]
+            assert len(unresolved) == 0
+
+            # Test with str
+            LibrarySymbolIndex.clear_cache()
+            issues = analyze(model, library=str(library_path))
+            unresolved = [i for i in issues if i.code == "UNRESOLVED_IMPORT"]
+            assert len(unresolved) == 0

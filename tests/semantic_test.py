@@ -700,6 +700,11 @@ class TestConvenienceFunction:
 class TestLibrarySymbolIndex:
     """Verify library symbol loading from .kerml/.sysml files."""
 
+    def setup_method(self):
+        """Clear cache before each test to ensure fresh library scan."""
+        from sysmlpy.semantic import LibrarySymbolIndex
+        LibrarySymbolIndex.clear_cache()
+
     def test_library_index_returns_nonempty(self):
         from sysmlpy.semantic import LibrarySymbolIndex
         symbols = LibrarySymbolIndex.get_symbols()

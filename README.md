@@ -14,7 +14,7 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.21.1:** Multi-file project loading: `load_files()`, `load_project()`, and `load_with_dependencies()` for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests, 300+ total tests passing.
+**v0.23.0:** Multi-library directory support: `analyze()` and all load functions accept multiple library paths. Quoted package name and `all` keyword support in import extraction. 17 project tests passing.
 
 **v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
 
