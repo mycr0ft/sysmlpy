@@ -530,6 +530,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#multi-file-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-File Projects
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -799,6 +810,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#multi-file-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-File Projects
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1061,6 +1083,47 @@ docker run -p 64210:64210 --rm cayley/cayley
 
 # Persistent BoltDB backend
 docker run -p 64210:64210 -v /data:/data --rm cayley/cayley -db boltdb -dbpath /data/cayley.db
+</code></pre></div>
+<h2 id="multi-file-projects">Multi-File Projects<a class="headerlink" href="#multi-file-projects" title="Permanent link">&para;</a></h2>
+<p>sysmlpy supports loading multiple SysML files into a shared model with automatic
+cross-file import resolution.</p>
+<p>Load multiple files::</p>
+<div class="highlight"><pre><span></span><code>from sysmlpy import load_files, analyze
+
+model = load_files([
+    &#39;models/Shared/Types.sysml&#39;,
+    &#39;models/SystemGateway/SystemGatewayMain.sysml&#39;,
+])
+issues = analyze(model)
+</code></pre></div>
+<p>Packages with the same name are automatically merged::</p>
+<div class="highlight"><pre><span></span><code># types1.sysml: package Types { part def Engine; }
+# types2.sysml: package Types { part def Wheel; }
+model = load_files([&#39;types1.sysml&#39;, &#39;types2.sysml&#39;])
+# Both Engine and Wheel are in the same Types package
+</code></pre></div>
+<p>Load an entire project directory::</p>
+<div class="highlight"><pre><span></span><code>from sysmlpy import load_project
+
+# Load all .sysml and .kerml files recursively
+model = load_project(&#39;models/&#39;)
+
+# Load from an entry point (only reachable files)
+model = load_project(&#39;models/&#39;, entry=&#39;models/main.sysml&#39;)
+</code></pre></div>
+<p>Load a file with automatic dependency resolution::</p>
+<div class="highlight"><pre><span></span><code>from sysmlpy import load_with_dependencies
+
+model = load_with_dependencies(
+    &#39;models/SystemGateway/SystemGatewayMain.sysml&#39;,
+    search_paths=[&#39;models/SystemGateway&#39;, &#39;models/Shared&#39;],
+)
+</code></pre></div>
+<p>Standard library imports (ScalarValues, ISQ, etc.) are validated when a library
+path is provided::</p>
+<div class="highlight"><pre><span></span><code>import sysmlpy
+library_path = &#39;/path/to/sysmlpy/library&#39;
+model = load_files([&#39;main.sysml&#39;], library=library_path)
 </code></pre></div>
 
 

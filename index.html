@@ -398,6 +398,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#multi-file-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-File Projects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#author" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -666,6 +677,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#multi-file-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-File Projects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#author" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -711,7 +733,7 @@
 <p>A pure Python implementation for parsing SysML v2.0 models.
 Uses the ANTLR4 parser for full SysML v2 grammar support.</p>
 <h2 id="version">Version<a class="headerlink" href="#version" title="Permanent link">&para;</a></h2>
-<p><strong>v0.20.0</strong> — Full OCL well-formedness validation: duplicate names, cyclic specialization, subsetting/redefinition compatibility, part/port definition compatibility, feature chain validation, multiplicity bounds checking. Supertype/inheritance resolution. Standard library symbol index (88 files, ~1,417 symbols). Import visibility enforcement (private/public/protected). 90 semantic tests, 288 total tests passing.</p>
+<p><strong>v0.21.0</strong> — Multi-file project loading: <code>load_files()</code>, <code>load_project()</code>, and <code>load_with_dependencies()</code> for cross-file import resolution. Package merging for files defining the same namespace. Standard library import validation. 12 new tests.</p>
 <h2 id="quick-links">Quick Links<a class="headerlink" href="#quick-links" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="TUTORIAL/">Tutorial</a> — comprehensive guide with class mapping tables</li>
@@ -859,6 +881,32 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.</p>
 </tbody>
 </table>
 <p>Import visibility is enforced: <code>private</code> (default) limits symbols to the importing scope, <code>public</code> re-exports to siblings and children, and <code>protected</code> is visible to children only.</p>
+<h2 id="multi-file-projects">Multi-File Projects<a class="headerlink" href="#multi-file-projects" title="Permanent link">&para;</a></h2>
+<p>sysmlpy supports loading multiple SysML files with automatic cross-file import resolution:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_files</span><span class="p">,</span> <span class="n">load_project</span><span class="p">,</span> <span class="n">load_with_dependencies</span><span class="p">,</span> <span class="n">analyze</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Load specific files (packages with same name are merged)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_files</span><span class="p">([</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="s1">&#39;models/Shared/Types.sysml&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s1">&#39;models/SystemGateway/SystemGatewayMain.sysml&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">])</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="c1"># Load entire project directory</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_project</span><span class="p">(</span><span class="s1">&#39;models/&#39;</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># Load with automatic dependency resolution</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_with_dependencies</span><span class="p">(</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="s1">&#39;models/main.sysml&#39;</span><span class="p">,</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>    <span class="n">search_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;models/SystemGateway&#39;</span><span class="p">,</span> <span class="s1">&#39;models/Shared&#39;</span><span class="p">],</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="p">)</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="c1"># Validate - cross-file references resolve correctly</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">issues</span> <span class="o">=</span> <span class="n">analyze</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</code></pre></div>
+<p>Standard library imports (<code>ScalarValues</code>, <code>ISQ</code>, etc.) are validated when a library path is provided:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sysmlpy</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_files</span><span class="p">([</span><span class="s1">&#39;main.sysml&#39;</span><span class="p">],</span> <span class="n">library</span><span class="o">=</span><span class="n">sysmlpy</span><span class="o">.</span><span class="n">__path__</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;/library&#39;</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="author">Author<a class="headerlink" href="#author" title="Permanent link">&para;</a></h2>
 <p>Authored by <a href="https://github.com/mycr0ft">Jon Fox</a></p>
 <h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>

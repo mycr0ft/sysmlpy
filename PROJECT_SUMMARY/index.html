@@ -522,7 +522,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Semantic Analysis (v0.17.0 → v0.20.1)">
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-file-projects-v0210" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-File Projects (v0.21.0)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Multi-File Projects (v0.21.0)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -625,10 +636,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#5-import-visibility-defaults-to-private" class="md-nav__link">
+  <a href="#5-import-visibility-is-required" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Import Visibility Defaults to Private
+        5. Import Visibility is Required
       
     </span>
   </a>
@@ -662,6 +673,17 @@
   
     <nav class="md-nav" aria-label="Known Issues and Technical Debt">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#resolved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resolved
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#high-priority" class="md-nav__link">
@@ -841,6 +863,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#8-multi-file-package-merging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Multi-File Package Merging
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#6-antlr-grammar-updates-require-visitor-updates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -912,6 +945,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#adding-multi-file-loading-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding Multi-File Loading Support
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -952,7 +996,7 @@
 <blockquote>
 <p><strong>For:</strong> Future agents and team members
 <strong>Last Updated:</strong> May 23, 2026
-<strong>Current Version:</strong> v0.20.1
+<strong>Current Version:</strong> v0.21.0
 <strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy</p>
 </blockquote>
 <hr />
@@ -961,7 +1005,7 @@
 <h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sysmlpy/
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── src/sysmlpy/
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── __init__.py          # Public API: loads(), load(), analyze()
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── __init__.py          # Public API: loads(), load(), analyze(), load_files(), load_project()
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── antlr_parser.py      # ANTLR4 lexer/parser setup
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── antlr_visitor.py     # ~11K lines: parse tree → internal dict
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── grammar/
@@ -970,22 +1014,24 @@
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── definition.py        # Model, Package, RootNamespace classes
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── usage.py             # Part, Item, Attribute, Port, Action, etc.
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│   ├── semantic.py          # Semantic analysis engine (~1.8K lines)
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── store.py             # Storage backends (memory, NetworkX, Kuzu, Cayley)
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── plantuml.py          # PlantUML diagram generation
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── formatting.py        # classtree() for round-trip serialization
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── navigate.py          # Searchable mixin for model traversal
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   └── library/             # Bundled SysML v2 standard library (88 files)
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│       ├── kernel/          # KerML core (ScalarValues, Base, Collections, etc.)
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│       ├── systems/         # SysML base (SysML.sysml)
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│       └── domain/          # ISQ, SI units, base quantities
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>├── tests/
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── class_test.py        # 53 programmatic API tests
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   ├── semantic_test.py     # 90 semantic analysis tests
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── store_test.py        # 82 storage backend tests (memory + networkx)
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── conformance_test.py  # 123 OMG XPect conformance tests
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   └── sysmlv2/             # Conformance test fixtures
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>└── docs/                    # Documentation
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│   ├── project.py           # Multi-file project loading (load_files, load_project)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>│   ├── store.py             # Storage backends (memory, NetworkX, Kuzu, Cayley)
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│   ├── plantuml.py          # PlantUML diagram generation
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│   ├── formatting.py        # classtree() for round-trip serialization
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│   ├── navigate.py          # Searchable mixin for model traversal
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│   └── library/             # Bundled SysML v2 standard library (88 files)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│       ├── kernel/          # KerML core (ScalarValues, Base, Collections, etc.)
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│       ├── systems/         # SysML base (SysML.sysml)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│       └── domain/          # ISQ, SI units, base quantities
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── tests/
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   ├── class_test.py        # 53 programmatic API tests
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── semantic_test.py     # 90 semantic analysis tests
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── project_test.py      # 12 multi-file loading tests
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   ├── store_test.py        # 82 storage backend tests (memory + networkx)
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│   ├── conformance_test.py  # 123 OMG XPect conformance tests
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>│   └── sysmlv2/             # Conformance test fixtures
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>└── docs/                    # Documentation
 </code></pre></div>
 <h3 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>SysML text → ANTLR4 Lexer/Parser → Parse Tree
@@ -1051,6 +1097,36 @@
 </tr>
 </tbody>
 </table>
+<h3 id="multi-file-projects-v0210">Multi-File Projects (v0.21.0)<a class="headerlink" href="#multi-file-projects-v0210" title="Permanent link">&para;</a></h3>
+<p>Three new API functions enable cross-file import resolution:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_files(files, library=None)</code></td>
+<td>Load multiple files; merge packages with same name</td>
+</tr>
+<tr>
+<td><code>load_project(root, entry=None)</code></td>
+<td>Load all <code>.sysml</code>/<code>.kerml</code> files in a directory</td>
+</tr>
+<tr>
+<td><code>load_with_dependencies(entry, search_paths)</code></td>
+<td>Load entry file and recursively resolve imports</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Package merging: files defining the same package namespace are combined</li>
+<li>Import resolution: cross-file type references resolve correctly</li>
+<li>Standard library validation: <code>ScalarValues</code>, <code>ISQ</code>, etc. recognized as valid</li>
+<li>12 new tests in <code>tests/project_test.py</code></li>
+</ul>
 <h4 id="implemented-ocl-well-formness-checks">Implemented OCL Well-Formness Checks<a class="headerlink" href="#implemented-ocl-well-formness-checks" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -1146,6 +1222,11 @@
 <td>✅ 90 pass</td>
 </tr>
 <tr>
+<td>Multi-file loading</td>
+<td>12</td>
+<td>✅ 12 pass</td>
+</tr>
+<tr>
 <td>Storage backends</td>
 <td>82</td>
 <td>✅ 82 pass</td>
@@ -1157,8 +1238,8 @@
 </tr>
 <tr>
 <td><strong>Total</strong></td>
-<td><strong>404</strong></td>
-<td><strong>✅ 404 pass, 0 fail</strong></td>
+<td><strong>416</strong></td>
+<td><strong>✅ 416 pass, 0 fail</strong></td>
 </tr>
 </tbody>
 </table>
@@ -1180,12 +1261,35 @@
 <p>The <code>load_from_grammar()</code> method on each public class bridges the two levels.</p>
 <h3 id="4-semantic-analysis-is-opt-in">4. Semantic Analysis is Opt-In<a class="headerlink" href="#4-semantic-analysis-is-opt-in" title="Permanent link">&para;</a></h3>
 <p>The semantic analyzer (<code>analyze(model)</code>) is non-invasive and opt-in. It does not modify the model or affect parsing/loading. This was a deliberate design choice to maintain backward compatibility.</p>
-<h3 id="5-import-visibility-defaults-to-private">5. Import Visibility Defaults to Private<a class="headerlink" href="#5-import-visibility-defaults-to-private" title="Permanent link">&para;</a></h3>
-<p>Per the SysML v2 spec, imports without an explicit visibility keyword default to <code>private</code>. The <code>ImportPrefix</code> class accepts <code>None</code> visibility (a previous version incorrectly raised <code>ValueError</code>).</p>
+<h3 id="5-import-visibility-is-required">5. Import Visibility is Required<a class="headerlink" href="#5-import-visibility-is-required" title="Permanent link">&para;</a></h3>
+<p>Per the SysML v2 spec (section 7.5.3), imports must have an explicit visibility keyword (<code>private</code>, <code>public</code>, or <code>protected</code>). The grammar enforces this — omitting the keyword produces a syntax error. The previous version allowed omission and defaulted to <code>private</code>.</p>
 <h3 id="6-multiplicity-is-stored-in-featurespecializationpart">6. Multiplicity is Stored in FeatureSpecializationPart<a class="headerlink" href="#6-multiplicity-is-stored-in-featurespecializationpart" title="Permanent link">&para;</a></h3>
 <p>Multiplicity ranges (<code>[N]</code>, <code>[N..M]</code>, <code>[*]</code>) are stored as part of the <code>FeatureSpecializationPart</code> alongside typings, subsettings, and redefinitions. This is a quirk of the SysML v2 grammar where multiplicity is parsed as part of the feature specialization.</p>
 <hr />
 <h2 id="known-issues-and-technical-debt">Known Issues and Technical Debt<a class="headerlink" href="#known-issues-and-technical-debt" title="Permanent link">&para;</a></h2>
+<h3 id="resolved">Resolved<a class="headerlink" href="#resolved" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Import visibility optional in grammar</strong></td>
+<td>Made <code>visibilityIndicator</code> required in <code>SysMLv2Parser.g4</code> (v0.21.0)</td>
+</tr>
+<tr>
+<td><strong>No multi-file loading support</strong></td>
+<td>Added <code>load_files()</code>, <code>load_project()</code>, <code>load_with_dependencies()</code> (v0.21.0)</td>
+</tr>
+<tr>
+<td><strong>Standard library imports not validated</strong></td>
+<td>Semantic analyzer now checks <code>LibrarySymbolIndex</code> for import targets (v0.21.0)</td>
+</tr>
+</tbody>
+</table>
 <h3 id="high-priority">High Priority<a class="headerlink" href="#high-priority" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -1331,7 +1435,7 @@
 <p><strong>Parse library files instead of regex extraction</strong> — Replace <code>LibrarySymbolIndex._extract_from_file()</code> with actual parsing of <code>.kerml</code>/<code>.sysml</code> files for accurate symbol discovery.</p>
 </li>
 <li>
-<p><strong>Standard library loading</strong> — Currently library symbols are indexed but not loaded as actual model objects. Full implementation would parse library files and make them available for resolution.</p>
+<p><strong>Standard library loading</strong> — ~~Currently library symbols are indexed but not loaded as actual model objects.~~ Partially resolved in v0.21.0: <code>load_files()</code> and <code>load_with_dependencies()</code> accept a <code>library</code> parameter that validates standard library imports. Full resolution would parse library files and make them available for symbol resolution in <code>analyze()</code>.</p>
 </li>
 <li>
 <p><strong>OCL constraint library</strong> — Consider maintaining a machine-readable OCL constraint library that can be extended without code changes.</p>
@@ -1352,13 +1456,16 @@
 <h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
 <ol>
 <li>
-<p><strong>Update STATUS.md</strong> — Bring in line with current state (v0.20.0, 404 tests, 100% conformance).</p>
+<p><strong>Update STATUS.md</strong> — Bring in line with current state (v0.21.0, 416 tests, 100% conformance).</p>
 </li>
 <li>
 <p><strong>API documentation</strong> — Generate API docs from docstrings (Sphinx or MkDocs).</p>
 </li>
 <li>
 <p><strong>Semantic analysis guide</strong> — Dedicated documentation page for using <code>analyze()</code> and interpreting results.</p>
+</li>
+<li>
+<p><strong>Multi-file project guide</strong> — Document <code>load_files()</code>, <code>load_project()</code>, and <code>load_with_dependencies()</code> with examples for common project structures.</p>
 </li>
 </ol>
 <hr />
@@ -1378,6 +1485,9 @@
 <h3 id="5-symbol-table-and-model-tree-are-separate">5. Symbol Table and Model Tree are Separate<a class="headerlink" href="#5-symbol-table-and-model-tree-are-separate" title="Permanent link">&para;</a></h3>
 <p>The <code>SymbolTable</code> is built from the model tree but is a separate data structure. Changes to the model after <code>analyze()</code> is called will not be reflected in the symbol table.</p>
 <p><strong>Mitigation:</strong> Document that <code>analyze()</code> should be called after all model modifications are complete.</p>
+<h3 id="8-multi-file-package-merging">8. Multi-File Package Merging<a class="headerlink" href="#8-multi-file-package-merging" title="Permanent link">&para;</a></h3>
+<p>When <code>load_files()</code> merges packages with the same name, children are appended without deduplication. If two files define the same element name within the same package, both will exist in the merged model and may trigger <code>DUPLICATE_NAME</code> warnings during analysis.</p>
+<p><strong>Mitigation:</strong> Use <code>analyze()</code> after loading to detect duplicate names. Ensure project files define non-overlapping elements within shared packages.</p>
 <h3 id="6-antlr-grammar-updates-require-visitor-updates">6. ANTLR Grammar Updates Require Visitor Updates<a class="headerlink" href="#6-antlr-grammar-updates-require-visitor-updates" title="Permanent link">&para;</a></h3>
 <p>When the OMG releases a new SysML v2 grammar, the ANTLR parser must be regenerated and the visitor updated to handle any new rules.</p>
 <p><strong>Mitigation:</strong> The conformance test suite (123 tests) serves as a regression test. Run it after any grammar update.</p>
@@ -1394,11 +1504,12 @@
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>pytest<span class="w"> </span>tests/grammar_test.py<span class="w">        </span><span class="c1"># Round-trip</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>pytest<span class="w"> </span>tests/class_test.py<span class="w">          </span><span class="c1"># Programmatic API</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>pytest<span class="w"> </span>tests/semantic_test.py<span class="w">       </span><span class="c1"># Semantic analysis</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>pytest<span class="w"> </span>tests/store_test.py<span class="w">          </span><span class="c1"># Storage backends</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>pytest<span class="w"> </span>tests/conformance_test.py<span class="w">    </span><span class="c1"># OMG conformance (slow)</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Skip conformance (fast development)</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not conformance&quot;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>pytest<span class="w"> </span>tests/project_test.py<span class="w">        </span><span class="c1"># Multi-file loading</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>pytest<span class="w"> </span>tests/store_test.py<span class="w">          </span><span class="c1"># Storage backends</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>pytest<span class="w"> </span>tests/conformance_test.py<span class="w">    </span><span class="c1"># OMG conformance (slow)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1"># Skip conformance (fast development)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not conformance&quot;</span>
 </code></pre></div>
 <h3 id="adding-a-new-ocl-constraint">Adding a New OCL Constraint<a class="headerlink" href="#adding-a-new-ocl-constraint" title="Permanent link">&para;</a></h3>
 <ol>
@@ -1429,7 +1540,7 @@
 <ol>
 <li>
 <p>Subclass <code>Store</code> in <code>store.py</code>:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyStore</span><span class="p">(</span><span class="n">Store</span><span class="p">):</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyStore</span><span class="p">(</span><span class="n">Store</span><span class="p">):</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span> <span class="o">...</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="c1"># ... implement all abstract methods</span>
@@ -1437,7 +1548,7 @@
 </li>
 <li>
 <p>Register in <code>create_store()</code>:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;my&quot;</span><span class="p">:</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">elif</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;my&quot;</span><span class="p">:</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">return</span> <span class="n">MyStore</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 </code></pre></div></p>
 </li>
@@ -1445,6 +1556,14 @@
 <p>Add tests to <code>tests/store_test.py</code> using the parameterized test patterns.</p>
 </li>
 </ol>
+<h3 id="adding-multi-file-loading-support">Adding Multi-File Loading Support<a class="headerlink" href="#adding-multi-file-loading-support" title="Permanent link">&para;</a></h3>
+<p>The <code>project.py</code> module handles multi-file loading:</p>
+<ol>
+<li><code>load_files()</code> parses each file and merges packages with the same name</li>
+<li><code>load_project()</code> discovers all <code>.sysml</code>/<code>.kerml</code> files in a directory</li>
+<li><code>load_with_dependencies()</code> extracts imports via regex and recursively loads dependencies</li>
+</ol>
+<p>To extend import resolution, modify <code>_extract_imports()</code> and <code>_find_import_file()</code> in <code>project.py</code>.</p>
 <hr />
 <h2 id="contact">Contact<a class="headerlink" href="#contact" title="Permanent link">&para;</a></h2>
 <ul>
