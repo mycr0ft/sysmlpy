@@ -5,7 +5,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 
 ## Version
 
-**v0.23.0** — Multi-library directory support in `analyze()` and load functions. Quoted package name and `all` keyword extraction. 17 project tests, 123 total tests passing.
+**v0.23.1** — Updated GitHub Actions to latest versions (setup-python@v6, checkout@v4, upload-artifact@v4, add-and-commit@v9).
 
 ## Quick Links
 
