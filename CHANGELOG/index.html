@@ -1366,10 +1366,11 @@
   Added 8 tests.</p>
 </li>
 <li>
-<p>:sparkles: Interface/UseCase/Message name extraction
+<p>:sparkles: Interface/UseCase/Message name extraction + visitor support
   Added <code>load_from_grammar()</code> methods to <code>Interface</code>, <code>UseCase</code>, and <code>Message</code> classes.
-  Interface and UseCase definition names now properly extracted from parsed grammar.
-  Fixed <code>Interface.connections</code> attribute conflict with Searchable mixin property.</p>
+  Added <code>_make_use_case_usage_dict()</code> and <code>_make_message_dict()</code> to antlr_visitor.py.
+  Fixed <code>Interface.connections</code> attribute conflict with Searchable mixin property.
+  UseCase and Message now parse correctly from SysML text.</p>
 </li>
 </ul>
 <h3 id="white_check_mark">:white_check_mark:<a class="headerlink" href="#white_check_mark" title="Permanent link">&para;</a></h3>
@@ -1381,7 +1382,7 @@
 <h3 id="memo">:memo:<a class="headerlink" href="#memo" title="Permanent link">&para;</a></h3>
 <ul>
 <li>:memo: Updated <code>TODO-gaps.md</code> with completion status for Requirement View and
-  Interface/UseCase/Message name extraction work.</li>
+  Interface/UseCase/Message visitor support.</li>
 </ul>
 <hr />
 <h2 id="v0270-2026-05-25">v0.27.0 (2026-05-25)<a class="headerlink" href="#v0270-2026-05-25" title="Permanent link">&para;</a></h2>
