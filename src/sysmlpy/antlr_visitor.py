@@ -885,6 +885,8 @@ def _get_occurrence_usage_prefix(ctx):
     direction_out = ""
     direction_inout = ""
     is_end = False
+    is_individual = False
+    portion_kind = None
     
     if hasattr(ctx, 'occurrenceUsagePrefix') and ctx.occurrenceUsagePrefix():
         oup = ctx.occurrenceUsagePrefix()
@@ -902,10 +904,22 @@ def _get_occurrence_usage_prefix(ctx):
                 # Check for END keyword
                 if hasattr(rp, 'END') and rp.END() is not None:
                     is_end = True
+        
+        # Extract INDIVIDUAL keyword
+        if hasattr(oup, 'INDIVIDUAL') and oup.INDIVIDUAL() is not None:
+            is_individual = True
+        
+        # Extract portionKind (SNAPSHOT or TIMESLICE)
+        if hasattr(oup, 'portionKind') and oup.portionKind():
+            pk_ctx = oup.portionKind()
+            if hasattr(pk_ctx, 'SNAPSHOT') and pk_ctx.SNAPSHOT() is not None:
+                portion_kind = "snapshot"
+            elif hasattr(pk_ctx, 'TIMESLICE') and pk_ctx.TIMESLICE() is not None:
+                portion_kind = "timeslice"
     
     has_direction = any([direction_in, direction_out, direction_inout])
     
-    if not is_reference and not has_direction and not is_end:
+    if not is_reference and not has_direction and not is_end and not is_individual and portion_kind is None:
         return None
     
     ref_prefix = None
@@ -925,6 +939,13 @@ def _get_occurrence_usage_prefix(ctx):
             "isEnd": "end" if is_end else None
         }
     
+    portion_kind_dict = None
+    if portion_kind is not None:
+        portion_kind_dict = {
+            "name": "PortionKind",
+            "kind": portion_kind
+        }
+    
     return {
         "name": "OccurrenceUsagePrefix",
         "prefix": {
@@ -932,8 +953,8 @@ def _get_occurrence_usage_prefix(ctx):
             "prefix": ref_prefix,
             "isReference": is_reference
         },
-        "isIndividual": None,
-        "portionKind": None,
+        "isIndividual": "individual" if is_individual else None,
+        "portionKind": portion_kind_dict,
         "usageExtension": []
     }
 
@@ -1344,7 +1365,29 @@ def _visit_action_body_item(abi_ctx):
                 "ownedRelationship": [inner]
             }
     
+    # Handle initialNodeMember (first X) with optional actionTargetSuccessionMember (then Y) suffixes
+    if hasattr(abi_ctx, 'initialNodeMember') and abi_ctx.initialNodeMember():
+        relationships = []
+        inm = abi_ctx.initialNodeMember()
+        inner = _visit_initial_node_member(inm)
+        if inner:
+            relationships.append(inner)
+        
+        # Handle actionTargetSuccessionMember suffixes
+        if hasattr(abi_ctx, 'actionTargetSuccessionMember'):
+            for atsm in abi_ctx.actionTargetSuccessionMember():
+                inner = _visit_action_target_succession_member(atsm)
+                if inner:
+                    relationships.append(inner)
+        
+        if relationships:
+            return {
+                "name": "ActionBodyItem",
+                "ownedRelationship": relationships
+            }
+    
     # Handle actionBehaviorMember (nested actions), possibly with sourceSuccessionMember prefix
+    # and actionTargetSuccessionMember suffix
     if hasattr(abi_ctx, 'actionBehaviorMember') and abi_ctx.actionBehaviorMember():
         relationships = []
         # Check for sourceSuccessionMember prefix ('then')
@@ -1360,6 +1403,14 @@ def _visit_action_body_item(abi_ctx):
         inner = _visit_action_behavior_member(abm)
         if inner:
             relationships.append(inner)
+        
+        # Handle actionTargetSuccessionMember suffixes
+        if hasattr(abi_ctx, 'actionTargetSuccessionMember'):
+            for atsm in abi_ctx.actionTargetSuccessionMember():
+                inner = _visit_action_target_succession_member(atsm)
+                if inner:
+                    relationships.append(inner)
+        
         if relationships:
             return {
                 "name": "ActionBodyItem",
@@ -1441,21 +1492,140 @@ def _visit_source_succession_member(ssm_ctx):
     return None
 
 
+def _visit_initial_node_member(inm_ctx):
+    """Visit an initialNodeMember context and return an InitialNodeMember dict.
+    
+    initialNodeMember: memberPrefix FIRST qualifiedName relationshipBody
+    """
+    if inm_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(inm_ctx, 'memberPrefix') and inm_ctx.memberPrefix():
+        mp = inm_ctx.memberPrefix()
+        if mp and hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    name = None
+    if hasattr(inm_ctx, 'qualifiedName') and inm_ctx.qualifiedName():
+        name = inm_ctx.qualifiedName().getText()
+    
+    return {
+        "name": "InitialNodeMember",
+        "prefix": prefix,
+        "ownedRelatedElement": {
+            "name": "InitialNode",
+            "declaredName": name,
+            "ownedRelationship": []
+        }
+    }
+
+
+def _visit_action_target_succession_member(atsm_ctx):
+    """Visit an actionTargetSuccessionMember context and return an ActionTargetSuccessionMember dict.
+    
+    actionTargetSuccessionMember: memberPrefix actionTargetSuccession
+    actionTargetSuccession: (targetSuccession | guardedTargetSuccession | defaultTargetSuccession) usageBody
+    targetSuccession: sourceEndMember THEN connectorEndMember
+    """
+    if atsm_ctx is None:
+        return None
+    
+    prefix = None
+    if hasattr(atsm_ctx, 'memberPrefix') and atsm_ctx.memberPrefix():
+        mp = atsm_ctx.memberPrefix()
+        if mp and hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
+    
+    name = None
+    if hasattr(atsm_ctx, 'actionTargetSuccession') and atsm_ctx.actionTargetSuccession():
+        ats = atsm_ctx.actionTargetSuccession()
+        # Try targetSuccession path
+        if hasattr(ats, 'targetSuccession') and ats.targetSuccession():
+            ts = ats.targetSuccession()
+            if hasattr(ts, 'connectorEndMember') and ts.connectorEndMember():
+                cem = ts.connectorEndMember()
+                if hasattr(cem, 'connectorEnd') and cem.connectorEnd():
+                    ce = cem.connectorEnd()
+                    if hasattr(ce, 'name') and ce.name():
+                        name = ce.name().getText()
+    
+    return {
+        "name": "ActionTargetSuccessionMember",
+        "prefix": prefix,
+        "ownedRelatedElement": {
+            "name": "ActionTargetSuccession",
+            "declaredName": name,
+            "ownedRelationship": []
+        }
+    }
+
+
 def _visit_guarded_succession_member(gsm_ctx):
-    """Visit a guardedSuccessionMember context."""
+    """Visit a guardedSuccessionMember context and return a GuardedSuccessionMember dict.
+    
+    guardedSuccessionMember: memberPrefix guardedSuccession
+    guardedSuccession: (SUCCESSION usageDeclaration?)? FIRST featureChainMember guardExpressionMember THEN transitionSuccessionMember usageBody
+    """
     if gsm_ctx is None:
         return None
     
-    if hasattr(gsm_ctx, 'succession') and gsm_ctx.succession():
-        succ = gsm_ctx.succession()
-        inner = _visit_succession(succ)
-        if inner:
-            return {
-                "name": "ActionBodyItem",
-                "ownedRelationship": inner
+    prefix = None
+    if hasattr(gsm_ctx, 'memberPrefix') and gsm_ctx.memberPrefix():
+        mp = gsm_ctx.memberPrefix()
+        if mp and hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
             }
     
-    return None
+    source_name = None
+    condition = None
+    target_name = None
+    
+    if hasattr(gsm_ctx, 'guardedSuccession') and gsm_ctx.guardedSuccession():
+        gs = gsm_ctx.guardedSuccession()
+        
+        # Extract source name from featureChainMember (qualified name chain)
+        if hasattr(gs, 'featureChainMember') and gs.featureChainMember():
+            source_name = gs.featureChainMember().getText()
+        
+        # Extract condition from guardExpressionMember (if expression)
+        if hasattr(gs, 'guardExpressionMember') and gs.guardExpressionMember():
+            gem = gs.guardExpressionMember()
+            if hasattr(gem, 'ownedExpression') and gem.ownedExpression():
+                condition = gem.ownedExpression().getText()
+        
+        # Extract target name from transitionSuccessionMember
+        if hasattr(gs, 'transitionSuccessionMember') and gs.transitionSuccessionMember():
+            tsm = gs.transitionSuccessionMember()
+            if hasattr(tsm, 'transitionSuccession') and tsm.transitionSuccession():
+                ts = tsm.transitionSuccession()
+                if hasattr(ts, 'connectorEndMember') and ts.connectorEndMember():
+                    cem = ts.connectorEndMember()
+                    if hasattr(cem, 'connectorEnd') and cem.connectorEnd():
+                        ce = cem.connectorEnd()
+                        if hasattr(ce, 'name') and ce.name():
+                            target_name = ce.name().getText()
+    
+    return {
+        "name": "GuardedSuccessionMember",
+        "prefix": prefix,
+        "ownedRelatedElement": {
+            "name": "GuardedSuccession",
+            "keyword": "succession",
+            "sourceName": source_name,
+            "condition": condition,
+            "targetName": target_name,
+            "ownedRelationship": []
+        }
+    }
 
 
 def _visit_behavior_usage_member(bum_ctx):
@@ -1807,19 +1977,457 @@ def _visit_requirement_body_item(item_ctx):
 
 
 def _visit_action_node_member(anm_ctx):
-    """Visit an actionNodeMember context (send action, accept action, etc.)."""
+    """Visit an actionNodeMember context (send action, accept action, if/while/for/control, etc.)."""
     if anm_ctx is None:
         return None
     
-    if hasattr(anm_ctx, 'sendActionUsage') and anm_ctx.sendActionUsage():
-        ctx = anm_ctx.sendActionUsage()
-        return _make_action_usage_element(ctx, None)
+    # Extract memberPrefix
+    prefix = None
+    if hasattr(anm_ctx, 'memberPrefix') and anm_ctx.memberPrefix():
+        mp = anm_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            prefix = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(mp.visibilityIndicator())
+            }
     
-    if hasattr(anm_ctx, 'acceptActionUsage') and anm_ctx.acceptActionUsage():
-        ctx = anm_ctx.acceptActionUsage()
-        return _make_action_usage_element(ctx, None)
+    # Dispatch through actionNode for control flow nodes
+    if hasattr(anm_ctx, 'actionNode') and anm_ctx.actionNode():
+        an = anm_ctx.actionNode()
+        node_dict = _visit_action_node(an)
+        if node_dict:
+            return {
+                "name": "ActionNodeMember",
+                "prefix": prefix,
+                "ownedRelatedElement": {
+                    "name": "ActionNode",
+                    "node": node_dict
+                }
+            }
     
     return None
+
+
+def _visit_action_node(an_ctx):
+    """Visit an actionNode context and return the inner node dict."""
+    if an_ctx is None:
+        return None
+    
+    if hasattr(an_ctx, 'sendNode') and an_ctx.sendNode():
+        return _visit_send_node(an_ctx.sendNode())
+    
+    if hasattr(an_ctx, 'acceptNode') and an_ctx.acceptNode():
+        return _visit_accept_node(an_ctx.acceptNode())
+    
+    if hasattr(an_ctx, 'assignmentNode') and an_ctx.assignmentNode():
+        return _visit_assignment_node(an_ctx.assignmentNode())
+    
+    if hasattr(an_ctx, 'terminateNode') and an_ctx.terminateNode():
+        return _visit_terminate_node(an_ctx.terminateNode())
+    
+    if hasattr(an_ctx, 'ifNode') and an_ctx.ifNode():
+        return _visit_if_node(an_ctx.ifNode())
+    
+    if hasattr(an_ctx, 'whileLoopNode') and an_ctx.whileLoopNode():
+        return _visit_while_loop_node(an_ctx.whileLoopNode())
+    
+    if hasattr(an_ctx, 'forLoopNode') and an_ctx.forLoopNode():
+        return _visit_for_loop_node(an_ctx.forLoopNode())
+    
+    if hasattr(an_ctx, 'controlNode') and an_ctx.controlNode():
+        return _visit_control_node(an_ctx.controlNode())
+    
+    return None
+
+
+def _visit_action_body_parameter(ctx):
+    """Visit an actionBodyParameter context and return an ActionBody dict.
+    
+    actionBodyParameter: (ACTION usageDeclaration?)? LBRACE actionBodyItem* RBRACE
+    """
+    if ctx is None:
+        return {"name": "ActionBody", "item": []}
+    
+    items = []
+    if hasattr(ctx, 'actionBodyItem'):
+        body_items = ctx.actionBodyItem()
+        if body_items and isinstance(body_items, list):
+            for item_ctx in body_items:
+                item_dict = _visit_action_body_item(item_ctx)
+                if item_dict:
+                    items.append(item_dict)
+    
+    return {"name": "ActionBody", "item": items}
+
+
+def _visit_if_node(ctx):
+    """Visit an ifNode context.
+    
+    ifNode: actionNodePrefix IF expressionParameterMember actionBodyParameterMember
+            (ELSE (actionBodyParameterMember | ifNodeParameterMember))?
+    
+    expressionParameterMember: ownedExpression
+    actionBodyParameterMember: actionBodyParameter
+    actionBodyParameter: (ACTION usageDeclaration?)? LBRACE actionBodyItem* RBRACE
+    ifNodeParameterMember: ifNode
+    """
+    if ctx is None:
+        return None
+    
+    result = {
+        "name": "IfNode",
+        "prefix": None,
+        "condition": None,
+        "thenBody": None,
+        "elseBody": None,
+        "elseIf": None
+    }
+    
+    # Extract prefix from actionNodePrefix
+    if hasattr(ctx, 'actionNodePrefix') and ctx.actionNodePrefix():
+        anp = ctx.actionNodePrefix()
+        result["prefix"] = _get_occurrence_usage_prefix(anp)
+    
+    # Extract condition from expressionParameterMember
+    if hasattr(ctx, 'expressionParameterMember') and ctx.expressionParameterMember():
+        epm = ctx.expressionParameterMember()
+        if hasattr(epm, 'ownedExpression') and epm.ownedExpression():
+            result["condition"] = epm.ownedExpression().getText()
+    
+    # Extract then-body from actionBodyParameterMember(0)
+    bodies = None
+    if hasattr(ctx, 'actionBodyParameterMember'):
+        bodies = ctx.actionBodyParameterMember()
+        if bodies and len(bodies) > 0:
+            abp = bodies[0]
+            if hasattr(abp, 'actionBodyParameter') and abp.actionBodyParameter():
+                result["thenBody"] = _visit_action_body_parameter(abp.actionBodyParameter())
+    
+    # Handle optional ELSE clause
+    if hasattr(ctx, 'ELSE') and ctx.ELSE():
+        if bodies and len(bodies) > 1:
+            abp = bodies[1]
+            if hasattr(abp, 'actionBodyParameter') and abp.actionBodyParameter():
+                result["elseBody"] = _visit_action_body_parameter(abp.actionBodyParameter())
+        elif hasattr(ctx, 'ifNodeParameterMember') and ctx.ifNodeParameterMember():
+            inpm = ctx.ifNodeParameterMember()
+            if hasattr(inpm, 'ifNode') and inpm.ifNode():
+                result["elseIf"] = _visit_if_node(inpm.ifNode())
+    
+    return result
+
+
+def _visit_while_loop_node(ctx):
+    """Visit a whileLoopNode context.
+    
+    whileLoopNode: actionNodePrefix
+                   (WHILE expressionParameterMember | LOOP emptyParameterMember)
+                   actionBodyParameterMember
+                   (UNTIL expressionParameterMember SEMI)?
+    """
+    if ctx is None:
+        return None
+    
+    result = {
+        "name": "WhileLoopNode",
+        "prefix": None,
+        "keyword": "while",
+        "condition": None,
+        "body": None,
+        "until": None
+    }
+    
+    if hasattr(ctx, 'actionNodePrefix') and ctx.actionNodePrefix():
+        result["prefix"] = _get_occurrence_usage_prefix(ctx.actionNodePrefix())
+    
+    if hasattr(ctx, 'WHILE') and ctx.WHILE():
+        result["keyword"] = "while"
+        if hasattr(ctx, 'expressionParameterMember'):
+            epms = ctx.expressionParameterMember()
+            if epms and len(epms) > 0:
+                epm = epms[0]
+                if hasattr(epm, 'ownedExpression') and epm.ownedExpression():
+                    result["condition"] = epm.ownedExpression().getText()
+    elif hasattr(ctx, 'LOOP') and ctx.LOOP():
+        result["keyword"] = "loop"
+    
+    if hasattr(ctx, 'actionBodyParameterMember') and ctx.actionBodyParameterMember():
+        abpm = ctx.actionBodyParameterMember()
+        if hasattr(abpm, 'actionBodyParameter') and abpm.actionBodyParameter():
+            result["body"] = _visit_action_body_parameter(abpm.actionBodyParameter())
+    
+    if hasattr(ctx, 'UNTIL') and ctx.UNTIL():
+        if hasattr(ctx, 'expressionParameterMember'):
+            epms = ctx.expressionParameterMember()
+            if epms and len(epms) > 0:
+                # The last expression parameter member is the UNTIL condition
+                epm = epms[-1]
+                if hasattr(epm, 'ownedExpression') and epm.ownedExpression():
+                    until_text = epm.ownedExpression().getText()
+                    if until_text and until_text.strip():
+                        result["until"] = until_text.strip()
+                        # Also strip trailing semicolon that might come from getText
+                        if result["until"].endswith(';'):
+                            result["until"] = result["until"][:-1].strip()
+    
+    return result
+
+
+def _visit_for_loop_node(ctx):
+    """Visit a forLoopNode context.
+    
+    forLoopNode: actionNodePrefix
+                 FOR forVariableDeclarationMember IN nodeParameterMember
+                 actionBodyParameterMember
+    """
+    if ctx is None:
+        return None
+    
+    result = {
+        "name": "ForLoopNode",
+        "prefix": None,
+        "variable": None,
+        "collection": None,
+        "body": None
+    }
+    
+    if hasattr(ctx, 'actionNodePrefix') and ctx.actionNodePrefix():
+        result["prefix"] = _get_occurrence_usage_prefix(ctx.actionNodePrefix())
+    
+    if hasattr(ctx, 'forVariableDeclarationMember') and ctx.forVariableDeclarationMember():
+        fvdm = ctx.forVariableDeclarationMember()
+        text_val = None
+        if hasattr(fvdm, 'usageDeclaration') and fvdm.usageDeclaration():
+            text_val = fvdm.usageDeclaration().getText()
+        else:
+            text_val = fvdm.getText()
+        if text_val and text_val.strip():
+            result["variable"] = text_val.strip()
+    
+    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
+        npm = ctx.nodeParameterMember()
+        text_val = npm.getText()
+        if text_val and text_val.strip():
+            result["collection"] = text_val.strip()
+    
+    if hasattr(ctx, 'actionBodyParameterMember') and ctx.actionBodyParameterMember():
+        abpm = ctx.actionBodyParameterMember()
+        if hasattr(abpm, 'actionBodyParameter') and abpm.actionBodyParameter():
+            result["body"] = _visit_action_body_parameter(abpm.actionBodyParameter())
+    
+    return result
+
+
+def _visit_control_node(ctx):
+    """Visit a controlNode context.
+    
+    controlNode: mergeNode | decisionNode | joinNode | forkNode
+    
+    Each sub-node has: controlNodePrefix keyword (usageDeclaration)? actionBody
+    """
+    if ctx is None:
+        return None
+    
+    result = {
+        "name": "ControlNode",
+        "prefix": None,
+        "keyword": None,
+        "body": None
+    }
+    
+    sub = None
+    if hasattr(ctx, 'mergeNode') and ctx.mergeNode():
+        sub = ctx.mergeNode()
+        result["keyword"] = "merge"
+    elif hasattr(ctx, 'decisionNode') and ctx.decisionNode():
+        sub = ctx.decisionNode()
+        result["keyword"] = "decide"
+    elif hasattr(ctx, 'joinNode') and ctx.joinNode():
+        sub = ctx.joinNode()
+        result["keyword"] = "join"
+    elif hasattr(ctx, 'forkNode') and ctx.forkNode():
+        sub = ctx.forkNode()
+        result["keyword"] = "fork"
+    
+    if sub is not None:
+        if hasattr(sub, 'controlNodePrefix') and sub.controlNodePrefix():
+            result["prefix"] = _get_occurrence_usage_prefix(sub.controlNodePrefix())
+        if hasattr(sub, 'actionBody') and sub.actionBody():
+            result["body"] = _visit_action_body(sub.actionBody())
+    
+    return result
+
+
+def _visit_send_node(ctx):
+    """Visit a sendNode context.
+
+    sendNode: occurrenceUsagePrefix
+              (actionNodeUsageDeclaration | actionUsageDeclaration)
+              SEND
+              (nodeParameterMember senderReceiverPart? | emptyParameterMember senderReceiverPart?)
+              actionBody
+    """
+    if ctx is None:
+        return None
+
+    prefix = _get_occurrence_usage_prefix(ctx)
+
+    # Build declaration dict matching SendNodeDeclaration shape
+    decl = None
+    action_node_decl = None
+    if hasattr(ctx, 'actionNodeUsageDeclaration') and ctx.actionNodeUsageDeclaration():
+        aud = ctx.actionNodeUsageDeclaration()
+        action_node_decl = {
+            "name": "ActionNodeUsageDeclaration",
+            "declaration": None
+        }
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if ud:
+                name, shortname = _get_usage_identification_from_ud(ud)
+                action_node_decl["declaration"] = {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                }
+
+    node_param = None
+    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
+        node_param = _visit_node_parameter_member(ctx.nodeParameterMember())
+
+    sender_receiver = None
+    if hasattr(ctx, 'senderReceiverPart') and ctx.senderReceiverPart():
+        sender_receiver = _visit_sender_receiver_part(ctx.senderReceiverPart())
+
+    decl = {
+        "name": "SendNodeDeclaration",
+        "declaration": action_node_decl,
+        "nodeParameter": node_param,
+        "senderReceiver": sender_receiver
+    }
+
+    body = None
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        body = _visit_action_body(ctx.actionBody())
+
+    return {
+        "name": "SendNode",
+        "prefix": prefix,
+        "declaration": decl,
+        "body": body
+    }
+
+
+def _visit_accept_node(ctx):
+    """Visit an acceptNode context.
+
+    acceptNode: occurrenceUsagePrefix acceptNodeDeclaration actionBody
+    acceptNodeDeclaration: (actionNodeUsageDeclaration)? ACCEPT acceptParameterPart
+    """
+    if ctx is None:
+        return None
+
+    prefix = _get_occurrence_usage_prefix(ctx)
+
+    decl = None
+    if hasattr(ctx, 'acceptNodeDeclaration') and ctx.acceptNodeDeclaration():
+        decl = _visit_accept_node_declaration(ctx.acceptNodeDeclaration())
+
+    body = None
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        body = _visit_action_body(ctx.actionBody())
+
+    return {
+        "name": "AcceptNode",
+        "prefix": prefix,
+        "declaration": decl,
+        "body": body
+    }
+
+
+def _visit_assignment_node(ctx):
+    """Visit an assignmentNode context.
+
+    assignmentNode: occurrenceUsagePrefix assignmentNodeDeclaration actionBody
+    assignmentNodeDeclaration: (actionNodeUsageDeclaration)? ASSIGN assignmentTargetMember featureChainMember COLON_EQ nodeParameterMember
+    """
+    if ctx is None:
+        return None
+
+    prefix = _get_occurrence_usage_prefix(ctx)
+
+    decl = None
+    if hasattr(ctx, 'assignmentNodeDeclaration') and ctx.assignmentNodeDeclaration():
+        decl = _visit_assignment_node_declaration(ctx.assignmentNodeDeclaration())
+
+    body = None
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        body = _visit_action_body(ctx.actionBody())
+
+    return {
+        "name": "AssignmentNode",
+        "prefix": prefix,
+        "declaration": decl,
+        "body": body
+    }
+
+
+def _visit_terminate_node(ctx):
+    """Visit a terminateNode context.
+
+    terminateNode: occurrenceUsagePrefix actionNodeUsageDeclaration? TERMINATE nodeParameterMember? actionBody
+    """
+    if ctx is None:
+        return None
+
+    prefix = _get_occurrence_usage_prefix(ctx)
+
+    action_node_decl = None
+    if hasattr(ctx, 'actionNodeUsageDeclaration') and ctx.actionNodeUsageDeclaration():
+        aud = ctx.actionNodeUsageDeclaration()
+        action_node_decl = {
+            "name": "ActionNodeUsageDeclaration",
+            "declaration": None
+        }
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if ud:
+                name, shortname = _get_usage_identification_from_ud(ud)
+                action_node_decl["declaration"] = {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                }
+
+    target = None
+    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
+        target = _visit_node_parameter_member(ctx.nodeParameterMember())
+
+    body = None
+    if hasattr(ctx, 'actionBody') and ctx.actionBody():
+        body = _visit_action_body(ctx.actionBody())
+
+    return {
+        "name": "TerminateNode",
+        "prefix": prefix,
+        "declaration": action_node_decl,
+        "target": target,
+        "body": body
+    }
 
 
 def _visit_succession(succ_ctx):
@@ -2984,23 +3592,30 @@ def _visit_sender_receiver_part(ctx):
     
     Grammar:
       senderReceiverPart
-        : VIA nodeParameterMember TO emptyParameterMember
-        | TO emptyParameterMember
+        : VIA nodeParameterMember (TO nodeParameterMember)?
+        | emptyParameterMember TO nodeParameterMember
         ;
     
     Returns:
-      {name: "SenderReceiverPart", via: nodeParameterMember, to: emptyParameterMember}
+      {name: "SenderReceiverPart", via: nodeParameterMember, to: nodeParameterMember}
     """
     if ctx is None:
         return None
     
     via = None
-    if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
-        via = _visit_node_parameter_member(ctx.nodeParameterMember())
-    
     to = None
-    if hasattr(ctx, 'emptyParameterMember') and ctx.emptyParameterMember():
-        to = _visit_empty_parameter_member(ctx.emptyParameterMember())
+    nps = ctx.nodeParameterMember() if hasattr(ctx, 'nodeParameterMember') else None
+    
+    if hasattr(ctx, 'VIA') and ctx.VIA():
+        # Alternative 1: VIA nodeParameterMember (TO nodeParameterMember)?
+        if nps and len(nps) > 0:
+            via = _visit_node_parameter_member(nps[0])
+        if nps and len(nps) > 1:
+            to = _visit_node_parameter_member(nps[1])
+    elif hasattr(ctx, 'TO') and ctx.TO():
+        # Alternative 2: emptyParameterMember TO nodeParameterMember
+        if nps and len(nps) > 0:
+            to = _visit_node_parameter_member(nps[0])
     
     return {
         "name": "SenderReceiverPart",
@@ -4004,7 +4619,6 @@ def _visit_empty_parameter_member(ctx):
     if ctx is None:
         return None
     
-    # This represents a state reference
     feature_chain = None
     if hasattr(ctx, 'featureChainMember') and ctx.featureChainMember():
         fc = ctx.featureChainMember()
@@ -4012,6 +4626,8 @@ def _visit_empty_parameter_member(ctx):
             fc = fc[0]
         if fc:
             feature_chain = _visit_feature_chain_member(fc)
+    elif hasattr(ctx, 'emptyUsage_') and ctx.emptyUsage_():
+        pass
     
     return {
         "name": "EmptyParameterMember",

@@ -928,8 +928,252 @@ def test_Training_State_Definitions_State_Definition_Example():
 			first on
 			accept VehicleOffSignal
 			then off;
-	}
-	
+    	}
+    	
+    }"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 22. Control Flow - IfNode
+def test_Control_Flow_If():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        if (x > 0) {
+            action doSomething;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 23. Control Flow - If-Else
+def test_Control_Flow_If_Else():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        if (x > 0) {
+            action positive;
+        } else {
+            action negative;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 24. Control Flow - If-ElseIf-Else
+def test_Control_Flow_If_ElseIf_Else():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        if (x > 0) {
+            action positive;
+        } else if (x == 0) {
+            action zero;
+        } else {
+            action negative;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 25. Control Flow - While Loop
+def test_Control_Flow_While():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        while (x > 0) {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 26. Control Flow - Loop (infinite)
+def test_Control_Flow_Loop():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        loop {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 27. Control Flow - Loop-Until
+def test_Control_Flow_Loop_Until():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        loop {
+            action process;
+        } until (done);
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 28. Control Flow - Merge Node
+def test_Control_Flow_Merge():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        merge {
+            action doSomething;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 29. Control Flow - Decision Node
+def test_Control_Flow_Decision():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        decide {
+            action doSomething;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 30. Control Flow - Join Node
+def test_Control_Flow_Join():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        join {
+            action doSomething;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 31. Control Flow - Fork Node
+def test_Control_Flow_Fork():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        fork {
+            action doSomething;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 32. Control Flow - While-Until Loop
+def test_Control_Flow_While_Until():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        while (x > 0) {
+            action process;
+        } until done;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 33. Send Node
+def test_Send_Node():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        send msg {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 34. Send Node with via and to
+def test_Send_Node_Via_To():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        send msg via chan to dest {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 35. Accept Node
+def test_Accept_Node():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        accept VehicleStartSignal {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 36. Accept Node with via
+def test_Accept_Node_Via():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        accept VehicleStartSignal via someChan {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 37. Assignment Node
+def test_Assignment_Node():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        assign x := 42 {
+            action process;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 38. Terminate Node
+def test_Terminate_Node():
+    text = """package 'Control Flow Test' {
+    action def TestAction {
+        terminate {
+            action process;
+        }
+    }
 }"""
     a = loads(text)
     b = classtree(a)
@@ -1198,8 +1442,52 @@ def test_Training_Expressions_Mass_Rollup_2():
     		attribute :>> totalMass =
     			simpleMass + sum(subcomponents.totalMass.?{in p:>ISQ::mass; p >= minMass});
     	}
-    
+    	
     }"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 39. PortionKind - snapshot
+def test_PortionKind_Snapshot():
+    text = """package 'Test' {
+    part def MyPart;
+    snapshot part myPart : MyPart;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 40. PortionKind - timeslice
+def test_PortionKind_Timeslice():
+    text = """package 'Test' {
+    part def MyPart;
+    timeslice part myPart : MyPart;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 41. PortionKind - individual
+def test_PortionKind_Individual():
+    text = """package 'Test' {
+    part def MyPart;
+    individual part myPart : MyPart;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+# 42. PortionKind - individual snapshot (combined)
+def test_PortionKind_Individual_Snapshot():
+    text = """package 'Test' {
+    part def MyPart;
+    individual snapshot part myPart : MyPart;
+}"""
     a = loads(text)
     b = classtree(a)
     assert strip_ws(text) == strip_ws(b.dump())

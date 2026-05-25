@@ -1,0 +1,55 @@
+'' Tree Diagram
+'' Hierarchical containment tree using nested PlantUML containers.
+@startuml
+
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<part>> {
+    RoundCorner 15
+}
+skinparam rectangle<<item def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<item>> {
+    RoundCorner 15
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+}
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<view>> {
+    RoundCorner 15
+}
+
+top to bottom direction
+
+title Tree Diagram
+
+hide circle
+
+rectangle "Wheel" as E1 <<part def>> {
+    rectangle "radius" as E2 <<attribute>>
+    rectangle "pressure" as E3 <<attribute>>
+}
+rectangle "BrakeSystem" as E4 <<part def>> {
+    rectangle "padThickness" as E5 <<attribute>>
+}
+rectangle "VehicleAssembly" as E6 <<part def>> {
+    rectangle "frontLeft" as E7 <<part>>
+    rectangle "frontRight" as E8 <<part>>
+    rectangle "brakes" as E9 <<part>>
+}
+rectangle "myVehicle" as E10 <<part>>
+
+@enduml

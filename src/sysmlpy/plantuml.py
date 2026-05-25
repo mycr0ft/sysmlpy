@@ -2358,3 +2358,1099 @@ def as_textual_notation(model, focus=None, style="bw", custom_style=None):
     lines.append("")
     lines.append("@enduml")
     return "\n".join(lines)
+
+
+def as_general_view(model, focus=None, elements=None, style="bw", direction="TB",
+                    include_legend=True, max_depth=None, show_external=False,
+                    custom_style=None):
+    """Generate a General View (GV) diagram.
+
+    Corresponds to SysML v2 ``GeneralView`` (short name ``gv``).
+    Presents any members of exposed model element(s) as a graph
+    of nodes and edges. This is the most general view, rendering
+    all model elements with their relationships.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<action def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<state def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<state>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<port def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<interface def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<interface>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<connection def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<connection>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<requirement def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<requirement>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<use case def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<use case>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<constraint def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<constraint>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<calculation def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<calculation>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<enumeration def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<enumeration>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<allocation def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<allocation>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<view def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<view>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam folder<<view def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam folder<<view>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "folder {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "General View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"General View \u2014 {focus_name}"
+    elif elements is not None:
+        title = f"General View \u2014 Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+
+    gv_types = {"part", "port", "interface", "item", "attribute",
+                "connection", "flow", "allocation", "action", "state",
+                "requirement", "use_case", "constraint", "calculation",
+                "enumeration", "view", "viewpoint", "concern", "metadata"}
+
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type in gv_types:
+            keyword = "rectangle"
+            if sysml_type == 'state':
+                keyword = "state"
+            elif sysml_type == 'view':
+                keyword = "folder"
+            lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+
+    lines.append("")
+
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>General View Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Composite (owns) | *-- |",
+            "  | Shared (contains) | o-- |",
+            "  | Owning Membership | +-- |",
+            "  | Feature Typing | --:|> |",
+            "  | Specialization | --|> |",
+            "  | Redefinition | --||> |",
+            "  | Binding | -[thickness=4]- |",
+            "  | Connector | -[thickness=2]-> |",
+            "  | Flow Transfer | --> |",
+            "  | Allocation | -[dotted]-> |",
+            "  | Dependency | ..>> |",
+            "endlegend",
+        ])
+        lines.append("")
+
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_package_view(model, focus=None, style="bw", direction="TB",
+                    include_legend=True, max_depth=None,
+                    show_external=False, custom_style=None):
+    """Generate a Package View diagram.
+
+    A specialization of GeneralView that filters on Package,
+    Package containment, and package Import. Renders the package
+    hierarchy showing packages and their contained elements.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional Package element to focus on (renders its subtree)
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<package>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<action def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<requirement def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<requirement>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<view def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<view>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam folder<<view def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam folder<<view>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "folder {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "Package View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Package View \u2014 {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    elements_seen = []
+
+    def collect_children(element):
+        children = getattr(element, 'children', [])
+        for child in children:
+            if isinstance(child, Package):
+                collect_children(child)
+            else:
+                seen_ids = {id(e) for e in elements_seen}
+                if id(child) not in seen_ids:
+                    elements_seen.append(child)
+                collect_children(child)
+
+    if focus is not None:
+        if isinstance(focus, Package):
+            collect_children(focus)
+        else:
+            for child in model.children:
+                if isinstance(child, Package):
+                    collect_children(child)
+    else:
+        for child in model.children:
+            if isinstance(child, Package):
+                collect_children(child)
+
+    all_elements = [elem for elem in elements_seen]
+
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=all_elements if all_elements else None,
+                            max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+
+    for child in model.children:
+        if isinstance(child, Package):
+            _render_package(lines, child, id_map, 0, max_depth)
+
+    pv_types = {"part", "item", "attribute", "action", "state",
+                "requirement", "view", "viewpoint", "port",
+                "interface", "connection", "flow", "constraint",
+                "calculation", "enumeration", "allocation"}
+
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type in pv_types:
+            keyword = "rectangle"
+            if sysml_type == 'state':
+                keyword = "state"
+            elif sysml_type == 'view':
+                keyword = "folder"
+            lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+
+    lines.append("")
+
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Package View Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Package Containment | *-- |",
+            "  | Composite (owns) | *-- |",
+            "  | Feature Typing | --:|> |",
+            "  | Specialization | --|> |",
+            "  | Import | ..> |",
+            "endlegend",
+        ])
+        lines.append("")
+
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def _render_package(lines, pkg, id_map, depth, max_depth):
+    """Render a Package element in the package view."""
+    if max_depth is not None and depth >= max_depth:
+        return
+
+    pkg_id = id(pkg)
+    pkg_alias = _get_element_id(pkg, id_map)
+    pkg_name = getattr(pkg, 'name', None) or "unnamed"
+    pkg_name = pkg_name.replace('"', "''")
+
+    children = getattr(pkg, 'children', [])
+    sub_packages = [c for c in children if isinstance(c, Package)]
+
+    if sub_packages:
+        lines.append(f'rectangle "{pkg_name}" as {pkg_alias} <<package>> {{')
+        for sub_pkg in sub_packages:
+            _render_package(lines, sub_pkg, id_map, depth + 1, max_depth)
+        lines.append("}")
+    else:
+        lines.append(f'rectangle "{pkg_name}" as {pkg_alias} <<package>>')
+
+
+# ============================================================
+# GridView Specializations
+# Per SysML v2 StandardViewDefinitions, GridView presents exposed
+# model elements and their relationships in a rectangular grid.
+# Three specializations: Tabular View, Data Value Tabular View,
+# and Relationship Matrix View.
+# ============================================================
+
+# Shared element collection helper for grid views
+def _collect_grid_elements(model, focus=None):
+    """Collect non-Model non-Package elements recursively.
+
+    Returns:
+        list of (element, name, label, kind, parent_name) tuples.
+    """
+    results = []
+    visited = set()
+
+    def collect(element, parent_name=None):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if isinstance(element, Model):
+            for child in getattr(element, 'children', []):
+                collect(child, parent_name=None)
+            return
+
+        if isinstance(element, Package):
+            for child in getattr(element, 'children', []):
+                collect(child, parent_name=parent_name)
+            return
+
+        name = getattr(element, 'name', None) or "unnamed"
+        sysml_type = getattr(element, 'sysml_type', '') or ""
+        is_def = getattr(element, 'is_definition', False)
+        kind = "def" if is_def else "usage"
+        stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
+        label = stereotype_map.get(sysml_type, sysml_type)
+
+        results.append((element, name, label, kind, parent_name or "(root)"))
+
+        for child in getattr(element, 'children', []):
+            collect(child, parent_name=name)
+
+    if focus is not None:
+        collect(focus)
+    else:
+        for child in getattr(model, 'children', []):
+            collect(child)
+
+    return results
+
+
+def _escape_markdown(text):
+    """Escape pipe and other special characters for markdown tables."""
+    if text is None:
+        return ""
+    text = str(text)
+    return text.replace("|", "\\|").replace("\n", "<br>")
+
+
+def _escape_html(text):
+    """Escape HTML special characters."""
+    if text is None:
+        return ""
+    text = str(text)
+    return (text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace('"', "&quot;"))
+
+
+def _format_table_rows_plantuml(header, rows):
+    """Format a PlantUML table from header and rows."""
+    lines = []
+    header_line = " |= ".join([""] + header + [""])
+    lines.append(header_line)
+    for row in rows:
+        safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
+        row_line = " | ".join([""] + safe_row + [""])
+        lines.append(row_line)
+    return lines
+
+
+def _format_table_rows_markdown(header, rows, align=None):
+    """Format a markdown table from header and rows."""
+    if align is None:
+        align = ["---"] * len(header)
+    lines = []
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("| " + " | ".join(align) + " |")
+    for row in rows:
+        safe_row = [_escape_markdown(c) for c in row]
+        lines.append("| " + " | ".join(safe_row) + " |")
+    return lines
+
+
+def _format_table_rows_html(header, rows, table_class="grid-view"):
+    """Format an HTML table from header and rows."""
+    lines = []
+    lines.append(f'<table class="{table_class}">')
+    lines.append("  <thead>")
+    lines.append("    <tr>")
+    for h in header:
+        lines.append(f"      <th>{_escape_html(h)}</th>")
+    lines.append("    </tr>")
+    lines.append("  </thead>")
+    lines.append("  <tbody>")
+    for row in rows:
+        lines.append("    <tr>")
+        for cell in row:
+            lines.append(f"      <td>{_escape_html(cell)}</td>")
+        lines.append("    </tr>")
+    lines.append("  </tbody>")
+    lines.append("</table>")
+    return lines
+
+
+def _detect_value_unit(element):
+    """Try to extract value and unit from an element (typically an attribute).
+
+    Returns:
+        (value_str, unit_str) tuple.
+    """
+    if getattr(element, 'sysml_type', '') != 'attribute':
+        return ("", "")
+    try:
+        value = element.get_value()
+        if hasattr(value, 'magnitude') and hasattr(value, 'units'):
+            mag = value.magnitude
+            unit_str = str(value.units)
+            if isinstance(mag, float):
+                mag = f"{mag:g}"
+            return (str(mag), unit_str)
+        return (str(value), "")
+    except (AttributeError, Exception):
+        return ("", "")
+
+
+# ============================================================
+# 1. Tabular View
+# ============================================================
+
+DEFAULT_TABULAR_COLUMNS = ["Name", "Type", "Kind", "Parent", "Typed By", "Specializes"]
+
+
+def as_tabular_view(model, focus=None, style="bw", output_format="plantuml",
+                    columns=None, custom_style=None):
+    """Generate a Tabular View — a GridView specialization.
+
+    Presents exposed model elements in a table with configurable columns.
+    Default columns: Name, Type, Kind, Parent, Typed By, Specializes.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (lists its subtree)
+        style: "bw" (default) or "color"
+        output_format: "plantuml" (default), "markdown", or "html"
+        columns: List of column names to include, or None for defaults
+        custom_style: Optional style lines (PlantUML) or CSS (HTML)
+
+    Returns:
+        str: Table text in the requested format
+    """
+    if columns is None:
+        columns = DEFAULT_TABULAR_COLUMNS
+
+    elements = _collect_grid_elements(model, focus=focus)
+
+    header = columns[:]
+    rows = []
+    for element, name, label, kind, parent_name in elements:
+        row = []
+        for col in columns:
+            if col == "Name":
+                row.append(name)
+            elif col == "Type":
+                row.append(label)
+            elif col == "Kind":
+                row.append(kind)
+            elif col == "Parent":
+                row.append(parent_name)
+            elif col == "Typed By":
+                tb = _get_typedby_name(element)
+                row.append(tb if tb else "")
+            elif col == "Specializes":
+                specs = _get_specializes_names(element)
+                row.append(", ".join(specs) if specs else "")
+            elif col == "Redefines":
+                reds = _get_redefines_names(element)
+                row.append(", ".join(reds) if reds else "")
+            else:
+                row.append("")
+        rows.append(row)
+
+    if output_format == "markdown":
+        align = []
+        for col in columns:
+            if col in ("Name", "Typed By", "Specializes", "Redefines"):
+                align.append(":---")
+            else:
+                align.append("---")
+        parts = _format_table_rows_markdown(header, rows, align=align)
+        if custom_style:
+            parts = [f"<!-- {custom_style} -->"] + parts
+        return "\n".join(parts)
+
+    if output_format == "html":
+        parts = _format_table_rows_html(header, rows, table_class="tabular-view")
+        if custom_style:
+            css_lines = ["<style>"]
+            css_lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+            css_lines.append("</style>")
+            parts = css_lines + parts
+        return "\n".join(parts)
+
+    # PlantUML output (default)
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+
+    lines.append("")
+
+    title = "Tabular View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Tabular \u2014 {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    lines.extend(_format_table_rows_plantuml(header, rows))
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+# ============================================================
+# 2. Data Value Tabular View
+# ============================================================
+
+DATA_VALUE_COLUMNS = ["Element", "Attribute", "Value", "Unit", "Type"]
+
+
+def as_data_value_tabular_view(model, focus=None, style="bw",
+                               output_format="plantuml",
+                               include_units=True, custom_style=None):
+    """Generate a Data Value Tabular View — a GridView specialization.
+
+    Presents attribute elements and their values in a table.
+    Shows: parent element, attribute name, value, unit, and attribute type.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (lists its subtree)
+        style: "bw" (default) or "color"
+        output_format: "plantuml" (default), "markdown", or "html"
+        include_units: Whether to show units (default True)
+        custom_style: Optional style lines (PlantUML) or CSS (HTML)
+
+    Returns:
+        str: Table text in the requested format
+    """
+    elements = _collect_grid_elements(model, focus=focus)
+
+    header = ["Element", "Attribute", "Value", "Unit", "Type"]
+    rows = []
+
+    for element, name, label, kind, parent_name in elements:
+        sysml_type = getattr(element, 'sysml_type', '')
+        if sysml_type != 'attribute':
+            continue
+        val_str, unit_str = _detect_value_unit(element)
+        if not include_units:
+            unit_str = ""
+        typed_by = _get_typedby_name(element) or ""
+        row = [parent_name, name, val_str, unit_str, typed_by]
+        rows.append(row)
+
+    if output_format == "markdown":
+        align = [":---", ":---", ":--", ":--", ":---"]
+        parts = _format_table_rows_markdown(header, rows, align=align)
+        if custom_style:
+            parts = [f"<!-- {custom_style} -->"] + parts
+        return "\n".join(parts)
+
+    if output_format == "html":
+        parts = _format_table_rows_html(header, rows, table_class="data-value-view")
+        if custom_style:
+            css_lines = ["<style>"]
+            css_lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+            css_lines.append("</style>")
+            parts = css_lines + parts
+        return "\n".join(parts)
+
+    # PlantUML output (default)
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+
+    lines.append("")
+
+    title = "Data Value Tabular View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Data Values \u2014 {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    lines.extend(_format_table_rows_plantuml(header, rows))
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+# ============================================================
+# 3. Relationship Matrix View
+# ============================================================
+
+RELATIONSHIP_LABELS = {
+    "composite": "C",
+    "shared": "S",
+    "typing": "T",
+    "specialization": "G",
+    "redefinition": "R",
+    "binding": "B",
+    "connector": "N",
+    "flow": "F",
+    "succession": "U",
+    "allocation": "A",
+    "dependency": "D",
+    "import": "I",
+}
+
+
+def _get_relationship_between(source, target, model):
+    """Check relationships between two elements.
+
+    Returns:
+        list of relationship type strings from RELATIONSHIP_LABELS.
+    """
+    rels = []
+    source_id = id(source)
+    target_id = id(target)
+
+    if source_id == target_id:
+        return []
+
+    # Check composite containment: source is parent of target
+    parent = getattr(target, 'parent', None)
+    if parent is not None and id(parent) == source_id:
+        rels.append("composite")
+
+    # Check typing: source types target
+    typedby = getattr(target, 'typedby', None)
+    if typedby is not None and id(typedby) == source_id:
+        rels.append("typing")
+
+    # Check specialization via grammar
+    source_specs = _get_specializes_names(source)
+    target_name = getattr(target, 'name', None)
+    if target_name and target_name in source_specs:
+        rels.append("specialization")
+
+    target_specs = _get_specializes_names(target)
+    source_name = getattr(source, 'name', None)
+    if source_name and source_name in target_specs:
+        rels.append("specialization")
+
+    # Check parent relationship (shared containment - siblings)
+    source_parent = getattr(source, 'parent', None)
+    target_parent = getattr(target, 'parent', None)
+    if source_parent is not None and target_parent is not None and id(source_parent) == id(target_parent):
+        if source_id != target_id:
+            rels.append("shared")
+
+    return rels
+
+
+def as_relationship_matrix_view(model, focus=None, style="bw",
+                                output_format="plantuml",
+                                row_type=None, col_type=None,
+                                symmetric=True, custom_style=None):
+    """Generate a Relationship Matrix View — a GridView specialization.
+
+    Presents a matrix/grid showing relationships between model elements.
+    Each cell indicates the type of relationship (C=composite, T=typing,
+    G=specialization, B=binding, F=flow, etc.).
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (lists its subtree)
+        style: "bw" (default) or "color"
+        output_format: "plantuml" (default), "markdown", or "html"
+        row_type: Optional sysml_type filter for row elements
+        col_type: Optional sysml_type filter for column elements
+        symmetric: If True, uses same elements for rows and columns
+        custom_style: Optional style lines (PlantUML) or CSS (HTML)
+
+    Returns:
+        str: Matrix text in the requested format
+    """
+    elements = _collect_grid_elements(model, focus=focus)
+
+    all_elems = [e for e, _, _, _, _ in elements]
+    row_elems = all_elems
+    col_elems = all_elems if symmetric else all_elems
+
+    if row_type:
+        row_elems = [e for e in row_elems if getattr(e, 'sysml_type', '') == row_type]
+    if col_type:
+        col_elems = [e for e in col_elems if getattr(e, 'sysml_type', '') == col_type]
+    if symmetric:
+        col_elems = row_elems
+
+    # Build header + rows
+    header = [getattr(e, 'name', '?') or '?' for e in col_elems]
+    matrix_rows = []
+    for src in row_elems:
+        src_name = getattr(src, 'name', None) or "unnamed"
+        row = [src_name]
+        for tgt in col_elems:
+            rels = _get_relationship_between(src, tgt, model)
+            if rels:
+                labels = "".join(RELATIONSHIP_LABELS.get(r, r[0].upper()) for r in rels)
+                row.append(labels)
+            else:
+                row.append("")
+        matrix_rows.append(row)
+
+    if output_format == "markdown":
+        parts = _format_table_rows_markdown(header, matrix_rows, align=None)
+        if custom_style:
+            parts = [f"<!-- {custom_style} -->"] + parts
+        return "\n".join(parts)
+
+    if output_format == "html":
+        parts = []
+        parts.append('<table class="relationship-matrix-view">')
+        parts.append("  <thead>")
+        parts.append("    <tr>")
+        parts.append("      <th></th>")
+        for h in header:
+            parts.append(f"      <th>{_escape_html(h)}</th>")
+        parts.append("    </tr>")
+        parts.append("  </thead>")
+        parts.append("  <tbody>")
+        for row in matrix_rows:
+            src_name = row[0]
+            cells = row[1:]
+            parts.append("    <tr>")
+            parts.append(f"      <th>{_escape_html(src_name)}</th>")
+            for cell in cells:
+                cell_class = ""
+                if cell:
+                    cell_class = f' class="rel-{cell.lower()}"'
+                parts.append(f"      <td{cell_class}>{_escape_html(cell)}</td>")
+            parts.append("    </tr>")
+        parts.append("  </tbody>")
+        parts.append("</table>")
+        if custom_style:
+            css_lines = ["<style>"]
+            css_lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+            css_lines.append("</style>")
+            parts = css_lines + parts
+        parts.append("")
+        parts.append("<!-- Legend: " + ", ".join(f"{k}={v}" for k, v in RELATIONSHIP_LABELS.items()) + " -->")
+        return "\n".join(parts)
+
+    # PlantUML output (default) - use salt matrix
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 11",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 11",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style if isinstance(custom_style, list) else [custom_style])
+
+    lines.append("")
+
+    title = "Relationship Matrix View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Relationship Matrix \u2014 {focus_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    # Build PlantUML salt matrix
+    lines.append("salt")
+    lines.append("{")
+    # Header row (empty corner + column names)
+    header_cells = '| ' + ' | '.join(f'<&question> {h}' if h else '?' for h in [''] + header)
+    lines.append(header_cells)
+    # Data rows
+    for row in matrix_rows:
+        safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
+        row_cells = '| ' + ' | '.join(safe_row)
+        lines.append(row_cells)
+    lines.append("}")
+    lines.append("")
+
+    # Legend
+    lines.append("legend bottom")
+    lines.append("  <b>Relationship Legend</b>")
+    for rel_name, rel_code in RELATIONSHIP_LABELS.items():
+        lines.append(f"  {rel_code} = {rel_name}")
+    lines.append("endlegend")
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)

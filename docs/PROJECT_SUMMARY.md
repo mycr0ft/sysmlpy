@@ -1,8 +1,8 @@
 # sysmlpy — Project Work Summary
 
 > **For:** Future agents and team members
-> **Last Updated:** May 24, 2026
-> **Current Version:** v0.26.0
+> **Last Updated:** May 25, 2026
+> **Current Version:** v0.27.0
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -20,7 +20,7 @@ sysmlpy/
 │   ├── antlr_parser.py      # ANTLR4 lexer/parser setup
 │   ├── antlr_visitor.py     # ~11K lines: parse tree → internal dict
 │   ├── grammar/
-│   │   ├── classes.py       # ~8.7K lines: grammar class hierarchy
+│   │   ├── classes.py       # ~8.8K lines: grammar class hierarchy (no NotImplementedError)
 │   │   └── antlr4/          # Generated ANTLR parser/lexer
 │   ├── definition.py        # Model, Package, RootNamespace classes
 │   ├── usage.py             # Part, Item, Attribute, Port, Action, etc.
@@ -35,11 +35,16 @@ sysmlpy/
 │       ├── systems/         # SysML base (SysML.sysml)
 │       └── domain/          # ISQ, SI units, base quantities
 ├── tests/
-│   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
-│   ├── class_test.py        # 53 programmatic API tests
-│   ├── semantic_test.py     # 90 semantic analysis tests
-│   ├── project_test.py      # 12 multi-file loading tests
-│   ├── store_test.py        # 82 storage backend tests (memory + networkx)
+│   ├── grammar_test.py      # 77 round-trip tests (61 pass, 16 deferred)
+│   ├── class_test.py        # 54 programmatic API tests
+│   ├── main_test.py         # 7 integration tests
+│   ├── plantuml_test.py     # 108 PlantUML view rendering tests
+│   ├── semantic_test.py     # 107 semantic analysis tests
+│   ├── project_test.py      # 17 multi-file loading tests
+│   ├── navigate_test.py     # 33 model navigation tests
+│   ├── import_test.py       # 16 import resolution tests
+│   ├── validator_test.py    # 34 validator tests
+│   ├── store_test.py        # 46 storage backend tests
 │   ├── conformance_test.py  # 123 OMG XPect conformance tests
 │   └── sysmlv2/             # Conformance test fixtures
 └── docs/                    # Documentation
@@ -67,8 +72,11 @@ SysML text → ANTLR4 Lexer/Parser → Parse Tree
 
 ### Grammar Round-Trip
 
-- **56/56 grammar round-trip tests pass** (100%)
+- **61/77 grammar round-trip tests pass**; all 61 non-control-flow tests pass (100%)
+- 16 tests deferred pending action control-flow node classes (`IfNode`, `WhileLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`)
 - Every grammar class has `dump()` and `get_definition()` for serialization
+- All 68+ `raise NotImplementedError` stubs replaced with graceful handling (v0.27.0)
+- Missing classes added: `DefinitionBody`, `DefinitionBodyItem`, `FeatureSpecializationPart`, `SubclassificationPart`
 - `classtree()` converts Model tree back to text
 
 ### Semantic Analysis (v0.17.0 → v0.20.1)
@@ -99,27 +107,38 @@ Three new API functions enable cross-file import resolution:
 - Standard library validation: `ScalarValues`, `ISQ`, etc. recognized as valid
 - 12 new tests in `tests/project_test.py`
 
-### PlantUML View Renderings (v0.25.2 → v0.26.0)
+### PlantUML View Renderings (v0.25.2 → v0.27.0)
 
-Five initial view rendering functions were added in v0.25.2, then three SysML v2 standard view definitions were added in v0.26.0:
+Eight view rendering functions across two releases:
 
-| Function | Corresponds to | Description |
-|----------|---------------|-------------|
-| `as_graphical_rendering()` | `GraphicalRendering` | Elements as shapes with relationship arrows |
-| `as_interconnection_diagram()` / `as_interconnection_view()` | `InterconnectionView` (`iv`) | Features as nodes, connections as edges |
-| `as_action_flow_view()` | `ActionFlowView` (`afv`) | Actions with flow connections |
-| `as_state_transition_view()` | `StateTransitionView` (`stv`) | States with transitions |
-| `as_tree_diagram()` | Tree/structure view | Nested containers showing hierarchy |
-| `as_element_table()` | `TabularRendering` | Tabular listing of elements |
-| `as_textual_notation()` | `TextualRendering` | Indented text in a PlantUML note |
+| Function | SysML v2 View | Output | Release |
+|----------|--------------|--------|---------|
+| `as_graphical_rendering()` | `GraphicalRendering` | PlantUML | v0.25.2 |
+| `as_interconnection_diagram()` / `as_interconnection_view()` | `InterconnectionView` (`iv`) | PlantUML | v0.25.2 / v0.26.0 |
+| `as_action_flow_view()` | `ActionFlowView` (`afv`) | PlantUML | v0.26.0 |
+| `as_state_transition_view()` | `StateTransitionView` (`stv`) | PlantUML | v0.26.0 |
+| `as_tree_diagram()` | Tree/structure | PlantUML | v0.25.2 |
+| `as_element_table()` | `TabularRendering` | PlantUML | v0.25.2 |
+| `as_textual_notation()` | `TextualRendering` | PlantUML | v0.25.2 |
+| `as_general_view()` | `GeneralView` (`gv`) | PlantUML | v0.27.0 |
+| `as_package_view()` | Package View | PlantUML | v0.27.0 |
+| `as_tabular_view()` | `TabularView` (GridView) | PlantUML / MD / HTML | v0.27.0 |
+| `as_data_value_tabular_view()` | Data Value Tabular View | PlantUML / MD / HTML | v0.27.0 |
+| `as_relationship_matrix_view()` | Relationship Matrix View | PlantUML / MD / HTML | v0.27.0 |
+
+**v0.27.0 additions:**
+- **General View** — all SysML v2 element types; full filtering by focus/elements/depth
+- **Package View** — package hierarchy with contained elements and import arrows
+- **Tabular View** — GridView specialization with configurable columns; PlantUML/Markdown/HTML output
+- **Data Value Tabular View** — attribute values + units; PlantUML/Markdown/HTML output
+- **Relationship Matrix View** — cross-element relationship matrix; PlantUML/Markdown/HTML output
+- 108 PlantUML tests total (up from 101 in v0.26.0)
 
 **v0.26.0 features:**
-- **Action Flow View** — renders actions with `action`/`action def` stereotypes; auto-discovers flow connections from grammar bodies and renders flow arrows between connected actions
-- **Interconnection View** — renders `part`, `port`, `interface`, `item`, `attribute`, `connection`, `flow` elements; `auto_include_connections` discovers bindings, connectors, and flows for selected features
-- **State Transition View** — renders states with PlantUML's `state` keyword; resolves `Transition` source/target names to model elements and draws transition arrows; `auto_include_transitions` expands selection to include connected states
-- **Grammar-level scanning** — flows embedded in action/part bodies (as raw `FlowConnectionUsage`/`FlowConnectionDefinition` objects) are discovered and rendered as arrows
-- **All views support:** `focus`, `elements`, `show_external`, `auto_include_*`, `custom_style`, `direction`, B&W/color toggle, and legend
-- 39 new tests in `tests/plantuml_test.py` (101 total PlantUML tests)
+- **Action Flow View** — actions + flow connections; auto-discovers flow arrows from grammar bodies
+- **Interconnection View** — parts, ports, connections; `auto_include_connections` discovers bindings
+- **State Transition View** — states + transitions; `auto_include_transitions` expands selection
+- All views support: `focus`, `elements`, `show_external`, `auto_include_*`, `custom_style`, `direction`, B&W/color toggle, and legend
 
 ### Stylistic Checks (v0.25.5)
 
@@ -160,14 +179,18 @@ The `analyze()` function now includes stylistic checks that warn about naming co
 
 | Suite | Count | Status |
 |-------|-------|--------|
-| Grammar round-trip | 56 | ✅ 56 pass |
-| Programmatic API | 53 | ✅ 53 pass |
+| Grammar round-trip | 77 | 61 pass, 16 deferred (control-flow nodes) |
+| Programmatic API | 54 | ✅ 54 pass |
+| Integration (main) | 7 | ✅ 7 pass |
+| PlantUML rendering | 108 | ✅ 108 pass |
 | Semantic analysis | 107 | ✅ 107 pass |
 | Multi-file loading | 17 | ✅ 17 pass |
-| PlantUML rendering | 101 | ✅ 101 pass |
-| Storage backends | 82 | ✅ 82 pass |
+| Model navigation | 33 | ✅ 33 pass |
+| Import resolution | 16 | ✅ 16 pass |
+| Validator | 34 | ✅ 34 pass |
+| Storage backends | 46 | ✅ pass (optional deps skipped if missing) |
 | Conformance | 123 | ✅ 123 pass |
-| **Total** | **539** | **✅ 539 pass, 0 fail** |
+| **Total** | **622** | **606 pass, 16 deferred** |
 
 ---
 
@@ -220,6 +243,7 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 
 | Issue | Location | Impact |
 |-------|----------|--------|
+| **Action control-flow node classes missing** | `grammar/classes.py` | `IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`, etc. exist in the visitor but not in `grammar/classes.py`. 16 grammar tests fail with `KeyError`. |
 | **Top-level attribute multiplicity not captured** | `antlr_visitor.py` ~line 9558 | Attributes defined at package level (not inside a definition) have `specialization=None` hardcoded, so multiplicity like `attribute x[5..2]` is lost. Nested attributes inside definitions work correctly. |
 | **Typed-by not preserved in load_from_grammar** | `usage.py` (marked `#!TODO Typed By`) | When loading a model from grammar, type relationships (`: TypeName`) are not preserved on the public class objects. |
 | **Duplicate ActionUsage block** | `definition.py` | Dead code — duplicate `elif inner_class == "ActionUsage"` block. |
@@ -242,7 +266,6 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 | **No OCL constraint on succession source/target** | `semantic.py` | SuccessionAsUsage source and target should be actions — not validated. |
 | **No OCL constraint on requirement subject** | `semantic.py` | Requirements should have a subject parameter — not validated. |
 | **No OCL constraint on flow payload compatibility** | `semantic.py` | Flow payload must be compatible with source/target — not validated. |
-| **STATUS.md is stale** | `docs/STATUS.md` | Still reports v0.11.0 and outdated test counts. |
 
 ---
 
@@ -290,13 +313,11 @@ Multiplicity ranges (`[N]`, `[N..M]`, `[*]`) are stored as part of the `FeatureS
 
 ### Documentation
 
-17. **Update STATUS.md** — Bring in line with current state (v0.21.0, 416 tests, 100% conformance).
+17. **API documentation** — Generate API docs from docstrings (Sphinx or MkDocs).
 
-18. **API documentation** — Generate API docs from docstrings (Sphinx or MkDocs).
+18. **Semantic analysis guide** — Dedicated documentation page for using `analyze()` and interpreting results.
 
-19. **Semantic analysis guide** — Dedicated documentation page for using `analyze()` and interpreting results.
-
-20. **Multi-file project guide** — Document `load_files()`, `load_project()`, and `load_with_dependencies()` with examples for common project structures.
+19. **Multi-file project guide** — Document `load_files()`, `load_project()`, and `load_with_dependencies()` with examples for common project structures.
 
 ---
 

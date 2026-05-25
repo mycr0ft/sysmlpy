@@ -1,9 +1,6 @@
+'' Relationship Arrows
+'' Demonstrates typing (--:|>), specialization (--|>), and ownership (*--) arrows.
 @startuml
-' ============================================================
-' Example 2: Relationship Arrow Approximations
-' Shows all major SysML v2 relationships mapped to PlantUML
-' arrow syntax as done by the reference implementation.
-' ============================================================
 
 <style>
 root {
@@ -12,115 +9,111 @@ root {
     FontSize 13
 }
 rectangle {
-    RoundCorner 15
     LineColor #444444
-    LineThickness 1
+    LineThickness 1.5
     BackgroundColor white
-    Padding 12
+    Padding 10
 }
 arrow {
+    LineColor #555555
+    LineThickness 1.5
     FontSize 11
 }
 </style>
 
-skinparam wrapWidth 350
+skinparam wrapWidth 400
+
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<item def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<attribute def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<port def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<state def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+}
+skinparam rectangle<<part>> {
+    RoundCorner 15
+}
+skinparam rectangle<<item>> {
+    RoundCorner 15
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+}
+skinparam rectangle<<port>> {
+    RoundCorner 15
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+}
+skinparam rectangle<<state>> {
+    RoundCorner 15
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+}
+skinparam folder<<view def>> {
+    BackgroundColor #F5E6FF
+    BorderColor #8E44AD
+}
+skinparam folder<<view>> {
+    BackgroundColor #F5E6FF
+    BorderColor #8E44AD
+}
+
+top to bottom direction
+
+title d0cc66a3-4563-477e-af13-387ff666eea2
+
 hide circle
 
-title SysML v2 — Relationship Arrow Approximations
+rectangle "Wheel" as E1 <<(P,#32CD32) part def>>
+rectangle "radius" as E2 <<(A,#32CD32) attribute>>
+rectangle "pressure" as E3 <<(A,#32CD32) attribute>>
+rectangle "BrakeSystem" as E4 <<(P,#32CD32) part def>>
+rectangle "padThickness" as E5 <<(A,#32CD32) attribute>>
+rectangle "VehicleAssembly" as E6 <<(P,#32CD32) part def>>
+rectangle "frontLeft" as E7 <<(P,#32CD32) part>>
+rectangle "frontRight" as E8 <<(P,#32CD32) part>>
+rectangle "brakes" as E9 <<(P,#32CD32) part>>
+rectangle "myVehicle" as E10 <<(P,#32CD32) part>>
 
-' --- Elements ---
-rectangle "Wheel" as Wheel <<(D,#8B4513) part def>>
-rectangle "RotatingPart" as RotPart <<(D,#8B4513) part def>>
-rectangle "frontWheel" as FW <<(P,#32CD32) part>>
-rectangle "spindle" as Spindle <<(P,#32CD32) port>>
-rectangle "brakeDisk" as BD <<(P,#32CD32) part>>
-rectangle "hubAssembly" as Hub <<(P,#32CD32) part>>
+E1 *-- E2
+E1 *-- E3
+E4 *-- E5
+E6 *-- E7
+E7 --:|> E1 : types
+E6 *-- E8
+E8 --:|> E1 : types
+E6 *-- E9
+E9 --:|> E4 : types
+E10 --:|> E6 : types
 
-' ============================================================
-' 1. SPECIALIZATION (generalization)
-'    SysML: open triangle arrowhead
-'    PlantUML: --|>  (filled block arrow)
-' ============================================================
-Wheel --|> RotPart : <<specialization>>\n--|> (filled block arrow)
-
-' ============================================================
-' 2. FEATURE TYPING
-'    SysML: colon + open triangle
-'    PlantUML: --:|>  (colon + block arrow)
-' ============================================================
-FW --:|> Wheel : <<featureTyping>>\n--:|> (colon + block arrow)
-
-' ============================================================
-' 3. REDEFINITION
-'    SysML: slash through arrowhead
-'    PlantUML: --||>  (double bar + block arrow)
-' ============================================================
-BD --||> FW.redefinedFeature : <<redefinition>>\n--||> (double bar + arrow)
-
-' ============================================================
-' 4. COMPOSITE AGGREGATION (FeatureMembership, isComposite)
-'    SysML: filled diamond
-'    PlantUML: *--  (filled diamond)  ✓ Exact match
-' ============================================================
-Hub *-- Spindle : <<composite>>\n*-- (filled diamond)
-
-' ============================================================
-' 5. SHARED AGGREGATION (FeatureMembership, !isComposite)
-'    SysML: hollow diamond
-'    PlantUML: o--  (hollow diamond)  ✓ Exact match
-' ============================================================
-Hub o-- BD : <<shared>>\no-- (hollow diamond)
-
-' ============================================================
-' 6. BINDING CONNECTOR
-'    SysML: solid line, no arrowhead, emphasized
-'    PlantUML: -[thickness=4,#E74C3C]-  (thick red line)
-' ============================================================
-Hub -[thickness=4,#E74C3C]- FW : <<binding>>\n-[thickness=4]- (thick line)
-
-' ============================================================
-' 7. CONNECTOR (with metadata/flow)
-'    SysML: solid line with arrowhead
-'    PlantUML: -[thickness=2,#3498DB]->  (medium blue arrow)
-' ============================================================
-Hub -[thickness=2,#3498DB]-> FW : <<connector>>\n-[thickness=2]-> (medium arrow)
-
-' ============================================================
-' 8. DEPENDENCY
-'    SysML: dashed line with open arrow
-'    PlantUML: ..>>  (dotted double-arrow)
-' ============================================================
-FW ..>> BD : <<dependency>>\n..>> (dotted double-arrow)
-
-' ============================================================
-' 9. FLOW / SUCCESSION
-'    SysML: dashed line with open arrow
-'    PlantUML: -->  (dotted arrow)
-' ============================================================
-FW --> BD : <<flow>>\n--> (dotted arrow)
-
-' ============================================================
-' 10. ALLOCATION
-'     SysML: dashed line with specific allocation arrowhead
-'     PlantUML: -[thickness=3,dotted,#9B59B6]->  (thick dotted purple arrow)
-' ============================================================
-Hub -[thickness=3,dotted,#9B59B6]-> FW : <<allocation>>\n-[thickness=3,dotted]-> (thick dotted)
-
-' ============================================================
-' LEGEND
-' ============================================================
 legend right
-  <b>Arrow Approximation Legend</b>
-  |= SysML v2 |= PlantUML |= Quality |
-  | Open triangle (specialization) | --|> filled block | <color:orange>Approx</color> |
-  | Colon + open triangle (typing) | --:|> colon + block | <color:orange>Approx</color> |
-  | Slash on arrowhead (redef) | --||> double bar | <color:orange>Approx</color> |
-  | Filled diamond (composite) | *-- filled diamond | <color:green>Exact</color> |
-  | Hollow diamond (shared) | o-- hollow diamond | <color:green>Exact</color> |
-  | Thick line (binding) | -[thickness=4]- | <color:green>Good</color> |
-  | Dashed open arrow (flow) | --> dotted arrow | <color:orange>Approx</color> |
-  | Dashed open arrow (dep) | ..>> dotted dbl | <color:orange>Approx</color> |
-  | Dashed allocation | -[dotted]-> | <color:orange>Approx</color> |
+  <b>SysML v2 Relationship Legend</b>
+  |= Relationship |= Notation |
+  | Feature Typing | --:|> |
+  | Specialization | --|> |
+  | Redefinition | --||> |
+  | Composite (owns) | *-- |
+  | Shared | o-- |
+  | Binding | -[thickness=4]- |
+  | Connector | -[thickness=2]-> |
+  | Flow | --> |
+  | Dependency | ..>> |
 endlegend
 
 @enduml

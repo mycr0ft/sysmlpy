@@ -652,6 +652,8 @@ class TestViewRenderings:
             as_element_table,
             as_textual_notation,
             as_interconnection_diagram,
+            as_general_view,
+            as_package_view,
         )
 
         model = sysmlpy.loads("""
@@ -666,6 +668,8 @@ class TestViewRenderings:
             as_element_table,
             as_textual_notation,
             as_interconnection_diagram,
+            as_general_view,
+            as_package_view,
         ]:
             puml = func(model)
             assert puml.startswith("@startuml"), f"{func.__name__} missing @startuml"
@@ -1285,3 +1289,610 @@ class TestStateTransitionView:
         assert "t1" in puml
         assert "t2" in puml
         assert "t3" in puml
+
+
+class TestGeneralView:
+    """Tests for the General View (GV) rendering."""
+
+    def test_as_general_view_basic(self):
+        """General View produces valid PlantUML structure."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Vehicle {
+                part frontLeft : Wheel;
+            }
+            action def Start;
+        }
+        """)
+        puml = as_general_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "General View" in puml
+        assert "Engine" in puml
+        assert "Vehicle" in puml
+        assert "Start" in puml
+
+    def test_as_general_view_element_types(self):
+        """General View renders multiple element types."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def MyPart;
+            item def MyItem;
+            attribute def MyAttribute;
+            port def MyPort;
+            action def MyAction;
+            state def MyState;
+            constraint def MyConstraint;
+            requirement def MyReq;
+            connection def MyConn;
+            flow def MyFlow;
+        }
+        """)
+        puml = as_general_view(model)
+
+        assert "MyPart" in puml
+        assert "MyItem" in puml
+        assert "MyAttribute" in puml
+        assert "MyPort" in puml
+        assert "MyAction" in puml
+        assert "MyState" in puml
+        assert "MyReq" in puml
+        assert "MyConn" in puml
+        assert "MyFlow" in puml
+
+    def test_as_general_view_with_focus(self):
+        """Focus on an element shows its subtree."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+                attribute torque;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_general_view(model, focus=engine)
+
+        assert "Engine" in puml
+        assert "power" in puml
+        assert "torque" in puml
+        assert "Wheel" not in puml
+
+    def test_as_general_view_bw_style(self):
+        """B&W style produces monochrome output."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_general_view(model, style="bw")
+
+        assert "skinparam monochrome true" in puml
+
+    def test_as_general_view_color_style(self):
+        """Color style produces CSS block."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_general_view(model, style="color")
+
+        assert "<style>" in puml
+
+    def test_as_general_view_legend(self):
+        """Legend is included by default."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_general_view(model, include_legend=True)
+
+        assert "General View Legend" in puml
+
+    def test_as_general_view_no_legend(self):
+        """Legend can be excluded."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_general_view(model, include_legend=False)
+
+        assert "legend right" not in puml
+
+    def test_as_general_view_direction(self):
+        """Direction parameter works."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_general_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_general_view_with_elements(self):
+        """Element selection works."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_general_view(model, elements=[engine])
+
+        assert "Engine" in puml
+        assert "Wheel" not in puml
+
+    def test_as_general_view_custom_style(self):
+        """Custom style lines are appended."""
+        from sysmlpy.plantuml import as_general_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        custom = ["skinparam backgroundColor LightGray"]
+        puml = as_general_view(model, custom_style=custom)
+
+        assert "skinparam backgroundColor LightGray" in puml
+
+
+class TestPackageView:
+    """Tests for the Package View rendering."""
+
+    def test_as_package_view_basic(self):
+        """Package View produces valid PlantUML structure."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            package Q {
+                part def Wheel;
+            }
+        }
+        """)
+        puml = as_package_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Package View" in puml
+        assert "P" in puml
+        assert "Q" in puml
+        assert "Engine" in puml
+        assert "Wheel" in puml
+
+    def test_as_package_view_bw_style(self):
+        """B&W style produces monochrome output."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_package_view(model, style="bw")
+
+        assert "skinparam monochrome true" in puml
+
+    def test_as_package_view_color_style(self):
+        """Color style produces CSS block."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_package_view(model, style="color")
+
+        assert "<style>" in puml
+
+    def test_as_package_view_legend(self):
+        """Legend is included by default."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_package_view(model, include_legend=True)
+
+        assert "Package View Legend" in puml
+
+    def test_as_package_view_no_legend(self):
+        """Legend can be excluded."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_package_view(model, include_legend=False)
+
+        assert "legend right" not in puml
+
+    def test_as_package_view_direction(self):
+        """Direction parameter works."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_package_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_package_view_custom_style(self):
+        """Custom style lines are appended."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        custom = ["skinparam backgroundColor LightGray"]
+        puml = as_package_view(model, custom_style=custom)
+
+        assert "skinparam backgroundColor LightGray" in puml
+
+    def test_as_package_view_nested_packages(self):
+        """Nested packages are rendered as nested rectangles."""
+        from sysmlpy.plantuml import as_package_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            package Q {
+                part def Wheel;
+                package R {
+                    part def Tire;
+                }
+            }
+        }
+        """)
+        puml = as_package_view(model)
+
+        assert "P" in puml
+        assert "Q" in puml
+        assert "R" in puml
+        assert "{" in puml
+        assert "}" in puml
+
+
+class TestTabularView:
+    """Tests for the Tabular View (GridView specialization)."""
+
+    def test_as_tabular_view_plantuml(self):
+        """Tabular View produces valid PlantUML table."""
+        from sysmlpy.plantuml import as_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Wheel;
+        }
+        """)
+        puml = as_tabular_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Tabular View" in puml
+        assert "Engine" in puml
+        assert "Wheel" in puml
+        assert "Name" in puml
+        assert "Type" in puml
+        assert "Kind" in puml
+        assert "Parent" in puml
+
+    def test_as_tabular_view_markdown(self):
+        """Tabular View produces markdown table."""
+        from sysmlpy.plantuml import as_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        md = as_tabular_view(model, output_format="markdown")
+
+        assert "| Name " in md
+        assert "| Engine " in md
+        assert "| part def " in md
+        assert "| :--- " in md
+
+    def test_as_tabular_view_html(self):
+        """Tabular View produces HTML table."""
+        from sysmlpy.plantuml import as_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        html = as_tabular_view(model, output_format="html")
+
+        assert "<table" in html
+        assert "</table>" in html
+        assert "<th>Name</th>" in html
+        assert "<td>Engine</td>" in html
+        assert "<td>part def</td>" in html
+
+    def test_as_tabular_view_custom_columns(self):
+        """Tabular View supports custom column selection."""
+        from sysmlpy.plantuml import as_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        md = as_tabular_view(model, columns=["Name", "Type"], output_format="markdown")
+
+        assert "| Name " in md
+        assert "| Type " in md
+        assert "| Kind " not in md
+        assert "| Engine " in md
+
+    def test_as_tabular_view_with_focus(self):
+        """Tabular View with focus shows only subtree."""
+        from sysmlpy.plantuml import as_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        md = as_tabular_view(model, focus=engine, output_format="markdown")
+
+        assert "Engine" in md
+        assert "power" in md
+        assert "Wheel" not in md
+
+
+class TestDataValueTabularView:
+    """Tests for the Data Value Tabular View (GridView specialization)."""
+
+    def test_as_data_value_tabular_view_plantuml(self):
+        """Data Value View produces valid PlantUML table."""
+        from sysmlpy.plantuml import as_data_value_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+                attribute torque;
+            }
+        }
+        """)
+        puml = as_data_value_tabular_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Data Value" in puml
+        assert "Attribute" in puml
+        assert "Value" in puml
+        assert "Unit" in puml
+
+    def test_as_data_value_tabular_view_markdown(self):
+        """Data Value View produces markdown table."""
+        from sysmlpy.plantuml import as_data_value_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+                attribute torque;
+            }
+        }
+        """)
+        md = as_data_value_tabular_view(model, output_format="markdown")
+
+        assert "| Element " in md
+        assert "| Attribute " in md
+        assert "| Value " in md
+        assert "| Unit " in md
+        assert "power" in md
+        assert "torque" in md
+        assert "Engine" in md
+
+    def test_as_data_value_tabular_view_html(self):
+        """Data Value View produces HTML table."""
+        from sysmlpy.plantuml import as_data_value_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+        }
+        """)
+        html = as_data_value_tabular_view(model, output_format="html")
+
+        assert "<table" in html
+        assert "</table>" in html
+        assert "<th>Value</th>" in html
+
+    def test_as_data_value_tabular_view_only_attributes(self):
+        """Data Value View only shows attribute elements."""
+        from sysmlpy.plantuml import as_data_value_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+            part def Wheel;
+        }
+        """)
+        md = as_data_value_tabular_view(model, output_format="markdown")
+
+        assert "power" in md
+        assert "Wheel" not in md
+        assert "Engine" in md
+
+    def test_as_data_value_tabular_view_with_focus(self):
+        """Data Value View with focus works."""
+        from sysmlpy.plantuml import as_data_value_tabular_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+                attribute torque;
+            }
+            part def Wheel {
+                attribute diameter;
+            }
+        }
+        """)
+        engine = model.find('Engine')[0]
+        md = as_data_value_tabular_view(model, focus=engine, output_format="markdown")
+
+        assert "power" in md
+        assert "torque" in md
+        assert "diameter" not in md
+
+
+class TestRelationshipMatrixView:
+    """Tests for the Relationship Matrix View (GridView specialization)."""
+
+    def test_as_relationship_matrix_view_plantuml(self):
+        """Relationship Matrix View produces valid PlantUML salt matrix."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Wheel;
+        }
+        """)
+        puml = as_relationship_matrix_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "salt" in puml
+        assert "Relationship Matrix" in puml
+        assert "Engine" in puml
+        assert "Wheel" in puml
+
+    def test_as_relationship_matrix_view_markdown(self):
+        """Relationship Matrix View produces markdown table."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+            part def Wheel;
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "| Engine " in md
+        assert "| Wheel " in md
+        assert "| power " in md
+
+    def test_as_relationship_matrix_view_html(self):
+        """Relationship Matrix View produces HTML table."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+            part def Wheel;
+        }
+        """)
+        html = as_relationship_matrix_view(model, output_format="html")
+
+        assert "<table" in html
+        assert "</table>" in html
+        assert "relationship-matrix-view" in html
+
+    def test_as_relationship_matrix_view_row_type_filter(self):
+        """Row type filter limits row elements."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            action def Start;
+        }
+        """)
+        md = as_relationship_matrix_view(model, row_type="part", output_format="markdown")
+
+        assert "Engine" in md
+        assert "Start" not in md
+
+    def test_as_relationship_matrix_view_shows_containment(self):
+        """Relationship Matrix shows composite containment."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        # Engine contains power (composite = C)
+        assert "C" in md
+
+    def test_as_relationship_matrix_view_with_focus(self):
+        """Relationship Matrix with focus works."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                attribute power;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        md = as_relationship_matrix_view(model, focus=engine, output_format="markdown")
+
+        assert "Engine" in md
+        assert "power" in md
+        assert "Wheel" not in md

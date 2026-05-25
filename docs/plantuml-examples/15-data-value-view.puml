@@ -1,0 +1,16 @@
+'' Data Value Tabular View (GridView)
+'' Attribute value table showing Element, Attribute, Value, Unit, and Type for all attribute elements.
+@startuml
+
+skinparam monochrome true
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+title Data Value Tabular View
+
+ |= Element |= Attribute |= Value |= Unit |= Type |= 
+ | Sensor | temperature |  |  |  | 
+ | Sensor | humidity |  |  |  | 
+ | Sensor | pressure |  |  |  | 
+
+@enduml

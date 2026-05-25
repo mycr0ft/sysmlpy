@@ -348,33 +348,53 @@ path is provided::
 PlantUML View Renderings
 ------------------------
 
-sysmlpy provides five view rendering functions for generating PlantUML diagrams,
-all defaulting to black-and-white output suitable for journal articles::
+sysmlpy provides **17 view rendering functions** for generating diagrams from
+parsed SysML v2 models. All default to black-and-white output suitable for
+journal articles, and accept ``focus=``, ``style="color"``, and
+``custom_style=`` parameters.
+
+Standard view functions (PlantUML output)::
 
     from sysmlpy.plantuml import (
-        as_graphical_rendering,
-        as_interconnection_diagram,
-        as_tree_diagram,
-        as_element_table,
-        as_textual_notation,
+        as_graphical_rendering,     # Elements + relationship arrows
+        as_general_view,            # GV — most general view
+        as_package_view,            # Package hierarchy
+        as_interconnection_diagram, # IV — connectors and flows
+        as_action_flow_view,        # AFV — action flows
+        as_state_transition_view,   # STV — state machines
+        as_tree_diagram,            # Nested containment tree
+        as_element_table,           # Tabular element listing
+        as_textual_notation,        # Indented text notation
     )
 
     model = sysmlpy.loads("package P { part def Engine { port intake; } }")
 
-    # Graphical: elements as shapes with relationship arrows (default B&W)
-    print(as_graphical_rendering(model))
+    # General View: all elements as a graph of nodes and edges
+    print(as_general_view(model))
 
-    # Tree: nested containers showing hierarchy
-    print(as_tree_diagram(model))
+    # Action Flow View: actions with control/object flows
+    print(as_action_flow_view(model))
 
-    # Element table: tabular listing
-    print(as_element_table(model))
+    # State Transition View: hierarchical state machines
+    print(as_state_transition_view(model))
 
-    # Textual notation: indented text in a note
-    print(as_textual_notation(model))
+GridView specializations (PlantUML / Markdown / HTML output)::
 
-    # Interconnection: focus on connectors and flows
-    print(as_interconnection_diagram(model))
+    from sysmlpy.plantuml import (
+        as_tabular_view,                # Configurable columns
+        as_data_value_tabular_view,     # Attribute values + units
+        as_relationship_matrix_view,    # Pairwise relationship matrix
+    )
+
+    # Markdown table for docs
+    print(as_tabular_view(model, output_format="markdown"))
+
+    # HTML table with CSS classes
+    print(as_data_value_tabular_view(model, output_format="html"))
+
+    # Relationship matrix with type filtering
+    print(as_relationship_matrix_view(model, row_type="part",
+                                      output_format="markdown"))
 
 All rendering functions accept ``style="color"`` for colored output and
 ``custom_style`` for user-defined PlantUML style overrides::
@@ -383,6 +403,9 @@ All rendering functions accept ``style="color"`` for colored output and
         'skinparam defaultFontSize 14',
         'skinparam rectangle { LineThickness 2.5 }',
     ])
+
+See the README for rendered examples of all 16 view types:
+`docs/plantuml-examples/`.
 
 Stylistic Checks
 ----------------

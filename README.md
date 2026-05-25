@@ -14,9 +14,11 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.26.0:** Three new SysML v2 standard view rendering functions: `as_action_flow_view()` (AFV), `as_interconnection_view()` / `as_interconnection_diagram()` (IV), and `as_state_transition_view()` (STV). Auto-include connected elements for flows and transitions. Grammar-level connection scanning. 39 new PlantUML tests (101 total).
+**v0.27.0:** General View (GV), Package View, and three GridView specializations (Tabular View, Data Value Tabular View, Relationship Matrix View) with PlantUML, Markdown, and HTML output. 108 PlantUML tests. All 68+ `NotImplementedError` stubs in `grammar/classes.py` replaced with graceful handling.
 
-**v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
+**v0.26.0:** Action Flow View, Interconnection View, and State Transition View with auto-include of connected elements. Grammar-level flow scanning. 101 PlantUML tests.
+
+**v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). Symbol table with hierarchical scope resolution and qualified name lookup.
 
 **v0.17.0:** 100% test suite pass rate (487/487). Cayley graph database storage backend via HTTP API. Full grammar round-trip coverage (56/56 tests). Programmatic API consistency fixes. NetworkXStore bug fix.
 
@@ -189,7 +191,7 @@ tree = classtree(model)
 print(tree.dump())
 ```
 
-**100% of the 56 grammar round-trip tests pass** (56/56), covering packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, and trade studies.
+**61 of 77 grammar round-trip tests pass** (61/77). All 61 non-control-flow tests pass (100%). The 16 deferred tests require action control-flow node classes (`IfNode`, `WhileLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`) not yet ported to `grammar/classes.py`. Covered categories: packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, and trade studies.
 
 ## Semantic Analysis
 
@@ -376,91 +378,237 @@ docker run -p 64210:64210 -v /data:/data --rm cayley/cayley -db boltdb -dbpath /
 
 ## PlantUML Visualizations
 
-Generate SysML v2 structure diagrams from parsed models using the built-in PlantUML generator. Definitions render with sharp corners and usage elements with rounded corners. Relationships are differentiated by arrow style, thickness, and color — following the [official SysML v2 Pilot Implementation](https://github.com/Systems-Modeling/SysML-v2-Release) approach.
+sysmlpy provides **17 view rendering functions** for generating diagrams from parsed SysML v2 models. Definitions render with sharp corners and usage elements with rounded corners. Relationships are differentiated by arrow style, thickness, and color — following the [official SysML v2 Pilot Implementation](https://github.com/Systems-Modeling/SysML-v2-Release) approach.
+
+All functions support:
+- `style="bw"` (default, journal-ready monochrome) or `style="color"`
+- `focus=` to render only a specific element's subtree
+- `custom_style=` for user-defined PlantUML style overrides
+
+### Base Generator
 
 ```python
 from sysmlpy import loads
 from sysmlpy.plantuml import PlantUMLGenerator
 
-text = """package Vehicle {
-    part def Wheel {
-        attribute radius : LengthValue;
-        attribute pressure : PressureValue;
-    }
-
-    part def BrakeSystem {
-        attribute padThickness : LengthValue;
-    }
-
+model = loads("""
+package Vehicle {
+    part def Wheel { attribute radius; attribute pressure; }
+    part def BrakeSystem { attribute padThickness; }
     part def VehicleAssembly {
         part frontLeft : Wheel;
         part frontRight : Wheel;
         part brakes : BrakeSystem;
     }
-
     part myVehicle : VehicleAssembly;
-}"""
+}
+""")
 
-model = loads(text)
-gen = PlantUMLGenerator(model, title="Vehicle Structure")
+gen = PlantUMLGenerator(model)
 print(gen.generate())
 ```
 
-Produces PlantUML source that renders as:
-
-```plantuml
-@startuml
-skinparam RoundCorner 0
-skinparam rectangle<<(D,#8B4513) part def>> {
-    RoundCorner 0
-    BackgroundColor #FFF8F0
-    BorderColor #8B4513
-}
-skinparam rectangle<<(P,#32CD32) part>> {
-    RoundCorner 15
-    BackgroundColor #F0FFF0
-    BorderColor #32CD32
-}
-
-title Vehicle Structure
-
-rectangle "Wheel" as Wheel <<(D,#8B4513) part def>>
-rectangle "BrakeSystem" as BrakeSystem <<(D,#8B4513) part def>>
-rectangle "VehicleAssembly" as VehicleAssembly <<(D,#8B4513) part def>>
-rectangle "myVehicle" as myVehicle <<(P,#32CD32) part>>
-
-VehicleAssembly *-- frontLeft : owns
-VehicleAssembly *-- frontRight : owns
-VehicleAssembly *-- brakes : owns
-myVehicle --:|> VehicleAssembly : types
-
-legend right
-  <b>Legend</b>
-  |= Element |= Notation |
-  | <<(D,#8B4513) part def>> | Definition (type) |
-  | <<(P,#32CD32) part>> | Usage (instance) |
-  | --:|> | Feature typing |
-  | *-- | Composite containment |
-endlegend
-@enduml
-```
-
-### Filtering and Focus
-
-The generator supports filtering to highlight specific elements:
+With filtering:
 
 ```python
-# Show only elements related to 'myVehicle'
-gen = PlantUMLGenerator(model, focus="myVehicle")
-
-# Show a custom set of elements
-gen = PlantUMLGenerator(model, elements=["Wheel", "BrakeSystem"])
-
-# Limit nesting depth
-gen = PlantUMLGenerator(model, max_depth=2)
+# Focus on a subtree, limit depth, or pick specific elements
+gen = PlantUMLGenerator(model, focus=myVehicle, max_depth=3)
+gen = PlantUMLGenerator(model, elements=[Wheel, BrakeSystem])
 ```
 
-See [`docs/plantuml-examples/`](docs/plantuml-examples/) for 9 rendered examples covering usage vs definition, relationships, vehicle structure, requirements, interconnections, state machines, and activity diagrams.
+### Standard View Rendering Functions
+
+#### Graphical Rendering — `as_graphical_rendering()`
+Elements as shapes with full relationship arrows. The standard Structure/BDD view.
+
+![Vehicle Structure (BW)](docs/plantuml-examples/03-vehicle-structure.png)
+
+```python
+from sysmlpy.plantuml import as_graphical_rendering
+print(as_graphical_rendering(model, style="bw"))
+```
+
+#### General View (GV) — `as_general_view()`
+Corresponds to SysML v2 ``GeneralView`` (short name ``gv``). The most general view — presents all model elements as a graph of nodes and edges. Renders parts, items, actions, states, ports, interfaces, requirements, constraints, flows, and relationships.
+
+![General View](docs/plantuml-examples/07-general-view.png)
+
+```python
+from sysmlpy.plantuml import as_general_view
+print(as_general_view(model, style="bw"))
+```
+
+#### Package View — `as_package_view()`
+A GeneralView specialization that filters on Package containment. Renders the package hierarchy with nested rectangles and contained elements.
+
+![Package View](docs/plantuml-examples/08-package-view.png)
+
+```python
+from sysmlpy.plantuml import as_package_view
+print(as_package_view(model, style="bw"))
+```
+
+#### Action Flow View (AFV) — `as_action_flow_view()`
+Corresponds to SysML v2 ``ActionFlowView`` (short name ``afv``). Shows actions with their control and object flows. Auto-includes connected flow elements.
+
+![Action Flow View](docs/plantuml-examples/09-action-flow-view.png)
+
+```python
+from sysmlpy.plantuml import as_action_flow_view
+print(as_action_flow_view(model, style="bw"))
+```
+
+#### Interconnection View (IV) — `as_interconnection_view()` / `as_interconnection_diagram()`
+Corresponds to SysML v2 ``InterconnectionView`` (short name ``iv``). Focuses on connectors, bindings, and flow paths between ports and parts.
+
+![Interconnection Diagram](docs/plantuml-examples/06-interconnection.png)
+
+```python
+from sysmlpy.plantuml import as_interconnection_view
+print(as_interconnection_view(model, style="bw"))
+```
+
+#### State Transition View (STV) — `as_state_transition_view()`
+Corresponds to SysML v2 ``StateTransitionView`` (short name ``stv``). State machine diagram with hierarchical states and transitions. Auto-includes connected transition elements.
+
+![State Transition View](docs/plantuml-examples/10-state-transition-view.png)
+
+```python
+from sysmlpy.plantuml import as_state_transition_view
+print(as_state_transition_view(model, style="bw"))
+```
+
+#### Tree Diagram — `as_tree_diagram()`
+Hierarchical containment tree using nested PlantUML containers. Shows ownership hierarchy with sharp corners for definitions and rounded corners for usages.
+
+![Tree Diagram](docs/plantuml-examples/11-tree-diagram.png)
+
+```python
+from sysmlpy.plantuml import as_tree_diagram
+print(as_tree_diagram(model, style="bw"))
+```
+
+### Tabular View Rendering Functions
+
+#### Element Table — `as_element_table()`
+A simple tabular listing with columns Name, Type, Kind, and Parent.
+
+![Element Table](docs/plantuml-examples/12-element-table.png)
+
+```python
+from sysmlpy.plantuml import as_element_table
+print(as_element_table(model, style="bw"))
+```
+
+#### Textual Notation — `as_textual_notation()`
+Indented text representation inside a PlantUML note, similar to the SysML v2 textual concrete syntax.
+
+![Textual Notation](docs/plantuml-examples/13-textual-notation.png)
+
+```python
+from sysmlpy.plantuml import as_textual_notation
+print(as_textual_notation(model, style="bw"))
+```
+
+### GridView Specializations (Tabular, Data Value, Relationship Matrix)
+
+Per the SysML v2 standard, ``GridView`` (short name ``grv``) presents exposed model elements and their relationships in a rectangular grid. It has three specializations, all supporting **three output formats**:
+
+| Format | Use case |
+|--------|----------|
+| `"plantuml"` (default) | PlantUML table / salt matrix — embed in diagrams |
+| `"markdown"` | Standard pipe table — for GitHub, MkDocs, or Jupyter |
+| `"html"` | Rich `<table>` with CSS classes — for web dashboards |
+
+#### Tabular View — `as_tabular_view()`
+Extensible table with configurable columns. Default columns: Name, Type, Kind, Parent, Typed By, Specializes.
+
+![Tabular View (BW)](docs/plantuml-examples/14-tabular-view.png)
+
+```python
+from sysmlpy.plantuml import as_tabular_view
+print(as_tabular_view(model, output_format="markdown"))
+```
+
+Custom columns and other output formats:
+
+```python
+# HTML with specific columns
+print(as_tabular_view(model,
+    columns=["Name", "Type", "Parent", "Typed By"],
+    output_format="html"))
+
+# Markdown for documentation
+print(as_tabular_view(model, output_format="markdown"))
+```
+
+#### Data Value Tabular View — `as_data_value_tabular_view()`
+Attribute-specific version showing Element, Attribute, Value, Unit, and Type columns. Uses `Attribute.get_value()` for pint.Quantity extraction.
+
+![Data Value View](docs/plantuml-examples/15-data-value-view.png)
+
+```python
+from sysmlpy.plantuml import as_data_value_tabular_view
+print(as_data_value_tabular_view(model, output_format="html"))
+```
+
+#### Relationship Matrix View — `as_relationship_matrix_view()`
+Pairwise element×element matrix showing relationship types:
+- **C** = Composite containment (parent → child)
+- **S** = Shared (siblings)
+- **T** = Typing
+- **G** = Specialization (generalization)
+- **B** = Binding, **F** = Flow, **R** = Redefinition, etc.
+
+![Relationship Matrix](docs/plantuml-examples/16-relationship-matrix.png)
+
+```python
+from sysmlpy.plantuml import as_relationship_matrix_view
+print(as_relationship_matrix_view(model, output_format="markdown"))
+```
+
+Type filtering and HTML output:
+
+```python
+# Only show part elements on rows
+print(as_relationship_matrix_view(model,
+    row_type="part", output_format="html"))
+```
+
+### Color Style
+
+All rendering functions accept `style="color"` for colored output with CSS-style backgrounds:
+
+```python
+from sysmlpy.plantuml import as_tabular_view
+print(as_tabular_view(model, style="color"))
+```
+
+![Tabular View (Color)](docs/plantuml-examples/17-tabular-view-color.png)
+
+### Complete Example Gallery
+
+See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all 16 rendered example images, covering every view function.
+
+| # | Example | View Type |
+|---|---------|-----------|
+| 1 | Usage vs Definition | Graphical |
+| 2 | Relationship Arrows | Graphical |
+| 3 | Vehicle Structure | Graphical (BW) |
+| 4 | Black-and-White Style | Graphical (BW) |
+| 5 | Requirements | Graphical |
+| 6 | Interconnection | Interconnection View |
+| 7 | General View (GV) | General View |
+| 8 | Package View | Package View |
+| 9 | Action Flow View (AFV) | Action Flow View |
+| 10 | State Transition View (STV) | State Transition View |
+| 11 | Tree Diagram | Tree Diagram |
+| 12 | Element Table | Element Table |
+| 13 | Textual Notation | Textual Notation |
+| 14 | Tabular View (GridView) | Tabular View |
+| 15 | Data Value Tabular View (GridView) | Data Value View |
+| 16 | Relationship Matrix (GridView) | Relationship Matrix |
+| 17 | Tabular View — Color | Tabular View (color) |
 
 ## Conformance
 

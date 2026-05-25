@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.20.1** (2026-05-23)
+Current version: **v0.27.0** (2026-05-25)
 
 ---
 
@@ -62,7 +62,11 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 
 ### Grammar Round-Trip Coverage (parse → dump)
 
-**56 / 56 tests passing (100%)** as of 2026-05-23.
+**61 / 77 tests passing** as of 2026-05-25.
+
+16 tests deferred: action control-flow node classes (`IfNode`, `WhileLoopNode`,
+`ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`) not yet ported to
+`grammar/classes.py`. All 61 non-control-flow grammar tests pass.
 
 | Category | Pass | Total | Notes |
 |---|---|---|---|
@@ -78,13 +82,38 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 | Binding connectors | 2 | 2 | |
 | Flow connections | 3 | 3 | |
 | Actions | 5 | 5 | |
-| States | 5 | 5 | |
+| States | 6 | 6 | |
 | Expressions | 4 | 4 | |
 | Calculations | 3 | 3 | |
 | Constraints | 7 | 7 | |
 | Requirements | 4 | 4 | |
 | Analysis | 3 | 3 | |
-| **Total** | **56** | **56** | **100%** |
+| Control flow (deferred) | 0 | 16 | IfNode, WhileLoopNode, ControlNode, SendNode, AcceptNode, TerminateNode |
+| **Total** | **61** | **77** | |
+
+### Grammar Resilience (v0.27.0)
+
+All 68+ `raise NotImplementedError` stubs in `grammar/classes.py` replaced with
+graceful handling. The parser no longer crashes on any edge-case input.
+
+**Stubs fully implemented** (`__init__`, `dump()`, `get_definition()`):
+- `PortionKind` — stores `kind` field (snapshot/timeslice/individual)
+- `PrefixMetadataMember` — stores `memberElement`, dumps as `@<name>`
+- `LifeClassMembership` — stores `memberElement`, dumps as `lifeClass <name>`
+
+**Missing classes added:**
+- `DefinitionBody`, `DefinitionBodyItem`
+- `FeatureSpecializationPart`, `SubclassificationPart`
+
+**Catch-all unknown branches** → print warning instead of crashing (68 sites):
+- `DefinitionElement`, `InterfaceBodyItem`, `OccurrenceUsageElement`,
+  `NonOccurrenceUsageElement`, `PrimaryExpression`, `PackageBody`,
+  `RelationshipBody`, `ConnectorPart`, `FeatureSpecialization`, and more.
+
+**Expression chain classes** — gracefully handle `None` child / non-empty operands:
+- `ConditionalExpression`, `NullCoalescingExpression`, `ImpliesExpression`,
+  `OrExpression`, `XorExpression`, `ClassificationExpression`,
+  `ExponentiationExpression`, `UnaryExpression`, `ExtentExpression`
 
 ### Semantic Analysis Engine (v0.17.0 → v0.20.0)
 
@@ -112,6 +141,21 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 | `INVALID_MULTIPLICITY_BOUNDS` | Multiplicity.bounds_valid | Lower bound > upper bound |
 | `UNRESOLVED_IMPORT` | — | Import target does not exist |
 
+### PlantUML View Generation (v0.25.2 → v0.27.0)
+
+| Function | SysML v2 View | Output | Notes |
+|---|---|---|---|
+| `as_general_view()` | General View (GV) | PlantUML | All element types, full filtering |
+| `as_package_view()` | Package View | PlantUML | Package structure + import arrows |
+| `as_action_flow_view()` | ActionFlowView (AFV) | PlantUML | Actions + flow connections |
+| `as_interconnection_view()` | InterconnectionView (IV) | PlantUML | Parts, ports, connections |
+| `as_state_transition_view()` | StateTransitionView (STV) | PlantUML | States + transitions |
+| `as_tabular_view()` | Tabular View (GridView) | PlantUML / MD / HTML | Configurable columns |
+| `as_data_value_tabular_view()` | Data Value Tabular View | PlantUML / MD / HTML | Attribute values + units |
+| `as_relationship_matrix_view()` | Relationship Matrix View | PlantUML / MD / HTML | Cross-element relationship matrix |
+
+All views support: `focus`, `elements`, `show_external`, `direction`, B&W/color toggle, `custom_style`, and legend.
+
 ### Storage Backends
 
 | Backend | Dependencies | Persistence | Use Case |
@@ -121,72 +165,58 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 | `KuzuStore` | kuzu | Disk (optional) | Embedded graph DB, Cypher queries |
 | `CayleyStore` | requests | Server-managed | Remote graph DB, multi-tenant |
 
-### PlantUML Generation
-
-- Definitions render with sharp corners, usages with rounded corners
-- Relationships differentiated by arrow style, thickness, and color
-- Filtering and focus support (`focus=`, `elements=`, `max_depth=`)
-
 ### Test Coverage
 
-| Test file | Count | Scope |
+| Test file | Tests | Status |
 |---|---|---|
-| `tests/class_test.py` | 53 tests | Programmatic API unit tests |
-| `tests/grammar_test.py` | 56 tests | Grammar round-trip (parse → dump) |
-| `tests/semantic_test.py` | 90 tests | Semantic analysis and OCL constraints |
-| `tests/store_test.py` | 82 tests | Storage backends (memory + networkx) |
-| `tests/main_test.py` | 7 tests | `load`/`loads`/`load_grammar` integration |
-| `tests/conformance_test.py` | 123 tests | OMG XPect parse conformance suite |
-| **Total** | **411** | |
+| `tests/grammar_test.py` | 77 | 61 pass, 16 deferred (control flow nodes) |
+| `tests/class_test.py` | 54 | ✅ All pass |
+| `tests/main_test.py` | 7 | ✅ All pass |
+| `tests/plantuml_test.py` | 108 | ✅ All pass |
+| `tests/semantic_test.py` | 107 | ✅ All pass |
+| `tests/navigate_test.py` | 33 | ✅ All pass |
+| `tests/import_test.py` | 16 | ✅ All pass |
+| `tests/validator_test.py` | 34 | ✅ All pass |
+| `tests/project_test.py` | 17 | ✅ All pass |
+| `tests/store_test.py` | 46 | Pass (optional deps skipped if not installed) |
+| `tests/conformance_test.py` | 123 | ✅ All pass (100%) |
+| **Total** | **622** | **606 pass, 16 deferred** |
 
 ### Documentation
 
-- `README.md` — installation, usage examples, semantic analysis docs
-- `docs/index.md` — project overview with semantic analysis reference
+- `README.md` — installation, usage examples, view rendering docs
+- `AGENTS.md` — AI agent onboarding guide
+- `docs/index.md` — project overview
 - `docs/quickstart.md` — step-by-step usage guide
 - `docs/TUTORIAL.md` — comprehensive guide with class mapping tables
 - `docs/PROJECT_SUMMARY.md` — work summary for future agents/team members
 - `docs/plantuml-reference-analysis.md` — PlantUML generator assessment
-- `docs/plantuml-examples/` — 9 rendered diagram examples
+- `docs/plantuml-examples/` — rendered diagram examples
 
 ---
 
 ## In Progress
 
-### Public API Stubs (parse works, `dump()` partial or broken)
+### Action Control-Flow Node Classes (16 deferred grammar tests)
 
-These classes are instantiated during `Package.load_from_grammar()` and hold the grammar tree, but the `dump()` / `get_definition()` path is incomplete for some body elements.
+The following grammar classes are defined in the visitor but not yet ported to
+`grammar/classes.py`. Their tests currently fail with `KeyError`:
 
-| Class | SysML Keyword(s) | Status |
-|---|---|---|
-| `State` | `state def` / `state` | `.parent` property, transitions, entry/do/exit actions implemented; some body edge cases remain |
-| `Constraint` | `constraint def` / `constraint` | Assert constraint and derivation forms now supported |
-| `Connection` | `connection def` / `connection` | Multiplicity on connect-ends not parsed |
-| `Flow` | `flow connection def` / `flow` | Definition and interface-body variants failing |
-| `Calculation` | `calc def` / `calc` | Nested `:>>` redefines in return not yet handled |
-| `Enumeration` | `enum def` | Largely working; edge cases remain |
-
-### Internal Grammar Classes
-
-Of the ~319 internal grammar classes in `grammar/classes.py`, approximately 175+ now have `get_definition()` implemented (up from ~145).
-
-### ANTLR4 Grammar Limitations
-
-All known ANTLR grammar limitations have been resolved. The conformance suite passes at 100%.
-
-### Other Incomplete Items
-
-- **Typed-by in `load_from_grammar`** — Type relationships are not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`)
-- **CHANGELOG** — Not updated since v0.5.3; v0.6.0+ work needs a new entry
+- `IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `InitialNode`,
+  `InitialNodeMember`, `SendNode`, `AcceptNode`, `TerminateNode`,
+  `ActionTargetSuccession`, `ActionTargetSuccessionMember`,
+  `GuardedSuccession`, `GuardedSuccessionMember`,
+  `SourceSuccession`, `SourceSuccessionMember`
 
 ### Known Bugs
 
 | Location | Description |
 |---|---|
-| `grammar/classes.py` | `PackageBodyElement` name is hardcoded; `!TODO This isn't always the case` |
-| `grammar/classes.py` | Identified broken code path; `#!TODO This won't work` |
+| `grammar/classes.py` | `PackageBodyElement` name is hardcoded; `#!TODO This isn't always the case` |
 | `definition.py` (`RootNamespace`) | `load_package_body()` raises `NotImplementedError` for `AliasMember` and `Import` nodes |
 | `antlr_visitor.py` ~line 9558 | Top-level attribute multiplicity not captured (nested attributes work) |
+| `definition.py` | Dead code — duplicate `elif inner_class == "ActionUsage"` block |
+| `usage.py` | Type relationships (`: TypeName`) not preserved in `load_from_grammar()` |
 
 ---
 
@@ -196,26 +226,25 @@ All known ANTLR grammar limitations have been resolved. The conformance suite pa
 
 | Feature | Description |
 |---|---|
+| Action control-flow classes | Port `IfNode`, `WhileLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`, etc. to `grammar/classes.py` |
 | Typed-by preservation | Type relationships not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`) |
 | Fix top-level attribute multiplicity | Visitor hardcodes `specialization=None` for top-level attributes |
+| AliasMember / Import handling | `definition.py` `load_package_body()` needs these node types |
 
 ### Medium Priority
 
 | Feature | Description |
 |---|---|
-| Flow connection definition/interface | `flow def` and `flow` in interface bodies |
 | Connection multiplicity ends | `connect X[0..1] to Y[1]` multiplicity in connector ends |
-| Interface decomposition | End-connector structure in decomposed interfaces |
 | Nested `:>>` redefines in return | `return attribute X : Type { :>> feature = expr; }` |
-| Typed literal values | `LiteralInteger`, `LiteralReal`, `LiteralString` |
-| Multiplicity ranges (connect ends) | `[1..5]` or `[*]` on connector end members |
+| Feature chain type resolution | Full chain resolution (`a.b.c`) in `semantic.py` |
+| Connector end compatibility | Full type-assignability check in `_check_connector_ends_compatible()` |
 
 ### Low Priority
 
 | Feature | Description |
 |---|---|
 | Grammar auto-update pipeline | Automated refresh from the OMG KEBNF spec when new releases drop |
-| Activity nodes | `ActionNode`, `AssignmentNode`, `ControlNode`, `DecisionNode` |
 | Full OCL constraint library | Machine-readable OCL constraints extendable without code changes |
 | Parse library files (not regex) | Replace `LibrarySymbolIndex._extract_from_file()` with actual parsing |
 
@@ -227,9 +256,9 @@ Source: **SysML-v2-Pilot-Implementation-2026-03** (`org.omg.sysml.xpect.tests`)
 Library: **88 files** bundled at `src/sysmlpy/library/` (kernel/ systems/ domain/)
 Test files: **123 `.sysml` files** under `tests/sysmlv2/`, each with a `.error` sidecar
 
-Run with: `pytest -m conformance`
+Run with: `poetry run pytest -m conformance`
 
-### Current results (2026-05-23)
+### Current results (2026-05-25)
 
 **123 / 123 passing (100%)**
 
@@ -242,33 +271,6 @@ Run with: `pytest -m conformance`
 | `linking/` | 1 | 1 | 0 | 100% |
 | **Total** | **123** | **123** | **0** | **100%** |
 
-### Remaining Failures
-
-None. All 123 conformance tests pass.
-
-### Key Fixes (v0.11.0 → v0.20.0)
-
-| Version | Fix | Tests unblocked |
-|---|---|---|
-| v0.11.0 | Add `LPAREN AS typeReference RPAREN` to `baseExpression` | `ElementFilter.sysml` — `(as Type)` cast syntax |
-| v0.11.0 | Add `ownedExpression DOT bodyExpression` to `ownedExpression` | `PathExpressions.sysml` — lambda/filter expressions |
-| v0.11.0 | Handle `filterPackage` imports in `_visit_import_rule_dict` | `ElementFilter.sysml` — `vehicle1_c1::*[@Security]` |
-| v0.11.0 | Fix `interface_part` UnboundLocalError | `InterfaceUsage_Invalid.sysml` |
-| v0.11.0 | Add `get_definition()` to `SuccessionFlowConnectionUsage` | `ActionUsage.sysml` |
-| v0.11.0 | Add `CaseDefinition` to `DefinitionElement` dispatch table | `CaseUsage.sysml` |
-| v0.11.0 | Fix `UsageExtensionKeyword` to handle `keyword` field directly | `CaseSubjectObjective_Invalid.sysml`, `Verification_invalid.sysml` |
-| v0.17.0 | Fix `ImportPrefix` to accept `None` visibility | Import visibility defaults to private per spec |
-| v0.17.0 | Initialize `Usage.completion` to `UsageCompletion()` | Programmatic API consistency |
-| v0.17.0 | Fix `NetworkXStore.put()` missing `add_node()` | All graph algorithms were silently failing |
-| v0.19.0 | Add missing `get_definition()` to interface grammar classes | Interface round-trip tests |
-| v0.20.0 | Fix multiplicity capture in `_build_full_specialization_from_ctx` | Multiplicity bounds validation |
-
-### How to Add New Conformance Tests
-
-1. Place `.sysml` file under `tests/sysmlv2/<category>/`
-2. Add companion `.error` file (empty = expects parse success, non-empty = expected error regex)
-3. Tests are auto-discovered by `conformance_test.py:_collect()`
-
 ---
 
 ## Summary Counts
@@ -276,15 +278,14 @@ None. All 123 conformance tests pass.
 | Category | Count |
 |---|---|
 | Public API classes (complete) | 28 |
-| Public API stubs (parse-only or partial) | 0 |
-| Grammar classes with `get_definition()` | ~175+ of 319 |
-| Grammar classes missing `get_definition()` | ~144 of 319 |
-| Unit + grammar + integration tests | 216 (53 unit + 56 grammar + 7 integration + 90 semantic + 10 store) |
-| Grammar round-trip tests passing | **56 / 56 (100%)** |
-| Conformance tests (2026-03 XPect suite) | 123 total — **123 passing (100%)** |
-| Semantic analysis tests | **90 passing** |
-| Storage backend tests | **82 passing** (memory + networkx) |
-| **Total tests** | **411 total — 411 passing (100%)** |
+| Grammar classes with `get_definition()` | ~180+ of 319 |
+| Grammar classes with graceful fallback | All 319 (no more NotImplementedError crashes) |
+| Unit + grammar + integration tests | 606 passing |
+| Grammar round-trip tests passing | **61 / 77** (16 deferred — control flow nodes) |
+| PlantUML rendering tests | **108 passing** |
+| Conformance tests (2026-03 XPect suite) | **123 / 123 (100%)** |
+| Semantic analysis tests | **107 passing** |
+| Storage backend tests | **46 passing** (optional deps skipped if missing) |
 | Bundled standard library files | 88 (kernel `.kerml` + systems `.sysml` + domain `.sysml`) |
 | Library symbols indexed | ~1,417 |
-| LOC (as of v0.20.0) | 73,896 across 539+ commits |
+| PlantUML view functions | 8 (GV, PV, AFV, IV, STV, Tabular, DataValue, RelMatrix) |

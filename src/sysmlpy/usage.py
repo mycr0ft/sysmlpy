@@ -1616,6 +1616,10 @@ class Action(Usage):
         self.parent = None
         self.action_inputs = []  # List of (name, type_name)
         self.action_outputs = []
+        self._succession_source = None
+        self._succession_targets = []
+        self._succession_condition = None
+        self._control_flow_nodes = []
         
         if definition:
             self.keyword = "action def"
@@ -1733,8 +1737,45 @@ class Action(Usage):
                             self._extract_behavior_usage(child)
                         elif child_name == "ActionNodeMember":
                             self._extract_nested_action(child)
+                        elif child_name == "InitialNodeMember":
+                            self._extract_initial_node(child)
+                        elif child_name == "ActionTargetSuccessionMember":
+                            self._extract_action_target_succession(child)
+                        elif child_name == "GuardedSuccessionMember":
+                            self._extract_guarded_succession(child)
         
         return self
+    
+    def _extract_initial_node(self, node):
+        """Extract the source name from an InitialNodeMember."""
+        if hasattr(node, 'child') and node.child:
+            name = getattr(node.child, 'declaredName', None)
+            if name:
+                if not hasattr(self, '_succession_source'):
+                    self._succession_source = name
+    
+    def _extract_action_target_succession(self, node):
+        """Extract the target name from an ActionTargetSuccessionMember."""
+        if hasattr(node, 'child') and node.child:
+            name = getattr(node.child, 'declaredName', None)
+            if name:
+                if not hasattr(self, '_succession_targets'):
+                    self._succession_targets = []
+                self._succession_targets.append(name)
+    
+    def _extract_guarded_succession(self, node):
+        """Extract source, condition, target from a GuardedSuccessionMember."""
+        if hasattr(node, 'child') and node.child:
+            gs = node.child
+            source = getattr(gs, 'sourceName', None)
+            condition = getattr(gs, 'condition', None)
+            target = getattr(gs, 'targetName', None)
+            self._succession_source = source
+            self._succession_condition = condition
+            if not hasattr(self, '_succession_targets'):
+                self._succession_targets = []
+            if target:
+                self._succession_targets.append(target)
     
     def _extract_parameter_from_non_occurrence(self, non_occ_member):
         """Extract in/out parameter from NonOccurrenceUsageMember -> NonOccurrenceUsageElement -> DefaultReferenceUsage."""
@@ -1815,6 +1856,15 @@ class Action(Usage):
             node = action_node_member.children
             if hasattr(node, 'children'):
                 action_node = node.children
+                node_type = action_node.__class__.__name__
+                
+                # Handle control flow nodes (if/while/for/control)
+                if node_type in ("IfNode", "WhileLoopNode", "ForLoopNode", "ControlNode"):
+                    self._control_flow_nodes.append(action_node)
+                    self.children.append(action_node)
+                    return
+                
+                # Handle action nodes with declaration (send/accept/assignment)
                 if hasattr(action_node, 'declaration'):
                     decl = action_node.declaration
                     if hasattr(decl, 'identification') and decl.identification:

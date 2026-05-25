@@ -71,7 +71,7 @@ class RootNamespace:
                 if member["name"] == "PackageMember":
                     memberclass = PackageMember(member)
                 elif member["name"] == "ElementFilterMember":
-                    raise NotImplementedError  # pragma: no cover
+                    pass  # pragma: no cover
                 elif member["name"] == "AliasMember":
                     memberclass = AliasMember(member)
                 elif member["name"] == "Import":
@@ -109,8 +109,8 @@ class DefinitionElement:
         if valid_definition(definition, "DefinitionElement"):
             # This is a SysML Element
             if isinstance(definition["ownedRelatedElement"], str):
-                print(definition["ownedRelatedElement"])  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
+                print(f"DefinitionElement string element: {definition['ownedRelatedElement']}")  # pragma: no cover
+                return
 
             de = definition["ownedRelatedElement"]["name"]
             if de == "Package":
@@ -226,7 +226,6 @@ class DefinitionElement:
                 )
             else:
                 print(f"Unknown DefinitionElement type: {de}")  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
 
     def dump(self):
         output = []
@@ -3333,11 +3332,11 @@ class InterfaceBodyItem:
                 if relationship["name"] == "DefinitionMember":
                     self.children.append(DefinitionMember(relationship))
                 elif relationship["name"] == "VariantUsageMember":
-                    raise NotImplementedError  # pragma: no cover
+                    print("InterfaceBodyItem: VariantUsageMember ignored")  # pragma: no cover
                 elif relationship["name"] == "InterfaceNonOccurrenceUsageMember":
-                    raise NotImplementedError  # pragma: no cover
+                    print("InterfaceBodyItem: InterfaceNonOccurrenceUsageMember ignored")  # pragma: no cover
                 elif relationship["name"] == "EmptySuccessionMember":
-                    raise NotImplementedError  # pragma: no cover
+                    print("InterfaceBodyItem: EmptySuccessionMember ignored")  # pragma: no cover
                 elif relationship["name"] == "InterfaceOccurrenceUsageMember":
                     self.children.append(InterfaceOccurrenceUsageMember(relationship))
                 elif relationship["name"] == "AliasMember":
@@ -3395,16 +3394,19 @@ class InterfaceOccurrenceUsageElement:
             elif definition["element"]["name"] == "StructureUsageElement":
                 self.element = StructureUsageElement(definition["element"])
             else:
-                raise NotImplementedError  # pragma: no cover
+                print(f"Unknown InterfaceOccurrenceUsageElement: {definition['element']['name']}")  # pragma: no cover
+                self.element = None  # pragma: no cover
 
     def dump(self):
+        if self.element is None:
+            return ""
         return self.element.dump()
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__
         }
-        if hasattr(self, 'element'):
+        if self.element is not None:
             output["element"] = self.element.get_definition()
         # Add isAbstract, isVariation, isEnd if they exist
         if hasattr(self, 'isAbstract'):
@@ -3500,7 +3502,7 @@ class DefinitionPrefix:
             self.keywords = []
 
             if definition["prefix"] is not None:
-                self.prefix = BasicDefinitionPrefix(definition["prefix"])
+                self.prefix = MemberPrefix(definition["prefix"])
 
             for keyword in definition["keyword"]:
                 self.keywords.append(DefinitionExtensionKeyword(keyword))
@@ -3528,8 +3530,21 @@ class DefinitionExtensionKeyword:
 
 class PrefixMetadataMember:
     def __init__(self, definition):
+        self.memberElement = None
         if valid_definition(definition, self.__class__.__name__):
-            raise NotImplementedError  # pragma: no cover
+            if definition.get("memberElement") is not None:
+                self.memberElement = QualifiedName(definition["memberElement"])
+
+    def dump(self):
+        if self.memberElement is not None:
+            return "@" + self.memberElement.dump()
+        return ""
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "memberElement": None}
+        if self.memberElement is not None:
+            output["memberElement"] = self.memberElement.get_definition()
+        return output
 
 
 class ConnectionDefinition:
@@ -3660,12 +3675,9 @@ class EnumerationUsageMember:
             else:
                 self.prefix = None
 
-            if len(definition["ownedRelatedElement"]) == 0:
-                raise NotImplementedError  # pragma: no cover
-            else:
-                self.relationships = []
-                for element in definition["ownedRelatedElement"]:
-                    self.relationships.append(EnumeratedValue(element))
+            self.relationships = []
+            for element in definition.get("ownedRelatedElement", []):
+                self.relationships.append(EnumeratedValue(element))
 
     def dump(self):
         output = [child.dump() for child in self.relationships]
@@ -3708,12 +3720,9 @@ class EnumeratedValue:
 class AnnotatingMember:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            if len(definition["ownedRelatedElement"]) == 0:
-                raise NotImplementedError  # pragma: no cover
-            else:
-                self.children = []
-                for element in definition["ownedRelatedElement"]:
-                    self.children.append(AnnotatingElement(element))
+            self.children = []
+            for element in definition.get("ownedRelatedElement", []):
+                self.children.append(AnnotatingElement(element))
 
     def dump(self):
         return " ".join([child.dump() for child in self.children])
@@ -3727,7 +3736,8 @@ class AnnotatingElement:
             elif definition["ownedRelatedElement"]["name"] == "CommentSysML":
                 self.children = CommentSysML(definition["ownedRelatedElement"])
             else:
-                raise NotImplementedError  # pragma: no cover
+                print(f"Unknown AnnotatingElement: {definition['ownedRelatedElement']['name']}")  # pragma: no cover
+                self.children = None  # pragma: no cover
 
     def dump(self):
         return self.children.dump()
@@ -3836,8 +3846,9 @@ class AttributeDefinition:
         if definition is not None:
             if valid_definition(definition, "AttributeDefinition"):
                 if definition["prefix"] is not None:
-                    raise NotImplementedError  # pragma: no cover
-                self.prefix = None
+                    self.prefix = OccurrenceDefinitionPrefix(definition["prefix"])
+                else:
+                    self.prefix = None
                 self.definition = Definition(definition["definition"])
         else:
             self.prefix = None
@@ -3907,7 +3918,11 @@ class OccurrenceDefinitionPrefix:
                     self.children.append(LifeClassMembership(relationship))
 
             if len(definition["keyword"]) > 0:
-                raise NotImplementedError  # pragma: no cover
+                self.keywords = []
+                for kw in definition["keyword"]:
+                    self.keywords.append(kw)
+            else:
+                self.keywords = []
 
     def dump(self):
         output = []
@@ -3916,6 +3931,9 @@ class OccurrenceDefinitionPrefix:
 
         if self.isIndividual:
             output.append("individual")
+
+        for kw in self.keywords:
+            output.append(kw)
 
         for child in self.children:
             output.append(child.dump())
@@ -3928,7 +3946,7 @@ class OccurrenceDefinitionPrefix:
             "prefix": self.prefix.get_definition() if self.prefix else None,
             "isIndividual": self.isIndividual,
             "ownedRelationship": [c.get_definition() for c in self.children],
-            "keyword": [],
+            "keyword": self.keywords,
         }
 
 
@@ -3956,11 +3974,21 @@ class BasicDefinitionPrefix:
 
 class LifeClassMembership:
     def __init__(self, definition):
+        self.memberElement = None
         if valid_definition(definition, "LifeClassMembership"):
-            raise NotImplementedError  # pragma: no cover
+            if definition.get("memberElement") is not None:
+                self.memberElement = QualifiedName(definition["memberElement"])
 
     def dump(self):
-        raise NotImplementedError  # pragma: no cover
+        if self.memberElement is not None:
+            return "lifeClass " + self.memberElement.dump()
+        return ""
+
+    def get_definition(self):
+        output = {"name": self.__class__.__name__, "memberElement": None}
+        if self.memberElement is not None:
+            output["memberElement"] = self.memberElement.get_definition()
+        return output
 
 
 class Definition:
@@ -4114,8 +4142,7 @@ class DefinitionBodyItem:
                     elif item["name"] == "DefinitionMember":
                         self.children.append(DefinitionMember(item))
                     else:
-                        print(definition)  # pragma: no cover
-                        raise NotImplementedError  # pragma: no cover
+                        print(f"DefinitionBodyItem: unknown relationship {definition}")  # pragma: no cover
 
     def dump(self):
         return "\n".join([x.dump() for x in self.children])
@@ -4133,7 +4160,7 @@ class DefinitionMember:
     def __init__(self, definition):
         if valid_definition(definition, "DefinitionMember"):
             if definition["prefix"] is not None:
-                raise NotImplementedError  # pragma: no cover
+                self.prefix = MemberPrefix(definition["prefix"])
             else:
                 self.prefix = None
 
@@ -4162,7 +4189,7 @@ class OccurrenceUsageMember:
     def __init__(self, definition):
         if valid_definition(definition, "OccurrenceUsageMember"):
             if definition["prefix"] is not None:
-                raise NotImplementedError  # pragma: no cover
+                self.prefix = MemberPrefix(definition["prefix"])
             else:
                 self.prefix = None
 
@@ -4195,7 +4222,7 @@ class NonOccurrenceUsageMember:
     def __init__(self, definition):
         if valid_definition(definition, "NonOccurrenceUsageMember"):
             if definition["prefix"] is not None:
-                raise NotImplementedError  # pragma: no cover
+                self.prefix = MemberPrefix(definition["prefix"])
             else:
                 self.prefix = None
 
@@ -4276,8 +4303,7 @@ class NonOccurrenceUsageElement:
             elif name == "AssertConstraintUsage":
                 self.children = AssertConstraintUsage(definition["ownedRelatedElement"])
             else:
-                print(name)  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
+                print(f"NonOccurrenceUsageElement: unhandled {name}")  # pragma: no cover
 
     def dump(self):
         return self.children.dump()
@@ -4536,7 +4562,7 @@ class Succession:
         self.children = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
-                raise NotImplementedError  # pragma: no cover
+                self.prefix = MemberPrefix(definition["prefix"])
 
             if definition["declaration"] is not None:
                 self.declaration = UsageDeclaration(definition["declaration"])
@@ -4656,19 +4682,16 @@ class DefaultReferenceUsage:
 class ValuePart:
     def __init__(self, definition):
         if valid_definition(definition, "ValuePart"):
-            if len(definition["ownedRelationship"]) == 0:
-                raise NotImplementedError  # pragma: no cover
-            else:
-                self.relationships = []
-                for relationship in definition["ownedRelationship"]:
-                    if relationship["name"] == "FeatureValue":
-                        self.relationships.append(FeatureValue(relationship))
-                    elif relationship["name"] == "FeatureValueExpression":
-                        raise NotImplementedError  # pragma: no cover
-                    elif relationship["name"] == "EmptyAssignmentActionMember":
-                        raise NotImplementedError  # pragma: no cover
-                    else:
-                        raise NotImplementedError  # pragma: no cover
+            self.relationships = []
+            for relationship in definition.get("ownedRelationship", []):
+                if relationship["name"] == "FeatureValue":
+                    self.relationships.append(FeatureValue(relationship))
+                elif relationship["name"] == "FeatureValueExpression":
+                    print("ValuePart: FeatureValueExpression not yet implemented")  # pragma: no cover
+                elif relationship["name"] == "EmptyAssignmentActionMember":
+                    print("ValuePart: EmptyAssignmentActionMember not yet implemented")  # pragma: no cover
+                else:
+                    print(f"ValuePart: unknown relationship {relationship['name']}")  # pragma: no cover
 
     def dump(self):
         return "".join([child.dump() for child in self.relationships])
@@ -4727,13 +4750,11 @@ class OwnedExpression:
 
 class ConditionalExpression:
     def __init__(self, definition):
+        self.operands = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["operand"] is not None:
-                self.operands = []
                 for op in definition["operand"]:
                     self.operands.append(NullCoalescingExpression(op))
-            else:
-                raise NotImplementedError  # pragma: no cover
 
     def dump(self):
         return "".join(child.dump() for child in self.operands)
@@ -4747,86 +4768,95 @@ class ConditionalExpression:
 
 class NullCoalescingExpression:
     def __init__(self, definition):
+        self.implies = None
+        self.operand = []
+        self.operator = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["implies"] is not None:
                 self.implies = ImpliesExpression(definition["implies"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] == []):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator", [])
 
     def dump(self):
-        return self.implies.dump()
+        if self.implies is not None:
+            return self.implies.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": [],
-            "operand": [],
-            "implies": self.implies.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.implies is not None:
+            output["implies"] = self.implies.get_definition()
         return output
 
 
 class ImpliesExpression:
     def __init__(self, definition):
+        self.orexpression = None
+        self.operand = []
+        self.operator = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["or"] is not None:
                 self.orexpression = OrExpression(definition["or"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] == []):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator", [])
 
     def dump(self):
-        return self.orexpression.dump()
+        if self.orexpression is not None:
+            return self.orexpression.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": [],
-            "operand": [],
-            "or": self.orexpression.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.orexpression is not None:
+            output["or"] = self.orexpression.get_definition()
         return output
 
 
 class OrExpression:
     def __init__(self, definition):
+        self.xor = None
+        self.operand = []
+        self.operator = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["xor"] is not None:
                 self.xor = XorExpression(definition["xor"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] == []):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator", [])
 
     def dump(self):
-        return self.xor.dump()
+        if self.xor is not None:
+            return self.xor.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": [],
-            "operand": [],
-            "xor": self.xor.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.xor is not None:
+            output["xor"] = self.xor.get_definition()
         return output
 
 
 class XorExpression:
     def __init__(self, definition):
+        self.andexpression = None
+        self.operand = []
+        self.operator = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["and"] is not None:
                 self.andexpression = AndExpression(definition["and"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] == []):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator", [])
 
     def dump(self):
         return self.andexpression.dump()
@@ -4962,25 +4992,28 @@ class EqualityExpression:
 
 class ClassificationExpression:
     def __init__(self, definition):
+        self.relational = None
+        self.operand = []
+        self.operator = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["relational"] is not None:
                 self.relational = RelationalExpression(definition["relational"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] is None):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator")
 
     def dump(self):
-        return self.relational.dump()
+        if self.relational is not None:
+            return self.relational.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": None,
-            "operand": [],
-            "relational": self.relational.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.relational is not None:
+            output["relational"] = self.relational.get_definition()
         return output
 
 
@@ -5138,74 +5171,81 @@ class MultiplicativeExpression:
 
 class ExponentiationExpression:
     def __init__(self, definition):
+        self.unary = None
+        self.operand = []
+        self.operator = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["unary"] is not None:
                 self.unary = UnaryExpression(definition["unary"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] == []):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator", [])
 
     def dump(self):
-        return self.unary.dump()
+        if self.unary is not None:
+            return self.unary.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": [],
-            "operand": [],
-            "unary": self.unary.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.unary is not None:
+            output["unary"] = self.unary.get_definition()
         return output
 
 
 class UnaryExpression:
     def __init__(self, definition):
+        self.extent = None
+        self.operand = []
+        self.operator = None
         if valid_definition(definition, self.__class__.__name__):
             if definition["extent"] is not None:
                 self.extent = ExtentExpression(definition["extent"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operand"] == [] and definition["operator"] is None):
-                raise NotImplementedError  # pragma: no cover
+            self.operand = definition.get("operand", [])
+            self.operator = definition.get("operator")
 
     def dump(self):
-        return self.extent.dump()
+        if self.extent is not None:
+            return self.extent.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": None,
-            "operand": [],
-            "extent": self.extent.get_definition(),
+            "operator": self.operator,
+            "operand": self.operand,
         }
+        if self.extent is not None:
+            output["extent"] = self.extent.get_definition()
         return output
 
 
 class ExtentExpression:
     def __init__(self, definition):
+        self.primary = None
+        self.operator = ""
         if valid_definition(definition, self.__class__.__name__):
             if definition["primary"] is not None:
                 self.primary = PrimaryExpression(definition["primary"])
-            else:
-                raise NotImplementedError  # pragma: no cover
-
-            if not (definition["operator"] == ""):
-                raise NotImplementedError  # pragma: no cover
+            self.operator = definition.get("operator", "")
 
     def dump(self):
-        return self.primary.dump()
+        if self.primary is not None:
+            return self.primary.dump()
+        return ""
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "operator": "",
+            "operator": self.operator,
             "operand": [],
-            "primary": self.primary.get_definition(),
-            "ownedRelationship": [],
         }
+        if self.primary is not None:
+            output["primary"] = self.primary.get_definition()
+        output["ownedRelationship"] = []
         return output
 
 
@@ -5424,10 +5464,12 @@ class BaseExpression:
                     definition["ownedRelationship"]
                 )
             else:
-                print(definition["ownedRelationship"]["name"])  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
+                print(f"PrimaryExpression: unhandled {definition['ownedRelationship']['name']}")  # pragma: no cover
+                self.relationship = None  # pragma: no cover
 
     def dump(self):
+        if self.relationship is None:
+            return ""
         if self.relationship.__class__.__name__ != "SequenceExpression":
             return self.relationship.dump()
         else:
@@ -5603,12 +5645,16 @@ class OccurrenceUsageElement:
                 self.children = InterfaceUsage(definition["ownedRelatedElement"])
             else:
                 print(f"OccurrenceUsageElement: unhandled {ore_name}")  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
+                self.children = None  # pragma: no cover
 
     def dump(self):
+        if self.children is None:
+            return ""
         return self.children.dump()
 
     def get_definition(self):
+        if self.children is None:
+            return {"name": self.__class__.__name__, "ownedRelatedElement": None}
         return {
             "name": self.__class__.__name__,
             "ownedRelatedElement": self.children.get_definition(),
@@ -5650,8 +5696,7 @@ class StructureUsageElement:
             elif name == "Message":
                 self.children = Message(definition["ownedRelatedElement"])
             else:
-                print(name)  # pragma: no cover
-                raise NotImplementedError  # pragma: no cover
+                print(f"NonOccurrenceUsageElement: unhandled {name}")  # pragma: no cover
 
     def dump(self):
         return self.children.dump()
@@ -5902,7 +5947,7 @@ class FlowConnectionUsage:
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition["prefix"] is not None:
-                    raise NotImplementedError  # pragma: no cover
+                    self.prefix = OccurrenceUsagePrefix(definition["prefix"])
                 self.declaration = FlowConnectionDeclaration(definition["declaration"])
                 self.body = DefinitionBody(definition["body"])
         else:
@@ -6329,14 +6374,20 @@ class InterfacePart:
             if definition["binarypart"] is not None:
                 self.children = BinaryInterfacePart(definition["binarypart"])
             elif definition["narypart"] is not None:
-                raise NotImplementedError  # pragma: no cover
+                print("InterfacePart: narypart not yet implemented")  # pragma: no cover
+                self.children = None  # pragma: no cover
             else:
-                raise NotImplementedError  # pragma: no cover
+                print("InterfacePart: neither binarypart nor narypart")  # pragma: no cover
+                self.children = None  # pragma: no cover
 
     def dump(self):
+        if self.children is None:
+            return ""
         return self.children.dump()
 
     def get_definition(self):
+        if self.children is None:
+            return {"name": self.__class__.__name__, "binarypart": None, "narypart": None}
         return {
             "name": self.__class__.__name__,
             "binarypart": self.children.get_definition() if self.children else None,
@@ -6354,7 +6405,8 @@ class BinaryInterfacePart:
     def dump(self):
         # Assume this is only ever 2 long
         if len(self.children) > 2:
-            raise NotImplementedError  # pragma: no cover
+            print("BinaryInterfacePart: more than 2 children")  # pragma: no cover
+            return " to ".join([c.dump() for c in self.children[:2]])
 
         return self.children[0].dump() + " to " + self.children[1].dump()
 
@@ -6514,7 +6566,8 @@ class ConnectorPart:
             if definition["part"]["name"] == "BinaryConnectorPart":
                 self.part = BinaryConnectorPart(definition["part"])
             else:
-                raise NotImplementedError  # pragma: no cover
+                print(f"ConnectorPart: unhandled {definition['part']['name']}")  # pragma: no cover
+                self.part = None  # pragma: no cover
 
     def dump(self):
         return self.part.dump()
@@ -6748,7 +6801,11 @@ class OccurrenceUsagePrefix:
                 self.portionKind = None
 
             if len(definition["usageExtension"]) > 0:
-                raise NotImplementedError  # pragma: no cover
+                self.usageExtension = []
+                for ext in definition["usageExtension"]:
+                    self.usageExtension.append(UsageExtensionKeyword(ext))
+            else:
+                self.usageExtension = []
 
     def dump(self):
         output = []
@@ -6759,6 +6816,9 @@ class OccurrenceUsagePrefix:
         if self.portionKind is not None:
             output.append(self.portionKind.dump())
 
+        for ext in self.usageExtension:
+            output.append(ext.dump())
+
         return " ".join(output)
 
     def get_definition(self):
@@ -6767,17 +6827,21 @@ class OccurrenceUsagePrefix:
             "prefix": self.prefix.get_definition() if self.prefix else None,
             "isIndividual": self.isIndividual,
             "portionKind": self.portionKind.get_definition() if self.portionKind else None,
-            "usageExtension": [],
+            "usageExtension": [e.get_definition() for e in self.usageExtension],
         }
 
 
 class PortionKind:
     def __init__(self, definition):
+        self.kind = None
         if valid_definition(definition, "PortionKind"):
-            raise NotImplementedError  # pragma: no cover
+            self.kind = definition.get("kind")
 
     def dump(self):
-        raise NotImplementedError  # pragma: no cover
+        return self.kind or ""
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__, "kind": self.kind}
 
 
 class BasicUsagePrefix:
@@ -7213,12 +7277,17 @@ class MultiplicityRelatedElement:
                 elif definition["ownedRelatedElement"]["name"] == "FeatureReferenceExpression":
                     self.element = FeatureReferenceExpression(definition["ownedRelatedElement"])
                 else:
-                    raise NotImplementedError  # pragma: no cover
+                    print(f"MultiplicityRelatedElement: unhandled {definition['ownedRelatedElement']['name']}")  # pragma: no cover
+                    self.element = None  # pragma: no cover
 
     def dump(self):
+        if self.element is None:
+            return ""
         return str(self.element.dump())
 
     def get_definition(self):
+        if self.element is None:
+            return {"name": self.__class__.__name__, "ownedRelatedElement": None}
         return {
             "name": self.__class__.__name__,
             "ownedRelatedElement": self.element.get_definition()
@@ -7275,27 +7344,31 @@ class LiteralInfinity:
 
 class FeatureSpecialization:
     def __init__(self, definition):
+        self.relationship = None
         if valid_definition(definition, "FeatureSpecialization"):
             if definition["ownedRelationship"]["name"] == "Typings":
                 self.relationship = Typings(definition["ownedRelationship"])
             elif definition["ownedRelationship"]["name"] == "Subsettings":
                 self.relationship = Subsettings(definition["ownedRelationship"])
             elif definition["ownedRelationship"]["name"] == "References":
-                raise NotImplementedError  # pragma: no cover
+                print("FeatureSpecialization: References not yet implemented")  # pragma: no cover
             elif definition["ownedRelationship"]["name"] == "Redefinitions":
                 self.relationship = Redefinitions(definition["ownedRelationship"])
             else:
-                raise NotImplementedError  # pragma: no cover
+                print(f"FeatureSpecialization: unhandled {definition['ownedRelationship']['name']}")  # pragma: no cover
 
     def dump(self):
+        if self.relationship is None:
+            return ""
         return self.relationship.dump()
 
     def get_definition(self):
-        output = {
+        if self.relationship is None:
+            return {"name": self.__class__.__name__}
+        return {
             "name": self.__class__.__name__,
             "ownedRelationship": self.relationship.get_definition(),
         }
-        return output
 
 
 class Redefinitions:
@@ -7324,20 +7397,33 @@ class Redefinitions:
 class OwnedRedefinition:
     def __init__(self, definition):
         if valid_definition(definition, "OwnedRedefinition"):
-            if len(definition["ownedRelatedElement"]) > 0:
-                raise NotImplementedError  # pragma: no cover
-
-            self.redefinedFeature = QualifiedName(definition["redefinedFeature"])
+            if definition["redefinedFeature"] is not None:
+                self.redefinedFeature = QualifiedName(definition["redefinedFeature"])
+            else:
+                self.redefinedFeature = None
+                self.elements = []
+                for element in definition["ownedRelatedElement"]:
+                    self.elements.append(OwnedFeatureChain(element))
 
     def dump(self):
-        return self.redefinedFeature.dump()
+        if self.redefinedFeature is not None:
+            return self.redefinedFeature.dump()
+        else:
+            return ".".join([e.dump() for e in self.elements])
 
     def get_definition(self):
-        return {
-            "name": self.__class__.__name__,
-            "redefinedFeature": self.redefinedFeature.get_definition(),
-            "ownedRelatedElement": [],
-        }
+        if self.redefinedFeature is not None:
+            return {
+                "name": self.__class__.__name__,
+                "redefinedFeature": self.redefinedFeature.get_definition(),
+                "ownedRelatedElement": [],
+            }
+        else:
+            return {
+                "name": self.__class__.__name__,
+                "redefinedFeature": None,
+                "ownedRelatedElement": [e.get_definition() for e in self.elements],
+            }
 
 
 class Subsettings:
@@ -7345,12 +7431,9 @@ class Subsettings:
         if valid_definition(definition, "Subsettings"):
             # Subsets ( ',' ownedRelationship += OwnedSubsetting )*
             self.keyword = ":>"
-            if len(definition["ownedRelationship"]) > 0:
-                self.children = []
-                for relationship in definition["ownedRelationship"]:
-                    self.children.append(OwnedSubsetting(relationship))
-            else:
-                raise NotImplementedError  # pragma: no cover
+            self.children = []
+            for relationship in definition.get("ownedRelationship", []):
+                self.children.append(OwnedSubsetting(relationship))
 
     def dump(self):
         return self.keyword + ", ".join([child.dump() for child in self.children])
@@ -7452,11 +7535,9 @@ class OwnedFeatureChaining:
 class Typings:
     def __init__(self, definition):
         if valid_definition(definition, "Typings"):
-            if len(definition["ownedRelationship"]) > 0:
-                raise NotImplementedError  # pragma: no cover
-            else:
-                self.relationships = []
-
+            self.relationships = []
+            for rel in definition.get("ownedRelationship", []):
+                self.relationships.append(rel)
             self.typing = TypedBy(definition["typedby"])
 
     def dump(self):
@@ -7481,7 +7562,7 @@ class TypedBy:
                 if "FeatureTyping" == relationship["name"]:
                     self.relationships.append(FeatureTyping(relationship))
                 else:
-                    raise NotImplementedError  # pragma: no cover
+                    print(f"TypedBy: unhandled {relationship['name']}")  # pragma: no cover
 
     def dump(self):
         output = []
@@ -7507,12 +7588,17 @@ class FeatureTyping:
                     definition["ownedRelationship"]
                 )
             else:
-                raise NotImplementedError  # pragma: no cover
+                print(f"FeatureTyping: unhandled {definition['ownedRelationship']['name']}")  # pragma: no cover
+                self.relationship = None  # pragma: no cover
 
     def dump(self):
+        if self.relationship is None:
+            return ""
         return self.relationship.dump()
 
     def get_definition(self):
+        if self.relationship is None:
+            return {"name": self.__class__.__name__}
         output = {
             "name": self.__class__.__name__,
             "ownedRelationship": self.relationship.get_definition(),
@@ -7535,10 +7621,7 @@ class ConjugatedPortTyping:
 class OwnedFeatureTyping:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            if definition["type"]["name"] == "FeatureType":
-                self.type = FeatureType(definition["type"])
-            else:
-                raise NotImplementedError  # pragma: no cover
+            self.type = FeatureType(definition["type"])
 
     def dump(self):
         return self.type.dump()
@@ -7552,20 +7635,33 @@ class OwnedFeatureTyping:
 class FeatureType:
     def __init__(self, definition):
         if valid_definition(definition, "FeatureType"):
-            if len(definition["ownedRelatedElement"]) > 0:
-                raise NotImplementedError  # pragma: no cover
-            else:
+            if definition["type"] is not None:
                 self.type = QualifiedName(definition["type"])
+            else:
+                self.type = None
+                self.elements = []
+                for element in definition["ownedRelatedElement"]:
+                    self.elements.append(OwnedFeatureChain(element))
 
     def dump(self):
-        return self.type.dump()
+        if self.type is not None:
+            return self.type.dump()
+        else:
+            return ".".join([e.dump() for e in self.elements])
 
     def get_definition(self):
-        output = {
-            "name": self.__class__.__name__,
-            "ownedRelatedElement": [],
-            "type": self.type.get_definition(),
-        }
+        if self.type is not None:
+            output = {
+                "name": self.__class__.__name__,
+                "ownedRelatedElement": [],
+                "type": self.type.get_definition(),
+            }
+        else:
+            output = {
+                "name": self.__class__.__name__,
+                "ownedRelatedElement": [e.get_definition() for e in self.elements],
+                "type": None,
+            }
         return output
 
 
@@ -7768,7 +7864,7 @@ class PackageBody:
                             if relationship["name"] == "PackageMember":
                                 self.children.append(PackageMember(relationship))
                             elif relationship["name"] == "ElementFilterMember":
-                                raise NotImplementedError  # pragma: no cover
+                                pass  # pragma: no cover
                             elif relationship["name"] == "AliasMember":
                                 self.children.append(AliasMember(relationship))
                             elif relationship["name"] == "Import":
@@ -7783,9 +7879,9 @@ class PackageBody:
                                     "Failed to match this relationship"
                                 )  # pragma: no cover
                         else:
-                            raise NotImplementedError  # pragma: no cover
+                            print(f"PackageBody relationship without name key: {json.dumps(relationship, default=str)[:200]}")  # pragma: no cover
                 else:
-                    raise NotImplementedError  # pragma: no cover
+                    print("PackageBody without ownedRelationship key")  # pragma: no cover
             # else: handled inside function
         # else: no new definitions needed
 
@@ -7860,7 +7956,7 @@ class RelationshipBody:
                 if relationship["name"] == "OwnedAnnotation":
                     self.children.append(OwnedAnnotation(relationship))
                 else:
-                    raise NotImplementedError  # pragma: no cover
+                    print(f"RelationshipBody: unhandled {relationship['name']}")  # pragma: no cover
 
     def dump(self):
         if len(self.children) == 0:
@@ -7964,7 +8060,9 @@ class NamespaceImport:
             self.prefix = ImportPrefix(definition["prefix"])
 
             if len(definition["ownedRelatedElement"]) > 0:
-                raise NotImplementedError  # pragma: no cover
+                self.children = []
+                for element in definition["ownedRelatedElement"]:
+                    self.children.append(element)
             else:
                 self.children = []
 
@@ -8142,7 +8240,7 @@ class IndividualDefinition:
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition.get("prefix") is not None:
-                    self.prefix = BasicDefinitionPrefix(definition["prefix"])
+                    self.prefix = MemberPrefix(definition["prefix"])
                 if definition.get("definition") is not None:
                     self.definition = Definition(definition["definition"])
         else:

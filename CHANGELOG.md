@@ -1,6 +1,58 @@
 # CHANGELOG
 
 
+## v0.27.0 (2026-05-25)
+
+### :sparkles:
+
+- :sparkles: General View (`as_general_view`)
+  Renders all SysML v2 element types (packages, parts, items, ports, actions,
+  states, connections, flows, requirements, constraints, calculations, etc.)
+  with stereotype-based styling. Supports `focus`, `elements`, `max_depth`,
+  `show_external`, `auto_include_connections`, `direction`, B&W/color toggle,
+  and legend.
+
+- :sparkles: Package View (`as_package_view`)
+  Renders package structure with contained definitions, usages, and
+  cross-package import/dependency arrows. Supports filtering by focus package
+  and depth control.
+
+- :sparkles: Tabular View (`as_tabular_view`)
+  GridView specialization that renders model elements as a table.
+  Supports PlantUML, Markdown, and HTML output formats.
+  Columns are configurable; defaults to name, type, and description.
+
+- :sparkles: Data Value Tabular View (`as_data_value_tabular_view`)
+  GridView specialization focused on attribute values.
+  Renders attributes with name, type, value, and units columns.
+  Supports PlantUML, Markdown, and HTML output.
+
+- :sparkles: Relationship Matrix View (`as_relationship_matrix_view`)
+  GridView specialization that renders a matrix of relationships between
+  two sets of elements. Supports PlantUML, Markdown, and HTML output.
+
+- :sparkles: Grammar resilience — 68+ `NotImplementedError` → graceful handling
+  Every `raise NotImplementedError` in `grammar/classes.py` has been replaced
+  with either real field storage + `dump()`/`get_definition()` support, or a
+  warning print that silently skips the unrecognized element. The parser no
+  longer crashes on edge cases.
+  Key stubs fully implemented: `PortionKind`, `PrefixMetadataMember`,
+  `LifeClassMembership`. Missing classes added: `DefinitionBody`,
+  `DefinitionBodyItem`, `FeatureSpecializationPart`, `SubclassificationPart`.
+
+### :white_check_mark:
+
+- :white_check_mark: 108 PlantUML tests passing (up from 101 in v0.26.0)
+- :white_check_mark: 61 / 77 grammar round-trip tests pass
+  (16 deferred: action control-flow node classes not yet ported)
+- :white_check_mark: All 123 OMG XPect conformance tests pass (100%)
+
+### :memo:
+
+- :memo: Updated README.md, STATUS.md, and docs/PROJECT_SUMMARY.md for v0.27.0
+- :memo: Added AGENTS.md — guidance for AI coding agents working on sysmlpy
+
+
 ## v0.19.0 (2026-05-22)
 
 ### :sparkles:
