@@ -1998,6 +1998,230 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
     return "\n".join(lines)
 
 
+def _extract_requirement_relationships(model):
+    """Extract requirement-specific relationships (satisfy, verify, derive, refine).
+    
+    Returns list of (from_req, to_req, relationship_type) tuples.
+    """
+    relationships = []
+    visited = set()
+    
+    def find_requirements(element):
+        """Find all requirement elements recursively."""
+        if id(element) in visited:
+            return
+        visited.add(id(element))
+        
+        reqs = []
+        sysml_type = getattr(element, 'sysml_type', '')
+        if sysml_type == 'requirement':
+            reqs.append(element)
+        
+        for child in getattr(element, 'children', []):
+            reqs.extend(find_requirements(child))
+        
+        return reqs
+    
+    all_requirements = []
+    for child in getattr(model, 'children', []):
+        all_requirements.extend(find_requirements(child) or [])
+    
+    for req in all_requirements:
+        grammar = getattr(req, 'grammar', None)
+        if not grammar:
+            continue
+        
+        body = getattr(grammar, 'body', None)
+        if not body:
+            continue
+        
+        items = getattr(body, 'items', [])
+        for item in items:
+            child = getattr(item, 'child', None)
+            if not child:
+                continue
+            
+            child_name = getattr(child, '__class__', type(child)).__name__
+            if child_name == 'RequirementConstraintUsage':
+                constraint = child
+                owned_rel = getattr(constraint, 'owned_relationship', [])
+                for rel in owned_rel:
+                    rel_name = getattr(rel, '__class__', type(rel)).__name__
+                    if rel_name in ['SatisfyRelationship', 'VerifyRelationship', 
+                                    'DeriveRelationship', 'RefineRelationship']:
+                        related_element = getattr(rel, 'related_element', None)
+                        if related_element:
+                            rel_type = rel_name.replace('Relationship', '').lower()
+                            relationships.append((req, related_element, rel_type))
+    
+    return relationships
+
+
+def as_requirement_view(model, focus=None, elements=None, style="bw",
+                        direction="TB", include_legend=True, max_depth=None,
+                        show_external=False, custom_style=None):
+    """Generate a Requirement Diagram View.
+    
+    Corresponds to SysML v2 requirement diagrams, presenting:
+    - Requirements with stereotypes (requirement/requirement def)
+    - Documentation strings
+    - Subject and actors
+    - Attributes and constraints
+    - Satisfy, verify, derive, refine relationships
+    
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        custom_style: Optional PlantUML style lines to append
+    
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+    
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 400",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<requirement def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<requirement>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+    
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+    
+    lines.append("")
+    
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+    
+    title = "Requirement View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Requirement View \u2014 {focus_name}"
+    elif elements is not None:
+        title = f"Requirement View \u2014 Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+    
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+    
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+    
+    rv_types = {"requirement"}
+    
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type not in rv_types:
+            continue
+        
+        keyword = "rectangle"
+        lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+        
+        if sysml_type == 'requirement':
+            req_doc = getattr(elem, 'doc', None)
+            if req_doc:
+                lines.append(f"  note right of {alias}")
+                lines.append(f"    {req_doc}")
+                lines.append("  end note")
+    
+    lines.append("")
+    
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+    
+    req_relationships = _extract_requirement_relationships(model)
+    for from_req, to_req, rel_type in req_relationships:
+        from_id = id(from_req)
+        to_id = id(to_req)
+        
+        from_included = from_id in gen._included_ids
+        to_included = to_id in gen._included_ids
+        if not (from_included or to_included):
+            continue
+        
+        from_alias = id_map.get(from_id)
+        to_alias = id_map.get(to_id)
+        if from_alias and to_alias:
+            arrow_style = ARROW_STYLES.get(rel_type, "..>>")
+            lines.append(f'{from_alias} {arrow_style} {to_alias} : {rel_type}')
+    
+    lines.append("")
+    
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Requirement View Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Satisfy | --> |",
+            "  | Verify | --> |",
+            "  | Derive | *-- |",
+            "  | Refine | ..>> |",
+            "  | Composite (owns) | *-- |",
+            "  | Feature Typing | --:|> |",
+            "endlegend",
+        ])
+        lines.append("")
+    
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
 def as_tree_diagram(model, focus=None, style="bw", direction="TB",
                     max_depth=None, custom_style=None):
     """Generate a tree diagram showing hierarchical containment.

@@ -1201,6 +1201,206 @@ def _make_use_case_definition_dict(ctx, member_prefix=None):
     }
 
 
+def _make_use_case_usage_dict(ctx, prefix=None):
+    """Create a UseCaseUsage dictionary.
+    
+    Grammar: useCaseUsage: occurrenceUsagePrefix USE CASE constraintUsageDeclaration caseBody
+    UseCaseUsage class expects: prefix, declaration (CalculationUsageDeclaration), body (CaseBody)
+    """
+    name = None
+    shortname = None
+    typed_by = None
+    
+    # Extract name from constraintUsageDeclaration
+    cud = None
+    if hasattr(ctx, 'constraintUsageDeclaration') and ctx.constraintUsageDeclaration():
+        cud = ctx.constraintUsageDeclaration()
+    
+    ud = None
+    if cud and hasattr(cud, 'usageDeclaration') and cud.usageDeclaration():
+        ud = cud.usageDeclaration()
+    
+    if ud and hasattr(ud, 'identification') and ud.identification():
+        ident = ud.identification()
+        if hasattr(ident, 'name'):
+            name_list = ident.name()
+            if name_list and isinstance(name_list, list):
+                if len(name_list) == 2:
+                    shortname = name_list[0].getText()
+                    name = name_list[1].getText()
+                elif len(name_list) == 1:
+                    name_text = name_list[0].getText()
+                    name, shortname = _extract_name_shortname(name_text)
+    
+    # Extract typed_by from specialization
+    typed_by = _get_action_usage_typed_by(ctx)
+    if typed_by is None:
+        typed_by = _get_action_usage_subsetted_by(ctx)
+    
+    specialization = _build_specialization(typed_by) if typed_by else None
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    
+    # Get case body items
+    body_items = []
+    if hasattr(ctx, 'caseBody') and ctx.caseBody():
+        body_items = _visit_case_body_items(ctx.caseBody())
+    
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "UsageElement",
+            "ownedRelatedElement": {
+                "name": "OccurrenceUsageElement",
+                "ownedRelatedElement": {
+                    "name": "BehaviorUsageElement",
+                    "ownedRelationship": {
+                        "name": "UseCaseUsage",
+                        "prefix": occ_prefix or prefix,
+                        "declaration": {
+                            "name": "CalculationUsageDeclaration",
+                            "declaration": {
+                                "name": "UsageDeclaration",
+                                "declaration": {
+                                    "name": "FeatureDeclaration",
+                                    "identification": {
+                                        "name": "Identification",
+                                        "declaredShortName": shortname,
+                                        "declaredName": name
+                                    },
+                                    "specialization": specialization
+                                }
+                            },
+                            "valuepart": None
+                        },
+                        "body": {
+                            "name": "CaseBody",
+                            "item": body_items
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+def _make_message_dict(ctx, prefix=None):
+    """Create a Message dictionary.
+    
+    Grammar: message: occurrenceUsagePrefix MESSAGE messageDeclaration definitionBody
+    Message class expects: prefix, declaration (MessageDeclaration), body (DefinitionBody)
+    """
+    name = None
+    shortname = None
+    of_item = None
+    from_event = None
+    to_event = None
+    
+    # Extract from messageDeclaration
+    msg_decl = None
+    if hasattr(ctx, 'messageDeclaration') and ctx.messageDeclaration():
+        msg_decl = ctx.messageDeclaration()
+        
+        # Get usageDeclaration for name
+        ud = None
+        if hasattr(msg_decl, 'usageDeclaration') and msg_decl.usageDeclaration():
+            ud = msg_decl.usageDeclaration()
+            if ud and hasattr(ud, 'identification') and ud.identification():
+                ident = ud.identification()
+                if hasattr(ident, 'name'):
+                    name_list = ident.name()
+                    if name_list and isinstance(name_list, list):
+                        if len(name_list) == 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        elif len(name_list) == 1:
+                            name_text = name_list[0].getText()
+                            name, shortname = _extract_name_shortname(name_text)
+        
+        # Get OF item
+        if hasattr(msg_decl, 'flowPayloadFeatureMember') and msg_decl.flowPayloadFeatureMember():
+            of_item = msg_decl.flowPayloadFeatureMember()
+        
+        # Get FROM/TO events
+        if hasattr(msg_decl, 'messageEventMember') and msg_decl.messageEventMember():
+            events = msg_decl.messageEventMember()
+            if isinstance(events, list) and len(events) >= 2:
+                from_event = events[0]
+                to_event = events[1]
+            elif isinstance(events, list) and len(events) == 1:
+                to_event = events[0]
+    
+    occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
+    
+    # Get definition body items
+    body_items = []
+    if hasattr(ctx, 'definitionBody') and ctx.definitionBody():
+        body_items = _visit_definition_body_dict(ctx.definitionBody())
+    
+    # Build message declaration dict
+    msg_decl_dict = {
+        "name": "MessageDeclaration",
+        "declaration": None,
+        "valuepart": None,
+        "ownedRelationship": []
+    }
+    
+    if ud:
+        msg_decl_dict["declaration"] = {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": shortname,
+                    "declaredName": name
+                },
+                "specialization": None
+            }
+        }
+    
+    # Build from/to events
+    if from_event:
+        msg_decl_dict["ownedRelationship"].append({
+            "name": "MessageEventMember",
+            "ownedRelatedElement": [{
+                "name": "MessageEvent",
+                "ownedRelationship": []
+            }]
+        })
+    if to_event:
+        msg_decl_dict["ownedRelationship"].append({
+            "name": "MessageEventMember",
+            "ownedRelatedElement": [{
+                "name": "MessageEvent",
+                "ownedRelationship": []
+            }]
+        })
+    
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "UsageElement",
+            "ownedRelatedElement": {
+                "name": "OccurrenceUsageElement",
+                "ownedRelatedElement": {
+                    "name": "StructureUsageElement",
+                    "ownedRelatedElement": {
+                        "name": "Message",
+                        "prefix": occ_prefix or prefix,
+                        "declaration": msg_decl_dict,
+                        "body": {
+                            "name": "DefinitionBody",
+                            "ownedRelatedElement": body_items
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 def _make_interface_definition_dict(ctx, member_prefix=None):
     """Create an InterfaceDefinition dictionary."""
     name, shortname = _get_definition_identification(ctx)
@@ -9010,6 +9210,12 @@ def _visit_nested_occurrence_usage(occ_elem):
         elif hasattr(behav_elem, 'caseUsage') and behav_elem.caseUsage():
             ctx = behav_elem.caseUsage()
             return _make_nested_case_usage_dict(ctx, None)
+        elif hasattr(behav_elem, 'useCaseUsage') and behav_elem.useCaseUsage():
+            ctx = behav_elem.useCaseUsage()
+            result = _make_use_case_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                return result.get("ownedRelatedElement")
+            return result
     
     # print(f"DEBUG: No match found in _visit_nested_occurrence_usage")
     # Fall through to check structure usage elements
@@ -10270,6 +10476,9 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(struct_elem, 'interfaceUsage') and struct_elem.interfaceUsage():
                 ctx = struct_elem.interfaceUsage()
                 return _make_interface_usage_dict(ctx, prefix)
+            elif hasattr(struct_elem, 'message') and struct_elem.message():
+                ctx = struct_elem.message()
+                return _make_message_dict(ctx, prefix)
         
         # Check behavior usage elements (action, state, etc.)
         if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -10340,6 +10549,9 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(behav_elem, 'caseUsage') and behav_elem.caseUsage():
                 ctx = behav_elem.caseUsage()
                 return _make_nested_case_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'useCaseUsage') and behav_elem.useCaseUsage():
+                ctx = behav_elem.useCaseUsage()
+                return _make_use_case_usage_dict(ctx, prefix)
             elif hasattr(behav_elem, 'actionUsage') and behav_elem.actionUsage():
                 ctx = behav_elem.actionUsage()
                 name = None

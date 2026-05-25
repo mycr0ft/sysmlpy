@@ -1,6 +1,37 @@
 # CHANGELOG
 
 
+## v0.27.2 (2026-05-25)
+
+### :sparkles:
+
+- :sparkles: Requirement View (`as_requirement_view`)
+  Renders requirement diagrams with stereotypes (`<<requirement>>`, `<<requirement def>>`),
+  documentation notes, attributes, and constraints. Supports satisfy/verify/derive/refine
+  relationship extraction. Includes all standard view parameters: `focus`, `elements`,
+  `style` (bw/color), `direction`, `max_depth`, `show_external`, and custom styling.
+  Added 8 tests.
+
+- :sparkles: Interface/UseCase/Message name extraction + visitor support
+  Added `load_from_grammar()` methods to `Interface`, `UseCase`, and `Message` classes.
+  Added `_make_use_case_usage_dict()` and `_make_message_dict()` to antlr_visitor.py.
+  Fixed `Interface.connections` attribute conflict with Searchable mixin property.
+  UseCase and Message now parse correctly from SysML text.
+
+### :white_check_mark:
+
+- :white_check_mark: All 116 PlantUML tests passing
+- :white_check_mark: All 60 class/main tests passing
+- :white_check_mark: 61 / 77 grammar round-trip tests pass (16 deferred control-flow)
+
+### :memo:
+
+- :memo: Updated `TODO-gaps.md` with completion status for Requirement View and
+  Interface/UseCase/Message visitor support.
+
+---
+
+
 ## v0.27.0 (2026-05-25)
 
 ### :sparkles:

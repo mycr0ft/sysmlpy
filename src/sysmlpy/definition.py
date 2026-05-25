@@ -20,7 +20,7 @@ from sysmlpy.grammar.classes import (
 )
 from sysmlpy.grammar.classes import Package as PackageGrammar
 
-from sysmlpy import Part, Item, Port, Requirement, UseCase, Attribute, Action, Case, AnalysisCase, VerificationCase
+from sysmlpy import Part, Item, Port, Requirement, UseCase, Attribute, Action, Case, AnalysisCase, VerificationCase, Interface, Message
 from sysmlpy.usage import (
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
@@ -871,14 +871,29 @@ class Package(Searchable):
                 child = UseCase(definition=True).load_from_grammar(inner_element)
                 child.parent = self
                 self.children.append(child)
+            elif inner_class == "UseCaseUsage":
+                child = UseCase().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "Message":
+                m = Message().load_from_grammar(inner_element)
+                m.parent = self
+                self.children.append(m)
             elif inner_class == "ActionUsage":
                 child = Action(grammar=inner_element).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "RequirementUsage":
+                child = Requirement().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "SatisfyRequirementUsage":
+                child = Requirement().load_from_grammar(inner_element)
                 child.parent = self
                 self.children.append(child)
             elif inner_class == "ConstraintDefinition":
                 c = Constraint(definition=True)
                 c.grammar = inner_element
-                # Extract the name from the grammar
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     c.name = inner_element.declaration.identification.declaredName
                 c.parent = self
@@ -886,7 +901,6 @@ class Package(Searchable):
             elif inner_class == "ConstraintUsage":
                 c = Constraint()
                 c.grammar = inner_element
-                # Navigate to get name from nested declaration structure
                 try:
                     if hasattr(inner_element, 'declaration') and inner_element.declaration:
                         decl = inner_element.declaration
@@ -972,7 +986,7 @@ class Package(Searchable):
                 f.parent = self
                 self.children.append(f)
             elif inner_class == "EnumerationDefinition":
-                e = Enumeration(name=None)  # will set below
+                e = Enumeration(name=None)
                 e.grammar = inner_element
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     e.name = inner_element.declaration.identification.declaredName
@@ -981,7 +995,6 @@ class Package(Searchable):
             elif inner_class == "AllocationDefinition":
                 a = Allocation(definition=True)
                 a.grammar = inner_element
-                # AllocationDefinition uses 'definition' -> Definition -> DefinitionDeclaration
                 if hasattr(inner_element, 'definition') and inner_element.definition:
                     if hasattr(inner_element.definition, 'declaration') and inner_element.definition.declaration:
                         decl = inner_element.definition.declaration
@@ -1022,16 +1035,6 @@ class Package(Searchable):
                 m.parent = self
                 self.children.append(m)
             elif inner_class == "RenderingDefinition":
-                r = Rendering(definition=True)
-                r.grammar = inner_element
-                if hasattr(inner_element, 'definition') and inner_element.definition:
-                    if hasattr(inner_element.definition, 'declaration') and inner_element.definition.declaration:
-                        decl = inner_element.definition.declaration
-                        if hasattr(decl, 'identification') and decl.identification:
-                            r.name = decl.identification.declaredName
-                r.parent = self
-                self.children.append(r)
-            elif inner_class == "RenderingUsage":
                 r = Rendering()
                 r.grammar = inner_element
                 if hasattr(inner_element, 'declaration') and inner_element.declaration:
@@ -1165,13 +1168,25 @@ class Package(Searchable):
                 wrapper.parent = self
                 self.children.append(wrapper)
             elif inner_class == "InterfaceDefinition":
-                wrapper = _GrammarAnnotationWrapper(inner_element)
-                wrapper.parent = self
-                self.children.append(wrapper)
+                i = Interface(definition=True).load_from_grammar(inner_element)
+                i.parent = self
+                self.children.append(i)
             elif inner_class == "InterfaceUsage":
-                wrapper = _GrammarAnnotationWrapper(inner_element)
-                wrapper.parent = self
-                self.children.append(wrapper)
+                i = Interface().load_from_grammar(inner_element)
+                i.parent = self
+                self.children.append(i)
+            elif inner_class == "UseCaseDefinition":
+                child = UseCase(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "UseCaseUsage":
+                child = UseCase().load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "Message":
+                m = Message().load_from_grammar(inner_element)
+                m.parent = self
+                self.children.append(m)
             elif inner_class == "AssertConstraintUsage":
                 c = Constraint()
                 c.grammar = inner_element

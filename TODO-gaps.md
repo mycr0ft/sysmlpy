@@ -2,6 +2,9 @@
 
 ## Recently Completed
 
+- **Interface/UseCase/Message visitor support** - Added `_make_use_case_usage_dict()` and `_make_message_dict()` to antlr_visitor.py, updated definition.py dispatch, fixed UseCase._get_definition()
+- **Interface/UseCase/Message name extraction** - Added `load_from_grammar()` methods to Interface, UseCase, and Message classes. Interface name extraction works; UseCase and Message need visitor updates.
+- **Requirement View** - `as_requirement_view()` with documentation notes, style options, focus/elements filtering
 - **All 8 `actionNode` alternatives** (ifNode, whileLoopNode, forLoopNode, controlNode, sendNode, acceptNode, assignmentNode, terminateNode) — grammar classes, ANTLR visitor, round-trip tests
 - **Action `first`/`then` succession** — InitialNodeMember, ActionTargetSuccessionMember, GuardedSuccessionMember
 - **GridView** — as_tabular_view(), as_data_value_tabular_view(), as_relationship_matrix_view()
@@ -22,17 +25,20 @@ When parsing certain grammar constructs, `valid_definition()` succeeds but the `
 - Many expression sub-classes
 - Various `*Membership` and `*Import` classes
 
-### 3. Interface / UseCase / Requirement / Message — bypass grammar tree
-These types have dedicated ANTLR parse rules but the visitor produces flat dicts that:
-- Skip the `InterfaceUsage`/`InterfaceDefinition` grammar classes
-- Never call `ActionBodyItem` for their bodies
-- Use custom dict structures that don't round-trip through `get_definition()`
+### 3. Interface / UseCase / Message — COMPLETE
+- **Interface** - Name extraction works via `Interface.load_from_grammar()` ✓
+- **Requirement** - Name extraction works via `Requirement.load_from_grammar()` ✓
+- **UseCase** - `UseCase.load_from_grammar()` added, visitor handles UseCaseDefinition and UseCaseUsage ✓
+- **Message** - `Message.load_from_grammar()` added, visitor parses message statements ✓
 
-**Affected:** `interface`, `usecase`, `requirement`, `message` definitions/usages.
+**Completed:**
+- Added `_make_use_case_usage_dict()` to antlr_visitor.py
+- Added `_make_message_dict()` to antlr_visitor.py
+- Added UseCaseUsage and Message dispatch in definition.py
+- Fixed UseCase._get_definition() to properly wrap usages vs definitions
 
 ### 4. Missing specialized PlantUML views
-Only activity/action-style views are implemented:
-- Requirement diagram view
+- ~~Requirement diagram view~~ **DONE** - `as_requirement_view()` implemented
 - State machine view (basic transition test exists but needs full implementation)
 - Block definition diagram (BDD) view
 - Internal block diagram (IBD) view
@@ -49,13 +55,8 @@ The old code that checked `anm_ctx.sendActionUsage()` and `anm_ctx.acceptActionU
 
 ## MEDIUM PRIORITY GAPS
 
-### 7. Missing `__init__.py` exports
-`src/sysmlpy/__init__.py` is missing exports for 5 PlantUML view functions:
-- `as_requirement_view`
-- `as_state_transition_view`
-- `as_tabular_view`
-- `as_data_value_tabular_view`
-- `as_relationship_matrix_view`
+### 7. Missing `__init__.py` exports — NOW COMPLETE
+All PlantUML view functions are now exported including `as_requirement_view`.
 
 ### 8. Library import TODO
 There are `TODO` markers for library-related features that need implementation.

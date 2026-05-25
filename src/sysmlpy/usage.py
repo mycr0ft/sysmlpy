@@ -1498,7 +1498,7 @@ class Interface(Usage):
         self.grammar = True
         self.iface_shortname = shortname
         self.ends = []  # list of (name, type_name, multiplicity, children)
-        self.connections = []  # list of (from_path, to_path)
+        self.iface_connections = []  # list of (from_path, to_path)
 
         if definition:
             self.keyword = "interface def"
@@ -1523,7 +1523,7 @@ class Interface(Usage):
             from_path: Source path (e.g., 'suppliedBy.hot')
             to_path: Target path (e.g., 'deliveredTo.hot')
         """
-        self.connections.append((from_path, to_path))
+        self.iface_connections.append((from_path, to_path))
         return self
 
     def _set_typed_by(self, typed):
@@ -1558,7 +1558,7 @@ class Interface(Usage):
             else:
                 body_items.append(f"end {end_name}{mult_str};")
 
-        for from_path, to_path in self.connections:
+        for from_path, to_path in self.iface_connections:
             body_items.append(f"connect {from_path} to {to_path};")
 
         if body_items:
@@ -1566,6 +1566,43 @@ class Interface(Usage):
             return f"{keyword} {name_str}{type_suffix}{body}"
         else:
             return f"{keyword} {name_str}{type_suffix};"
+
+    def load_from_grammar(self, grammar):
+        """Load interface from a parsed grammar object.
+        
+        Parameters
+        ----------
+        grammar : InterfaceUsage or InterfaceDefinition
+            Parsed grammar object.
+        
+        Returns
+        -------
+        Interface
+            Self for chaining.
+        """
+        self.grammar = grammar
+        
+        class_name = grammar.__class__.__name__
+        if class_name == "InterfaceDefinition":
+            self.is_definition = True
+            self.keyword = "interface def"
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                if hasattr(grammar.declaration, 'identification') and grammar.declaration.identification:
+                    self.name = grammar.declaration.identification.declaredName
+        else:
+            # InterfaceUsage
+            self.is_definition = False
+            self.keyword = "interface"
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                decl = grammar.declaration
+                if hasattr(decl, 'declaration') and decl.declaration:
+                    inner_decl = decl.declaration
+                    if hasattr(inner_decl, 'declaration') and inner_decl.declaration:
+                        feat_decl = inner_decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            self.name = feat_decl.identification.declaredName
+        
+        return self
 
 
 class Action(Usage):
@@ -2071,10 +2108,23 @@ class UseCase(Usage):
         else:
             grammar_def = {"name": "UseCaseDefinition", "declaration": {}, "body": {}}
         
-        package = {
-            "name": "DefinitionElement",
-            "ownedRelatedElement": grammar_def,
-        }
+        # Wrap based on whether this is a definition or usage
+        if self.is_definition:
+            package = {
+                "name": "DefinitionElement",
+                "ownedRelatedElement": grammar_def,
+            }
+        else:
+            package = {
+                "name": "UsageElement",
+                "ownedRelatedElement": {
+                    "name": "OccurrenceUsageElement",
+                    "ownedRelatedElement": {
+                        "name": "BehaviorUsageElement",
+                        "ownedRelationship": grammar_def
+                    }
+                }
+            }
 
         if child == "DefinitionBody":
             package = {
@@ -2169,6 +2219,43 @@ class UseCase(Usage):
             return f"{keyword} {name_str}{type_suffix}{body}"
         else:
             return f"{keyword} {name_str}{type_suffix};"
+
+    def load_from_grammar(self, grammar):
+        """Load use case from a parsed grammar object.
+        
+        Parameters
+        ----------
+        grammar : UseCaseUsage or UseCaseDefinition
+            Parsed grammar object.
+        
+        Returns
+        -------
+        UseCase
+            Self for chaining.
+        """
+        self.grammar = grammar
+        
+        class_name = grammar.__class__.__name__
+        if class_name == "UseCaseDefinition":
+            self.is_definition = True
+            self.keyword = "use case def"
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                if hasattr(grammar.declaration, 'identification') and grammar.declaration.identification:
+                    self.name = grammar.declaration.identification.declaredName
+        else:
+            # UseCaseUsage
+            self.is_definition = False
+            self.keyword = "use case"
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                decl = grammar.declaration
+                if hasattr(decl, 'declaration') and decl.declaration:
+                    inner_decl = decl.declaration
+                    if hasattr(inner_decl, 'declaration') and inner_decl.declaration:
+                        feat_decl = inner_decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            self.name = feat_decl.identification.declaredName
+        
+        return self
 
 
 class Requirement(Usage):
@@ -2362,6 +2449,61 @@ class Requirement(Usage):
         else:
             return f"{keyword}{shortname_str} {name_str}{type_suffix};"
 
+    def load_from_grammar(self, grammar):
+        """Load requirement from a parsed grammar object.
+        
+        Parameters
+        ----------
+        grammar : RequirementUsage or RequirementDefinition
+            Parsed grammar object.
+        
+        Returns
+        -------
+        Requirement
+            Self for chaining.
+        """
+        self.grammar = grammar
+        
+        # Check if this is a definition or usage
+        class_name = grammar.__class__.__name__
+        if class_name == "RequirementDefinition":
+            self.is_definition = True
+            self.keyword = "requirement def"
+            # Extract name from declaration.identification
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                if hasattr(grammar.declaration, 'identification') and grammar.declaration.identification:
+                    self.name = grammar.declaration.identification.declaredName
+        else:
+            # RequirementUsage
+            self.is_definition = False
+            self.keyword = "requirement"
+            # Navigate nested declaration structure
+            if hasattr(grammar, 'declaration') and grammar.declaration:
+                decl = grammar.declaration
+                if hasattr(decl, 'declaration') and decl.declaration:
+                    inner_decl = decl.declaration
+                    if hasattr(inner_decl, 'declaration') and inner_decl.declaration:
+                        feat_decl = inner_decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            self.name = feat_decl.identification.declaredName
+        
+        # Extract body content
+        body = getattr(grammar, 'body', None)
+        if body and hasattr(body, 'items'):
+            for item in body.items:
+                if hasattr(item, 'child') and item.child:
+                    child_class = item.child.__class__.__name__
+                    if child_class == "DefinitionBodyItem":
+                        pass  # handled separately
+                    elif child_class == "RequirementConstraintMember":
+                        pass  # could extract constraints
+                    elif child_class == "SubjectMember":
+                        pass  # could extract subject
+                    elif child_class == "ActorMember":
+                        pass  # could extract actors
+        
+        return self
+
 
 class Message(Usage):
     sysml_type = 'message'
@@ -2431,6 +2573,30 @@ class Message(Usage):
             parts.append(f"to {self.to_port}")
 
         return " ".join(parts) + ";"
+
+    def load_from_grammar(self, grammar):
+        """Load message from a parsed grammar object.
+        
+        Parameters
+        ----------
+        grammar : Message
+            Parsed grammar object.
+        
+        Returns
+        -------
+        Message
+            Self for chaining.
+        """
+        self.grammar = grammar
+        if hasattr(grammar, 'declaration') and grammar.declaration:
+            decl = grammar.declaration
+            if hasattr(decl, 'declaration') and decl.declaration:
+                inner_decl = decl.declaration
+                if hasattr(inner_decl, 'declaration') and inner_decl.declaration:
+                    feat_decl = inner_decl.declaration
+                    if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                        self.name = feat_decl.identification.declaredName
+        return self
 
 
 class _BehaviorUsage(Usage):

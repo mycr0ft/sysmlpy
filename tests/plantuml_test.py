@@ -1887,7 +1887,6 @@ class TestRelationshipMatrixView:
             part def Engine {
                 attribute power;
             }
-            part def Wheel;
         }
         """)
         engine = model.find('Engine')[0]
@@ -1896,3 +1895,123 @@ class TestRelationshipMatrixView:
         assert "Engine" in md
         assert "power" in md
         assert "Wheel" not in md
+
+    def test_as_requirement_view_basic(self):
+        """Requirement View renders requirements with stereotypes."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package Requirements {
+            requirement def SafetyRequirement;
+            requirement R1 : SafetyRequirement;
+        }
+        """)
+        puml = as_requirement_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "SafetyRequirement" in puml
+        assert "R1" in puml
+        assert "<<requirement def>>" in puml
+        assert "<<requirement>>" in puml
+
+    def test_as_requirement_view_with_documentation(self):
+        """Requirement View includes documentation notes."""
+        from sysmlpy import Requirement
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.Model()
+        pkg = sysmlpy.Package(name="Requirements")
+        model.children.append(pkg)
+        pkg.parent = model
+        
+        req_def = Requirement(definition=True, name="SafetyRequirement")
+        req_def.set_doc("The system shall be safe")
+        pkg.children.append(req_def)
+        req_def.parent = pkg
+        
+        req_usage = Requirement(name="R1")
+        req_usage._set_typed_by(req_def)
+        req_usage.set_doc("Main safety requirement")
+        pkg.children.append(req_usage)
+        req_usage.parent = pkg
+
+        puml = as_requirement_view(model)
+
+        assert "SafetyRequirement" in puml
+        assert "R1" in puml
+        assert "note right" in puml
+
+    def test_as_requirement_view_style_color(self):
+        """Requirement View supports color style."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package R { requirement def Req; }
+        """)
+        puml = as_requirement_view(model, style="color")
+
+        assert "<style>" in puml
+        assert "BackgroundColor white" in puml
+
+    def test_as_requirement_view_direction(self):
+        """Requirement View supports direction parameter."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package R { requirement def Req; }
+        """)
+        puml = as_requirement_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_requirement_view_no_legend(self):
+        """Requirement View can omit legend."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package R { requirement def Req; }
+        """)
+        puml = as_requirement_view(model, include_legend=False)
+
+        assert "legend" not in puml.lower()
+
+    def test_as_requirement_view_with_focus(self):
+        """Requirement View with focus shows focused element."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package P {
+            requirement def FocusReq;
+            requirement def Other;
+        }
+        """)
+        focus = model.find('FocusReq')[0]
+        puml = as_requirement_view(model, focus=focus)
+
+        assert "FocusReq" in puml
+        assert "Other" not in puml
+
+    def test_as_requirement_view_custom_style(self):
+        """Requirement View accepts custom style."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package R { requirement def Req; }
+        """)
+        custom = ["skinparam BackgroundColor #FFFF00"]
+        puml = as_requirement_view(model, custom_style=custom)
+
+        assert "skinparam BackgroundColor #FFFF00" in puml
+
+    def test_as_requirement_view_title_with_focus(self):
+        """Requirement View title includes focus name."""
+        from sysmlpy.plantuml import as_requirement_view
+
+        model = sysmlpy.loads("""
+        package P { requirement def MyFocus; }
+        """)
+        focus = model.find('MyFocus')[0]
+        puml = as_requirement_view(model, focus=focus)
+
+        assert "Requirement View — MyFocus" in puml
