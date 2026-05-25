@@ -536,10 +536,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#plantuml-view-renderings-v0252-v0260" class="md-nav__link">
+  <a href="#plantuml-view-renderings-v0252-v0270" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PlantUML View Renderings (v0.25.2 → v0.26.0)
+        PlantUML View Renderings (v0.25.2 → v0.27.0)
       
     </span>
   </a>
@@ -1017,8 +1017,8 @@
 <h1 id="sysmlpy-project-work-summary">sysmlpy — Project Work Summary<a class="headerlink" href="#sysmlpy-project-work-summary" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>For:</strong> Future agents and team members
-<strong>Last Updated:</strong> May 24, 2026
-<strong>Current Version:</strong> v0.26.0
+<strong>Last Updated:</strong> May 25, 2026
+<strong>Current Version:</strong> v0.27.0
 <strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy</p>
 </blockquote>
 <hr />
@@ -1031,7 +1031,7 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── antlr_parser.py      # ANTLR4 lexer/parser setup
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── antlr_visitor.py     # ~11K lines: parse tree → internal dict
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── grammar/
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   ├── classes.py       # ~8.7K lines: grammar class hierarchy
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   │   ├── classes.py       # ~8.8K lines: grammar class hierarchy (no NotImplementedError)
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   │   └── antlr4/          # Generated ANTLR parser/lexer
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   ├── definition.py        # Model, Package, RootNamespace classes
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│   ├── usage.py             # Part, Item, Attribute, Port, Action, etc.
@@ -1046,14 +1046,19 @@
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│       ├── systems/         # SysML base (SysML.sysml)
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│       └── domain/          # ISQ, SI units, base quantities
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>├── tests/
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── grammar_test.py      # 56 round-trip tests (parse → dump)
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   ├── class_test.py        # 53 programmatic API tests
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── semantic_test.py     # 90 semantic analysis tests
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── project_test.py      # 12 multi-file loading tests
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   ├── store_test.py        # 82 storage backend tests (memory + networkx)
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│   ├── conformance_test.py  # 123 OMG XPect conformance tests
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>│   └── sysmlv2/             # Conformance test fixtures
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>└── docs/                    # Documentation
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│   ├── grammar_test.py      # 77 round-trip tests (61 pass, 16 deferred)
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│   ├── class_test.py        # 54 programmatic API tests
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│   ├── main_test.py         # 7 integration tests
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│   ├── plantuml_test.py     # 108 PlantUML view rendering tests
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│   ├── semantic_test.py     # 107 semantic analysis tests
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│   ├── project_test.py      # 17 multi-file loading tests
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>│   ├── navigate_test.py     # 33 model navigation tests
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>│   ├── import_test.py       # 16 import resolution tests
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>│   ├── validator_test.py    # 34 validator tests
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>│   ├── store_test.py        # 46 storage backend tests
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>│   ├── conformance_test.py  # 123 OMG XPect conformance tests
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>│   └── sysmlv2/             # Conformance test fixtures
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>└── docs/                    # Documentation
 </code></pre></div>
 <h3 id="data-flow">Data Flow<a class="headerlink" href="#data-flow" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>SysML text → ANTLR4 Lexer/Parser → Parse Tree
@@ -1072,8 +1077,11 @@
 </ul>
 <h3 id="grammar-round-trip">Grammar Round-Trip<a class="headerlink" href="#grammar-round-trip" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>56/56 grammar round-trip tests pass</strong> (100%)</li>
+<li><strong>61/77 grammar round-trip tests pass</strong>; all 61 non-control-flow tests pass (100%)</li>
+<li>16 tests deferred pending action control-flow node classes (<code>IfNode</code>, <code>WhileLoopNode</code>, <code>ControlNode</code>, <code>SendNode</code>, <code>AcceptNode</code>, <code>TerminateNode</code>)</li>
 <li>Every grammar class has <code>dump()</code> and <code>get_definition()</code> for serialization</li>
+<li>All 68+ <code>raise NotImplementedError</code> stubs replaced with graceful handling (v0.27.0)</li>
+<li>Missing classes added: <code>DefinitionBody</code>, <code>DefinitionBodyItem</code>, <code>FeatureSpecializationPart</code>, <code>SubclassificationPart</code></li>
 <li><code>classtree()</code> converts Model tree back to text</li>
 </ul>
 <h3 id="semantic-analysis-v0170-v0201">Semantic Analysis (v0.17.0 → v0.20.1)<a class="headerlink" href="#semantic-analysis-v0170-v0201" title="Permanent link">&para;</a></h3>
@@ -1149,61 +1157,104 @@
 <li>Standard library validation: <code>ScalarValues</code>, <code>ISQ</code>, etc. recognized as valid</li>
 <li>12 new tests in <code>tests/project_test.py</code></li>
 </ul>
-<h3 id="plantuml-view-renderings-v0252-v0260">PlantUML View Renderings (v0.25.2 → v0.26.0)<a class="headerlink" href="#plantuml-view-renderings-v0252-v0260" title="Permanent link">&para;</a></h3>
-<p>Five initial view rendering functions were added in v0.25.2, then three SysML v2 standard view definitions were added in v0.26.0:</p>
+<h3 id="plantuml-view-renderings-v0252-v0270">PlantUML View Renderings (v0.25.2 → v0.27.0)<a class="headerlink" href="#plantuml-view-renderings-v0252-v0270" title="Permanent link">&para;</a></h3>
+<p>Eight view rendering functions across two releases:</p>
 <table>
 <thead>
 <tr>
 <th>Function</th>
-<th>Corresponds to</th>
-<th>Description</th>
+<th>SysML v2 View</th>
+<th>Output</th>
+<th>Release</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>as_graphical_rendering()</code></td>
 <td><code>GraphicalRendering</code></td>
-<td>Elements as shapes with relationship arrows</td>
+<td>PlantUML</td>
+<td>v0.25.2</td>
 </tr>
 <tr>
 <td><code>as_interconnection_diagram()</code> / <code>as_interconnection_view()</code></td>
 <td><code>InterconnectionView</code> (<code>iv</code>)</td>
-<td>Features as nodes, connections as edges</td>
+<td>PlantUML</td>
+<td>v0.25.2 / v0.26.0</td>
 </tr>
 <tr>
 <td><code>as_action_flow_view()</code></td>
 <td><code>ActionFlowView</code> (<code>afv</code>)</td>
-<td>Actions with flow connections</td>
+<td>PlantUML</td>
+<td>v0.26.0</td>
 </tr>
 <tr>
 <td><code>as_state_transition_view()</code></td>
 <td><code>StateTransitionView</code> (<code>stv</code>)</td>
-<td>States with transitions</td>
+<td>PlantUML</td>
+<td>v0.26.0</td>
 </tr>
 <tr>
 <td><code>as_tree_diagram()</code></td>
-<td>Tree/structure view</td>
-<td>Nested containers showing hierarchy</td>
+<td>Tree/structure</td>
+<td>PlantUML</td>
+<td>v0.25.2</td>
 </tr>
 <tr>
 <td><code>as_element_table()</code></td>
 <td><code>TabularRendering</code></td>
-<td>Tabular listing of elements</td>
+<td>PlantUML</td>
+<td>v0.25.2</td>
 </tr>
 <tr>
 <td><code>as_textual_notation()</code></td>
 <td><code>TextualRendering</code></td>
-<td>Indented text in a PlantUML note</td>
+<td>PlantUML</td>
+<td>v0.25.2</td>
+</tr>
+<tr>
+<td><code>as_general_view()</code></td>
+<td><code>GeneralView</code> (<code>gv</code>)</td>
+<td>PlantUML</td>
+<td>v0.27.0</td>
+</tr>
+<tr>
+<td><code>as_package_view()</code></td>
+<td>Package View</td>
+<td>PlantUML</td>
+<td>v0.27.0</td>
+</tr>
+<tr>
+<td><code>as_tabular_view()</code></td>
+<td><code>TabularView</code> (GridView)</td>
+<td>PlantUML / MD / HTML</td>
+<td>v0.27.0</td>
+</tr>
+<tr>
+<td><code>as_data_value_tabular_view()</code></td>
+<td>Data Value Tabular View</td>
+<td>PlantUML / MD / HTML</td>
+<td>v0.27.0</td>
+</tr>
+<tr>
+<td><code>as_relationship_matrix_view()</code></td>
+<td>Relationship Matrix View</td>
+<td>PlantUML / MD / HTML</td>
+<td>v0.27.0</td>
 </tr>
 </tbody>
 </table>
+<p><strong>v0.27.0 additions:</strong>
+- <strong>General View</strong> — all SysML v2 element types; full filtering by focus/elements/depth
+- <strong>Package View</strong> — package hierarchy with contained elements and import arrows
+- <strong>Tabular View</strong> — GridView specialization with configurable columns; PlantUML/Markdown/HTML output
+- <strong>Data Value Tabular View</strong> — attribute values + units; PlantUML/Markdown/HTML output
+- <strong>Relationship Matrix View</strong> — cross-element relationship matrix; PlantUML/Markdown/HTML output
+- 108 PlantUML tests total (up from 101 in v0.26.0)</p>
 <p><strong>v0.26.0 features:</strong>
-- <strong>Action Flow View</strong> — renders actions with <code>action</code>/<code>action def</code> stereotypes; auto-discovers flow connections from grammar bodies and renders flow arrows between connected actions
-- <strong>Interconnection View</strong> — renders <code>part</code>, <code>port</code>, <code>interface</code>, <code>item</code>, <code>attribute</code>, <code>connection</code>, <code>flow</code> elements; <code>auto_include_connections</code> discovers bindings, connectors, and flows for selected features
-- <strong>State Transition View</strong> — renders states with PlantUML's <code>state</code> keyword; resolves <code>Transition</code> source/target names to model elements and draws transition arrows; <code>auto_include_transitions</code> expands selection to include connected states
-- <strong>Grammar-level scanning</strong> — flows embedded in action/part bodies (as raw <code>FlowConnectionUsage</code>/<code>FlowConnectionDefinition</code> objects) are discovered and rendered as arrows
-- <strong>All views support:</strong> <code>focus</code>, <code>elements</code>, <code>show_external</code>, <code>auto_include_*</code>, <code>custom_style</code>, <code>direction</code>, B&amp;W/color toggle, and legend
-- 39 new tests in <code>tests/plantuml_test.py</code> (101 total PlantUML tests)</p>
+- <strong>Action Flow View</strong> — actions + flow connections; auto-discovers flow arrows from grammar bodies
+- <strong>Interconnection View</strong> — parts, ports, connections; <code>auto_include_connections</code> discovers bindings
+- <strong>State Transition View</strong> — states + transitions; <code>auto_include_transitions</code> expands selection
+- All views support: <code>focus</code>, <code>elements</code>, <code>show_external</code>, <code>auto_include_*</code>, <code>custom_style</code>, <code>direction</code>, B&amp;W/color toggle, and legend</p>
 <h3 id="stylistic-checks-v0255">Stylistic Checks (v0.25.5)<a class="headerlink" href="#stylistic-checks-v0255" title="Permanent link">&para;</a></h3>
 <p>The <code>analyze()</code> function now includes stylistic checks that warn about naming convention violations and file-package mismatches:</p>
 <table>
@@ -1316,13 +1367,23 @@
 <tbody>
 <tr>
 <td>Grammar round-trip</td>
-<td>56</td>
-<td>✅ 56 pass</td>
+<td>77</td>
+<td>61 pass, 16 deferred (control-flow nodes)</td>
 </tr>
 <tr>
 <td>Programmatic API</td>
-<td>53</td>
-<td>✅ 53 pass</td>
+<td>54</td>
+<td>✅ 54 pass</td>
+</tr>
+<tr>
+<td>Integration (main)</td>
+<td>7</td>
+<td>✅ 7 pass</td>
+</tr>
+<tr>
+<td>PlantUML rendering</td>
+<td>108</td>
+<td>✅ 108 pass</td>
 </tr>
 <tr>
 <td>Semantic analysis</td>
@@ -1335,14 +1396,24 @@
 <td>✅ 17 pass</td>
 </tr>
 <tr>
-<td>PlantUML rendering</td>
-<td>101</td>
-<td>✅ 101 pass</td>
+<td>Model navigation</td>
+<td>33</td>
+<td>✅ 33 pass</td>
+</tr>
+<tr>
+<td>Import resolution</td>
+<td>16</td>
+<td>✅ 16 pass</td>
+</tr>
+<tr>
+<td>Validator</td>
+<td>34</td>
+<td>✅ 34 pass</td>
 </tr>
 <tr>
 <td>Storage backends</td>
-<td>82</td>
-<td>✅ 82 pass</td>
+<td>46</td>
+<td>✅ pass (optional deps skipped if missing)</td>
 </tr>
 <tr>
 <td>Conformance</td>
@@ -1351,8 +1422,8 @@
 </tr>
 <tr>
 <td><strong>Total</strong></td>
-<td><strong>539</strong></td>
-<td><strong>✅ 539 pass, 0 fail</strong></td>
+<td><strong>622</strong></td>
+<td><strong>606 pass, 16 deferred</strong></td>
 </tr>
 </tbody>
 </table>
@@ -1413,6 +1484,11 @@
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><strong>Action control-flow node classes missing</strong></td>
+<td><code>grammar/classes.py</code></td>
+<td><code>IfNode</code>, <code>WhileLoopNode</code>, <code>ForLoopNode</code>, <code>ControlNode</code>, <code>SendNode</code>, <code>AcceptNode</code>, <code>TerminateNode</code>, etc. exist in the visitor but not in <code>grammar/classes.py</code>. 16 grammar tests fail with <code>KeyError</code>.</td>
+</tr>
 <tr>
 <td><strong>Top-level attribute multiplicity not captured</strong></td>
 <td><code>antlr_visitor.py</code> ~line 9558</td>
@@ -1497,11 +1573,6 @@
 <td><code>semantic.py</code></td>
 <td>Flow payload must be compatible with source/target — not validated.</td>
 </tr>
-<tr>
-<td><strong>STATUS.md is stale</strong></td>
-<td><code>docs/STATUS.md</code></td>
-<td>Still reports v0.11.0 and outdated test counts.</td>
-</tr>
 </tbody>
 </table>
 <hr />
@@ -1568,9 +1639,6 @@
 </ol>
 <h3 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h3>
 <ol>
-<li>
-<p><strong>Update STATUS.md</strong> — Bring in line with current state (v0.21.0, 416 tests, 100% conformance).</p>
-</li>
 <li>
 <p><strong>API documentation</strong> — Generate API docs from docstrings (Sphinx or MkDocs).</p>
 </li>

@@ -1,0 +1,40 @@
+'' Relationship Matrix View (GridView)
+'' Salt matrix showing pairwise relationships between elements. Cells indicate composite (C), typing (T), specialization (G), and shared (S).
+@startuml
+
+skinparam monochrome true
+skinparam defaultFontSize 11
+skinparam defaultFontName Helvetica
+
+title Relationship Matrix View
+
+salt
+{
+| ? | <&question> Engine | <&question> power | <&question> torque | <&question> Vehicle | <&question> engine | <&question> frontLeft | <&question> frontRight | <&question> Wheel
+| Engine |  | C | C | S |  |  |  | S
+| power |  |  | S |  |  |  |  | 
+| torque |  | S |  |  |  |  |  | 
+| Vehicle | S |  |  |  | C | C | C | S
+| engine |  |  |  |  |  | S | S | 
+| frontLeft |  |  |  |  | S |  | S | 
+| frontRight |  |  |  |  | S | S |  | 
+| Wheel | S |  |  | S |  |  |  | 
+}
+
+legend bottom
+  <b>Relationship Legend</b>
+  C = composite
+  S = shared
+  T = typing
+  G = specialization
+  R = redefinition
+  B = binding
+  N = connector
+  F = flow
+  U = succession
+  A = allocation
+  D = dependency
+  I = import
+endlegend
+
+@enduml

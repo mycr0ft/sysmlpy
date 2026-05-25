@@ -1,62 +1,145 @@
+'' Black-and-White Style
+'' Journal-ready monochrome output with clear stereotype labels.
 @startuml
-' ============================================================
-' Example 4: Standard B&W Style
-' Matches the reference implementation's "Standard B&W" style
-' with monochrome output and classic stereotypes.
-' ============================================================
 
 skinparam monochrome true
 skinparam wrapWidth 300
-skinparam roundcorner 20
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+# Definitions: sharp corners, hatched background
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+    BackgroundColor white
+    StereotypeFontSize 11
+}
+skinparam rectangle<<item def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<attribute def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<port def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<state def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+
+# Usages: rounded corners, plain background
+skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<item>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<port>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<state>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+# Views as folders
+skinparam folder<<view def>> {
+    BackgroundColor white
+}
+skinparam folder<<view>> {
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title d0cc66a3-4563-477e-af13-387ff666eea2
+
 hide circle
 
-title SysML v2 — Standard B&W Style
+rectangle "Wheel" as E1 <<part def>>
+rectangle "radius" as E2 <<attribute>>
+rectangle "pressure" as E3 <<attribute>>
+rectangle "BrakeSystem" as E4 <<part def>>
+rectangle "padThickness" as E5 <<attribute>>
+rectangle "VehicleAssembly" as E6 <<part def>>
+rectangle "frontLeft" as E7 <<part>>
+rectangle "frontRight" as E8 <<part>>
+rectangle "brakes" as E9 <<part>>
+rectangle "myVehicle" as E10 <<part>>
 
-' === DEFINITIONS ===
-rectangle "Wheel" as WheelDef <<part def>>
-rectangle "Axle" as AxleDef <<part def>>
-rectangle "Vehicle" as VehicleDef <<part def>>
-
-' === USAGES ===
-rectangle "frontLeft" as FL <<part>>
-rectangle "frontRight" as FR <<part>>
-rectangle "rearAxle" as RA <<part>>
-
-' === TYPING ===
-FL --:|> WheelDef : types
-FR --:|> WheelDef : types
-RA --:|> AxleDef : types
-
-' === CONTAINMENT ===
-VehicleDef *-- FL : owns
-VehicleDef *-- FR : owns
-VehicleDef *-- RA : owns
-
-' === SPECIALIZATION ===
-WheelDef --|> AxleDef : specializes
-
-' === BINDING ===
-FL -[thickness=4]- RA : binding
-
-' === DEPENDENCY ===
-FL ..>> RA : dependency
-
-' === FLOW ===
-FL --> RA : flow
+E1 *-- E2
+E1 *-- E3
+E4 *-- E5
+E6 *-- E7
+E7 --:|> E1 : types
+E6 *-- E8
+E8 --:|> E1 : types
+E6 *-- E9
+E9 --:|> E4 : types
+E10 --:|> E6 : types
 
 legend right
-  <b>B&W Arrow Legend</b>
+  <b>SysML v2 Relationship Legend</b>
   |= Relationship |= Notation |
-  | Specialization | --|> |
   | Feature Typing | --:|> |
+  | Specialization | --|> |
   | Redefinition | --||> |
-  | Composite | *-- |
+  | Composite (owns) | *-- |
   | Shared | o-- |
   | Binding | -[thickness=4]- |
   | Connector | -[thickness=2]-> |
-  | Dependency | ..>> |
   | Flow | --> |
-  | Allocation | -[thickness=3,dotted]-> |
+  | Dependency | ..>> |
 endlegend
 
 @enduml

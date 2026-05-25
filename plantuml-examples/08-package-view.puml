@@ -1,0 +1,97 @@
+'' Package View
+'' Package hierarchy with nested rectangles showing package containment.
+@startuml
+
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<package>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<item def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<item>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<attribute def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam folder<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam folder<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title Package View
+
+hide circle
+
+rectangle "P" as E4 <<package>> {
+rectangle "Q" as E5 <<package>> {
+rectangle "R" as E6 <<package>>
+}
+}
+rectangle "Engine" as E1 <<part def>>
+rectangle "Wheel" as E2 <<part def>>
+rectangle "Tire" as E3 <<part def>>
+
+
+legend right
+  <b>Package View Legend</b>
+  |= Relationship |= Notation |
+  | Package Containment | *-- |
+  | Composite (owns) | *-- |
+  | Feature Typing | --:|> |
+  | Specialization | --|> |
+  | Import | ..> |
+endlegend
+
+@enduml

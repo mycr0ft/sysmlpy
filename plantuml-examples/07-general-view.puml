@@ -1,5 +1,5 @@
-'' Interconnection Diagram
-'' Focus on connectors, bindings, and flow paths between ports.
+'' General View (GV)
+'' The most general view — all elements as a graph of nodes and edges. Corresponds to SysML v2 GeneralView.
 @startuml
 
 skinparam monochrome true
@@ -12,6 +12,22 @@ skinparam rectangle<<part def>> {
     BackgroundColor white
 }
 skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<state def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<state>> {
     RoundCorner 15
     BackgroundColor white
 }
@@ -63,10 +79,74 @@ skinparam rectangle<<flow>> {
     RoundCorner 15
     BackgroundColor white
 }
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<use case def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<use case>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<constraint def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<constraint>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<calculation def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<calculation>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<allocation def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<allocation>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam folder<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam folder<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
 
 top to bottom direction
 
-title Interconnection View
+title General View
 
 hide circle
 
@@ -92,17 +172,20 @@ E6 *-- E9
 E9 --:|> E4 : types
 E10 --:|> E6 : types
 
-
 legend right
-  <b>Interconnection Legend</b>
+  <b>General View Legend</b>
   |= Relationship |= Notation |
+  | Composite (owns) | *-- |
+  | Shared (contains) | o-- |
+  | Owning Membership | +-- |
+  | Feature Typing | --:|> |
+  | Specialization | --|> |
+  | Redefinition | --||> |
   | Binding | -[thickness=4]- |
   | Connector | -[thickness=2]-> |
   | Flow Transfer | --> |
   | Allocation | -[dotted]-> |
-  | Feature Typing | --:|> |
-  | Composite (owns) | *-- |
-  | Specialization | --|> |
+  | Dependency | ..>> |
 endlegend
 
 @enduml

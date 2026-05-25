@@ -1,99 +1,145 @@
+'' Vehicle Structure
+'' A complete vehicle hierarchy with parts, attributes, and typing relationships.
 @startuml
-' ============================================================
-' Example 3: Realistic Structure Diagram
-' A Vehicle assembly with ports, attributes, and connections
-' demonstrating compartments and mixed relationships.
-' ============================================================
 
-<style>
-root {
-    BackGroundColor white
-    FontName Helvetica
-    FontSize 13
-}
-rectangle {
-    RoundCorner 15
-    LineColor #444444
-    LineThickness 1.5
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+# Definitions: sharp corners, hatched background
+skinparam rectangle<<part def>> {
+    RoundCorner 0
     BackgroundColor white
-    Padding 10
+    StereotypeFontSize 11
 }
-arrow {
-    FontSize 11
-    LineColor #555555
-    LineThickness 1.5
+skinparam rectangle<<item def>> {
+    RoundCorner 0
+    BackgroundColor white
 }
-</style>
+skinparam rectangle<<attribute def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<port def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<state def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
 
-skinparam wrapWidth 400
+# Usages: rounded corners, plain background
+skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<item>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<port>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<state>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+# Views as folders
+skinparam folder<<view def>> {
+    BackgroundColor white
+}
+skinparam folder<<view>> {
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title d0cc66a3-4563-477e-af13-387ff666eea2
+
 hide circle
 
-title SysML v2 — Vehicle Structure Diagram
+rectangle "Wheel" as E1 <<part def>>
+rectangle "radius" as E2 <<attribute>>
+rectangle "pressure" as E3 <<attribute>>
+rectangle "BrakeSystem" as E4 <<part def>>
+rectangle "padThickness" as E5 <<attribute>>
+rectangle "VehicleAssembly" as E6 <<part def>>
+rectangle "frontLeft" as E7 <<part>>
+rectangle "frontRight" as E8 <<part>>
+rectangle "brakes" as E9 <<part>>
+rectangle "myVehicle" as E10 <<part>>
 
-' === DEFINITIONS ===
-rectangle "Vehicle" as VDef <<(D,#8B4513) part def>> {
-  mass : MassValue
-  maxSpeed : SpeedValue
-  powerPort : PowerPort
-  dataBus : DataBus
-}
-
-rectangle "WheelAssembly" as WADef <<(D,#8B4513) part def>> {
-  radius : LengthValue
-  pressure : PressureValue
-  hubPort : HubPort
-  brakePort : BrakePort
-}
-
-rectangle "BrakeSystem" as BSDef <<(D,#8B4513) part def>> {
-  padThickness : LengthValue
-  fluidPort : FluidPort
-}
-
-rectangle "PowerPort" as PPDef <<port>>
-rectangle "DataBus" as DBDef <<port>>
-rectangle "HubPort" as HPDef <<port>>
-rectangle "BrakePort" as BPDef <<port>>
-
-' === USAGES ===
-rectangle "myVehicle" as MV <<(P,#32CD32) part>>
-rectangle "frontLeft" as FL <<(P,#32CD32) part>>
-rectangle "frontRight" as FR <<(P,#32CD32) part>>
-rectangle "brakes" as BR <<(P,#32CD32) part>>
-
-' === TYPING ===
-MV --:|> VDef : types
-FL --:|> WADef : types
-FR --:|> WADef : types
-BR --:|> BSDef : types
-
-' === COMPOSITE CONTAINMENT ===
-MV *-- FL : owns
-MV *-- FR : owns
-MV *-- BR : owns
-
-' === CONNECTORS ===
-FL -[thickness=2,#3498DB]-> BR : brakeLine
-FR -[thickness=2,#3498DB]-> BR : brakeLine
-
-' === BINDING ===
-FL.hubPort -[thickness=4,#E74C3C]- FL.axle : binds
-BR.fluidPort -[thickness=4,#E74C3C]- BR.masterCylinder : binds
-
-' === SPECIALIZATION ===
-WADef --|> VDef : specializes
+E1 *-- E2
+E1 *-- E3
+E4 *-- E5
+E6 *-- E7
+E7 --:|> E1 : types
+E6 *-- E8
+E8 --:|> E1 : types
+E6 *-- E9
+E9 --:|> E4 : types
+E10 --:|> E6 : types
 
 legend right
-  <b>Legend</b>
-  |= Element |= Notation |
-  | <<(D,#8B4513) part def>> | Definition (type) |
-  | <<(P,#32CD32) part>> | Usage (instance) |
-  | <<(P,#4169E1) port def>> | Port definition |
-  | --:|> | Feature typing |
-  | --|> | Specialization |
-  | *-- | Composite containment |
-  | -[thickness=2]-> | Connector |
-  | -[thickness=4]- | Binding |
+  <b>SysML v2 Relationship Legend</b>
+  |= Relationship |= Notation |
+  | Feature Typing | --:|> |
+  | Specialization | --|> |
+  | Redefinition | --||> |
+  | Composite (owns) | *-- |
+  | Shared | o-- |
+  | Binding | -[thickness=4]- |
+  | Connector | -[thickness=2]-> |
+  | Flow | --> |
+  | Dependency | ..>> |
 endlegend
 
 @enduml
