@@ -12,11 +12,11 @@ __all__ = [
     "load_files", "load_project", "load_with_dependencies",
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
-    "to_plantuml", "PlantUMLGenerator",
+    "to_plantuml", "PlantUMLGenerator", "as_action_flow_view", "as_interconnection_view", "as_state_transition_view",
     "analyze", "SemanticIssue", "SemanticAnalyzer",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.25.5"
+__version__ = "0.26.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -227,7 +227,7 @@ def load_antlr(fp):
     return loads(fp.read())
 
 
-from sysmlpy.plantuml import to_plantuml, PlantUMLGenerator
+from sysmlpy.plantuml import to_plantuml, PlantUMLGenerator, as_action_flow_view, as_interconnection_view, as_state_transition_view
 
 from sysmlpy.semantic import analyze, SemanticIssue, SemanticAnalyzer
 

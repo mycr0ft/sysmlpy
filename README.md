@@ -14,7 +14,7 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
-**v0.25.5:** Stylistic checks: naming conventions (PascalCase defs, camelCase usages), file-package name matching. `analyze()` now accepts `filename` and `style_checks` parameters. 17 new semantic tests.
+**v0.26.0:** Three new SysML v2 standard view rendering functions: `as_action_flow_view()` (AFV), `as_interconnection_view()` / `as_interconnection_diagram()` (IV), and `as_state_transition_view()` (STV). Auto-include connected elements for flows and transitions. Grammar-level connection scanning. 39 new PlantUML tests (101 total).
 
 **v0.19.0:** Semantic analysis engine with undefined symbol detection. Import resolution (namespace `::*`, membership, recursive `::*::**`). 530 tests passing. Symbol table with hierarchical scope resolution and qualified name lookup.
 

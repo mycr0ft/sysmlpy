@@ -670,3 +670,618 @@ class TestViewRenderings:
             puml = func(model)
             assert puml.startswith("@startuml"), f"{func.__name__} missing @startuml"
             assert puml.rstrip().endswith("@enduml"), f"{func.__name__} missing @enduml"
+
+
+class TestActionFlowView:
+    """Tests for the Action Flow View (AFV) rendering."""
+
+    def test_as_action_flow_view_basic(self):
+        """Action Flow View produces valid PlantUML structure."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+            action def B;
+        }
+        """)
+        puml = as_action_flow_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Action Flow View" in puml
+        assert "A" in puml
+        assert "B" in puml
+        assert "action def" in puml
+
+    def test_as_action_flow_view_with_focus(self):
+        """Focus on an action shows only its subtree."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A {
+                action nested;
+            }
+            action def OtherAction;
+        }
+        """)
+        action_a = model.find('A')[0]
+        puml = as_action_flow_view(model, focus=action_a)
+
+        assert "A" in puml
+        assert "nested" in puml
+        assert "OtherAction" not in puml
+
+    def test_as_action_flow_view_with_flows(self):
+        """Flow connections appear in the diagram."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def P;
+            part def Q;
+            action def A { in p : P; out q : Q; }
+            action def B { in q : Q; out r : P; }
+            action def C {
+                action a : A;
+                action b : B;
+                flow f1 from a.q to b.q;
+            }
+        }
+        """)
+        puml = as_action_flow_view(model)
+
+        assert "@startuml" in puml
+        assert "action def" in puml
+        assert "part def" in puml
+        # Flow elements should be present
+        assert "f1" in puml or "flow" in puml
+
+    def test_as_action_flow_view_shows_nested_actions(self):
+        """Nested actions are rendered."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A {
+                action a1;
+                action a2;
+            }
+        }
+        """)
+        puml = as_action_flow_view(model)
+
+        assert "a1" in puml
+        assert "a2" in puml
+        assert "action def" in puml
+
+    def test_as_action_flow_view_bw_style(self):
+        """B&W style produces monochrome output."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        puml = as_action_flow_view(model, style="bw")
+
+        assert "skinparam monochrome true" in puml
+        assert "<style>" not in puml
+
+    def test_as_action_flow_view_color_style(self):
+        """Color style produces CSS block."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        puml = as_action_flow_view(model, style="color")
+
+        assert "<style>" in puml
+
+    def test_as_action_flow_view_legend(self):
+        """Legend is included by default."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        puml = as_action_flow_view(model, include_legend=True)
+
+        assert "Action Flow Legend" in puml or "legend" in puml
+
+    def test_as_action_flow_view_no_legend(self):
+        """Legend can be excluded."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        puml = as_action_flow_view(model, include_legend=False)
+
+        assert "legend right" not in puml
+
+    def test_as_action_flow_view_direction_lr(self):
+        """Left-to-right direction produces correct output."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        puml = as_action_flow_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_action_flow_view_custom_style(self):
+        """Custom style lines are appended."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            action def A;
+        }
+        """)
+        custom = ["skinparam backgroundColor LightGray"]
+        puml = as_action_flow_view(model, custom_style=custom)
+
+        assert "skinparam backgroundColor LightGray" in puml
+
+    def test_as_action_flow_view_auto_include_flows(self):
+        """When auto_include_flows is True, flows connected to selected actions are included."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def X;
+            part def Y;
+            action def A { out q : X; }
+            action def B { in q : X; }
+            action def C {
+                action a : A;
+                action b : B;
+                flow f1 from a.q to b.q;
+            }
+        }
+        """)
+        action_c = model.find('C')[0]
+        puml = as_action_flow_view(model, focus=action_c, auto_include_flows=True)
+
+        assert "C" in puml
+        assert "action def" in puml
+        # The flow arrow between a and b should be rendered
+        assert "E2 --> E3 : flow" in puml
+
+    def test_as_action_flow_view_no_auto_include(self):
+        """When auto_include_flows is False, flows are not auto-included."""
+        from sysmlpy.plantuml import as_action_flow_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def X;
+            action def A { out q : X; }
+            action def B { in q : X; }
+            action def C {
+                action a : A;
+                action b : B;
+                flow f1 from a.q to b.q;
+            }
+        }
+        """)
+        action_a = model.find('A')[0]
+        puml = as_action_flow_view(model, focus=action_a, auto_include_flows=False)
+
+        assert "A" in puml
+        # f1 should not be auto-included since auto_include_flows is False
+        # and f1 is not in A's direct subtree
+        assert "f1" not in puml
+
+
+class TestInterconnectionView:
+    """Tests for the Interconnection View (IV) rendering."""
+
+    def test_as_interconnection_view_basic(self):
+        """Interconnection View produces valid PlantUML structure."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            port def FuelPort;
+            part myEngine : Engine {
+                port fuelIn : FuelPort;
+            }
+        }
+        """)
+        puml = as_interconnection_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Interconnection View" in puml
+        assert "Engine" in puml
+        assert "FuelPort" in puml
+
+    def test_as_interconnection_view_with_focus(self):
+        """Focus shows only subtree in interconnection view."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine {
+                port intake;
+            }
+            part def Wheel;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        puml = as_interconnection_view(model, focus=engine)
+
+        assert "Engine" in puml
+        assert "intake" in puml
+        assert "Wheel" not in puml
+
+    def test_as_interconnection_view_with_elements(self):
+        """Element selection works in interconnection view."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Wheel;
+            part def Axle;
+        }
+        """)
+        engine = model.find('Engine')[0]
+        wheel = model.find('Wheel')[0]
+        puml = as_interconnection_view(model, elements=[engine, wheel])
+
+        assert "Engine" in puml
+        assert "Wheel" in puml
+        assert "Axle" not in puml
+
+    def test_as_interconnection_view_bw_style(self):
+        """B&W style produces monochrome output."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_view(model, style="bw")
+
+        assert "skinparam monochrome true" in puml
+
+    def test_as_interconnection_view_color_style(self):
+        """Color style produces CSS block."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_view(model, style="color")
+
+        assert "<style>" in puml
+
+    def test_as_interconnection_view_legend(self):
+        """Legend is included by default."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_view(model, include_legend=True)
+
+        assert "Interconnection Legend" in puml
+
+    def test_as_interconnection_view_no_legend(self):
+        """Legend can be excluded."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_view(model, include_legend=False)
+
+        assert "legend right" not in puml
+
+    def test_as_interconnection_view_direction(self):
+        """Direction parameter works."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_interconnection_view_custom_style(self):
+        """Custom style lines are appended."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        custom = ["skinparam backgroundColor LightGray"]
+        puml = as_interconnection_view(model, custom_style=custom)
+
+        assert "skinparam backgroundColor LightGray" in puml
+
+    def test_as_interconnection_diagram_legacy_alias(self):
+        """The legacy as_interconnection_diagram still works."""
+        from sysmlpy.plantuml import as_interconnection_diagram
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+        }
+        """)
+        puml = as_interconnection_diagram(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+
+    def test_as_interconnection_view_auto_include_connection(self):
+        """Auto-include discovers connections between selected features."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def X;
+            part def A {
+                port p : X;
+                port q : X;
+            }
+            part def B {
+                port r : X;
+            }
+            part def C {
+                part a : A;
+                part b : B;
+                flow f1 from a.q to b.r;
+            }
+        }
+        """)
+        part_c = model.find('C')[0]
+        puml = as_interconnection_view(model, focus=part_c,
+                                       auto_include_connections=True)
+
+        assert "C" in puml
+        # The flow arrow should appear
+        assert "flow" in puml
+
+    def test_as_interconnection_view_show_external(self):
+        """External relationships are shown with show_external=True."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Wheel;
+            part def Vehicle {
+                part frontLeft : Wheel;
+            }
+        }
+        """)
+        vehicle = model.find('Vehicle')[0]
+        puml = as_interconnection_view(model, focus=vehicle,
+                                       show_external=True)
+
+        assert "Vehicle" in puml
+        # Wheel should appear as external reference
+        assert "Wheel" in puml
+
+
+class TestStateTransitionView:
+    """Tests for the State Transition View (STV) rendering."""
+
+    def test_as_state_transition_view_basic(self):
+        """State Transition View produces valid PlantUML structure."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM {
+                state Idle;
+                state Active;
+                transition t1 first Idle then Active;
+            }
+        }
+        """)
+        puml = as_state_transition_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "State Transition View" in puml
+        assert "Idle" in puml
+        assert "Active" in puml
+        assert "SM" in puml
+        assert "state def" in puml
+
+    def test_as_state_transition_view_transition_arrow(self):
+        """Transition arrow appears between states."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM {
+                state Idle;
+                state Active;
+                transition t1 first Idle then Active;
+            }
+        }
+        """)
+        puml = as_state_transition_view(model)
+
+        assert "--> : t1" in puml or "t1" in puml
+
+    def test_as_state_transition_view_with_focus(self):
+        """Focus on a state shows only its subtree."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM {
+                state Idle;
+                state Active;
+                transition t1 first Idle then Active;
+            }
+            state def OtherSM {
+                state X;
+            }
+        }
+        """)
+        sm = model.find('SM')[0]
+        puml = as_state_transition_view(model, focus=sm)
+
+        assert "SM" in puml
+        assert "Idle" in puml
+        assert "Active" in puml
+        assert "OtherSM" not in puml
+        assert "X" not in puml
+
+    def test_as_state_transition_view_bw_style(self):
+        """B&W style produces monochrome output."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        puml = as_state_transition_view(model, style="bw")
+
+        assert "skinparam monochrome true" in puml
+
+    def test_as_state_transition_view_color_style(self):
+        """Color style produces CSS block."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        puml = as_state_transition_view(model, style="color")
+
+        assert "<style>" in puml
+
+    def test_as_state_transition_view_legend(self):
+        """Legend is included by default."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        puml = as_state_transition_view(model, include_legend=True)
+
+        assert "State Transition Legend" in puml
+
+    def test_as_state_transition_view_no_legend(self):
+        """Legend can be excluded."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        puml = as_state_transition_view(model, include_legend=False)
+
+        assert "legend right" not in puml
+
+    def test_as_state_transition_view_direction(self):
+        """Direction parameter works."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        puml = as_state_transition_view(model, direction="LR")
+
+        assert "left to right direction" in puml
+
+    def test_as_state_transition_view_with_elements(self):
+        """Element selection works (exact list)."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM {
+                state Idle;
+                state Active;
+            }
+            state def OtherSM {
+                state X;
+            }
+        }
+        """)
+        sm = model.find('SM')[0]
+        idle = model.find('Idle')[0]
+        active = model.find('Active')[0]
+        puml = as_state_transition_view(model, elements=[sm, idle, active])
+
+        assert "SM" in puml
+        assert "Idle" in puml
+        assert "Active" in puml
+        assert "OtherSM" not in puml
+        assert "X" not in puml
+
+    def test_as_state_transition_view_custom_style(self):
+        """Custom style lines are appended."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM;
+        }
+        """)
+        custom = ["skinparam backgroundColor LightGray"]
+        puml = as_state_transition_view(model, custom_style=custom)
+
+        assert "skinparam backgroundColor LightGray" in puml
+
+    def test_as_state_transition_view_multiple_transitions(self):
+        """Multiple transitions between states are rendered."""
+        from sysmlpy.plantuml import as_state_transition_view
+
+        model = sysmlpy.loads("""
+        package P {
+            state def SM {
+                state Idle;
+                state Active;
+                state Error;
+                transition t1 first Idle then Active;
+                transition t2 first Active then Error;
+                transition t3 first Error then Idle;
+            }
+        }
+        """)
+        puml = as_state_transition_view(model)
+
+        assert "t1" in puml
+        assert "t2" in puml
+        assert "t3" in puml

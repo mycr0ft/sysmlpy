@@ -329,6 +329,146 @@ def _arrow_to_rel_type(arrow):
     return None
 
 
+def _extract_flow_endpoints(flow_element):
+    """Extract (from_names, to_names) from a flow element's grammar.
+
+    Navigates the FlowConnectionDeclaration structure to recover
+    the source and target qualified name references.
+
+    Returns:
+        (from_names, to_names) where each is a list of name strings
+        (e.g. ["actionName", "portName"]) or None if not available.
+    """
+    g = getattr(flow_element, 'grammar', None)
+    if g is None:
+        return None, None
+
+    declaration = getattr(g, 'declaration', None)
+    if declaration is None:
+        return None, None
+
+    children = getattr(declaration, 'children', None)
+    if not children or len(children) < 3:
+        return None, None
+
+    from_names = None
+    to_names = None
+
+    for end_idx, result in [(1, 'from'), (2, 'to')]:
+        end_member = children[end_idx]
+        if end_member is None:
+            continue
+        if not hasattr(end_member, 'children'):
+            continue
+
+        flow_end = end_member.children
+        if flow_end is None:
+            continue
+        if not hasattr(flow_end, 'children'):
+            continue
+
+        for child in flow_end.children:
+            if hasattr(child, 'children') and hasattr(child.children, 'names'):
+                names = child.children.names
+                if result == 'from':
+                    from_names = names
+                else:
+                    to_names = names
+
+    return from_names, to_names
+
+
+def _find_element_by_qualified_name(model, names):
+    """Resolve a qualified name (e.g. ['a', 'q']) to a model element.
+
+    First tries dot-separated model.find(), then falls back to
+    searching by individual segments (action name -> child feature name).
+    """
+    if not names:
+        return None
+
+    # Try full dot-separated name first
+    dot_name = '.'.join(names)
+    found = model.find(dot_name)
+    if found:
+        return found[0] if isinstance(found, list) else found
+
+    # Try segment by segment: model -> action -> feature
+    for i in range(len(names), 0, -1):
+        segment = '.'.join(names[:i])
+        found = model.find(segment)
+        if found:
+            elem = found[0] if isinstance(found, list) else found
+            # Walk remaining segments
+            remaining = names[i:]
+            current = elem
+            for part in remaining:
+                child = getattr(current, 'children', None)
+                if child:
+                    match = None
+                    for c in child:
+                        if getattr(c, 'name', None) == part:
+                            match = c
+                            break
+                    if match:
+                        current = match
+                    else:
+                        break
+                else:
+                    break
+            return current
+
+    return None
+
+
+def _expand_with_connected_flows(model, included_ids, show_external=False):
+    """Expand an inclusion set to include flows connected to selected elements.
+
+    Scans all flow connections in the model (both Usage-level and grammar-level).
+    For each flow connected to an already-included element (via its from/to
+    endpoints or parent container), adds the flow and its endpoint elements
+    to the set.
+
+    Args:
+        model: A sysmlpy Model instance
+        included_ids: Mutable set of element IDs to expand
+        show_external: If True, include all referenced endpoints even
+                      if they are outside the original selection
+    """
+    # Get all flow connections (Usage and grammar level)
+    flow_connections = _extract_flow_connections(model)
+
+    for from_names, to_names, flow_name, is_grammar_obj in flow_connections:
+        referenced_elements = []
+
+        for names in [from_names, to_names]:
+            if not names:
+                continue
+            elem = _find_element_by_qualified_name(model, names)
+            if elem:
+                referenced_elements.append(elem)
+
+        # Check if any referenced element is in the inclusion set
+        connected = False
+        all_endpoint_elements = []
+
+        for ref in referenced_elements:
+            all_endpoint_elements.append(ref)
+            if id(ref) in included_ids:
+                connected = True
+            # Also check parent of resolved element
+            elem_parent = getattr(ref, 'parent', None)
+            if elem_parent:
+                all_endpoint_elements.append(elem_parent)
+                if id(elem_parent) in included_ids:
+                    connected = True
+
+        if connected:
+            if show_external:
+                for ref in all_endpoint_elements:
+                    included_ids.add(id(ref))
+
+
 class PlantUMLGenerator:
     """
     Generates PlantUML text from a sysmlpy Model.
@@ -883,23 +1023,33 @@ def as_graphical_rendering(model, focus=None, style="bw", direction="TB",
     return gen.generate()
 
 
-def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
-                                include_legend=True, max_depth=None,
+def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
+                                direction="TB", include_legend=True,
+                                max_depth=None, show_external=False,
+                                auto_include_connections=True,
                                 custom_style=None):
-    """Generate an interconnection diagram.
+    """Generate an Interconnection View (IV) diagram.
 
-    Focuses on connectors, bindings, and flows between parts and ports.
-    Shows external interfaces and how components are wired together.
+    Corresponds to SysML v2 ``InterconnectionView``. Presents exposed
+    features as nodes, nested features as nested nodes, and connections
+    between features as edges. Nested nodes may present boundary features
+    (e.g., ports, parameters).
 
-    Corresponds to SysML v2 interconnection views.
+    When ``auto_include_connections=True`` (default), selecting features
+    via ``focus`` or ``elements`` automatically discovers and includes all
+    binding, connector, and flow connections involving those features.
 
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (renders subtree)
+        elements: Optional list of specific elements to include
         style: "bw" (default) or "color"
         direction: "TB" or "LR"
         include_legend: Whether to include relationship legend
         max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        auto_include_connections: Auto-discover connections for selected
+                                  features (bindings, connectors, flows)
         custom_style: Optional PlantUML style lines to append
 
     Returns:
@@ -917,6 +1067,14 @@ def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
             "skinparam defaultFontSize 12",
             "skinparam defaultFontName Helvetica",
             "",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
             "skinparam rectangle<<port def>> {",
             "    RoundCorner 0",
             "    BackgroundColor white",
@@ -925,11 +1083,43 @@ def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
             "    RoundCorner 15",
             "    BackgroundColor white",
             "}",
-            "skinparam rectangle<<part def>> {",
+            "skinparam rectangle<<interface def>> {",
             "    RoundCorner 0",
             "    BackgroundColor white",
             "}",
-            "skinparam rectangle<<part>> {",
+            "skinparam rectangle<<interface>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<item>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<connection def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<connection>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow>> {",
             "    RoundCorner 15",
             "    BackgroundColor white",
             "}",
@@ -952,14 +1142,305 @@ def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
             "",
             "skinparam wrapWidth 400",
             "",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "}",
             "skinparam rectangle<<port def>> {",
             "    RoundCorner 0",
             "}",
             "skinparam rectangle<<port>> {",
             "    RoundCorner 15",
             "}",
+            "skinparam rectangle<<interface def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<interface>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<item def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<item>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<connection>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<flow>> {",
+            "    RoundCorner 15",
+            "}",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "Interconnection View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Interconnection — {focus_name}"
+    elif elements is not None:
+        title = f"Interconnection — Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    # Build inclusion set
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+
+    # Auto-expand with connected flows (grammar-level scanning)
+    if auto_include_connections:
+        _expand_with_connected_flows(model, gen._included_ids,
+                                     show_external=show_external)
+
+    # Collect all flow connections for arrow rendering
+    flow_connections = _extract_flow_connections(model)
+
+    # Traverse
+    gen._traverse(gen.model)
+
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+
+    # Filter to show interconnection-relevant elements
+    iv_types = {"part", "port", "interface", "item", "attribute",
+                "connection", "flow", "allocation"}
+
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type in iv_types:
+            keyword = "rectangle"
+            if sysml_type == 'state':
+                keyword = "state"
+            elif sysml_type == 'view':
+                keyword = "folder"
+            lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+
+    lines.append("")
+
+    # Render containment, typing, and specialization relationships
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    # Render flow connection arrows (from grammar-level scanning)
+    for from_names, to_names, flow_name, is_grammar_obj in flow_connections:
+        from_elem = _find_element_by_qualified_name(model, from_names) if from_names else None
+        to_elem = _find_element_by_qualified_name(model, to_names) if to_names else None
+
+        if from_elem is None or to_elem is None:
+            continue
+
+        from_id = id(from_elem)
+        to_id = id(to_elem)
+
+        from_included = from_id in gen._included_ids
+        to_included = to_id in gen._included_ids
+        if not (from_included or to_included):
+            continue
+
+        from_alias = id_map.get(from_id)
+        to_alias = id_map.get(to_id)
+        if from_alias and to_alias:
+            label_text = flow_name if flow_name else "flow"
+            lines.append(f'{from_alias} {ARROW_STYLES["flow"]} {to_alias} : {label_text}')
+
+    lines.append("")
+
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Interconnection Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Binding | -[thickness=4]- |",
+            "  | Connector | -[thickness=2]-> |",
+            "  | Flow Transfer | --> |",
+            "  | Allocation | -[dotted]-> |",
+            "  | Feature Typing | --:|> |",
+            "  | Composite (owns) | *-- |",
+            "  | Specialization | --|> |",
+            "endlegend",
+        ])
+        lines.append("")
+
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_interconnection_view(model, focus=None, elements=None, style="bw",
+                             direction="TB", include_legend=True,
+                             max_depth=None, show_external=False,
+                             auto_include_connections=True,
+                             custom_style=None):
+    """Alias for :func:`as_interconnection_diagram`.
+
+    Corresponds to SysML v2 ``InterconnectionView`` (short name ``iv``).
+    """
+    return as_interconnection_diagram(
+        model, focus=focus, elements=elements, style=style,
+        direction=direction, include_legend=include_legend,
+        max_depth=max_depth, show_external=show_external,
+        auto_include_connections=auto_include_connections,
+        custom_style=custom_style,
+    )
+
+
+def as_action_flow_view(model, focus=None, elements=None, style="bw", direction="TB",
+                        include_legend=True, max_depth=None, show_external=False,
+                        auto_include_flows=True, custom_style=None):
+    """Generate an Action Flow View (AFV) diagram.
+
+    Corresponds to SysML v2 ``ActionFlowView``, which specializes
+    ``InterconnectionView``. Presents connections between actions,
+    including:
+    - Actions with nested actions
+    - Parameters with direction
+    - Flow connection usages (transfers from output to input)
+    - Binding connections between parameters
+
+    When ``auto_include_flows=True`` (default), selecting actions via
+    ``focus`` or ``elements`` automatically discovers and includes all
+    flow connections and binding connections that involve those actions.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        auto_include_flows: Auto-discover flows connected to selected actions
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    # Style block
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<action def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<flow>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<port def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
             "skinparam rectangle<<part def>> {",
             "    RoundCorner 0",
+            "    BackgroundColor white",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+            "",
+            "# Swim lane styling for actions",
+            "skinparam rectangle<<action def>> {",
+            "    StereotypeFontSize 11",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    StereotypeFontSize 11",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+            "",
+            "skinparam rectangle<<action def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<action>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<flow def>> {",
+            "    RoundCorner 0",
+            "}",
+            "skinparam rectangle<<flow>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 15",
             "}",
             "skinparam rectangle<<part>> {",
             "    RoundCorner 15",
@@ -978,60 +1459,537 @@ def as_interconnection_diagram(model, focus=None, style="bw", direction="TB",
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "Interconnection Diagram"
+    title = "Action Flow View"
     if focus is not None:
         focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Interconnection — {focus_name}"
+        title = f"Action Flow — {focus_name}"
     lines.append(f'title {title}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
 
-    # Collect parts, ports, and connections
+    # Build inclusion set
     gen = PlantUMLGenerator(model, style=style, focus=focus,
-                            max_depth=max_depth, include_legend=False)
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
     gen._build_inclusion_set()
+
+    # Auto-expand with connected flows
+    if auto_include_flows:
+        _expand_with_connected_flows(model, gen._included_ids,
+                                     show_external=show_external)
+
+    # Collect all flow connections for arrow rendering
+    flow_connections = _extract_flow_connections(model)
+
+    # Traverse the model
     gen._traverse(gen.model)
 
     id_map = gen.id_map
-    elements = gen.elements
+    elements_list = gen.elements
     relationships = gen.relationships
 
-    # Filter to show only parts, ports, and connection relationships
-    connection_types = {"binding", "connector", "flow", "allocation"}
-    element_types = {"part", "port", "interface"}
+    # Filter for action-flow relevant element types
+    afv_types = {"action", "flow", "attribute", "port", "part"}
 
-    for alias, name, stereotype, elem, is_included in elements:
+    for alias, name, stereotype, elem, is_included in elements_list:
         sysml_type = getattr(elem, 'sysml_type', '')
-        if sysml_type in element_types:
-            lines.append(f'rectangle "{name}" as {alias} {stereotype}')
+        if sysml_type in afv_types:
+            keyword = "rectangle"
+            if sysml_type == 'state':
+                keyword = "state"
+            elif sysml_type == 'view':
+                keyword = "folder"
+            lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
 
     lines.append("")
 
+    # Render containment and typing relationships
     for src, arrow, dst, label, is_external in relationships:
-        # Only show connection-type relationships
-        rel_type = _arrow_to_rel_type(arrow)
-        if rel_type in connection_types:
-            if is_external and not gen.show_external:
-                continue
-            if is_external:
-                arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
-            if label:
-                lines.append(f'{src} {arrow} {dst} : {label}')
-            else:
-                lines.append(f'{src} {arrow} {dst}')
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    # Render flow connection arrows
+    # Grammar-level flows won't have entries in the id_map, so we check
+    # if their resolved source/target elements are in the inclusion set.
+    for from_names, to_names, flow_name, is_grammar_obj in flow_connections:
+        from_elem = _find_element_by_qualified_name(model, from_names) if from_names else None
+        to_elem = _find_element_by_qualified_name(model, to_names) if to_names else None
+
+        if from_elem is None or to_elem is None:
+            continue
+
+        from_id = id(from_elem)
+        to_id = id(to_elem)
+
+        # Only render if at least one endpoint is in the inclusion set
+        # (or if auto_include_flows expanded the set to include both)
+        from_included = from_id in gen._included_ids
+        to_included = to_id in gen._included_ids
+        if not (from_included or to_included):
+            continue
+
+        from_alias = id_map.get(from_id)
+        to_alias = id_map.get(to_id)
+        if from_alias and to_alias:
+            label_text = flow_name if flow_name else "flow"
+            lines.append(f'{from_alias} {ARROW_STYLES["flow"]} {to_alias} : {label_text}')
 
     lines.append("")
 
     if include_legend:
         lines.extend([
             "legend right",
-            "  <b>Interconnection Legend</b>",
+            "  <b>Action Flow Legend</b>",
             "  |= Relationship |= Notation |",
+            "  | Flow Transfer | --> |",
             "  | Binding | -[thickness=4]- |",
-            "  | Connector | -[thickness=2]-> |",
-            "  | Flow | --> |",
-            "  | Allocation | -[dotted]-> |",
+            "  | Composite (owns) | *-- |",
+            "  | Feature Typing | --:|> |",
+            "endlegend",
+        ])
+        lines.append("")
+
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def _scan_grammar_body_for_flows(grammar_obj, result_list):
+    """Recursively scan a grammar object's body for FlowConnectionUsage/FlowConnectionDefinition.
+
+    Flows inside action bodies are raw grammar objects, not Usage wrappers.
+    This function finds them and extracts their from/to endpoint names.
+
+    Appends (from_names, to_names, flow_name) tuples to result_list.
+    """
+    body = getattr(grammar_obj, 'body', None)
+    if body is None:
+        return
+    children = getattr(body, 'children', None)
+    if children is None:
+        return
+    if not isinstance(children, list):
+        children = [children]
+
+    for body_item in children:
+        _scan_body_tree(body_item, result_list)
+
+
+def _scan_body_tree(node, result_list):
+    """Recursively walk grammar body tree nodes looking for flow grammar objects."""
+    if node is None:
+        return
+
+    class_name = node.__class__.__name__
+    if class_name in ('FlowConnectionUsage', 'FlowConnectionDefinition'):
+        from_names, to_names = _extract_flow_endpoints_from_grammar(node)
+        # Extract name from declaration
+        flow_name = None
+        decl = getattr(node, 'declaration', None)
+        if decl:
+            inner_decl = getattr(decl, 'declaration', None)
+            if inner_decl and hasattr(inner_decl, 'identification') and inner_decl.identification:
+                flow_name = inner_decl.identification.declaredName
+        # Also try usage-level declaration
+        if flow_name is None and hasattr(node, 'declaration'):
+            d = node.declaration
+            if hasattr(d, 'identification') and d.identification:
+                flow_name = d.identification.declaredName
+        result_list.append((from_names, to_names, flow_name, node))
+        return
+
+    children = getattr(node, 'children', None)
+    if children is None:
+        return
+    if not isinstance(children, list):
+        children = [children]
+    for child in children:
+        _scan_body_tree(child, result_list)
+
+
+def _extract_flow_endpoints_from_grammar(flow_grammar):
+    """Extract from/to names from a FlowConnectionUsage/FlowConnectionDefinition grammar object."""
+    declaration = getattr(flow_grammar, 'declaration', None)
+    if declaration is None:
+        return None, None
+
+    children = getattr(declaration, 'children', None)
+    if not children or len(children) < 3:
+        return None, None
+
+    from_names = None
+    to_names = None
+
+    for end_idx, result in [(1, 'from'), (2, 'to')]:
+        end_member = children[end_idx]
+        if end_member is None:
+            continue
+        if not hasattr(end_member, 'children'):
+            continue
+        flow_end = end_member.children
+        if flow_end is None:
+            continue
+        if not hasattr(flow_end, 'children'):
+            continue
+        for child in flow_end.children:
+            if hasattr(child, 'children') and hasattr(child.children, 'names'):
+                names = child.children.names
+                if result == 'from':
+                    from_names = names
+                else:
+                    to_names = names
+
+    return from_names, to_names
+
+
+def _extract_flow_connections(model):
+    """Scan the model for all flow connections (Usage-level and grammar-level).
+
+    Returns:
+        list of (from_names, to_names, flow_name, is_grammar_obj) tuples.
+        is_grammar_obj is True for flows found inside grammar bodies
+        (e.g., flows inside action definitions).
+    """
+    connections = []
+    visited = set()
+
+    def _scan_element(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if isinstance(element, (Model, Package)):
+            for child in getattr(element, 'children', []):
+                _scan_element(child)
+            return
+
+        # Check for Usage-level flow
+        if getattr(element, 'sysml_type', '') == 'flow':
+            from_names, to_names = _extract_flow_endpoints(element)
+            flow_name = getattr(element, 'name', None)
+            connections.append((from_names, to_names, flow_name, False))
+
+        # Scan every element's grammar body for embedded flows
+        grammar = getattr(element, 'grammar', None)
+        if grammar:
+            _scan_grammar_body_for_flows(grammar, connections)
+
+        # Recurse into children
+        for child in getattr(element, 'children', []):
+            _scan_element(child)
+
+    for child in getattr(model, 'children', []):
+        _scan_element(child)
+
+    return connections
+
+
+def _find_state_in_children(element, state_name):
+    """Find a child state element by name within a parent's children tree."""
+    if state_name is None:
+        return None
+    children = getattr(element, 'children', None)
+    if not children:
+        return None
+    for child in children:
+        if getattr(child, 'sysml_type', '') == 'state' and getattr(child, 'name', None) == state_name:
+            return child
+        # Recurse into nested states
+        found = _find_state_in_children(child, state_name)
+        if found:
+            return found
+    return None
+
+
+def _extract_state_transitions(model):
+    """Scan the model for all state transitions with resolved source/target elements.
+
+    Returns:
+        list of (from_state_elem, to_state_elem, transition_obj) tuples
+        where from/to are resolved State elements, or None if unresolvable.
+    """
+    transitions = []
+    visited = set()
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if isinstance(element, (Model, Package)):
+            for child in getattr(element, 'children', []):
+                _scan(child)
+            return
+
+        if getattr(element, 'sysml_type', '') == 'state':
+            # Extract transitions from this state
+            state_transitions = getattr(element, 'transitions', [])
+            for trans in state_transitions:
+                source_name = getattr(trans, 'source', None)
+                target_name = getattr(trans, 'target', None)
+
+                from_elem = None
+                to_elem = None
+
+                # Resolve source: look in same parent scope first
+                parent = getattr(element, 'parent', None)
+                if source_name and parent:
+                    from_elem = _find_state_in_children(parent, source_name)
+                # Fall back to model-wide search
+                if from_elem is None and source_name:
+                    found = model.find(source_name)
+                    if found:
+                        from_elem = found[0] if isinstance(found, list) else found
+
+                # Resolve target: same approach
+                if target_name and parent:
+                    to_elem = _find_state_in_children(parent, target_name)
+                if to_elem is None and target_name:
+                    found = model.find(target_name)
+                    if found:
+                        to_elem = found[0] if isinstance(found, list) else found
+
+                transitions.append((from_elem, to_elem, trans))
+
+            # Recurse into nested states
+            for child in getattr(element, 'children', []):
+                _scan(child)
+
+        # Also recurse into non-state children (for states inside parts, etc.)
+        for child in getattr(element, 'children', []):
+            _scan(child)
+
+    for child in getattr(model, 'children', []):
+        _scan(child)
+
+    return transitions
+
+
+def _format_transition_label(transition):
+    """Format a transition's trigger, guard, and effect into a PlantUML label."""
+    parts = []
+    trigger = getattr(transition, 'trigger', None)
+    guard = getattr(transition, 'guard', None)
+    effect = getattr(transition, 'effect', None)
+    name = getattr(transition, 'name', None)
+
+    if trigger:
+        parts.append(trigger)
+    if guard:
+        parts.append(f"[{guard}]")
+    if effect:
+        parts.append(f"/ {effect}")
+    if not parts and name:
+        return name
+    return " ".join(parts) if parts else "transition"
+
+
+def _expand_with_state_transitions(model, included_ids):
+    """Expand inclusion set to include states connected by transitions."""
+    state_transitions = _extract_state_transitions(model)
+    for from_elem, to_elem, trans in state_transitions:
+        for elem in [from_elem, to_elem]:
+            if elem and id(elem) in included_ids:
+                # Add the other endpoint too
+                other = to_elem if elem is from_elem else from_elem
+                if other:
+                    included_ids.add(id(other))
+                # Also add the parent state that owns this transition
+                parent = getattr(trans, 'parent', None)
+                if parent:
+                    included_ids.add(id(parent))
+
+
+def as_state_transition_view(model, focus=None, elements=None, style="bw",
+                              direction="TB", include_legend=True,
+                              max_depth=None, show_external=False,
+                              auto_include_transitions=True,
+                              custom_style=None):
+    """Generate a State Transition View (STV) diagram.
+
+    Corresponds to SysML v2 ``StateTransitionView``, which specializes
+    ``InterconnectionView``. Presents states and their transitions,
+    including:
+    - States with nested states
+    - Entry, do, and exit actions
+    - Transition usages with triggers, guards, and actions
+    - Compartments on states
+
+    When ``auto_include_transitions=True`` (default), selecting states
+    via ``focus`` or ``elements`` automatically discovers and includes
+    all transitions involving those states.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        auto_include_transitions: Auto-discover transitions for selected states
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    # Style
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam state<<state def>> {",
+            "    BackgroundColor white",
+            "    BorderColor black",
+            "}",
+            "skinparam state<<state>> {",
+            "    BackgroundColor white",
+            "    BorderColor black",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "state {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 10",
+            "}",
+            "arrow {",
+            "    LineColor #555555",
+            "    LineThickness 1.5",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+
+    title = "State Transition View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"State Transition — {focus_name}"
+    elif elements is not None:
+        title = f"State Transition — Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+
+    # Build inclusion set
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+
+    # Auto-expand with state transitions
+    if auto_include_transitions:
+        _expand_with_state_transitions(model, gen._included_ids)
+
+    # Extract all state transitions for arrow rendering
+    state_transitions = _extract_state_transitions(model)
+
+    # Traverse
+    gen._traverse(gen.model)
+
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+
+    # Filter for state-relevant elements
+    stv_types = {"state", "action", "attribute"}
+
+    # Render state elements with PlantUML's state keyword
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type == 'state':
+            keyword = "state"
+        elif sysml_type in stv_types:
+            keyword = "rectangle"
+        else:
+            continue
+        lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+
+    lines.append("")
+
+    # Render containment and typing relationships
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+
+    lines.append("")
+
+    # Render transition arrows
+    for from_elem, to_elem, trans in state_transitions:
+        if from_elem is None or to_elem is None:
+            continue
+        from_id = id(from_elem)
+        to_id = id(to_elem)
+
+        from_included = from_id in gen._included_ids
+        to_included = to_id in gen._included_ids
+        if not (from_included or to_included):
+            continue
+
+        from_alias = id_map.get(from_id)
+        to_alias = id_map.get(to_id)
+        if from_alias and to_alias:
+            label_text = _format_transition_label(trans)
+            lines.append(f'{from_alias} {ARROW_STYLES["succession"]} {to_alias} : {label_text}')
+
+    lines.append("")
+
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>State Transition Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Transition | --> |",
+            "  | Composite (owns) | *-- |",
+            "  | Feature Typing | --:|> |",
             "endlegend",
         ])
         lines.append("")

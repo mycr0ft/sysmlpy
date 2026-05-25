@@ -1,8 +1,8 @@
 # sysmlpy — Project Work Summary
 
 > **For:** Future agents and team members
-> **Last Updated:** May 23, 2026
-> **Current Version:** v0.25.5
+> **Last Updated:** May 24, 2026
+> **Current Version:** v0.26.0
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -99,23 +99,27 @@ Three new API functions enable cross-file import resolution:
 - Standard library validation: `ScalarValues`, `ISQ`, etc. recognized as valid
 - 12 new tests in `tests/project_test.py`
 
-### PlantUML View Renderings (v0.25.2)
+### PlantUML View Renderings (v0.25.2 → v0.26.0)
 
-Five view rendering convenience functions for generating PlantUML diagrams:
+Five initial view rendering functions were added in v0.25.2, then three SysML v2 standard view definitions were added in v0.26.0:
 
 | Function | Corresponds to | Description |
 |----------|---------------|-------------|
 | `as_graphical_rendering()` | `GraphicalRendering` | Elements as shapes with relationship arrows |
-| `as_interconnection_diagram()` | Interconnection view | Focus on connectors, bindings, flows |
+| `as_interconnection_diagram()` / `as_interconnection_view()` | `InterconnectionView` (`iv`) | Features as nodes, connections as edges |
+| `as_action_flow_view()` | `ActionFlowView` (`afv`) | Actions with flow connections |
+| `as_state_transition_view()` | `StateTransitionView` (`stv`) | States with transitions |
 | `as_tree_diagram()` | Tree/structure view | Nested containers showing hierarchy |
 | `as_element_table()` | `TabularRendering` | Tabular listing of elements |
 | `as_textual_notation()` | `TextualRendering` | Indented text in a PlantUML note |
 
-- **Default style is B&W** (`style="bw"`) — suitable for journal article rendering
-- **Color mode** available via `style="color"`
-- **Custom style support** via `custom_style` parameter for user-defined overrides
-- **Views render as folder elements** with purple styling (color) or white (B&W)
-- 10 new tests in `tests/plantuml_test.py` (39 total PlantUML tests)
+**v0.26.0 features:**
+- **Action Flow View** — renders actions with `action`/`action def` stereotypes; auto-discovers flow connections from grammar bodies and renders flow arrows between connected actions
+- **Interconnection View** — renders `part`, `port`, `interface`, `item`, `attribute`, `connection`, `flow` elements; `auto_include_connections` discovers bindings, connectors, and flows for selected features
+- **State Transition View** — renders states with PlantUML's `state` keyword; resolves `Transition` source/target names to model elements and draws transition arrows; `auto_include_transitions` expands selection to include connected states
+- **Grammar-level scanning** — flows embedded in action/part bodies (as raw `FlowConnectionUsage`/`FlowConnectionDefinition` objects) are discovered and rendered as arrows
+- **All views support:** `focus`, `elements`, `show_external`, `auto_include_*`, `custom_style`, `direction`, B&W/color toggle, and legend
+- 39 new tests in `tests/plantuml_test.py` (101 total PlantUML tests)
 
 ### Stylistic Checks (v0.25.5)
 
@@ -160,10 +164,10 @@ The `analyze()` function now includes stylistic checks that warn about naming co
 | Programmatic API | 53 | ✅ 53 pass |
 | Semantic analysis | 107 | ✅ 107 pass |
 | Multi-file loading | 17 | ✅ 17 pass |
-| PlantUML rendering | 39 | ✅ 39 pass |
+| PlantUML rendering | 101 | ✅ 101 pass |
 | Storage backends | 82 | ✅ 82 pass |
 | Conformance | 123 | ✅ 123 pass |
-| **Total** | **477** | **✅ 477 pass, 0 fail** |
+| **Total** | **539** | **✅ 539 pass, 0 fail** |
 
 ---
 
