@@ -25,7 +25,7 @@ title Internal Block Diagram — Assembly
 
 hide circle
 
-rectangle "Assembly" as B_5312 <<block>> {
+rectangle "Assembly" as B_5632 <<block>> {
   boundary {
     rectangle "input" as PT0 <<port>>
     rectangle "output" as PT1 <<port>>

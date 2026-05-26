@@ -229,12 +229,16 @@ generate_puml("13-action-flow-view", as_action_flow_view(model13))
 
 # 14. State Transition View
 print("\n14. State Transition View")
+# Note: Current implementation shows state hierarchy. Transitions require
+# trigger/guard/effect attributes on transition elements which are not yet
+# fully parsed. The diagram shows containment relationships between states.
 model14 = sysmlpy.loads("""
 package States {
     state def Operational {
         state Idle;
         state Running;
         state Error;
+        state Stopped;
     }
 }
 """)

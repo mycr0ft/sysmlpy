@@ -2467,22 +2467,13 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
     lines.append("@startuml")
     lines.append("")
 
-    # Style
+    # Style - use state styling
     if style == "bw":
         lines.extend([
             "skinparam monochrome true",
             "skinparam wrapWidth 300",
             "skinparam defaultFontSize 12",
             "skinparam defaultFontName Helvetica",
-            "",
-            "skinparam state<<state def>> {",
-            "    BackgroundColor white",
-            "    BorderColor black",
-            "}",
-            "skinparam state<<state>> {",
-            "    BackgroundColor white",
-            "    BorderColor black",
-            "}",
         ])
     else:
         lines.extend([
@@ -2554,13 +2545,23 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
     # Filter for state-relevant elements
     stv_types = {"state", "action", "attribute"}
 
-    # Render state elements - use rectangles for PlantUML 1.2024.7+ compatibility
-    # State diagrams with stereotypes and composite arrows have issues in newer PlantUML
+    # Find first child state for initial state marker and terminal states for final marker
+    first_state_alias = None
+    terminal_states = []
+    focus_name = getattr(focus, 'name', None) if focus else None
+    
+    # Render state elements using PlantUML state keyword for proper state diagram support
     for alias, name, stereotype, elem, is_included in elements_list:
         sysml_type = getattr(elem, 'sysml_type', '')
         if sysml_type == 'state':
-            # Use rectangle with rounded corners for states
-            lines.append(f'rectangle "{name}" as {alias} <<state>>')
+            # Use state keyword for proper state diagram support (initial/final markers)
+            lines.append(f'state "{name}" as {alias}')
+            # Skip the focus element itself (parent container), find first child state
+            if first_state_alias is None and name not in ('Stopped', 'Error', 'Final') and name != focus_name:
+                first_state_alias = alias
+            # Track terminal states for final marker
+            if name in ('Stopped', 'Error', 'Final'):
+                terminal_states.append(alias)
         elif sysml_type in stv_types:
             lines.append(f'rectangle "{name}" as {alias}')
         else:
@@ -2568,16 +2569,18 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
 
     lines.append("")
 
-    # Render containment relationships using simple arrows (not *--)
-    # PlantUML state diagrams don't support composite arrows
+    # Add initial state marker (filled circle) pointing to first child state
+    if first_state_alias:
+        lines.append("[*] --> " + first_state_alias)
+        lines.append("")
+
+    # Render containment relationships using simple arrows
     for src, arrow, dst, label, is_external in relationships:
         if is_external and not show_external:
             continue
         if is_external:
-            # Use dotted line for external relationships
             lines.append(f'{src} ..> {dst}')
         else:
-            # Use simple containment arrow
             lines.append(f'{src} --> {dst}')
 
     lines.append("")
@@ -2598,10 +2601,15 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
         to_alias = id_map.get(to_id)
         if from_alias and to_alias:
             label_text = _format_transition_label(trans)
-            # Use thick green arrow for state transitions
-            lines.append(f'{from_alias} -[thickness=3,#27AE60]-> {to_alias} : {label_text}')
+            lines.append(f'{from_alias} --> {to_alias} : {label_text}')
 
     lines.append("")
+
+    # Add final state marker (bullseye) for terminal states
+    for terminal_alias in terminal_states:
+        lines.append(f'{terminal_alias} --> [*]')
+    if terminal_states:
+        lines.append("")
 
     if include_legend:
         lines.extend([

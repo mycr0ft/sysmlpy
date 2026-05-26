@@ -5,30 +5,28 @@ skinparam wrapWidth 300
 skinparam defaultFontSize 12
 skinparam defaultFontName Helvetica
 
-skinparam state<<state def>> {
-    BackgroundColor white
-    BorderColor black
-}
-skinparam state<<state>> {
-    BackgroundColor white
-    BorderColor black
-}
-
 top to bottom direction
 
 title State Transition — Operational
 
 hide circle
 
-rectangle "Operational" as E1 <<state>>
-rectangle "Idle" as E2 <<state>>
-rectangle "Running" as E3 <<state>>
-rectangle "Error" as E4 <<state>>
+state "Operational" as E1
+state "Idle" as E2
+state "Running" as E3
+state "Error" as E4
+state "Stopped" as E5
+
+[*] --> E2
 
 E1 --> E2
 E1 --> E3
 E1 --> E4
+E1 --> E5
 
+
+E4 --> [*]
+E5 --> [*]
 
 legend right
   <b>State Transition Legend</b>
