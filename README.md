@@ -485,7 +485,7 @@ print(as_parametric_view(model, style="bw"))
 #### Action Flow View (AFV) — `as_action_flow_view()`
 Corresponds to SysML v2 ``ActionFlowView`` (short name ``afv``). Shows actions with their control and object flows. Auto-includes connected flow elements.
 
-![Action Flow View](docs/plantuml-examples/09-action-flow-view.png)
+![Action Flow View](docs/plantuml-examples/13-action-flow-view.png)
 
 ```python
 from sysmlpy.plantuml import as_action_flow_view
@@ -505,7 +505,7 @@ print(as_interconnection_view(model, style="bw"))
 #### State Transition View (STV) — `as_state_transition_view()`
 Corresponds to SysML v2 ``StateTransitionView`` (short name ``stv``). State machine diagram with hierarchical states and transitions. Auto-includes connected transition elements.
 
-![State Transition View](docs/plantuml-examples/10-state-transition-view.png)
+![State Transition View](docs/plantuml-examples/14-state-transition-view.png)
 
 ```python
 from sysmlpy.plantuml import as_state_transition_view
@@ -515,19 +515,17 @@ print(as_state_transition_view(model, style="bw"))
 #### Tree Diagram — `as_tree_diagram()`
 Hierarchical containment tree using nested PlantUML containers. Shows ownership hierarchy with sharp corners for definitions and rounded corners for usages.
 
-![Tree Diagram](docs/plantuml-examples/11-tree-diagram.png)
+![Tree Diagram](docs/plantuml-examples/15-tree-diagram.png)
 
 ```python
 from sysmlpy.plantuml import as_tree_diagram
 print(as_tree_diagram(model, style="bw"))
 ```
 
-### Tabular View Rendering Functions
-
 #### Element Table — `as_element_table()`
 A simple tabular listing with columns Name, Type, Kind, and Parent.
 
-![Element Table](docs/plantuml-examples/12-element-table.png)
+![Element Table](docs/plantuml-examples/16-element-table.png)
 
 ```python
 from sysmlpy.plantuml import as_element_table
@@ -537,7 +535,7 @@ print(as_element_table(model, style="bw"))
 #### Textual Notation — `as_textual_notation()`
 Indented text representation inside a PlantUML note, similar to the SysML v2 textual concrete syntax.
 
-![Textual Notation](docs/plantuml-examples/13-textual-notation.png)
+![Textual Notation](docs/plantuml-examples/17-textual-notation.png)
 
 ```python
 from sysmlpy.plantuml import as_textual_notation
@@ -548,20 +546,22 @@ print(as_textual_notation(model, style="bw"))
 
 Per the SysML v2 standard, ``GridView`` (short name ``grv``) presents exposed model elements and their relationships in a rectangular grid. It has three specializations, all supporting **three output formats**:
 
-| Format | Use case |
-|--------|----------|
-| `"plantuml"` (default) | PlantUML table / salt matrix — embed in diagrams |
-| `"markdown"` | Standard pipe table — for GitHub, MkDocs, or Jupyter |
-| `"html"` | Rich `<table>` with CSS classes — for web dashboards |
+| Format | Use case | Compatibility |
+|--------|----------|---------------|
+| `"markdown"` (default) | Standard pipe table — for GitHub, MkDocs, or Jupyter | ✅ Universal |
+| `"html"` | Rich `<table>` with CSS classes — for web dashboards | ✅ Universal |
+| `"plantuml"` | PlantUML table / salt matrix — embed in diagrams | ⚠️ PlantUML <1.2024.7 only |
+
+**Note:** PlantUML 1.2024.7+ removed support for legacy table syntax. Use `"markdown"` or `"html"` output format for compatibility with all PlantUML versions.
 
 #### Tabular View — `as_tabular_view()`
 Extensible table with configurable columns. Default columns: Name, Type, Kind, Parent, Typed By, Specializes.
 
-![Tabular View (BW)](docs/plantuml-examples/14-tabular-view.png)
+See [`18-tabular-view.md`](docs/plantuml-examples/18-tabular-view.md) for example output.
 
 ```python
 from sysmlpy.plantuml import as_tabular_view
-print(as_tabular_view(model, output_format="markdown"))
+print(as_tabular_view(model))  # Default: markdown output
 ```
 
 Custom columns and other output formats:
@@ -572,18 +572,18 @@ print(as_tabular_view(model,
     columns=["Name", "Type", "Parent", "Typed By"],
     output_format="html"))
 
-# Markdown for documentation
+# Markdown for documentation (default)
 print(as_tabular_view(model, output_format="markdown"))
 ```
 
 #### Data Value Tabular View — `as_data_value_tabular_view()`
 Attribute-specific version showing Element, Attribute, Value, Unit, and Type columns. Uses `Attribute.get_value()` for pint.Quantity extraction.
 
-![Data Value View](docs/plantuml-examples/15-data-value-view.png)
+See [`19-data-value-view.md`](docs/plantuml-examples/19-data-value-view.md) for example output.
 
 ```python
 from sysmlpy.plantuml import as_data_value_tabular_view
-print(as_data_value_tabular_view(model, output_format="html"))
+print(as_data_value_tabular_view(model))  # Default: markdown output
 ```
 
 #### Relationship Matrix View — `as_relationship_matrix_view()`
@@ -594,11 +594,11 @@ Pairwise element×element matrix showing relationship types:
 - **G** = Specialization (generalization)
 - **B** = Binding, **F** = Flow, **R** = Redefinition, etc.
 
-![Relationship Matrix](docs/plantuml-examples/16-relationship-matrix.png)
+See [`20-relationship-matrix.md`](docs/plantuml-examples/20-relationship-matrix.md) for example output.
 
 ```python
 from sysmlpy.plantuml import as_relationship_matrix_view
-print(as_relationship_matrix_view(model, output_format="markdown"))
+print(as_relationship_matrix_view(model))  # Default: markdown output
 ```
 
 Type filtering and HTML output:
@@ -615,10 +615,10 @@ All rendering functions accept `style="color"` for colored output with CSS-style
 
 ```python
 from sysmlpy.plantuml import as_tabular_view
-print(as_tabular_view(model, style="color"))
+print(as_tabular_view(model, output_format="html", style="color"))
 ```
 
-![Tabular View (Color)](docs/plantuml-examples/17-tabular-view-color.png)
+See [`21-tabular-view-color.html`](docs/plantuml-examples/21-tabular-view-color.html) for example output.
 
 ### Complete Example Gallery
 
