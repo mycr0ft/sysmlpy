@@ -1,5 +1,3 @@
-'' General View (GV)
-'' The most general view — all elements as a graph of nodes and edges. Corresponds to SysML v2 GeneralView.
 @startuml
 
 skinparam monochrome true
@@ -152,25 +150,25 @@ hide circle
 
 rectangle "Wheel" as E1 <<part def>>
 rectangle "radius" as E2 <<attribute>>
-rectangle "pressure" as E3 <<attribute>>
-rectangle "BrakeSystem" as E4 <<part def>>
-rectangle "padThickness" as E5 <<attribute>>
-rectangle "VehicleAssembly" as E6 <<part def>>
-rectangle "frontLeft" as E7 <<part>>
-rectangle "frontRight" as E8 <<part>>
-rectangle "brakes" as E9 <<part>>
-rectangle "myVehicle" as E10 <<part>>
+rectangle "pressure" as E4 <<attribute>>
+rectangle "BrakeSystem" as E6 <<part def>>
+rectangle "padThickness" as E7 <<attribute>>
+rectangle "VehicleAssembly" as E9 <<part def>>
+rectangle "frontLeft" as E10 <<part>>
+rectangle "frontRight" as E11 <<part>>
+rectangle "brakes" as E12 <<part>>
+rectangle "myVehicle" as E13 <<part>>
 
 E1 *-- E2
-E1 *-- E3
-E4 *-- E5
+E1 *-- E4
 E6 *-- E7
-E7 --:|> E1 : types
-E6 *-- E8
-E8 --:|> E1 : types
-E6 *-- E9
-E9 --:|> E4 : types
-E10 --:|> E6 : types
+E9 *-- E10
+E10 --:|> E1 : types
+E9 *-- E11
+E11 --:|> E1 : types
+E9 *-- E12
+E12 --:|> E6 : types
+E13 --:|> E9 : types
 
 legend right
   <b>General View Legend</b>

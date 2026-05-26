@@ -1,5 +1,3 @@
-'' Package View
-'' Package hierarchy with nested rectangles showing package containment.
 @startuml
 
 skinparam monochrome true
@@ -74,14 +72,14 @@ title Package View
 
 hide circle
 
-rectangle "P" as E4 <<package>> {
-rectangle "Q" as E5 <<package>> {
-rectangle "R" as E6 <<package>>
-}
+rectangle "VehicleSystem" as E5 <<package>> {
+rectangle "Powertrain" as E6 <<package>>
+rectangle "Chassis" as E7 <<package>>
 }
 rectangle "Engine" as E1 <<part def>>
-rectangle "Wheel" as E2 <<part def>>
-rectangle "Tire" as E3 <<part def>>
+rectangle "Transmission" as E2 <<part def>>
+rectangle "Wheel" as E3 <<part def>>
+rectangle "Suspension" as E4 <<part def>>
 
 
 legend right

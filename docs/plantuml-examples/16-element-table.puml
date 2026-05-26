@@ -1,0 +1,21 @@
+@startuml
+
+skinparam monochrome true
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+title Element Table
+
+|= Name |= Type |= Kind |= Parent |
+| Wheel | part def | def | (root) |
+| radius | attribute | usage | Wheel |
+| pressure | attribute | usage | Wheel |
+| BrakeSystem | part def | def | (root) |
+| padThickness | attribute | usage | BrakeSystem |
+| VehicleAssembly | part def | def | (root) |
+| frontLeft | part | usage | VehicleAssembly |
+| frontRight | part | usage | VehicleAssembly |
+| brakes | part | usage | VehicleAssembly |
+| myVehicle | part | usage | (root) |
+
+@enduml

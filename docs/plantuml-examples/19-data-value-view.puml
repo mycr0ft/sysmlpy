@@ -1,0 +1,14 @@
+@startuml
+
+skinparam monochrome true
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+title Data Value Tabular View
+
+ |= Element |= Attribute |= Value |= Unit |= Type |= 
+ | Wheel | radius |  |  | Real | 
+ | Wheel | pressure |  |  | Real | 
+ | BrakeSystem | padThickness |  |  | Real | 
+
+@enduml

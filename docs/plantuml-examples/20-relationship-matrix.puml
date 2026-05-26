@@ -1,0 +1,40 @@
+@startuml
+
+skinparam monochrome true
+skinparam defaultFontSize 11
+skinparam defaultFontName Helvetica
+
+title Relationship Matrix View
+
+salt
+{
+| ? | <&question> Wheel | <&question> radius | <&question> pressure | <&question> BrakeSystem | <&question> padThickness | <&question> VehicleAssembly | <&question> frontLeft | <&question> frontRight | <&question> brakes | <&question> myVehicle
+| Wheel |  | C | C | S |  | S |  |  |  | S
+| radius |  |  | S |  |  |  |  |  |  | 
+| pressure |  | S |  |  |  |  |  |  |  | 
+| BrakeSystem | S |  |  |  | C | S |  |  |  | S
+| padThickness |  |  |  |  |  |  |  |  |  | 
+| VehicleAssembly | S |  |  | S |  |  | C | C | C | S
+| frontLeft |  |  |  |  |  |  |  | S | S | 
+| frontRight |  |  |  |  |  |  | S |  | S | 
+| brakes |  |  |  |  |  |  | S | S |  | 
+| myVehicle | S |  |  | S |  | S |  |  |  | 
+}
+
+legend bottom
+  <b>Relationship Legend</b>
+  C = composite
+  S = shared
+  T = typing
+  G = specialization
+  R = redefinition
+  B = binding
+  N = connector
+  F = flow
+  U = succession
+  A = allocation
+  D = dependency
+  I = import
+endlegend
+
+@enduml

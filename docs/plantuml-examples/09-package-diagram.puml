@@ -1,0 +1,59 @@
+@startuml
+
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<package>> {
+    RoundCorner 0
+    BackgroundColor white
+    Padding 0
+}
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+    BackgroundColor #f8f8f8
+}
+skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor #f0f0f0
+}
+skinparam rectangle<<constraint def>> {
+    RoundCorner 0
+    BackgroundColor #f8f8f8
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title Package Diagram
+
+hide circle
+
+rectangle "VehicleSystem" as PKG_6192 <<package>> {
+  rectangle "Powertrain" as PKG_8992 <<package>> {
+    rectangle "Engine" as E_8272 <<part>>
+    rectangle "Transmission" as E_3824 <<part>>
+  }
+
+  rectangle "Chassis" as PKG_8720 <<package>> {
+    rectangle "Wheel" as E_8704 <<part>>
+    rectangle "Suspension" as E_6016 <<part>>
+  }
+
+}
+
+
+legend right
+  <b>Package Diagram Legend</b>
+  |= Element |= Notation |
+  | Package | rectangle with contents |
+  | Part Definition | rectangle (light blue) |
+  | Part Usage | rounded rectangle (light green) |
+  | Constraint Def | rectangle (light pink) |
+endlegend
+
+@enduml

@@ -1,5 +1,3 @@
-'' Interconnection Diagram
-'' Focus on connectors, bindings, and flow paths between ports.
 @startuml
 
 skinparam monochrome true
@@ -70,27 +68,32 @@ title Interconnection View
 
 hide circle
 
-rectangle "Wheel" as E1 <<part def>>
-rectangle "radius" as E2 <<attribute>>
-rectangle "pressure" as E3 <<attribute>>
-rectangle "BrakeSystem" as E4 <<part def>>
-rectangle "padThickness" as E5 <<attribute>>
-rectangle "VehicleAssembly" as E6 <<part def>>
-rectangle "frontLeft" as E7 <<part>>
-rectangle "frontRight" as E8 <<part>>
-rectangle "brakes" as E9 <<part>>
-rectangle "myVehicle" as E10 <<part>>
+rectangle "Sensor" as E1 <<part def>>
+rectangle "output" as E2 <<port>>
+rectangle "Processor" as E3 <<part def>>
+rectangle "input" as E4 <<port>>
+rectangle "output" as E5 <<port>>
+rectangle "Actuator" as E6 <<part def>>
+rectangle "input" as E7 <<port>>
+rectangle "Controller" as E8 <<part def>>
+rectangle "s" as E9 <<part>>
+rectangle "p" as E10 <<part>>
+rectangle "a" as E11 <<part>>
+rectangle "b00e18ca-2c47-44fb-8668-7122331ee208" as E12 <<flow>>
+rectangle "f75c4857-1d78-477c-8ccb-33b36a81f213" as E13 <<flow>>
 
 E1 *-- E2
-E1 *-- E3
-E4 *-- E5
+E3 *-- E4
+E3 *-- E5
 E6 *-- E7
-E7 --:|> E1 : types
-E6 *-- E8
-E8 --:|> E1 : types
-E6 *-- E9
-E9 --:|> E4 : types
-E10 --:|> E6 : types
+E8 *-- E9
+E9 --:|> E1 : types
+E8 *-- E10
+E10 --:|> E3 : types
+E8 *-- E11
+E11 --:|> E6 : types
+E8 *-- E12
+E8 *-- E13
 
 
 legend right

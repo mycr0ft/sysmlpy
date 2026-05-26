@@ -1,0 +1,87 @@
+@startuml
+
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<action def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<action>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<flow def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<flow>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<attribute def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<attribute>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<port def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<port>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<part def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<part>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+' Swim lane styling for actions
+skinparam rectangle<<action def>> {
+    StereotypeFontSize 11
+}
+skinparam rectangle<<action>> {
+    StereotypeFontSize 11
+}
+
+top to bottom direction
+
+title Action Flow View
+
+hide circle
+
+rectangle "Start" as E1 <<action def>>
+rectangle "Process" as E2 <<action def>>
+rectangle "End" as E3 <<action def>>
+rectangle "Main" as E4 <<action def>>
+rectangle "start" as E5 <<action>>
+rectangle "process" as E6 <<action>>
+rectangle "end_" as E7 <<action>>
+
+E4 *-- E5
+E4 *-- E6
+E4 *-- E7
+
+E5 --> E6 : flow
+E6 --> E7 : flow
+
+legend right
+  <b>Action Flow Legend</b>
+  |= Relationship |= Notation |
+  | Flow Transfer | --> |
+  | Binding | -[thickness=4]- |
+  | Composite (owns) | *-- |
+  | Feature Typing | --:|> |
+endlegend
+
+@enduml
