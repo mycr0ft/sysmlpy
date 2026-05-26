@@ -18,6 +18,46 @@ def _extract_name_shortname(name_text):
     return name_text, None
 
 
+def _extract_name_from_ident(ident):
+    """Extract (name, shortname) from an Identification context.
+    
+    Parameters
+    ----------
+    ident : antlr4 ParserRuleContext
+        Identification context from ANTLR parser.
+    
+    Returns
+    -------
+    tuple
+        (name, shortname) tuple. Returns (None, None) if no name found.
+    
+    Handles:
+    - `name` → (name, None)
+    - `<shortname> name` → (name, shortname)
+    """
+    name = None
+    shortname = None
+    if ident is None:
+        return name, shortname
+    
+    if hasattr(ident, 'name'):
+        name_list = ident.name()
+        if name_list and isinstance(name_list, list):
+            if len(name_list) == 2:
+                # <shortname> name pattern
+                shortname = name_list[0].getText()
+                name = name_list[1].getText()
+            elif len(name_list) == 1:
+                name_text = name_list[0].getText()
+                # Check for explicit angle brackets: <name> → shortname only
+                if hasattr(ident, 'LT') and ident.LT() is not None:
+                    shortname = name_text
+                else:
+                    name = name_text
+    
+    return name, shortname
+
+
 def _get_usage_identification(ctx):
     """Extract (name, shortname) from a usage context by navigating to usageDeclaration().identification().
     
@@ -40,18 +80,7 @@ def _get_usage_identification(ctx):
     
     if usage_decl and hasattr(usage_decl, 'identification') and usage_decl.identification():
         ident = usage_decl.identification()
-        if hasattr(ident, 'name'):
-            name_list = ident.name()
-            if name_list and isinstance(name_list, list):
-                if len(name_list) == 2:
-                    shortname = name_list[0].getText()
-                    name = name_list[1].getText()
-                elif len(name_list) == 1:
-                    name_text = name_list[0].getText()
-                    if hasattr(ident, 'LT') and ident.LT() is not None:
-                        shortname = name_text
-                    else:
-                        name = name_text
+        name, shortname = _extract_name_from_ident(ident)
     
     return name, shortname
 
@@ -127,19 +156,7 @@ def _get_definition_identification(ctx):
     
     if dd and hasattr(dd, 'identification') and dd.identification():
         ident = dd.identification()
-        if hasattr(ident, 'name'):
-            name_list = ident.name()
-            if name_list and isinstance(name_list, list):
-                if len(name_list) == 2:
-                    # LT name GT name: first is short name, second is long name
-                    shortname = name_list[0].getText()
-                    name = name_list[1].getText()
-                elif len(name_list) == 1:
-                    name_text = name_list[0].getText()
-                    if hasattr(ident, 'LT') and ident.LT() is not None:
-                        shortname = name_text
-                    else:
-                        name = name_text
+        name, shortname = _extract_name_from_ident(ident)
     
     return name, shortname
 
@@ -157,20 +174,7 @@ def _build_identification_dict(ident_ctx):
     shortname = None
     
     if hasattr(ident_ctx, 'name'):
-        name_list = ident_ctx.name()
-        if name_list and isinstance(name_list, list):
-            if len(name_list) == 2:
-                # LT name GT name: first is short name, second is long name
-                shortname = name_list[0].getText()
-                name = name_list[1].getText()
-            elif len(name_list) == 1:
-                name_text = name_list[0].getText()
-                # Check for explicit angle brackets: <name> → shortname only
-                has_lt = hasattr(ident_ctx, 'LT') and ident_ctx.LT() is not None
-                if has_lt:
-                    shortname = name_text
-                else:
-                    name = name_text
+        name, shortname = _extract_name_from_ident(ident_ctx)
     
     if name is None and shortname is None:
         return None
@@ -314,21 +318,7 @@ def _visit_package_dict(tree):
             ident = decl.identification()
             if ident:
                 # Handle identification: LT name GT name | LT name GT | name
-                if hasattr(ident, 'name'):
-                    name_list = ident.name()
-                    if name_list and isinstance(name_list, list):
-                        if len(name_list) == 2:
-                            # LT name GT name: first is short name, second is long name
-                            pkg_shortname = name_list[0].getText()
-                            pkg_name = name_list[1].getText()
-                        elif len(name_list) == 1:
-                            name_text = name_list[0].getText()
-                            # Check for explicit < > angle brackets
-                            if hasattr(ident, 'LT') and ident.LT() is not None:
-                                pkg_shortname = name_text
-                            else:
-                                pkg_name = name_text
-                        # If len(name_list) == 0, leave both as None
+                pkg_name, pkg_shortname = _extract_name_from_ident(ident)
 
     # Build package body elements
     body_elements = []
@@ -828,19 +818,8 @@ def _make_nested_package_dict(ctx, prefix=None):
         decl = ctx.packageDeclaration()
         if hasattr(decl, 'identification'):
             ident = decl.identification()
-            if ident and hasattr(ident, 'name'):
-                name_list = ident.name()
-                if name_list and isinstance(name_list, list):
-                    if len(name_list) == 2:
-                        pkg_shortname = name_list[0].getText()
-                        pkg_name = name_list[1].getText()
-                    elif len(name_list) == 1:
-                        name_text = name_list[0].getText()
-                        # Explicit angle brackets <name> → shortname; bare name → declaredName
-                        if hasattr(ident, 'LT') and ident.LT() is not None:
-                            pkg_shortname = name_text
-                        else:
-                            pkg_name = name_text
+            if ident:
+                pkg_name, pkg_shortname = _extract_name_from_ident(ident)
     
     # Process body elements
     body_elements = []
@@ -2497,6 +2476,28 @@ def _visit_send_node(ctx):
                         "specialization": None
                     }
                 }
+    elif hasattr(ctx, 'actionUsageDeclaration') and ctx.actionUsageDeclaration():
+        aud = ctx.actionUsageDeclaration()
+        action_node_decl = {
+            "name": "ActionNodeUsageDeclaration",
+            "declaration": None
+        }
+        if hasattr(aud, 'usageDeclaration') and aud.usageDeclaration():
+            ud = aud.usageDeclaration()
+            if ud:
+                name, shortname = _get_usage_identification_from_ud(ud)
+                action_node_decl["declaration"] = {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                }
 
     node_param = None
     if hasattr(ctx, 'nodeParameterMember') and ctx.nodeParameterMember():
@@ -4055,18 +4056,7 @@ def _get_usage_identification_from_ud(ud):
     shortname = None
     if ud and hasattr(ud, 'identification') and ud.identification():
         ident = ud.identification()
-        if hasattr(ident, 'name'):
-            name_list = ident.name()
-            if name_list and isinstance(name_list, list):
-                if len(name_list) == 2:
-                    shortname = name_list[0].getText()
-                    name = name_list[1].getText()
-                elif len(name_list) == 1:
-                    name_text = name_list[0].getText()
-                    if hasattr(ident, 'LT') and ident.LT() is not None:
-                        shortname = name_text
-                    else:
-                        name = name_text
+        name, shortname = _extract_name_from_ident(ident)
     return name, shortname
 
 

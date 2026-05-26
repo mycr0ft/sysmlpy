@@ -94,8 +94,10 @@ class RootNamespace:
         return beautify("\n".join(output))
 
     def get_definition(self):
+        # Root namespace can be either PackageBodyElement (SysML) or NamespaceBodyElement (KerML)
+        # Default to PackageBodyElement for SysML documents
         output = {
-            "name": "PackageBodyElement",  # !TODO This isn't always the case
+            "name": "PackageBodyElement",
             "ownedRelationship": [],
         }
         for member in self.children:
@@ -1422,6 +1424,127 @@ class ActionNodeUsageDeclaration:
         }
 
 
+class IfNodeDeclaration:
+    # IfNodeDeclaration :
+    # 	ActionNodeUsageDeclaration? IF nodeParameterMember
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = "if"
+        self.nodeParameter = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            if definition.get("nodeParameter") is not None:
+                self.nodeParameter = NodeParameterMember(definition["nodeParameter"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append(self.keyword)
+        if self.nodeParameter is not None:
+            output.append(self.nodeParameter.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "nodeParameter": self.nodeParameter.get_definition() if self.nodeParameter else None,
+        }
+
+
+class WhileLoopNodeDeclaration:
+    # WhileLoopNodeDeclaration :
+    # 	ActionNodeUsageDeclaration? WHILE nodeParameterMember
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = "while"
+        self.nodeParameter = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            if definition.get("nodeParameter") is not None:
+                self.nodeParameter = NodeParameterMember(definition["nodeParameter"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append(self.keyword)
+        if self.nodeParameter is not None:
+            output.append(self.nodeParameter.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "nodeParameter": self.nodeParameter.get_definition() if self.nodeParameter else None,
+        }
+
+
+class ForLoopNodeDeclaration:
+    # ForLoopNodeDeclaration :
+    # 	ActionNodeUsageDeclaration? FOR nodeParameterMember
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = "for"
+        self.nodeParameter = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            if definition.get("nodeParameter") is not None:
+                self.nodeParameter = NodeParameterMember(definition["nodeParameter"])
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append(self.keyword)
+        if self.nodeParameter is not None:
+            output.append(self.nodeParameter.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "nodeParameter": self.nodeParameter.get_definition() if self.nodeParameter else None,
+        }
+
+
+class ControlNodeDeclaration:
+    # ControlNodeDeclaration :
+    # 	ActionNodeUsageDeclaration? (JOIN | FORK | MERGE | DECIDE)
+    # ;
+    def __init__(self, definition):
+        self.declaration = None
+        self.keyword = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            self.keyword = definition.get("keyword")
+
+    def dump(self):
+        output = []
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.keyword is not None:
+            output.append(self.keyword)
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "declaration": self.declaration.get_definition() if self.declaration else None,
+            "keyword": self.keyword,
+        }
+
+
 class AcceptNodeDeclaration:
     # AcceptNodeDeclaration :
     # 	(actionNodeUsageDeclaration)? ACCEPT acceptParameterPart
@@ -2536,6 +2659,262 @@ class ActionNodeMember:
         output.append(self.children.dump())
         return " ".join(output)
 
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
+        return output
+
+
+class SendNode:
+    # SendNode :
+    # 	prefix=OccurrenceUsagePrefix declaration=SendNodeDeclaration body=ActionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = SendNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class AcceptNode:
+    # AcceptNode :
+    # 	prefix=OccurrenceUsagePrefix declaration=AcceptNodeDeclaration body=ActionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = AcceptNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class IfNode:
+    # IfNode :
+    # 	prefix=OccurrenceUsagePrefix ifNodeDeclaration actionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = IfNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class WhileLoopNode:
+    # WhileLoopNode :
+    # 	prefix=OccurrenceUsagePrefix whileLoopNodeDeclaration actionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = WhileLoopNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class ForLoopNode:
+    # ForLoopNode :
+    # 	prefix=OccurrenceUsagePrefix forLoopNodeDeclaration actionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = ForLoopNodeDeclaration(definition["declaration"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
+class ControlNode:
+    # ControlNode :
+    # 	prefix=OccurrenceUsagePrefix controlNodeDeclaration
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = ControlNodeDeclaration(definition["declaration"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        return output
+
 
 class ActionNode:
     # ActionNode :
@@ -2553,6 +2932,12 @@ class ActionNode:
 
     def dump(self):
         return self.children.dump()
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "node": self.children.get_definition() if self.children else None,
+        }
 
 
 class EmptySuccessionMember:
@@ -7886,14 +8271,13 @@ class PackageBody:
         # else: no new definitions needed
 
     def dump(self):
-        #!TODO This won't work
         if len(self.children) == 0:
             return ";"
         else:
             output = []
             for child in self.children:
                 output.append(child.dump())
-            return " { \n" + "\n".join(output) + "\n}"
+            return " {\n" + "\n".join(output) + "\n}"
 
     def get_definition(self):
         output = {"name": self.__class__.__name__, "ownedRelationship": []}

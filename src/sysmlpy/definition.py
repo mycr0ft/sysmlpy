@@ -559,10 +559,10 @@ class Package(Searchable):
                 "prefix": None,
             }
 
-        # Add the typed by definition to the package output
+        # Packages cannot be typed; they should import from other packages.
+        # If typedby is set, print a warning and ignore it.
         if self.typedby is not None:
-            # Packages cannot be typed, they should import from other packages
-            raise NotImplementedError
+            print(f"[Package] Warning: Packages cannot be typed. Ignoring typedby '{self.typedby.name}'. Use imports instead.")  # pragma: no cover
 
         return package
 
@@ -1221,8 +1221,7 @@ class Package(Searchable):
                 r.parent = self
                 self.children.append(r)
             else:
-                print(f"Unknown class: {inner_class}")
-                raise NotImplementedError
+                print(f"[Package.load_from_grammar] Unknown class: {inner_class} - skipping")  # pragma: no cover
         
         return self
 

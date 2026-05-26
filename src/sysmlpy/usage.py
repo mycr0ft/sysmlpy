@@ -1901,6 +1901,34 @@ class Action(Usage):
                     self.children.append(action_node)
                     return
                 
+                # Handle SendNode - extract signal name from nodeParameter
+                if node_type == "SendNode":
+                    name = None
+                    if hasattr(action_node, 'declaration') and action_node.declaration:
+                        decl = action_node.declaration
+                        if hasattr(decl, 'nodeParameter') and decl.nodeParameter:
+                            name = self._extract_signal_name_from_node_parameter(decl.nodeParameter)
+                    if name:
+                        nested_action = Action(name=f"send_{name}")
+                        nested_action.load_from_grammar(action_node)
+                        self._nested_actions.append(nested_action)
+                        self.children.append(nested_action)
+                    return
+                
+                # Handle AcceptNode - extract event name from acceptParameter
+                if node_type == "AcceptNode":
+                    name = None
+                    if hasattr(action_node, 'declaration') and action_node.declaration:
+                        decl = action_node.declaration
+                        if hasattr(decl, 'acceptParameter') and decl.acceptParameter:
+                            name = self._extract_event_name_from_accept_parameter(decl.acceptParameter)
+                    if name:
+                        nested_action = Action(name=f"accept_{name}")
+                        nested_action.load_from_grammar(action_node)
+                        self._nested_actions.append(nested_action)
+                        self.children.append(nested_action)
+                    return
+                
                 # Handle action nodes with declaration (send/accept/assignment)
                 if hasattr(action_node, 'declaration'):
                     decl = action_node.declaration
@@ -1911,6 +1939,89 @@ class Action(Usage):
                             nested_action.load_from_grammar(action_node)
                             self._nested_actions.append(nested_action)
                             self.children.append(nested_action)
+    
+    def _extract_signal_name_from_node_parameter(self, node_param):
+        """Extract signal/event name from NodeParameterMember."""
+        if not hasattr(node_param, 'children') or not node_param.children:
+            return None
+        # NodeParameterMember.children -> NodeParameter
+        node_parameter = node_param.children
+        if not hasattr(node_parameter, 'children') or not node_parameter.children:
+            return None
+        # NodeParameter.children -> FeatureBinding
+        feature_binding = node_parameter.children
+        if not hasattr(feature_binding, 'children') or not feature_binding.children:
+            return None
+        # FeatureBinding.children -> OwnedExpression
+        owned_expr = feature_binding.children
+        if not hasattr(owned_expr, 'expression') or not owned_expr.expression:
+            return None
+        # Navigate through expression tree to find FeatureReferenceMember
+        expr = owned_expr.expression
+        depth = 0
+        while expr and depth < 30:
+            depth += 1
+            # Check for PrimaryExpression with FeatureReferenceMember
+            if hasattr(expr, 'primary') and expr.primary:
+                primary = expr.primary
+                if hasattr(primary, 'base') and primary.base:
+                    base = primary.base
+                    # BaseExpression has 'relationship' not 'ownedRelationship'
+                    if hasattr(base, 'relationship') and base.relationship:
+                        fr_expr = base.relationship
+                        # FeatureReferenceExpression has 'children' list
+                        if hasattr(fr_expr, 'children') and fr_expr.children and len(fr_expr.children) > 0:
+                            fr_member = fr_expr.children[0]
+                            if hasattr(fr_member, 'memberElement') and fr_member.memberElement:
+                                qname = fr_member.memberElement
+                                if hasattr(qname, 'names') and qname.names and len(qname.names) > 0:
+                                    return qname.names[-1]
+            # Navigate through expression chain - try all possible attributes
+            next_expr = None
+            for attr in ['operands', 'operand', 'operations', 'left_hand', 'right_hand', 'or', 'orexpression', 'xor', 'andexpression', 'and', 
+                        'equality', 'classification', 'relational', 'range', 'additive', 'multiplicitive', 
+                        'exponential', 'unary', 'extent', 'implies']:
+                if hasattr(expr, attr):
+                    val = getattr(expr, attr)
+                    if val:
+                        if isinstance(val, list) and len(val) > 0:
+                            next_expr = val[0]
+                            break
+                        elif not isinstance(val, list):
+                            next_expr = val
+                            break
+            expr = next_expr
+        return None
+    
+    def _extract_event_name_from_accept_parameter(self, accept_param):
+        """Extract event name from AcceptParameterPart."""
+        if not hasattr(accept_param, 'children') or not accept_param.children or len(accept_param.children) == 0:
+            return None
+        # AcceptParameterPart.children[0] -> PayloadParameterMember
+        payload_param_member = accept_param.children[0]
+        if not hasattr(payload_param_member, 'children') or not payload_param_member.children:
+            return None
+        # PayloadParameterMember.children -> PayloadParameter
+        payload_param = payload_param_member.children
+        if not hasattr(payload_param, 'children') or not payload_param.children:
+            return None
+        # PayloadParameter.children -> PayloadFeature
+        payload_feature = payload_param.children
+        if not hasattr(payload_feature, 'children') or not payload_feature.children:
+            return None
+        # PayloadFeature.children -> OwnedFeatureTyping
+        owned_typing = payload_feature.children
+        if not hasattr(owned_typing, 'type') or not owned_typing.type:
+            return None
+        # OwnedFeatureTyping.type -> FeatureType
+        feature_type = owned_typing.type
+        if not hasattr(feature_type, 'type') or not feature_type.type:
+            return None
+        # FeatureType.type -> QualifiedName
+        qname = feature_type.type
+        if hasattr(qname, 'names') and qname.names and len(qname.names) > 0:
+            return qname.names[-1]
+        return None
     
     def _extract_behavior_usage(self, behavior_usage_member):
         """Extract behavior usage (nested action/state) from BehaviorUsageMember."""

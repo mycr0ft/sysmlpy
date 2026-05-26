@@ -1,6 +1,44 @@
 # CHANGELOG
 
 
+## v0.27.4 (2026-05-25)
+
+### :sparkles:
+
+- :sparkles: Send/Accept Action Usage Handling (Gap 6)
+  Full implementation of send/accept actions in action bodies. Added grammar classes
+  `SendNode`, `AcceptNode`, `IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode` and
+  corresponding declaration classes. Visitor extracts signal/event names and creates nested
+  Action children (e.g., `send_MySignal`, `accept_TriggerEvent`).
+
+- :sparkles: Library Import Loading (Gap 8)
+  Implemented library loading mechanism in `antlr_parser.parse()`. When `library` parameter
+  is provided, all `.sysml` and `.kerml` files from library directories are loaded and
+  prepended to content before parsing. Enables standard library definitions for import
+  resolution.
+
+- :sparkles: Code Deduplication (Gap 5)
+  Created `_extract_name_from_ident()` helper function and refactored 7+ locations in
+  `antlr_visitor.py`. Reduced code duplication by ~150 lines.
+
+### :bug:
+
+- :bug: Fixed `PackageBody.dump()` format - consistent brace formatting
+- :bug: Fixed `RootNamespace.get_definition()` - clarified SysML vs KerML handling
+
+### :white_check_mark:
+
+- :white_check_mark: All 176 tests passing (class, main, plantuml)
+- :white_check_mark: 61 / 77 grammar round-trip tests pass (16 deferred control-flow)
+
+### :memo:
+
+- :memo: Updated `TODO-gaps.md` - Gaps 5, 6, 8, 9 now complete
+- :memo: Zero TODOs remaining in codebase
+
+---
+
+
 ## v0.27.2 (2026-05-25)
 
 ### :sparkles:

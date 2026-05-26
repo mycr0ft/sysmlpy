@@ -59,16 +59,34 @@ def parse(source, library=None):
     SysMLSyntaxError
         If the source contains syntax errors.
     """
+    from pathlib import Path
+    
     # Handle string or file input
     if hasattr(source, 'read'):
         content = source.read()
     else:
         content = source
     
-    # TODO: If library path is provided, load library files and prepend to content
-    # For now, just parse the source directly
-    # Library loading would involve reading .sysml files from the library path
-    # and making them available for import resolution
+    # Load library files if library path is provided
+    if library is not None:
+        library_paths = [library] if isinstance(library, (str, Path)) else library
+        library_content = []
+        
+        for lib_path in library_paths:
+            lib_path = Path(lib_path)
+            if lib_path.exists() and lib_path.is_dir():
+                # Load all .sysml and .kerml files from library directory
+                for ext in ['*.sysml', '*.kerml']:
+                    for lib_file in lib_path.glob(f'**/{ext}'):
+                        try:
+                            lib_content = lib_file.read_text(encoding='utf-8')
+                            library_content.append(lib_content)
+                        except Exception:
+                            pass  # Skip files that can't be read
+        
+        # Prepend library content to main content
+        if library_content:
+            content = '\n\n'.join(library_content) + '\n\n' + content
     
     # Create input stream
     input_stream = InputStream(content)
