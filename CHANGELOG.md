@@ -1,9 +1,18 @@
 # CHANGELOG
 
 
-## v0.27.4 (2026-05-25)
+## v0.28.0 (2026-05-26)
 
 ### :sparkles:
+
+- :sparkles: Gap 10 Complete — Missing Grammar Classes
+  Added `TextualRepresentation`, `MetadataFeature`, `MetadataFeatureDeclaration`, and
+  `OccurrenceUsageBody` grammar classes with full `dump()` and `get_definition()` support.
+  Updated ANTLR visitor to dispatch textual representation and metadata feature annotations.
+
+- :sparkles: Gap 11 Complete — Expression Resilience
+  Replaced final `return NotImplementedError` in `InterfaceEnd.__init__` with graceful warning
+  print. All expression operators now handle edge cases without raising exceptions.
 
 - :sparkles: Package Diagram View (`as_package_diagram_view`)
   Complete implementation of SysML v2 Package diagrams. Shows package hierarchy with elements
@@ -21,6 +30,11 @@
   nested parts, flow connections with source/target arrows, and connection usage with blue connector
   arrows. Supports `focus`, `style` (bw/color), `direction`, `show_parts`, `show_ports`, 
   `show_connections`, and custom styling. Added 6 tests in `tests/plantuml_test.py`.
+
+- :sparkles: Block Definition Diagram View (`as_block_definition_view`)
+  Complete implementation of SysML v2 Block Definition Diagrams. Shows block definitions with
+  compartments for attributes, ports, and part references. Displays generalization relationships.
+  Added 8 tests in `tests/plantuml_test.py`.
 
 - :sparkles: Send/Accept Action Usage Handling (Gap 6)
   Full implementation of send/accept actions in action bodies. Added grammar classes
@@ -42,6 +56,7 @@
 
 - :bug: Fixed `PackageBody.dump()` format - consistent brace formatting
 - :bug: Fixed `RootNamespace.get_definition()` - clarified SysML vs KerML handling
+- :bug: Fixed `InterfaceEnd.__init__` - replaced `return NotImplementedError` with warning print
 
 ### :white_check_mark:
 
@@ -51,7 +66,7 @@
 
 ### :memo:
 
-- :memo: Updated `TODO-gaps.md` - Gap 4 now 100% complete (all 6 views implemented)
+- :memo: Updated `TODO-gaps.md` - Gap 4, 10, 11 now 100% complete
 - :memo: Zero TODOs remaining in codebase
 
 ---

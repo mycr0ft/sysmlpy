@@ -245,10 +245,138 @@ def _visit_comment_dict(ctx):
     }
 
 
+def _visit_textual_representation_dict(ctx):
+    """Visit a textualRepresentation context and return a TextualRepresentation dictionary.
+    
+    Grammar: (REP identification?)? LANGUAGE DOUBLE_STRING REGULAR_COMMENT
+    """
+    identification = None
+    if ctx.identification():
+        identification = _build_identification_dict(ctx.identification())
+    
+    language = ""
+    if ctx.DOUBLE_STRING():
+        language = ctx.DOUBLE_STRING().getText().strip('"')
+    
+    body = ""
+    if ctx.REGULAR_COMMENT():
+        body = ctx.REGULAR_COMMENT().getText()
+    
+    return {
+        "name": "TextualRepresentation",
+        "identification": identification,
+        "language": language,
+        "body": body
+    }
+
+
+def _visit_metadata_feature_dict(ctx):
+    """Visit a metadataFeature context and return a MetadataFeature dictionary.
+    
+    Grammar: (prefixMetadataMember)* (AT_SIGN | METADATA) metadataFeatureDeclaration (
+        ABOUT annotation ( COMMA annotation)*
+    )? metadataBody
+    """
+    prefix_members = []
+    for pm in ctx.prefixMetadataMember():
+        prefix_members.append(_visit_prefix_metadata_member_dict(pm))
+    
+    identification = None
+    owned_feature_typing = None
+    if ctx.metadataFeatureDeclaration():
+        mfd = ctx.metadataFeatureDeclaration()
+        if mfd.identification():
+            identification = _build_identification_dict(mfd.identification())
+        if mfd.ownedFeatureTyping():
+            owned_feature_typing = _visit_owned_feature_typing_dict(mfd.ownedFeatureTyping())
+    
+    annotations = []
+    if ctx.ABOUT():
+        for ann_idx in range(len(ctx.annotation())):
+            ann_ctx = ctx.annotation(ann_idx)
+            if ann_ctx and ann_ctx.qualifiedName():
+                qn_text = ann_ctx.qualifiedName().getText()
+                annotations.append({
+                    "name": "Annotation",
+                    "annotatedElement": {
+                        "name": "QualifiedName",
+                        "names": qn_text.split("::")
+                    }
+                })
+    
+    body = ""
+    if ctx.metadataBody() and ctx.metadataBody().SEMI():
+        body = ";"
+    
+    return {
+        "name": "MetadataFeature",
+        "prefixMetadataMember": prefix_members,
+        "identification": identification,
+        "ownedFeatureTyping": owned_feature_typing,
+        "ownedRelationship_about": annotations,
+        "body": body
+    }
+
+
+def _visit_prefix_metadata_member_dict(ctx):
+    """Visit a prefixMetadataMember context."""
+    visibility = ""
+    direction = ""
+    
+    if ctx.PRIVATE():
+        visibility = "private"
+    elif ctx.PROTECTED():
+        visibility = "protected"
+    elif ctx.PUBLIC():
+        visibility = "public"
+    
+    if ctx.IN():
+        direction = "in"
+    elif ctx.OUT():
+        direction = "out"
+    elif ctx.INOUT():
+        direction = "inout"
+    
+    return {
+        "name": "PrefixMetadataMember",
+        "visibility": visibility,
+        "direction": direction
+    }
+
+
+def _visit_owned_feature_typing_dict(ctx):
+    """Visit an ownedFeatureTyping context and return an OwnedFeatureTyping dictionary."""
+    if ctx is None:
+        return None
+    
+    if hasattr(ctx, 'qualifiedName') and ctx.qualifiedName():
+        qns = ctx.qualifiedName()
+        if not isinstance(qns, list):
+            qns = [qns]
+        names = []
+        for qn in qns:
+            if qn:
+                names.append(qn.getText())
+        if names:
+            return {
+                "name": "OwnedFeatureTyping",
+                "type": {
+                    "name": "FeatureType",
+                    "type": {
+                        "name": "QualifiedName",
+                        "names": names
+                    },
+                    "ownedRelatedElement": []
+                },
+                "ownedRelatedElement": []
+            }
+    return None
+
+
 def _visit_annotating_element_dict(annot_elem_ctx):
     """Visit an annotating element context and return an AnnotatingElement dictionary.
     
-    Dispatches to documentation or comment based on the context.
+    Dispatches to documentation, comment, textualRepresentation, or metadataFeature.
     """
     if annot_elem_ctx is None:
         return None
@@ -258,6 +386,10 @@ def _visit_annotating_element_dict(annot_elem_ctx):
         inner = _visit_documentation_dict(annot_elem_ctx.documentation())
     elif hasattr(annot_elem_ctx, 'comment') and annot_elem_ctx.comment():
         inner = _visit_comment_dict(annot_elem_ctx.comment())
+    elif hasattr(annot_elem_ctx, 'textualRepresentation') and annot_elem_ctx.textualRepresentation():
+        inner = _visit_textual_representation_dict(annot_elem_ctx.textualRepresentation())
+    elif hasattr(annot_elem_ctx, 'metadataFeature') and annot_elem_ctx.metadataFeature():
+        inner = _visit_metadata_feature_dict(annot_elem_ctx.metadataFeature())
     
     if inner is None:
         return None

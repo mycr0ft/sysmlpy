@@ -4225,6 +4225,142 @@ class Documentation:
         return output
 
 
+class TextualRepresentation:
+    # textualRepresentation
+    #   : (REP identification?)? LANGUAGE DOUBLE_STRING REGULAR_COMMENT
+    #   ;
+    def __init__(self, definition):
+        if valid_definition(definition, "TextualRepresentation"):
+            self.identification = None
+            if definition.get("identification") is not None:
+                self.identification = Identification(definition["identification"])
+            
+            self.language = definition.get("language", "")
+            self.body = definition.get("body", "")
+
+    def dump(self):
+        output = []
+        if self.identification is not None:
+            output.append("rep")
+            output.append(self.identification.dump())
+        output.append("language")
+        output.append(f'"{self.language}"')
+        output.append(self.body)
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "identification": self.identification.get_definition() if self.identification else None,
+            "language": self.language,
+            "body": self.body
+        }
+        return output
+
+
+class MetadataFeature:
+    # metadataFeature
+    #   : (prefixMetadataMember)* (AT_SIGN | METADATA) metadataFeatureDeclaration (
+    #       ABOUT annotation ( COMMA annotation)*
+    #   )? metadataBody
+    #   ;
+    def __init__(self, definition):
+        if valid_definition(definition, "MetadataFeature"):
+            self.prefix = []
+            for p in definition.get("prefixMetadataMember", []):
+                self.prefix.append(PrefixMetadataMember(p))
+            
+            self.identification = None
+            if definition.get("identification") is not None:
+                self.identification = Identification(definition["identification"])
+            
+            self.typing = None
+            if definition.get("ownedFeatureTyping") is not None:
+                self.typing = OwnedFeatureTyping(definition["ownedFeatureTyping"])
+            
+            self.annotations = []
+            for ann in definition.get("ownedRelationship_about", []):
+                self.annotations.append(Annotation(ann))
+            
+            self.body = definition.get("body", "")
+
+    def dump(self):
+        output = []
+        for p in self.prefix:
+            output.append(p.dump())
+        output.append("@")
+        if self.identification is not None:
+            output.append(self.identification.dump())
+        if self.typing is not None:
+            output.append(":")
+            output.append(self.typing.dump())
+        if self.annotations:
+            output.append("about")
+            output.append(", ".join([a.dump() for a in self.annotations]))
+        if self.body:
+            output.append(self.body)
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefixMetadataMember": [p.get_definition() for p in self.prefix],
+            "identification": self.identification.get_definition() if self.identification else None,
+            "ownedFeatureTyping": self.typing.get_definition() if self.typing else None,
+            "ownedRelationship_about": [a.get_definition() for a in self.annotations],
+            "body": self.body
+        }
+        return output
+
+
+class PrefixMetadataMember:
+    def __init__(self, definition):
+        if valid_definition(definition, "PrefixMetadataMember"):
+            self.visibility = definition.get("visibility", "")
+            self.direction = definition.get("direction", "")
+
+    def dump(self):
+        output = []
+        if self.visibility:
+            output.append(self.visibility)
+        if self.direction:
+            output.append(self.direction)
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "visibility": self.visibility,
+            "direction": self.direction
+        }
+
+
+class OccurrenceUsageBody:
+    # OccurrenceUsageBody — used by non-action occurrence usages
+    # Similar to ActionBody but for general occurrence usages
+    def __init__(self, definition):
+        if valid_definition(definition, "OccurrenceUsageBody"):
+            self.children = []
+            for item in definition.get("ownedRelationship", []):
+                if item.get("name") == "InitialNodeMember":
+                    self.children.append(InitialNodeMember(item))
+                elif item.get("name") == "ActionNodeMember":
+                    self.children.append(ActionNodeMember(item))
+                else:
+                    print(f"OccurrenceUsageBody: Unknown item type {item.get('name')}")
+
+    def dump(self):
+        if not self.children:
+            return ";"
+        return " { " + "; ".join([c.dump() for c in self.children]) + " }"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelationship": [c.get_definition() for c in self.children]
+        }
+
+
 class AttributeDefinition:
     def __init__(self, definition=None):
         self.keyword = "attribute def"
@@ -6833,7 +6969,7 @@ class InterfaceEnd:
                 elif relationship["name"] == "OwnedMultiplicity":
                     self.relationships.append(OwnedMultiplicity(relationship))
                 else:
-                    return NotImplementedError
+                    print(f"InterfaceEnd: Unknown relationship type {relationship['name']}")
 
     def dump(self):
         output = []

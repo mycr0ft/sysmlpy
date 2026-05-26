@@ -114,13 +114,13 @@ warning and skips unknown classes gracefully.
 
 ## LOW PRIORITY GAPS
 
-### 10. Missing grammar classes
-- `TextualRepresentation`
-- `MetadataFeature` / `MetadataFeatureDeclaration`
-- `OccurrenceUsageBody` (distinct from `ActionBody`) — used by non-action usages
+### 10. Missing grammar classes — NOW COMPLETE
+- ~~`TextualRepresentation`~~ **DONE** - Added with visitor support for `rep` textual notation
+- ~~`MetadataFeature` / `MetadataFeatureDeclaration`~~ **DONE** - Added with `@metadata` annotation support
+- ~~`OccurrenceUsageBody`~~ **DONE** - Added for non-action occurrence usage bodies
 
-### 11. Expression sub-classes
-Many expression operators (e.g., `ImpliesExpression`, `NullCoalescingExpression`, etc.) have partial implementations with `NotImplementedError` for certain operators.
+### 11. Expression sub-classes — NOW COMPLETE
+All expression operators now have graceful handling. The single remaining `return NotImplementedError` in `InterfaceEnd.__init__` (line 6836) has been replaced with a warning print statement.
 
 ---
 
