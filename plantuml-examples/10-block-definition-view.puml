@@ -36,13 +36,13 @@ rectangle "Engine" as E8 <<block>> {
 
 legend right
   <b>Block Definition Diagram Legend</b>
-  |= Relationship |= Notation |
+  Relationship: Notation
   | Generalization | --|> |
-  | Composition | *-- |
-  | Association | --> |
-  | Attribute | (compartment) |
-  | Port | (compartment) |
-  | Part Reference | (compartment) |
+  Composition: *--
+  Association: -->
+  Attribute: (compartment)
+  Port: (compartment)
+  Part Reference: (compartment)
 endlegend
 
 @enduml

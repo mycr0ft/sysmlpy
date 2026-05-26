@@ -100,7 +100,7 @@ skinparam folder<<view>> {
 
 top to bottom direction
 
-title ccf2bdf4-8b24-47ea-9683-5164aec52af7
+title 0f64e96d-11d6-408f-8808-513f2809ef98
 
 hide circle
 
@@ -128,16 +128,16 @@ E13 --:|> E9 : types
 
 legend right
   <b>SysML v2 Relationship Legend</b>
-  |= Relationship |= Notation |
-  | Feature Typing | --:|> |
-  | Specialization | --|> |
-  | Redefinition | --||> |
-  | Composite (owns) | *-- |
-  | Shared | o-- |
-  | Binding | -[thickness=4]- |
-  | Connector | -[thickness=2]-> |
-  | Flow | --> |
-  | Dependency | ..>> |
+  Relationship: Notation
+  Feature Typing: --:|>
+  Specialization: --|>
+  Redefinition: --||>
+  Composite (owns): *--
+  Shared: o--
+  Binding: -[thickness=4]-
+  Connector: -[thickness=2]->
+  Flow: -->
+  Dependency: ..>>
 endlegend
 
 @enduml

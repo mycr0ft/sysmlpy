@@ -26,13 +26,13 @@ rectangle "req1" as E2 <<requirement>>
 
 legend right
   <b>Requirement View Legend</b>
-  |= Relationship |= Notation |
-  | Satisfy | --> |
-  | Verify | --> |
-  | Derive | *-- |
-  | Refine | ..>> |
-  | Composite (owns) | *-- |
-  | Feature Typing | --:|> |
+  Relationship: Notation
+  Satisfy: -->
+  Verify: -->
+  Derive: *--
+  Refine: ..>>
+  Composite (owns): *--
+  Feature Typing: --:|> 
 endlegend
 
 @enduml

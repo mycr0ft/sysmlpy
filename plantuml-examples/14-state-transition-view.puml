@@ -20,22 +20,20 @@ title State Transition — Operational
 
 hide circle
 
-state "Operational" as E1 <<state def>>
-state "Idle" as E2 <<state>>
-state "Running" as E3 <<state>>
-state "Error" as E4 <<state>>
+rectangle "Operational" as E1 <<state>>
+rectangle "Idle" as E2 <<state>>
+rectangle "Running" as E3 <<state>>
+rectangle "Error" as E4 <<state>>
 
-E1 *-- E2
-E1 *-- E3
-E1 *-- E4
+E1 --> E2
+E1 --> E3
+E1 --> E4
 
 
 legend right
   <b>State Transition Legend</b>
-  |= Relationship |= Notation |
-  | Transition | --> |
-  | Composite (owns) | *-- |
-  | Feature Typing | --:|> |
+  State Transition: thick green arrow
+  Containment: simple arrow
 endlegend
 
 @enduml

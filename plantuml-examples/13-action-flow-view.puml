@@ -77,11 +77,11 @@ E6 --> E7 : flow
 
 legend right
   <b>Action Flow Legend</b>
-  |= Relationship |= Notation |
-  | Flow Transfer | --> |
-  | Binding | -[thickness=4]- |
-  | Composite (owns) | *-- |
-  | Feature Typing | --:|> |
+  Relationship: Notation
+  Flow Transfer: -->
+  Binding: -[thickness=4]-
+  Composite (owns): *--
+  Feature Typing: --:|> 
 endlegend
 
 @enduml
