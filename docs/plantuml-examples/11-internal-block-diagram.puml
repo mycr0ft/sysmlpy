@@ -25,7 +25,7 @@ title Internal Block Diagram — Assembly
 
 hide circle
 
-rectangle "Assembly" as B_5088 <<block>> {
+rectangle "Assembly" as B_5312 <<block>> {
   boundary {
     rectangle "input" as PT0 <<port>>
     rectangle "output" as PT1 <<port>>
@@ -40,12 +40,12 @@ P1 --> PT1 : f3
 
 legend right
   <b>Internal Block Diagram Legend</b>
-  |= Element |= Notation |
-  | Block | rectangle |
-  | Part | nested rectangle |
-  | Port | rounded rectangle on boundary |
-  | Connector | --> |
-  | Flow | --> |
+  Element: Notation
+  Block: rectangle
+  Part: nested rectangle
+  Port: rounded rectangle on boundary
+  Connector: -->
+  Flow: -->
 endlegend
 
 @enduml

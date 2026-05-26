@@ -41,11 +41,11 @@ rectangle "KineticEnergy" as CD1 <<constraint def>> {
 
 legend right
   <b>Parametric Diagram Legend</b>
-  |= Element |= Notation |
-  | Constraint Definition | rectangle with parameters |
-  | Constraint Usage | rounded rectangle |
-  | Parameter | small rectangle |
-  | Binding | thick red line |
+  Element: Notation
+  Constraint Definition: rectangle with parameters
+  Constraint Usage: rounded rectangle
+  Parameter: small rectangle
+  Binding: thick red line
 endlegend
 
 @enduml

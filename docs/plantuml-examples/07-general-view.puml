@@ -172,18 +172,18 @@ E13 --:|> E9 : types
 
 legend right
   <b>General View Legend</b>
-  |= Relationship |= Notation |
-  | Composite (owns) | *-- |
-  | Shared (contains) | o-- |
-  | Owning Membership | +-- |
-  | Feature Typing | --:|> |
+  Relationship: Notation
+  Composite (owns): *--
+  Shared (contains): o--
+  Owning Membership: +--
+  Feature Typing: --:|> 
   | Specialization | --|> |
   | Redefinition | --||> |
-  | Binding | -[thickness=4]- |
-  | Connector | -[thickness=2]-> |
-  | Flow Transfer | --> |
-  | Allocation | -[dotted]-> |
-  | Dependency | ..>> |
+  Binding: -[thickness=4]-
+  Connector: -[thickness=2]->
+  Flow Transfer: -->
+  Allocation: -[dotted]->
+  Dependency: ..>>
 endlegend
 
 @enduml

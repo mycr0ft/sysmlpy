@@ -935,7 +935,7 @@ class PlantUMLGenerator:
         legend = [
             "legend right",
             "  <b>SysML v2 Relationship Legend</b>",
-            "  |= Relationship |= Notation |",
+            "  Relationship: Notation",
         ]
 
         legend_items = [
@@ -951,7 +951,7 @@ class PlantUMLGenerator:
         ]
 
         for rel_name, notation, _ in legend_items:
-            legend.append(f"  | {rel_name} | {notation} |")
+            legend.append(f"  {rel_name}: {notation}")
 
         legend.append("endlegend")
         return legend
@@ -1279,13 +1279,13 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
         lines.extend([
             "legend right",
             "  <b>Interconnection Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Binding | -[thickness=4]- |",
-            "  | Connector | -[thickness=2]-> |",
-            "  | Flow Transfer | --> |",
-            "  | Allocation | -[dotted]-> |",
-            "  | Feature Typing | --:|> |",
-            "  | Composite (owns) | *-- |",
+            "  Relationship: Notation",
+            "  Binding: -[thickness=4]-",
+            "  Connector: -[thickness=2]->",
+            "  Flow Transfer: -->",
+            "  Allocation: -[dotted]->",
+            "  Feature Typing: --:|> ",
+            "  Composite (owns): *--",
             "  | Specialization | --|> |",
             "endlegend",
         ])
@@ -1663,12 +1663,12 @@ def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
         lines.extend([
             "legend right",
             "  <b>Internal Block Diagram Legend</b>",
-            "  |= Element |= Notation |",
-            "  | Block | rectangle |",
-            "  | Part | nested rectangle |",
-            "  | Port | rounded rectangle on boundary |",
-            "  | Connector | --> |",
-            "  | Flow | --> |",
+            "  Element: Notation",
+            "  Block: rectangle",
+            "  Part: nested rectangle",
+            "  Port: rounded rectangle on boundary",
+            "  Connector: -->",
+            "  Flow: -->",
             "endlegend",
         ])
         lines.append("")
@@ -1918,11 +1918,11 @@ def as_parametric_view(model, focus=None, style="bw", direction="TB",
         lines.extend([
             "legend right",
             "  <b>Parametric Diagram Legend</b>",
-            "  |= Element |= Notation |",
-            "  | Constraint Definition | rectangle with parameters |",
-            "  | Constraint Usage | rounded rectangle |",
-            "  | Parameter | small rectangle |",
-            "  | Binding | thick red line |",
+            "  Element: Notation",
+            "  Constraint Definition: rectangle with parameters",
+            "  Constraint Usage: rounded rectangle",
+            "  Parameter: small rectangle",
+            "  Binding: thick red line",
             "endlegend",
         ])
         lines.append("")
@@ -2168,11 +2168,11 @@ def as_action_flow_view(model, focus=None, elements=None, style="bw", direction=
         lines.extend([
             "legend right",
             "  <b>Action Flow Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Flow Transfer | --> |",
-            "  | Binding | -[thickness=4]- |",
-            "  | Composite (owns) | *-- |",
-            "  | Feature Typing | --:|> |",
+            "  Relationship: Notation",
+            "  Flow Transfer: -->",
+            "  Binding: -[thickness=4]-",
+            "  Composite (owns): *--",
+            "  Feature Typing: --:|> ",
             "endlegend",
         ])
         lines.append("")
@@ -2554,29 +2554,31 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
     # Filter for state-relevant elements
     stv_types = {"state", "action", "attribute"}
 
-    # Render state elements with PlantUML's state keyword
+    # Render state elements - use rectangles for PlantUML 1.2024.7+ compatibility
+    # State diagrams with stereotypes and composite arrows have issues in newer PlantUML
     for alias, name, stereotype, elem, is_included in elements_list:
         sysml_type = getattr(elem, 'sysml_type', '')
         if sysml_type == 'state':
-            keyword = "state"
+            # Use rectangle with rounded corners for states
+            lines.append(f'rectangle "{name}" as {alias} <<state>>')
         elif sysml_type in stv_types:
-            keyword = "rectangle"
+            lines.append(f'rectangle "{name}" as {alias}')
         else:
             continue
-        lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
 
     lines.append("")
 
-    # Render containment and typing relationships
+    # Render containment relationships using simple arrows (not *--)
+    # PlantUML state diagrams don't support composite arrows
     for src, arrow, dst, label, is_external in relationships:
         if is_external and not show_external:
             continue
         if is_external:
-            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
-        if label:
-            lines.append(f'{src} {arrow} {dst} : {label}')
+            # Use dotted line for external relationships
+            lines.append(f'{src} ..> {dst}')
         else:
-            lines.append(f'{src} {arrow} {dst}')
+            # Use simple containment arrow
+            lines.append(f'{src} --> {dst}')
 
     lines.append("")
 
@@ -2596,7 +2598,8 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
         to_alias = id_map.get(to_id)
         if from_alias and to_alias:
             label_text = _format_transition_label(trans)
-            lines.append(f'{from_alias} {ARROW_STYLES["succession"]} {to_alias} : {label_text}')
+            # Use thick green arrow for state transitions
+            lines.append(f'{from_alias} -[thickness=3,#27AE60]-> {to_alias} : {label_text}')
 
     lines.append("")
 
@@ -2604,10 +2607,8 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
         lines.extend([
             "legend right",
             "  <b>State Transition Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Transition | --> |",
-            "  | Composite (owns) | *-- |",
-            "  | Feature Typing | --:|> |",
+            "  State Transition: thick green arrow",
+            "  Containment: simple arrow",
             "endlegend",
         ])
         lines.append("")
@@ -2825,13 +2826,13 @@ def as_requirement_view(model, focus=None, elements=None, style="bw",
         lines.extend([
             "legend right",
             "  <b>Requirement View Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Satisfy | --> |",
-            "  | Verify | --> |",
-            "  | Derive | *-- |",
-            "  | Refine | ..>> |",
-            "  | Composite (owns) | *-- |",
-            "  | Feature Typing | --:|> |",
+            "  Relationship: Notation",
+            "  Satisfy: -->",
+            "  Verify: -->",
+            "  Derive: *--",
+            "  Refine: ..>>",
+            "  Composite (owns): *--",
+            "  Feature Typing: --:|> ",
             "endlegend",
         ])
         lines.append("")
@@ -3017,6 +3018,8 @@ def as_element_table(model, focus=None, style="bw", custom_style=None):
 
     Corresponds to SysML v2 ``TabularRendering`` / ``asElementTable``.
 
+    NOTE: Uses rectangle-based layout for PlantUML 1.2024.7+ compatibility.
+
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
@@ -3094,12 +3097,23 @@ def as_element_table(model, focus=None, style="bw", custom_style=None):
         for child in model.children:
             collect(child)
 
-    # Generate table
-    lines.append("|= Name |= Type |= Kind |= Parent |")
-    for name, label, kind, parent in elements:
-        safe_name = name.replace("|", "\\|").replace('"', "''")
-        safe_parent = parent.replace("|", "\\|")
-        lines.append(f"| {safe_name} | {label} | {kind} | {safe_parent} |")
+    # Generate table using rectangle-based layout for PlantUML 1.2024.7+ compatibility
+    if elements:
+        # Header row
+        lines.append('rectangle "<b>Name</b>|<b>Type</b>|<b>Kind</b>|<b>Parent</b>" as HEADER #LightGray')
+        
+        # Data rows
+        for i, (name, label, kind, parent) in enumerate(elements):
+            safe_name = name.replace("|", "\\|").replace('"', "''")
+            safe_label = label.replace("|", "\\|")
+            safe_kind = kind.replace("|", "\\|")
+            safe_parent = parent.replace("|", "\\|")
+            lines.append(f'rectangle "{safe_name}|{safe_label}|{safe_kind}|{safe_parent}" as R{i}')
+        
+        # Connect rows with hidden lines for proper layout
+        lines.append(f'HEADER -[hidden]- R0')
+        for i in range(len(elements) - 1):
+            lines.append(f'R{i} -[hidden]- R{i+1}')
 
     lines.append("")
     lines.append("@enduml")
@@ -3466,18 +3480,18 @@ def as_general_view(model, focus=None, elements=None, style="bw", direction="TB"
         lines.extend([
             "legend right",
             "  <b>General View Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Composite (owns) | *-- |",
-            "  | Shared (contains) | o-- |",
-            "  | Owning Membership | +-- |",
-            "  | Feature Typing | --:|> |",
+            "  Relationship: Notation",
+            "  Composite (owns): *--",
+            "  Shared (contains): o--",
+            "  Owning Membership: +--",
+            "  Feature Typing: --:|> ",
             "  | Specialization | --|> |",
             "  | Redefinition | --||> |",
-            "  | Binding | -[thickness=4]- |",
-            "  | Connector | -[thickness=2]-> |",
-            "  | Flow Transfer | --> |",
-            "  | Allocation | -[dotted]-> |",
-            "  | Dependency | ..>> |",
+            "  Binding: -[thickness=4]-",
+            "  Connector: -[thickness=2]->",
+            "  Flow Transfer: -->",
+            "  Allocation: -[dotted]->",
+            "  Dependency: ..>>",
             "endlegend",
         ])
         lines.append("")
@@ -3733,13 +3747,13 @@ def as_block_definition_view(model, focus=None, elements=None, style="bw",
         lines.extend([
             "legend right",
             "  <b>Block Definition Diagram Legend</b>",
-            "  |= Relationship |= Notation |",
+            "  Relationship: Notation",
             "  | Generalization | --|> |",
-            "  | Composition | *-- |",
-            "  | Association | --> |",
-            "  | Attribute | (compartment) |",
-            "  | Port | (compartment) |",
-            "  | Part Reference | (compartment) |",
+            "  Composition: *--",
+            "  Association: -->",
+            "  Attribute: (compartment)",
+            "  Port: (compartment)",
+            "  Part Reference: (compartment)",
             "endlegend",
         ])
         lines.append("")
@@ -3964,12 +3978,12 @@ def as_package_view(model, focus=None, style="bw", direction="TB",
         lines.extend([
             "legend right",
             "  <b>Package View Legend</b>",
-            "  |= Relationship |= Notation |",
-            "  | Package Containment | *-- |",
-            "  | Composite (owns) | *-- |",
-            "  | Feature Typing | --:|> |",
+            "  Relationship: Notation",
+            "  Package Containment: *--",
+            "  Composite (owns): *--",
+            "  Feature Typing: --:|> ",
             "  | Specialization | --|> |",
-            "  | Import | ..> |",
+            "  Import: ..>",
             "endlegend",
         ])
         lines.append("")
@@ -4140,11 +4154,11 @@ def as_package_diagram_view(model, focus=None, style="bw", direction="TB",
         lines.extend([
             "legend right",
             "  <b>Package Diagram Legend</b>",
-            "  |= Element |= Notation |",
-            "  | Package | rectangle with contents |",
-            "  | Part Definition | rectangle (light blue) |",
-            "  | Part Usage | rounded rectangle (light green) |",
-            "  | Constraint Def | rectangle (light pink) |",
+            "  Element: Notation",
+            "  Package: rectangle with contents",
+            "  Part Definition: rectangle (light blue)",
+            "  Part Usage: rounded rectangle (light green)",
+            "  Constraint Def: rectangle (light pink)",
             "endlegend",
         ])
         lines.append("")

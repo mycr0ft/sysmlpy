@@ -84,12 +84,12 @@ rectangle "Suspension" as E4 <<part def>>
 
 legend right
   <b>Package View Legend</b>
-  |= Relationship |= Notation |
-  | Package Containment | *-- |
-  | Composite (owns) | *-- |
-  | Feature Typing | --:|> |
+  Relationship: Notation
+  Package Containment: *--
+  Composite (owns): *--
+  Feature Typing: --:|> 
   | Specialization | --|> |
-  | Import | ..> |
+  Import: ..>
 endlegend
 
 @enduml

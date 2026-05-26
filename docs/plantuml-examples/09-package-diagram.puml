@@ -33,15 +33,15 @@ title Package Diagram
 
 hide circle
 
-rectangle "VehicleSystem" as PKG_9840 <<package>> {
-  rectangle "Powertrain" as PKG_5760 <<package>> {
-    rectangle "Engine" as E_2224 <<part>>
-    rectangle "Transmission" as E_6080 <<part>>
+rectangle "VehicleSystem" as PKG_4544 <<package>> {
+  rectangle "Powertrain" as PKG_608 <<package>> {
+    rectangle "Engine" as E_912 <<part>>
+    rectangle "Transmission" as E_2528 <<part>>
   }
 
-  rectangle "Chassis" as PKG_5488 <<package>> {
-    rectangle "Wheel" as E_2992 <<part>>
-    rectangle "Suspension" as E_4032 <<part>>
+  rectangle "Chassis" as PKG_336 <<package>> {
+    rectangle "Wheel" as E_3168 <<part>>
+    rectangle "Suspension" as E_1120 <<part>>
   }
 
 }
@@ -49,11 +49,11 @@ rectangle "VehicleSystem" as PKG_9840 <<package>> {
 
 legend right
   <b>Package Diagram Legend</b>
-  |= Element |= Notation |
-  | Package | rectangle with contents |
-  | Part Definition | rectangle (light blue) |
-  | Part Usage | rounded rectangle (light green) |
-  | Constraint Def | rectangle (light pink) |
+  Element: Notation
+  Package: rectangle with contents
+  Part Definition: rectangle (light blue)
+  Part Usage: rounded rectangle (light green)
+  Constraint Def: rectangle (light pink)
 endlegend
 
 @enduml
