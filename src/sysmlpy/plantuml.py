@@ -1611,19 +1611,16 @@ def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
     # Render block with nested structure
     lines.append(f'rectangle "{block_name}" as {block_alias} <<block>> {{')
     
-    # Render ports on boundary
-    if ports:
-        lines.append('  boundary {')
-        for name, _ in ports:
-            alias = port_aliases[name]
-            lines.append(f'    rectangle "{name}" as {alias} <<port>>')
-        lines.append('  }')
+    # Render ports first (on boundary) - just list them with the part
+    # PlantUML 1.2024.7+ doesn't support boundary { } compartment syntax
+    for name, _ in ports:
+        alias = port_aliases[name]
+        lines.append(f'  rectangle "{name}" as {alias} <<port>>')
     
     # Render parts
-    if parts:
-        for name, _ in parts:
-            alias = part_aliases[name]
-            lines.append(f'  rectangle "{name}" as {alias} <<part>>')
+    for name, _ in parts:
+        alias = part_aliases[name]
+        lines.append(f'  rectangle "{name}" as {alias} <<part>>')
     
     lines.append('}')
     
