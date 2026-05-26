@@ -1,0 +1,51 @@
+@startuml
+
+skinparam monochrome true
+skinparam wrapWidth 400
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<block>> {
+    RoundCorner 0
+    BackgroundColor white
+    Padding 0
+}
+skinparam rectangle<<part>> {
+    RoundCorner 0
+    BackgroundColor #f0f0f0
+}
+skinparam rectangle<<port>> {
+    RoundCorner 10
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title Internal Block Diagram — Assembly
+
+hide circle
+
+rectangle "Assembly" as B_5088 <<block>> {
+  boundary {
+    rectangle "input" as PT0 <<port>>
+    rectangle "output" as PT1 <<port>>
+  }
+  rectangle "s" as P0 <<part>>
+  rectangle "p" as P1 <<part>>
+}
+
+PT0 --> P0 : f1
+P0 --> P1 : f2
+P1 --> PT1 : f3
+
+legend right
+  <b>Internal Block Diagram Legend</b>
+  |= Element |= Notation |
+  | Block | rectangle |
+  | Part | nested rectangle |
+  | Port | rounded rectangle on boundary |
+  | Connector | --> |
+  | Flow | --> |
+endlegend
+
+@enduml

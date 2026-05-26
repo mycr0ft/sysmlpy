@@ -1,106 +1,117 @@
-'' Relationship Arrows
-'' Demonstrates typing (--:|>), specialization (--|>), and ownership (*--) arrows.
 @startuml
 
-<style>
-root {
-    BackGroundColor white
-    FontName Helvetica
-    FontSize 13
-}
-rectangle {
-    LineColor #444444
-    LineThickness 1.5
-    BackgroundColor white
-    Padding 10
-}
-arrow {
-    LineColor #555555
-    LineThickness 1.5
-    FontSize 11
-}
-</style>
+skinparam monochrome true
+skinparam wrapWidth 300
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
 
-skinparam wrapWidth 400
-
+' Definitions: sharp corners, plain background
 skinparam rectangle<<part def>> {
     RoundCorner 0
+    BackgroundColor white
+    StereotypeFontSize 11
 }
 skinparam rectangle<<item def>> {
     RoundCorner 0
+    BackgroundColor white
 }
 skinparam rectangle<<attribute def>> {
     RoundCorner 0
+    BackgroundColor white
 }
 skinparam rectangle<<port def>> {
     RoundCorner 0
+    BackgroundColor white
 }
 skinparam rectangle<<action def>> {
     RoundCorner 0
+    BackgroundColor white
 }
 skinparam rectangle<<state def>> {
     RoundCorner 0
+    BackgroundColor white
 }
 skinparam rectangle<<requirement def>> {
     RoundCorner 0
+    BackgroundColor white
 }
+skinparam rectangle<<view def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+
+' Usages: rounded corners, plain background
 skinparam rectangle<<part>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<item>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<attribute>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<port>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<action>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<state>> {
     RoundCorner 15
+    BackgroundColor white
 }
 skinparam rectangle<<requirement>> {
     RoundCorner 15
+    BackgroundColor white
 }
+skinparam rectangle<<view>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<viewpoint>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+skinparam rectangle<<enumeration>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+' Views as folders
 skinparam folder<<view def>> {
-    BackgroundColor #F5E6FF
-    BorderColor #8E44AD
+    BackgroundColor white
 }
 skinparam folder<<view>> {
-    BackgroundColor #F5E6FF
-    BorderColor #8E44AD
+    BackgroundColor white
 }
 
 top to bottom direction
 
-title d0cc66a3-4563-477e-af13-387ff666eea2
+title d6d1245f-625e-4663-8653-898feeac899e
 
 hide circle
 
-rectangle "Wheel" as E1 <<(P,#32CD32) part def>>
-rectangle "radius" as E2 <<(A,#32CD32) attribute>>
-rectangle "pressure" as E3 <<(A,#32CD32) attribute>>
-rectangle "BrakeSystem" as E4 <<(P,#32CD32) part def>>
-rectangle "padThickness" as E5 <<(A,#32CD32) attribute>>
-rectangle "VehicleAssembly" as E6 <<(P,#32CD32) part def>>
-rectangle "frontLeft" as E7 <<(P,#32CD32) part>>
-rectangle "frontRight" as E8 <<(P,#32CD32) part>>
-rectangle "brakes" as E9 <<(P,#32CD32) part>>
-rectangle "myVehicle" as E10 <<(P,#32CD32) part>>
+rectangle "Base" as E1 <<part def>>
+rectangle "Derived" as E2 <<part def>>
+rectangle "Container" as E3 <<part def>>
+rectangle "contained" as E4 <<part>>
 
-E1 *-- E2
-E1 *-- E3
-E4 *-- E5
-E6 *-- E7
-E7 --:|> E1 : types
-E6 *-- E8
-E8 --:|> E1 : types
-E6 *-- E9
-E9 --:|> E4 : types
-E10 --:|> E6 : types
+E2 --|> E1 : specializes
+E3 *-- E4
+E4 --:|> E1 : types
 
 legend right
   <b>SysML v2 Relationship Legend</b>

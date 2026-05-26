@@ -1,74 +1,38 @@
 @startuml
-' ============================================================
-' Example 5: Requirements Diagram
-' Shows requirements, satisfaction, derivation, and refinement
-' relationships using PlantUML approximations.
-' ============================================================
 
-<style>
-root {
-    BackGroundColor white
-    FontName Helvetica
-    FontSize 13
-}
-rectangle {
-    RoundCorner 10
-    LineColor #444444
-    LineThickness 1.5
-    BackgroundColor #F8F9FA
-    Padding 10
-}
-arrow {
-    FontSize 11
-    LineColor #555555
-    LineThickness 1.5
-}
-</style>
-
+skinparam monochrome true
 skinparam wrapWidth 400
+skinparam defaultFontSize 12
+skinparam defaultFontName Helvetica
+
+skinparam rectangle<<requirement def>> {
+    RoundCorner 0
+    BackgroundColor white
+}
+skinparam rectangle<<requirement>> {
+    RoundCorner 15
+    BackgroundColor white
+}
+
+top to bottom direction
+
+title Requirement View
+
 hide circle
 
-title SysML v2 — Requirements Diagram
+rectangle "PerformanceRequirement" as E1 <<requirement def>>
+rectangle "req1" as E2 <<requirement>>
 
-' === REQUIREMENTS ===
-rectangle "R1: System Safety" as R1 <<(R,#E74C3C) requirement>>
-rectangle "R1.1: Brake Performance" as R11 <<(R,#E74C3C) requirement>>
-rectangle "R1.2: Structural Integrity" as R12 <<(R,#E74C3C) requirement>>
-rectangle "R2: Emissions" as R2 <<(R,#E74C3C) requirement>>
-
-' === SATISFYING ELEMENTS ===
-rectangle "brakeSystem" as BS <<(P,#32CD32) part>>
-rectangle "chassis" as CH <<(P,#32CD32) part>>
-rectangle "engine" as ENG <<(P,#32CD32) part>>
-
-' === DERIVATION (refinement hierarchy) ===
-R1 *-- R11 : derives
-R1 *-- R12 : derives
-
-' === SATISFACTION ===
-BS --> R11 : <<satisfy>>
-CH --> R12 : <<satisfy>>
-ENG --> R2 : <<satisfy>>
-
-' === VERIFY ===
-rectangle "brakeTest" as BT <<(A,#F39C12) verification>>
-rectangle "crashTest" as CT <<(A,#F39C12) verification>>
-
-BT --> R11 : <<verify>>
-CT --> R12 : <<verify>>
-
-' === REFINE ===
-R11 ..>> BS : <<refine>>
 
 legend right
-  <b>Requirements Legend</b>
-  |= Element |= Notation |
-  | <<(R,#E74C3C) requirement>> | Requirement |
-  | <<(P,#32CD32) part>> | Satisfying part |
-  | <<(A,#F39C12) verification>> | Verification case |
-  | *-- | Derivation (containment) |
-  | --> | Satisfaction |
-  | ..>> | Refinement |
+  <b>Requirement View Legend</b>
+  |= Relationship |= Notation |
+  | Satisfy | --> |
+  | Verify | --> |
+  | Derive | *-- |
+  | Refine | ..>> |
+  | Composite (owns) | *-- |
+  | Feature Typing | --:|> |
 endlegend
 
 @enduml
