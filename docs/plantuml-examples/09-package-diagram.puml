@@ -33,15 +33,15 @@ title Package Diagram
 
 hide circle
 
-rectangle "VehicleSystem" as PKG_6192 <<package>> {
-  rectangle "Powertrain" as PKG_8992 <<package>> {
-    rectangle "Engine" as E_8272 <<part>>
-    rectangle "Transmission" as E_3824 <<part>>
+rectangle "VehicleSystem" as PKG_9840 <<package>> {
+  rectangle "Powertrain" as PKG_5760 <<package>> {
+    rectangle "Engine" as E_2224 <<part>>
+    rectangle "Transmission" as E_6080 <<part>>
   }
 
-  rectangle "Chassis" as PKG_8720 <<package>> {
-    rectangle "Wheel" as E_8704 <<part>>
-    rectangle "Suspension" as E_6016 <<part>>
+  rectangle "Chassis" as PKG_5488 <<package>> {
+    rectangle "Wheel" as E_2992 <<part>>
+    rectangle "Suspension" as E_4032 <<part>>
   }
 
 }

@@ -4250,14 +4250,20 @@ def _escape_html(text):
 
 
 def _format_table_rows_plantuml(header, rows):
-    """Format a PlantUML table from header and rows."""
+    """Format a PlantUML salt table from header and rows."""
     lines = []
-    header_line = " |= ".join([""] + header + [""])
+    lines.append("salt")
+    lines.append("{")
+    lines.append("{")
+    # Header row with bold formatting
+    header_line = "|+" + "+|+".join([str(h).replace("|", "\\|") for h in header]) + "+|"
     lines.append(header_line)
     for row in rows:
-        safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
-        row_line = " | ".join([""] + safe_row + [""])
+        safe_row = [str(c).replace("|", "\\|") for c in row]
+        row_line = "|" + "|".join(safe_row) + "|"
         lines.append(row_line)
+    lines.append("}")
+    lines.append("}")
     return lines
 
 
@@ -4323,18 +4329,21 @@ def _detect_value_unit(element):
 DEFAULT_TABULAR_COLUMNS = ["Name", "Type", "Kind", "Parent", "Typed By", "Specializes"]
 
 
-def as_tabular_view(model, focus=None, style="bw", output_format="plantuml",
+def as_tabular_view(model, focus=None, style="bw", output_format="markdown",
                     columns=None, custom_style=None):
     """Generate a Tabular View — a GridView specialization.
 
     Presents exposed model elements in a table with configurable columns.
     Default columns: Name, Type, Kind, Parent, Typed By, Specializes.
 
+    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
+    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
+
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
         style: "bw" (default) or "color"
-        output_format: "plantuml" (default), "markdown", or "html"
+        output_format: "markdown" (default), "html", or "plantuml"
         columns: List of column names to include, or None for defaults
         custom_style: Optional style lines (PlantUML) or CSS (HTML)
 
@@ -4393,7 +4402,7 @@ def as_tabular_view(model, focus=None, style="bw", output_format="plantuml",
             parts = css_lines + parts
         return "\n".join(parts)
 
-    # PlantUML output (default)
+    # PlantUML output (default) - use salt component
     lines = []
     lines.append("@startuml")
     lines.append("")
@@ -4438,18 +4447,21 @@ DATA_VALUE_COLUMNS = ["Element", "Attribute", "Value", "Unit", "Type"]
 
 
 def as_data_value_tabular_view(model, focus=None, style="bw",
-                               output_format="plantuml",
+                               output_format="markdown",
                                include_units=True, custom_style=None):
     """Generate a Data Value Tabular View — a GridView specialization.
 
     Presents attribute elements and their values in a table.
     Shows: parent element, attribute name, value, unit, and attribute type.
 
+    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
+    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
+
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
         style: "bw" (default) or "color"
-        output_format: "plantuml" (default), "markdown", or "html"
+        output_format: "markdown" (default), "html", or "plantuml"
         include_units: Whether to show units (default True)
         custom_style: Optional style lines (PlantUML) or CSS (HTML)
 
@@ -4590,7 +4602,7 @@ def _get_relationship_between(source, target, model):
 
 
 def as_relationship_matrix_view(model, focus=None, style="bw",
-                                output_format="plantuml",
+                                output_format="markdown",
                                 row_type=None, col_type=None,
                                 symmetric=True, custom_style=None):
     """Generate a Relationship Matrix View — a GridView specialization.
@@ -4599,11 +4611,14 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     Each cell indicates the type of relationship (C=composite, T=typing,
     G=specialization, B=binding, F=flow, etc.).
 
+    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
+    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
+
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
         style: "bw" (default) or "color"
-        output_format: "plantuml" (default), "markdown", or "html"
+        output_format: "markdown" (default), "html", or "plantuml"
         row_type: Optional sysml_type filter for row elements
         col_type: Optional sysml_type filter for column elements
         symmetric: If True, uses same elements for rows and columns

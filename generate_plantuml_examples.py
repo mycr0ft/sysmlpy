@@ -255,19 +255,32 @@ generate_puml("17-textual-notation", as_textual_notation(VEHICLE_MODEL))
 
 # 18. Tabular View
 print("\n18. Tabular View")
-generate_puml("18-tabular-view", as_tabular_view(VEHICLE_MODEL))
+# Use markdown format for PlantUML 1.2024.7+ compatibility
+md = as_tabular_view(VEHICLE_MODEL, output_format="markdown")
+with open(os.path.join(OUTPUT_DIR, "18-tabular-view.md"), 'w') as f:
+    f.write(md)
+print(f"✓ Generated 18-tabular-view.md")
 
 # 19. Data Value View
 print("\n19. Data Value View")
-generate_puml("19-data-value-view", as_data_value_tabular_view(VEHICLE_MODEL))
+md = as_data_value_tabular_view(VEHICLE_MODEL, output_format="markdown")
+with open(os.path.join(OUTPUT_DIR, "19-data-value-view.md"), 'w') as f:
+    f.write(md)
+print(f"✓ Generated 19-data-value-view.md")
 
 # 20. Relationship Matrix
 print("\n20. Relationship Matrix")
-generate_puml("20-relationship-matrix", as_relationship_matrix_view(VEHICLE_MODEL))
+md = as_relationship_matrix_view(VEHICLE_MODEL, output_format="markdown")
+with open(os.path.join(OUTPUT_DIR, "20-relationship-matrix.md"), 'w') as f:
+    f.write(md)
+print(f"✓ Generated 20-relationship-matrix.md")
 
-# 21. Tabular View (Color)
+# 21. Tabular View (Color) - HTML format for styling
 print("\n21. Tabular View (Color)")
-generate_puml("21-tabular-view-color", as_tabular_view(VEHICLE_MODEL, style="color"))
+html = as_tabular_view(VEHICLE_MODEL, output_format="html", style="color")
+with open(os.path.join(OUTPUT_DIR, "21-tabular-view-color.html"), 'w') as f:
+    f.write(html)
+print(f"✓ Generated 21-tabular-view-color.html")
 
 print("\n" + "=" * 60)
 print("Generation complete!")

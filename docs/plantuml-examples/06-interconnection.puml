@@ -79,8 +79,8 @@ rectangle "Controller" as E8 <<part def>>
 rectangle "s" as E9 <<part>>
 rectangle "p" as E10 <<part>>
 rectangle "a" as E11 <<part>>
-rectangle "b00e18ca-2c47-44fb-8668-7122331ee208" as E12 <<flow>>
-rectangle "f75c4857-1d78-477c-8ccb-33b36a81f213" as E13 <<flow>>
+rectangle "bed97ea3-b9f3-44c5-a104-5794d765c8ea" as E12 <<flow>>
+rectangle "6388cf77-973b-4596-87a8-3f12a4583e54" as E13 <<flow>>
 
 E1 *-- E2
 E3 *-- E4
