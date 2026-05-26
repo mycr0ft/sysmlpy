@@ -1313,6 +1313,624 @@ def as_interconnection_view(model, focus=None, elements=None, style="bw",
     )
 
 
+def _extract_flow_endpoints(usage):
+    """Extract source and target from a FlowConnectionUsage.
+    
+    Returns (source_name, target_name) tuple or (None, None) if not found.
+    """
+    source = None
+    target = None
+    
+    if not hasattr(usage, 'declaration') or not usage.declaration:
+        return None, None
+    
+    decl = usage.declaration
+    
+    # from endpoint is at children[1], to endpoint is at children[2]
+    from_end = decl.children[1] if len(decl.children) > 1 else None
+    to_end = decl.children[2] if len(decl.children) > 2 else None
+    
+    if from_end and hasattr(from_end, 'children') and from_end.children:
+        flow_end = from_end.children
+        for child in getattr(flow_end, 'children', []):
+            if child.__class__.__name__ == 'FlowEndSubsetting':
+                if hasattr(child, 'children') and child.children:
+                    qname = child.children
+                    if hasattr(qname, 'names'):
+                        source = qname.names[0] if qname.names else None
+    
+    if to_end and hasattr(to_end, 'children') and to_end.children:
+        flow_end = to_end.children
+        for child in getattr(flow_end, 'children', []):
+            if child.__class__.__name__ == 'FlowEndSubsetting':
+                if hasattr(child, 'children') and child.children:
+                    qname = child.children
+                    if hasattr(qname, 'names'):
+                        target = qname.names[0] if qname.names else None
+    
+    return source, target
+
+
+def _extract_connection_endpoints(usage):
+    """Extract endpoints from a ConnectionUsage.
+    
+    Returns list of endpoint names (usually 2 for binary connector).
+    """
+    endpoints = []
+    
+    if not hasattr(usage, 'part') or not usage.part:
+        return endpoints
+    
+    connector_part = usage.part
+    if not hasattr(connector_part, 'part') or not connector_part.part:
+        return endpoints
+    
+    binary_part = connector_part.part
+    for end_member in getattr(binary_part, 'children', []):
+        if end_member.__class__.__name__ == 'ConnectorEndMember':
+            for end in getattr(end_member, 'children', []):
+                if end.__class__.__name__ == 'ConnectorEnd':
+                    # Try declaredName first
+                    if hasattr(end, 'declaredName') and end.declaredName:
+                        endpoints.append(end.declaredName)
+                    # Otherwise try OwnedReferenceSubsetting
+                    else:
+                        for child in getattr(end, 'children', []):
+                            if child.__class__.__name__ == 'OwnedReferenceSubsetting':
+                                # Try referencedFeature first
+                                if hasattr(child, 'referencedFeature') and child.referencedFeature:
+                                    qname = child.referencedFeature
+                                    if hasattr(qname, 'names') and qname.names:
+                                        endpoints.append(qname.names[0])
+                                # Otherwise try elements -> OwnedFeatureChain -> FeatureChain
+                                elif hasattr(child, 'elements') and child.elements:
+                                    for elem in child.elements:
+                                        if hasattr(elem, 'feature') and elem.feature:
+                                            feature = elem.feature
+                                            for fc in getattr(feature, 'children', []):
+                                                if hasattr(fc, 'chainingFeature') and fc.chainingFeature:
+                                                    qname = fc.chainingFeature
+                                                    if hasattr(qname, 'names') and qname.names:
+                                                        endpoints.append(qname.names[0])
+                                                        break
+                                            if endpoints:
+                                                break
+    
+    return endpoints
+
+
+def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
+                                include_legend=True, show_external=False,
+                                custom_style=None, show_parts=True,
+                                show_ports=True, show_connections=True):
+    """Generate an Internal Block Diagram (IBD).
+    
+    Corresponds to SysML v2 Internal Block Diagrams, presenting:
+    - A single block definition's internal structure
+    - Parts (part usages) as nested elements
+    - Ports on the block boundary
+    - Connectors and flows between parts
+    - Interface connections
+    
+    Unlike InterconnectionView which shows any interconnected elements,
+    IBD focuses on the internal structure of ONE block definition.
+    
+    Args:
+        model: A sysmlpy Model instance
+        focus: The block definition to show internal structure for
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        show_external: Show connections to elements outside the block
+        custom_style: Optional PlantUML style lines to append
+        show_parts: Include part compartments (default True)
+        show_ports: Include port compartments (default True)
+        show_connections: Include connector/flow connections (default True)
+    
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+    
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 400",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<block>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor #f0f0f0",
+            "}",
+            "skinparam rectangle<<port>> {",
+            "    RoundCorner 10",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle<<block>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "rectangle<<part>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor #f0f0f0",
+            "}",
+            "rectangle<<port>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor white",
+            "    RoundCorner 10",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+    
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+    
+    lines.append("")
+    
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+    
+    # Find the focused block definition
+    block_def = None
+    block_name = "Block"
+    if focus is not None:
+        block_def = focus
+        block_name = getattr(focus, 'name', 'Block')
+    else:
+        # Find first part definition
+        for child in getattr(model, 'children', []):
+            if hasattr(child, 'sysml_type') and child.sysml_type == 'part':
+                if hasattr(child, 'is_definition') and child.is_definition:
+                    block_def = child
+                    block_name = child.name
+                    break
+    
+    if not block_def:
+        lines.append("note \"No block definition found\"")
+        lines.append("@enduml")
+        return "\n".join(lines)
+    
+    title = f"Internal Block Diagram \u2014 {block_name}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+    
+    # Collect parts, ports, and connections from the block
+    parts = []
+    ports = []
+    connections = []
+    
+    grammar = getattr(block_def, 'grammar', None)
+    if grammar:
+        body = None
+        if hasattr(grammar, 'body') and grammar.body:
+            body = grammar.body
+        elif hasattr(grammar, 'definition') and grammar.definition:
+            body = grammar.definition.body
+        
+        if body and hasattr(body, 'children'):
+            for child in body.children:
+                if child.__class__.__name__ == 'DefinitionBodyItem' and hasattr(child, 'children'):
+                    for sub in child.children:
+                        if sub.__class__.__name__ == 'OccurrenceUsageMember' and hasattr(sub, 'children'):
+                            for sub2 in sub.children:
+                                if sub2.__class__.__name__ == 'OccurrenceUsageElement' and hasattr(sub2, 'children'):
+                                    struct_elem = sub2.children
+                                    # StructureUsageElement contains the actual usage
+                                    if not hasattr(struct_elem, 'children'):
+                                        continue
+                                    usage = struct_elem.children
+                                    usage_type = usage.__class__.__name__
+                                    
+                                    if usage_type == 'PartUsage' and show_parts:
+                                        if hasattr(usage, 'usage') and usage.usage:
+                                            u = usage.usage
+                                            if hasattr(u, 'declaration') and u.declaration:
+                                                decl = u.declaration
+                                                if hasattr(decl, 'declaration') and decl.declaration:
+                                                    decl2 = decl.declaration
+                                                    if hasattr(decl2, 'identification') and decl2.identification:
+                                                        parts.append((decl2.identification.declaredName, usage))
+                                    
+                                    elif usage_type == 'PortUsage' and show_ports:
+                                        if hasattr(usage, 'usage') and usage.usage:
+                                            u = usage.usage
+                                            if hasattr(u, 'declaration') and u.declaration:
+                                                decl = u.declaration
+                                                if hasattr(decl, 'declaration') and decl.declaration:
+                                                    decl2 = decl.declaration
+                                                    if hasattr(decl2, 'identification') and decl2.identification:
+                                                        ports.append((decl2.identification.declaredName, usage))
+                                    
+                                    elif usage_type in ('FlowConnectionUsage', 'ConnectionUsage') and show_connections:
+                                        # Extract connection name - different nesting for Flow vs Connection
+                                        conn_name = None
+                                        if usage_type == 'FlowConnectionUsage':
+                                            # FlowConnection has deeper nesting (3 levels)
+                                            if hasattr(usage, 'declaration') and usage.declaration:
+                                                decl = usage.declaration
+                                                if hasattr(decl, 'declaration') and decl.declaration:
+                                                    decl2 = decl.declaration
+                                                    if hasattr(decl2, 'declaration') and decl2.declaration:
+                                                        decl3 = decl2.declaration
+                                                        if hasattr(decl3, 'identification') and decl3.identification:
+                                                            conn_name = decl3.identification.declaredName
+                                        elif usage_type == 'ConnectionUsage':
+                                            # ConnectionUsage has 2 levels
+                                            if hasattr(usage, 'declaration') and usage.declaration:
+                                                decl = usage.declaration
+                                                if hasattr(decl, 'declaration') and decl.declaration:
+                                                    decl2 = decl.declaration
+                                                    if hasattr(decl2, 'identification') and decl2.identification:
+                                                        conn_name = decl2.identification.declaredName
+                                        
+                                        if conn_name:
+                                            connections.append((conn_name, usage))
+    
+    # Generate unique aliases
+    block_alias = f"B_{id(block_def) % 10000}"
+    part_aliases = {}
+    port_aliases = {}
+    conn_aliases = {}
+    
+    for i, (name, _) in enumerate(parts):
+        part_aliases[name] = f"P{i}"
+    for i, (name, _) in enumerate(ports):
+        port_aliases[name] = f"PT{i}"
+    for i, (name, _) in enumerate(connections):
+        conn_aliases[name] = f"C{i}"
+    
+    # Render block with nested structure
+    lines.append(f'rectangle "{block_name}" as {block_alias} <<block>> {{')
+    
+    # Render ports on boundary
+    if ports:
+        lines.append('  boundary {')
+        for name, _ in ports:
+            alias = port_aliases[name]
+            lines.append(f'    rectangle "{name}" as {alias} <<port>>')
+        lines.append('  }')
+    
+    # Render parts
+    if parts:
+        for name, _ in parts:
+            alias = part_aliases[name]
+            lines.append(f'  rectangle "{name}" as {alias} <<part>>')
+    
+    lines.append('}')
+    
+    lines.append("")
+    
+    # Render connections between parts/ports
+    if connections and show_connections:
+        for conn_name, usage in connections:
+            alias = conn_aliases.get(conn_name, f"C{id(usage) % 10000}")
+            usage_type = usage.__class__.__name__
+            
+            if usage_type == 'FlowConnectionUsage':
+                source, target = _extract_flow_endpoints(usage)
+                source_alias = part_aliases.get(source) or port_aliases.get(source)
+                target_alias = part_aliases.get(target) or port_aliases.get(target)
+                
+                if source_alias and target_alias:
+                    lines.append(f'{source_alias} --> {target_alias} : {conn_name}')
+                else:
+                    lines.append(f"' flow {conn_name} (endpoints: {source} -> {target})")
+            
+            elif usage_type == 'ConnectionUsage':
+                endpoints = _extract_connection_endpoints(usage)
+                if len(endpoints) >= 2:
+                    source_alias = part_aliases.get(endpoints[0]) or port_aliases.get(endpoints[0])
+                    target_alias = part_aliases.get(endpoints[1]) or port_aliases.get(endpoints[1])
+                    if source_alias and target_alias:
+                        lines.append(f'{source_alias} -[thickness=2,#3498DB]-> {target_alias} : {conn_name}')
+                    else:
+                        lines.append(f"' connection {conn_name} (endpoints: {endpoints})")
+                else:
+                    lines.append(f"' connection {conn_name}")
+    
+    lines.append("")
+    
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Internal Block Diagram Legend</b>",
+            "  |= Element |= Notation |",
+            "  | Block | rectangle |",
+            "  | Part | nested rectangle |",
+            "  | Port | rounded rectangle on boundary |",
+            "  | Connector | --> |",
+            "  | Flow | --> |",
+            "endlegend",
+        ])
+        lines.append("")
+    
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def _extract_constraint_parameters(constraint_def):
+    """Extract parameters from a constraint definition.
+    
+    Returns list of (name, type_name) tuples.
+    """
+    parameters = []
+    
+    if not hasattr(constraint_def, 'grammar') or not constraint_def.grammar:
+        return parameters
+    
+    grammar = constraint_def.grammar
+    if not hasattr(grammar, 'body') or not grammar.body:
+        return parameters
+    
+    body = grammar.body
+    for child in getattr(body, 'children', []):
+        if child.__class__.__name__ == 'CalculationBodyPart':
+            for calc_item in getattr(child, 'children', []):
+                if calc_item.__class__.__name__ == 'CalculationBodyItem':
+                    for action_item in getattr(calc_item, 'children', []):
+                        if action_item.__class__.__name__ == 'ActionBodyItem':
+                            for non_occ_member in getattr(action_item, 'children', []):
+                                if non_occ_member.__class__.__name__ == 'NonOccurrenceUsageMember':
+                                    for non_occ_elem in getattr(non_occ_member, 'children', []):
+                                        if non_occ_elem.__class__.__name__ == 'NonOccurrenceUsageElement':
+                                            usage = non_occ_elem.children
+                                            if usage.__class__.__name__ != 'AttributeUsage':
+                                                continue
+                                            if not hasattr(usage, 'usage') or not usage.usage:
+                                                continue
+                                            
+                                            u = usage.usage
+                                            if not hasattr(u, 'declaration') or not u.declaration:
+                                                continue
+                                            decl = u.declaration
+                                            if not hasattr(decl, 'declaration') or not decl.declaration:
+                                                continue
+                                            decl2 = decl.declaration
+                                            if not hasattr(decl2, 'identification') or not decl2.identification:
+                                                continue
+                                            
+                                            param_name = decl2.identification.declaredName
+                                            param_type = None
+                                            
+                                            # Extract type from specialization
+                                            if hasattr(decl2, 'specialization') and decl2.specialization:
+                                                spec = decl2.specialization
+                                                for fs in getattr(spec, 'specializations', []):
+                                                    if not hasattr(fs, 'relationship') or not fs.relationship:
+                                                        continue
+                                                    rel = fs.relationship
+                                                    if not hasattr(rel, 'typing') or not rel.typing:
+                                                        continue
+                                                    typing = rel.typing
+                                                    for ft in getattr(typing, 'relationships', []):
+                                                        if not hasattr(ft, 'relationship') or not ft.relationship:
+                                                            continue
+                                                        oft = ft.relationship
+                                                        if not hasattr(oft, 'type') or not oft.type:
+                                                            continue
+                                                        ftype = oft.type
+                                                        if not hasattr(ftype, 'type') or not ftype.type:
+                                                            continue
+                                                        qname = ftype.type
+                                                        if hasattr(qname, 'names') and qname.names:
+                                                            param_type = qname.names[0]
+                                                            break
+                                                    if param_type:
+                                                        break
+                                            
+                                            parameters.append((param_name, param_type))
+    
+    return parameters
+
+
+def as_parametric_view(model, focus=None, style="bw", direction="TB",
+                       include_legend=True, show_bindings=True,
+                       custom_style=None):
+    """Generate a Parametric Diagram.
+    
+    Corresponds to SysML v2 Parametric diagrams, presenting:
+    - Constraint definitions with their parameters
+    - Constraint usages within parts
+    - Parameter bindings between constraints
+    - Mathematical relationships
+    
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional constraint or part to focus on
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        show_bindings: Show parameter binding relationships
+        custom_style: Optional PlantUML style lines to append
+    
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+    
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<constraint def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "skinparam rectangle<<constraint>> {",
+            "    RoundCorner 10",
+            "    BackgroundColor #f8f8f8",
+            "}",
+            "skinparam rectangle<<parameter>> {",
+            "    RoundCorner 5",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle<<constraint def>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "rectangle<<constraint>> {",
+            "    LineColor #8B4513",
+            "    LineThickness 1.0",
+            "    BackgroundColor #FFF8DC",
+            "    RoundCorner 10",
+            "}",
+            "rectangle<<parameter>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor white",
+            "    RoundCorner 5",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 300",
+        ])
+    
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+    
+    lines.append("")
+    
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+    
+    title = "Parametric Diagram"
+    if focus:
+        title += f" — {getattr(focus, 'name', 'Focus')}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+    
+    # Find constraint definitions (recursively search packages)
+    def find_constraints(element):
+        """Recursively find all constraint definitions and usages."""
+        constraint_defs = []
+        constraints = []
+        
+        for child in getattr(element, 'children', []):
+            if hasattr(child, 'sysml_type') and child.sysml_type == 'constraint':
+                if hasattr(child, 'is_definition') and child.is_definition:
+                    constraint_defs.append(child)
+                else:
+                    constraints.append(child)
+            # Recurse into packages
+            elif hasattr(child, 'sysml_type') and child.sysml_type == 'package':
+                sub_defs, sub_constraints = find_constraints(child)
+                constraint_defs.extend(sub_defs)
+                constraints.extend(sub_constraints)
+        
+        return constraint_defs, constraints
+    
+    constraint_defs, constraints = find_constraints(model)
+    
+    # Generate aliases
+    constraint_def_aliases = {}
+    constraint_aliases = {}
+    param_aliases = {}
+    
+    for i, cdef in enumerate(constraint_defs):
+        alias = f"CD{i}"
+        constraint_def_aliases[cdef.name] = alias
+        # Extract parameters
+        params = _extract_constraint_parameters(cdef)
+        param_aliases[alias] = {name: f"{alias}_P{j}" for j, (name, _) in enumerate(params)}
+    
+    for i, c in enumerate(constraints):
+        constraint_aliases[c.name] = f"C{i}"
+    
+    # Render constraint definitions
+    for cdef in constraint_defs:
+        alias = constraint_def_aliases[cdef.name]
+        params = _extract_constraint_parameters(cdef)
+        
+        lines.append(f'rectangle "{cdef.name}" as {alias} <<constraint def>> {{')
+        if params:
+            for param_name, param_type in params:
+                type_str = f": {param_type}" if param_type else ""
+                lines.append(f'  rectangle "{param_name}{type_str}" as {param_aliases[alias][param_name]} <<parameter>>')
+        lines.append('}')
+        lines.append("")
+    
+    # Render constraint usages
+    for c in constraints:
+        alias = constraint_aliases[c.name]
+        lines.append(f'rectangle "{c.name}" as {alias} <<constraint>>')
+    
+    lines.append("")
+    
+    # Show bindings (if any)
+    # Note: Full binding extraction would require traversing bind relationships
+    # For now, we show the structure
+    
+    lines.append("")
+    
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Parametric Diagram Legend</b>",
+            "  |= Element |= Notation |",
+            "  | Constraint Definition | rectangle with parameters |",
+            "  | Constraint Usage | rounded rectangle |",
+            "  | Parameter | small rectangle |",
+            "  | Binding | thick red line |",
+            "endlegend",
+        ])
+        lines.append("")
+    
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
 def as_action_flow_view(model, focus=None, elements=None, style="bw", direction="TB",
                         include_legend=True, max_depth=None, show_external=False,
                         auto_include_flows=True, custom_style=None):
@@ -2868,6 +3486,268 @@ def as_general_view(model, focus=None, elements=None, style="bw", direction="TB"
     return "\n".join(lines)
 
 
+def as_block_definition_view(model, focus=None, elements=None, style="bw",
+                              direction="TB", include_legend=True, max_depth=None,
+                              show_external=False, custom_style=None,
+                              show_attributes=True, show_ports=True,
+                              show_references=True):
+    """Generate a Block Definition Diagram (BDD).
+    
+    Corresponds to SysML v2 Block Definition Diagrams, presenting:
+    - Block (part) definitions with their internal structure
+    - Attributes (values) as compartments
+    - Ports as compartments
+    - Part references as compartments
+    - Generalization, composition, and association relationships
+    
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include relationship legend
+        max_depth: Maximum depth to traverse from focus
+        show_external: Show relationships to elements outside selection
+        custom_style: Optional PlantUML style lines to append
+        show_attributes: Include attribute compartments (default True)
+        show_ports: Include port compartments (default True)
+        show_references: Include part reference compartments (default True)
+    
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+    
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 400",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<block>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle<<block>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 400",
+        ])
+    
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+    
+    lines.append("")
+    
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+    
+    title = "Block Definition Diagram"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Block Definition Diagram \u2014 {focus_name}"
+    elif elements is not None:
+        title = f"Block Definition Diagram \u2014 Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+    
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=max_depth,
+                            include_legend=False,
+                            show_external=show_external)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+    
+    id_map = gen.id_map
+    elements_list = gen.elements
+    relationships = gen.relationships
+    
+    # Collect block definitions
+    blocks = []
+    for alias, name, stereotype, elem, is_included in elements_list:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        is_definition = getattr(elem, 'is_definition', False)
+        if sysml_type == 'part' and is_definition:
+            blocks.append((alias, name, stereotype, elem))
+    
+    # Render blocks with compartments
+    for alias, name, stereotype, elem in blocks:
+        compartments = []
+        
+        # Get grammar to extract structure
+        grammar = getattr(elem, 'grammar', None)
+        if grammar:
+            # PartDefinition has 'definition' attribute containing Definition
+            body = None
+            if hasattr(grammar, 'body') and grammar.body:
+                body = grammar.body
+            elif hasattr(grammar, 'definition') and grammar.definition:
+                body = grammar.definition.body
+            
+            if body and hasattr(body, 'children'):
+                # Extract attributes
+                if show_attributes:
+                    attrs = []
+                    for child in body.children:
+                        if child.__class__.__name__ == 'DefinitionBodyItem' and hasattr(child, 'children'):
+                            for sub in child.children:
+                                if sub.__class__.__name__ == 'NonOccurrenceUsageMember' and hasattr(sub, 'children'):
+                                    for sub2 in sub.children:
+                                        if sub2.__class__.__name__ == 'NonOccurrenceUsageElement' and hasattr(sub2, 'children'):
+                                            usage = sub2.children
+                                            if usage.__class__.__name__ == 'AttributeUsage':
+                                                # Navigate to get name: usage.usage.declaration.declaration.identification
+                                                if hasattr(usage, 'usage') and usage.usage:
+                                                    u = usage.usage
+                                                    if hasattr(u, 'declaration') and u.declaration:
+                                                        decl = u.declaration
+                                                        if hasattr(decl, 'declaration') and decl.declaration:
+                                                            decl2 = decl.declaration
+                                                            if hasattr(decl2, 'identification') and decl2.identification:
+                                                                attr_name = decl2.identification.declaredName
+                                                                if attr_name:
+                                                                    attrs.append(attr_name)
+                    if attrs:
+                        compartments.append(('attributes', attrs))
+                
+                # Extract ports
+                if show_ports:
+                    ports = []
+                    for child in body.children:
+                        if child.__class__.__name__ == 'DefinitionBodyItem' and hasattr(child, 'children'):
+                            for sub in child.children:
+                                if sub.__class__.__name__ == 'OccurrenceUsageMember' and hasattr(sub, 'children'):
+                                    for sub2 in sub.children:
+                                        if sub2.__class__.__name__ == 'OccurrenceUsageElement' and hasattr(sub2, 'children'):
+                                            structure_elem = sub2.children
+                                            if structure_elem.__class__.__name__ == 'StructureUsageElement' and hasattr(structure_elem, 'children'):
+                                                usage = structure_elem.children
+                                                if usage.__class__.__name__ == 'PortUsage':
+                                                    if hasattr(usage, 'usage') and usage.usage:
+                                                        u = usage.usage
+                                                        if hasattr(u, 'declaration') and u.declaration:
+                                                            decl = u.declaration
+                                                            if hasattr(decl, 'declaration') and decl.declaration:
+                                                                decl2 = decl.declaration
+                                                                if hasattr(decl2, 'identification') and decl2.identification:
+                                                                    port_name = decl2.identification.declaredName
+                                                                    if port_name:
+                                                                        ports.append(port_name)
+                    if ports:
+                        compartments.append(('ports', ports))
+                
+                # Extract part references
+                if show_references:
+                    refs = []
+                    for child in body.children:
+                        if child.__class__.__name__ == 'DefinitionBodyItem' and hasattr(child, 'children'):
+                            for sub in child.children:
+                                if sub.__class__.__name__ == 'OccurrenceUsageMember' and hasattr(sub, 'children'):
+                                    for sub2 in sub.children:
+                                        if sub2.__class__.__name__ == 'OccurrenceUsageElement' and hasattr(sub2, 'children'):
+                                            structure_elem = sub2.children
+                                            if structure_elem.__class__.__name__ == 'StructureUsageElement' and hasattr(structure_elem, 'children'):
+                                                usage = structure_elem.children
+                                                if usage.__class__.__name__ == 'PartUsage':
+                                                    if hasattr(usage, 'usage') and usage.usage:
+                                                        u = usage.usage
+                                                        if hasattr(u, 'declaration') and u.declaration:
+                                                            decl = u.declaration
+                                                            if hasattr(decl, 'declaration') and decl.declaration:
+                                                                decl2 = decl.declaration
+                                                                if hasattr(decl2, 'identification') and decl2.identification:
+                                                                    ref_name = decl2.identification.declaredName
+                                                                    if ref_name:
+                                                                        refs.append(ref_name)
+                    if refs:
+                        compartments.append(('parts', refs))
+        
+        # Build PlantUML rectangle with compartments
+        if compartments:
+            lines.append(f'rectangle "{name}" as {alias} <<block>> {{')
+            for comp_name, items in compartments:
+                lines.append(f'  {comp_name}')
+                for item in items:
+                    lines.append(f'    {item}')
+            lines.append('}')
+        else:
+            lines.append(f'rectangle "{name}" as {alias} <<block>>')
+    
+    lines.append("")
+    
+    # Render relationships between blocks
+    block_aliases = {alias for alias, _, _, _ in blocks}
+    
+    for src, arrow, dst, label, is_external in relationships:
+        if is_external and not show_external:
+            continue
+        
+        # Only show relationships between blocks
+        if src not in block_aliases or dst not in block_aliases:
+            continue
+        
+        if is_external:
+            arrow = f"-[dotted,thickness=1,#999999]{arrow.lstrip('-')}"
+        
+        # Use appropriate arrow types for BDD
+        if 'generalization' in label.lower() or arrow == '--|>':
+            arrow = '--|>'
+            label = None
+        elif 'composition' in label.lower() or 'owns' in label.lower() or arrow == '*--':
+            arrow = '*--'
+            label = None
+        
+        if label:
+            lines.append(f'{src} {arrow} {dst} : {label}')
+        else:
+            lines.append(f'{src} {arrow} {dst}')
+    
+    lines.append("")
+    
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Block Definition Diagram Legend</b>",
+            "  |= Relationship |= Notation |",
+            "  | Generalization | --|> |",
+            "  | Composition | *-- |",
+            "  | Association | --> |",
+            "  | Attribute | (compartment) |",
+            "  | Port | (compartment) |",
+            "  | Part Reference | (compartment) |",
+            "endlegend",
+        ])
+        lines.append("")
+    
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
 def as_package_view(model, focus=None, style="bw", direction="TB",
                     include_legend=True, max_depth=None,
                     show_external=False, custom_style=None):
@@ -3094,6 +3974,181 @@ def as_package_view(model, focus=None, style="bw", direction="TB",
         ])
         lines.append("")
 
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def as_package_diagram_view(model, focus=None, style="bw", direction="TB",
+                            include_legend=True, show_element_types=True,
+                            custom_style=None):
+    """Generate a Package Diagram showing package hierarchy with contained elements.
+    
+    Unlike as_package_view which uses GeneralView, this function renders packages
+    as folder-like containers with their elements nested inside, showing the
+    containment hierarchy clearly.
+    
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional Package element to focus on (renders its subtree)
+        style: "bw" (default) or "color"
+        direction: "TB" or "LR"
+        include_legend: Whether to include legend
+        show_element_types: Show element type stereotypes (default True)
+        custom_style: Optional PlantUML style lines to append
+    
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+    
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam wrapWidth 300",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+            "",
+            "skinparam rectangle<<package>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "skinparam rectangle<<part def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor #f8f8f8",
+            "}",
+            "skinparam rectangle<<part>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor #f0f0f0",
+            "}",
+            "skinparam rectangle<<constraint def>> {",
+            "    RoundCorner 0",
+            "    BackgroundColor #f8f8f8",
+            "}",
+            "skinparam rectangle<<attribute>> {",
+            "    RoundCorner 15",
+            "    BackgroundColor white",
+            "}",
+        ])
+    else:
+        lines.extend([
+            "<style>",
+            "root {",
+            "    BackGroundColor white",
+            "    FontName Helvetica",
+            "    FontSize 13",
+            "}",
+            "rectangle<<package>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.5",
+            "    BackgroundColor white",
+            "    Padding 0",
+            "}",
+            "rectangle<<part def>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor #E8F4F8",
+            "}",
+            "rectangle<<part>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor #F0F8E8",
+            "    RoundCorner 15",
+            "}",
+            "rectangle<<constraint def>> {",
+            "    LineColor #444444",
+            "    LineThickness 1.0",
+            "    BackgroundColor #F8E8F0",
+            "}",
+            "</style>",
+            "",
+            "skinparam wrapWidth 300",
+        ])
+    
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+    
+    lines.append("")
+    
+    if direction == "LR":
+        lines.append("left to right direction")
+    else:
+        lines.append("top to bottom direction")
+    lines.append("")
+    
+    title = "Package Diagram"
+    if focus:
+        title += f" — {getattr(focus, 'name', 'Focus')}"
+    lines.append(f'title {title}')
+    lines.append("")
+    lines.append("hide circle")
+    lines.append("")
+    
+    # Find root packages
+    root_packages = []
+    for child in getattr(model, 'children', []):
+        if hasattr(child, 'sysml_type') and child.sysml_type == 'package':
+            root_packages.append(child)
+    
+    # If focus is provided, use it as root
+    if focus:
+        if hasattr(focus, 'sysml_type') and focus.sysml_type == 'package':
+            root_packages = [focus]
+    
+    def render_package(pkg, indent=0):
+        """Recursively render a package with its contents."""
+        pkg_name = getattr(pkg, 'name', 'Package')
+        pkg_alias = f"PKG_{id(pkg) % 10000}"
+        
+        lines.append('  ' * indent + f'rectangle "{pkg_name}" as {pkg_alias} <<package>> {{')
+        
+        # Collect non-package children
+        non_packages = []
+        sub_packages = []
+        for child in getattr(pkg, 'children', []):
+            if hasattr(child, 'sysml_type') and child.sysml_type == 'package':
+                sub_packages.append(child)
+            else:
+                non_packages.append(child)
+        
+        # Render non-package elements
+        for elem in non_packages:
+            elem_name = getattr(elem, 'name', 'unnamed')
+            elem_type = getattr(elem, 'sysml_type', 'element')
+            elem_alias = f"E_{id(elem) % 10000}"
+            
+            stereotype = f"<<{elem_type}>>" if show_element_types else ""
+            lines.append('  ' * (indent + 1) + f'rectangle "{elem_name}" as {elem_alias} {stereotype}')
+        
+        # Recursively render sub-packages
+        for sub_pkg in sub_packages:
+            render_package(sub_pkg, indent + 1)
+        
+        lines.append('  ' * indent + '}')
+        lines.append("")
+    
+    # Render all root packages
+    for pkg in root_packages:
+        render_package(pkg)
+    
+    lines.append("")
+    
+    if include_legend:
+        lines.extend([
+            "legend right",
+            "  <b>Package Diagram Legend</b>",
+            "  |= Element |= Notation |",
+            "  | Package | rectangle with contents |",
+            "  | Part Definition | rectangle (light blue) |",
+            "  | Part Usage | rounded rectangle (light green) |",
+            "  | Constraint Def | rectangle (light pink) |",
+            "endlegend",
+        ])
+        lines.append("")
+    
     lines.append("@enduml")
     return "\n".join(lines)
 

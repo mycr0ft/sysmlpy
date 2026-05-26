@@ -5,6 +5,23 @@
 
 ### :sparkles:
 
+- :sparkles: Package Diagram View (`as_package_diagram_view`)
+  Complete implementation of SysML v2 Package diagrams. Shows package hierarchy with elements
+  nested inside their containing packages (folder-style rendering). Supports `focus`, `style`
+  (bw/color), `direction`, `include_legend`, `show_element_types`, and handles deeply nested
+  packages. Added 7 tests in `tests/plantuml_test.py`.
+
+- :sparkles: Parametric Diagram View (`as_parametric_view`)
+  Complete implementation of SysML v2 Parametric diagrams. Shows constraint definitions with
+  parameter compartments (including types like `Real`), supports nested package traversal,
+  focus element, style options (bw/color), and legend. Added 7 tests in `tests/plantuml_test.py`.
+
+- :sparkles: Internal Block Diagram View (`as_internal_block_diagram`)
+  Complete implementation of SysML v2 Internal Block Diagrams. Shows block boundary with ports,
+  nested parts, flow connections with source/target arrows, and connection usage with blue connector
+  arrows. Supports `focus`, `style` (bw/color), `direction`, `show_parts`, `show_ports`, 
+  `show_connections`, and custom styling. Added 6 tests in `tests/plantuml_test.py`.
+
 - :sparkles: Send/Accept Action Usage Handling (Gap 6)
   Full implementation of send/accept actions in action bodies. Added grammar classes
   `SendNode`, `AcceptNode`, `IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode` and
@@ -28,12 +45,13 @@
 
 ### :white_check_mark:
 
-- :white_check_mark: All 176 tests passing (class, main, plantuml)
+- :white_check_mark: All 144 PlantUML tests passing
+- :white_check_mark: All 190 tests passing (class, main, plantuml)
 - :white_check_mark: 61 / 77 grammar round-trip tests pass (16 deferred control-flow)
 
 ### :memo:
 
-- :memo: Updated `TODO-gaps.md` - Gaps 5, 6, 8, 9 now complete
+- :memo: Updated `TODO-gaps.md` - Gap 4 now 100% complete (all 6 views implemented)
 - :memo: Zero TODOs remaining in codebase
 
 ---

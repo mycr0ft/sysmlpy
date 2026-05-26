@@ -14,6 +14,8 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
+**v0.28.0:** Complete Gap 4 coverage — Block Definition Diagram (BDD), Internal Block Diagram (IBD), Parametric Diagram, and Package Diagram views. All 6 specialized SysML v2 view types now implemented (144 PlantUML tests). IBD shows flow/connection arrows with endpoint extraction. Parametric view extracts constraint parameters with types. Package diagram renders nested folder-style hierarchy.
+
 **v0.27.0:** General View (GV), Package View, and three GridView specializations (Tabular View, Data Value Tabular View, Relationship Matrix View) with PlantUML, Markdown, and HTML output. 108 PlantUML tests. All 68+ `NotImplementedError` stubs in `grammar/classes.py` replaced with graceful handling.
 
 **v0.26.0:** Action Flow View, Interconnection View, and State Transition View with auto-include of connected elements. Grammar-level flow scanning. 101 PlantUML tests.
@@ -448,6 +450,38 @@ from sysmlpy.plantuml import as_package_view
 print(as_package_view(model, style="bw"))
 ```
 
+#### Package Diagram View — `as_package_diagram_view()`
+Folder-style package hierarchy with elements nested inside their containing packages. Shows containment structure clearly with color-coded element types.
+
+```python
+from sysmlpy.plantuml import as_package_diagram_view
+print(as_package_diagram_view(model, style="bw"))
+```
+
+#### Block Definition Diagram (BDD) — `as_block_definition_view()`
+Corresponds to SysML v2 Block Definition Diagrams. Shows block definitions with compartments for attributes, ports, and part references. Displays generalization relationships.
+
+```python
+from sysmlpy.plantuml import as_block_definition_view
+print(as_block_definition_view(model, style="bw"))
+```
+
+#### Internal Block Diagram (IBD) — `as_internal_block_diagram()`
+Corresponds to SysML v2 Internal Block Diagrams. Shows a single block's internal structure with boundary ports, nested parts, and flow/connection arrows between endpoints.
+
+```python
+from sysmlpy.plantuml import as_internal_block_diagram
+print(as_internal_block_diagram(model, style="bw"))
+```
+
+#### Parametric Diagram — `as_parametric_view()`
+Shows constraint definitions with parameter compartments (including types like `Real`). Supports constraint usages and parameter bindings.
+
+```python
+from sysmlpy.plantuml import as_parametric_view
+print(as_parametric_view(model, style="bw"))
+```
+
 #### Action Flow View (AFV) — `as_action_flow_view()`
 Corresponds to SysML v2 ``ActionFlowView`` (short name ``afv``). Shows actions with their control and object flows. Auto-includes connected flow elements.
 
@@ -588,7 +622,7 @@ print(as_tabular_view(model, style="color"))
 
 ### Complete Example Gallery
 
-See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all 16 rendered example images, covering every view function.
+See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered example images, covering every view function.
 
 | # | Example | View Type |
 |---|---------|-----------|
@@ -600,15 +634,19 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all 16 rendered exa
 | 6 | Interconnection | Interconnection View |
 | 7 | General View (GV) | General View |
 | 8 | Package View | Package View |
-| 9 | Action Flow View (AFV) | Action Flow View |
-| 10 | State Transition View (STV) | State Transition View |
-| 11 | Tree Diagram | Tree Diagram |
-| 12 | Element Table | Element Table |
-| 13 | Textual Notation | Textual Notation |
-| 14 | Tabular View (GridView) | Tabular View |
-| 15 | Data Value Tabular View (GridView) | Data Value View |
-| 16 | Relationship Matrix (GridView) | Relationship Matrix |
-| 17 | Tabular View — Color | Tabular View (color) |
+| 9 | Package Diagram | Package Diagram View |
+| 10 | Block Definition Diagram (BDD) | Block Definition View |
+| 11 | Internal Block Diagram (IBD) | Internal Block Diagram |
+| 12 | Parametric Diagram | Parametric View |
+| 13 | Action Flow View (AFV) | Action Flow View |
+| 14 | State Transition View (STV) | State Transition View |
+| 15 | Tree Diagram | Tree Diagram |
+| 16 | Element Table | Element Table |
+| 17 | Textual Notation | Textual Notation |
+| 18 | Tabular View (GridView) | Tabular View |
+| 19 | Data Value Tabular View (GridView) | Data Value View |
+| 20 | Relationship Matrix (GridView) | Relationship Matrix |
+| 21 | Tabular View — Color | Tabular View (color) |
 
 ## Conformance
 

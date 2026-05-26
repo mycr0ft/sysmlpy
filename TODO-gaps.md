@@ -2,6 +2,8 @@
 
 ## Recently Completed
 
+- **Gap 4 (partial): State Machine Diagram** — `as_state_transition_view()` already implemented with states, transitions, entry/do/exit actions
+- **Gap 4 (partial): Block Definition Diagram** — `as_block_definition_view()` with compartments for attributes, ports, and part references; shows generalization relationships
 - **Gap 8: Library Import TODO** — Implemented basic library loading mechanism in `antlr_parser.parse()` that loads .sysml/.kerml files from provided library paths and prepends them to content
 - **Gap 5: Duplicated Code in antlr_visitor.py** — Created `_extract_name_from_ident()` helper and refactored 7+ locations
 - **Gap 6: Send/Accept Action Usage** — Full implementation with grammar classes, visitor support, and name extraction
@@ -53,11 +55,11 @@ All `raise NotImplementedError` statements in `grammar/classes.py` have been rep
 
 ### 4. Missing specialized PlantUML views
 - ~~Requirement diagram view~~ **DONE** - `as_requirement_view()` implemented
-- State machine view (basic transition test exists but needs full implementation)
-- Block definition diagram (BDD) view
-- Internal block diagram (IBD) view
-- Parametric diagram view
-- Package diagram view
+- ~~Block definition diagram (BDD) view~~ **DONE** - `as_block_definition_view()` implemented with compartments for attributes, ports, and part references
+- ~~State machine view~~ **DONE** - `as_state_transition_view()` already implemented, shows states, transitions, entry/do/exit actions
+- ~~Internal block diagram (IBD) view~~ **DONE** - `as_internal_block_diagram()` implemented with block boundary ports, nested parts, flow connections (with source/target arrows), and connection usage (with blue connector arrows)
+- ~~Parametric diagram view~~ **DONE** - `as_parametric_view()` implemented with constraint definitions, parameter extraction (with types), and nested package support
+- ~~Package diagram view~~ **DONE** - `as_package_diagram_view()` implemented showing package hierarchy with nested elements, focus support, style options
 
 ### 5. Duplicated code block in antlr_visitor.py — NOW COMPLETE
 The name/shortname extraction pattern from Identification contexts was duplicated ~40 times
