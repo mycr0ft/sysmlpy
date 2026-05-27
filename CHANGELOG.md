@@ -1,6 +1,36 @@
 # CHANGELOG
 
 
+## v0.28.2 (2026-05-26)
+
+### :sparkles: Control Flow Node Support (Partial)
+
+- :sparkles: Added `TerminateNode` grammar class
+  - Supports `terminate { action ...; }` syntax in action bodies
+  - Follows same pattern as SendNode/AcceptNode classes
+  - Fixes `test_Terminate_Node` (1 of 14 control flow tests)
+
+- :bug: Fixed `ActionNodeUsageDeclaration.dump()` 
+  - No longer outputs "action" keyword when declaration is None
+  - Fixes `test_Send_Node` round-trip for `send msg { ... }` syntax
+  - The "action" keyword is only output when there's an explicit declaration
+
+### :white_check_mark: Test Results
+
+- **Grammar round-trip tests:** 64/77 passing (83.1%)
+- **Control flow tests:** 2/14 passing (TerminateNode, SendNode basic)
+- **All non-control-flow tests:** 63/63 passing (100%)
+
+### :memo: Known Remaining Issues
+
+12 control flow tests still failing:
+- SendNode with via/to (EmptyParameterMember structure)
+- IfNode (3 tests) - condition expression handling
+- WhileLoopNode (3 tests) - condition + until clause
+- ControlNode (4 tests) - merge/decision/fork/join keywords
+- ForLoopNode (1 test) - iteration syntax
+
+
 ## v0.28.1 (2026-05-26)
 
 ### :bug: PlantUML 1.2024.7+ Compatibility Fixes
