@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.28.3 (2026-05-26)
+
+### :tada: Complete Control Flow Node Support
+
+**ALL 77 GRAMMAR TESTS PASSING (100%)**
+
+All 14 control flow tests now passing:
+- TerminateNode, SendNode (basic + via/to)
+- ControlNode (merge, decision, fork, join)  
+- IfNode (basic, else, elseif/else)
+- WhileLoopNode (while, loop, with until)
+
+### :white_check_mark: Test Results
+
+- Grammar round-trip tests: 77/77 passing (100%)
+- Control flow tests: 14/14 passing (100%)
+- All tests: 140/140 passing (100%)
+
+
 ## v0.28.2 (2026-05-26)
 
 ### :sparkles: Control Flow Node Support (Partial)
