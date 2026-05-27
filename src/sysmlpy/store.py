@@ -238,6 +238,11 @@ class InMemoryStore(Store):
         self._parents: dict[str, list[str]] = {}
         self._edges: dict[str, list[tuple[str, str, dict]]] = {}
 
+    def __repr__(self) -> str:
+        n_elem = len(self._elements)
+        n_edge = sum(len(v) for v in self._edges.values())
+        return f"InMemoryStore(elements={n_elem}, edges={n_edge})"
+
     def put(self, element_id: str, data: dict,
             parent_id: Optional[str] = None,
             rel_type: str = REL_PARENT_CHILD) -> None:
@@ -473,11 +478,16 @@ class NetworkXStore(Store):
             a MultiGraph for undirected relationships.
         """
         import networkx as nx
+        self._directed = directed
         if directed:
             self._graph = nx.MultiDiGraph()
         else:
             self._graph = nx.MultiGraph()
         self._nx = nx
+
+    def __repr__(self) -> str:
+        return (f"NetworkXStore(nodes={self._graph.number_of_nodes()}, "
+                f"edges={self._graph.number_of_edges()}, directed={self._directed})")
 
     def put(self, element_id: str, data: dict,
             parent_id: Optional[str] = None,
@@ -852,9 +862,13 @@ class KuzuStore(Store):
             Path to the database directory, or ":memory:" for in-memory mode.
         """
         import kuzu
+        self._database = database
         self._db = kuzu.Database(database)
         self._conn = kuzu.Connection(self._db)
         self._init_schema()
+
+    def __repr__(self) -> str:
+        return f"KuzuStore(database={self._database!r})"
 
     def _init_schema(self) -> None:
         """Create the node and relationship tables if they don't exist."""
@@ -1422,9 +1436,14 @@ class CayleyStore(Store):
         label : str
             Quad label namespace for isolating data.
         """
+        self._host = host
+        self._port = port
         self._base_url = f"http://{host}:{port}"
         self._label = label
         self._session = None
+
+    def __repr__(self) -> str:
+        return f"CayleyStore(host={self._host!r}, port={self._port}, label={self._label!r})"
 
     def _get_session(self):
         """Get or create a requests session."""

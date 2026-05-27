@@ -257,6 +257,10 @@ class SymbolTable:
         self._definition_features: dict[str, dict[str, Any]] = {}  # definition_name -> {element, features, supertypes}
         self._duplicate_names: list[tuple[str, Any]] = []  # (name, element) for duplicates
 
+    def __repr__(self) -> str:
+        return (f"SymbolTable(symbols={len(self._symbols)}, "
+                f"children={len(self._children)})")
+
     # -- public API ----------------------------------------------------------
 
     def register(self, name: str, element: Any) -> None:
@@ -933,6 +937,9 @@ _KNOWN_LIBRARY_SYMBOLS = frozenset({
 
 class SemanticAnalyzer:
     """Analyzes a parsed SysML model for semantic issues."""
+
+    def __repr__(self) -> str:
+        return "SemanticAnalyzer()"
 
     def analyze(
         self,

@@ -18,6 +18,20 @@ import os
 
 ureg = pint.UnitRegistry()
 
+
+def _is_uuid(s: str) -> bool:
+    """Return True if *s* looks like an auto-generated UUID4 string."""
+    if not isinstance(s, str) or len(s) != 36:
+        return False
+    parts = s.split('-')
+    if len(parts) != 5:
+        return False
+    lengths = [8, 4, 4, 4, 12]
+    return all(
+        len(p) == n and all(c in '0123456789abcdef' for c in p.lower())
+        for p, n in zip(parts, lengths)
+    )
+
 # Load custom US Customary unit definitions
 _us_customary_path = os.path.join(os.path.dirname(__file__), "us_customary_units.txt")
 if os.path.exists(_us_customary_path):
@@ -300,57 +314,56 @@ class Usage(Searchable):
         return classtree(self._get_definition(child)).dump()
 
     def __repr__(self):
-        """Return a developer-friendly string representation of this element.
+        """Return a constructor-mirroring string representation.
 
-        Includes class name, definition flag, name, and shortname when available.
+        Output can be passed back to the class constructor to recreate an
+        equivalent (though unpopulated-grammar) instance::
+
+            Part(definition=True, name='Engine')
+            Part(name='wheel', shortname='w')
+            Action()
 
         Returns
         -------
         str
-            String representation suitable for debugging.
         """
-        # Safely get name
-        try:
-            name = getattr(self, 'name', None)
-            if not name:
-                id_obj = getattr(self.grammar, 'usage', None)
-                if id_obj:
-                    id_obj = getattr(id_obj.declaration, 'declaration', None)
-                    if id_obj:
-                        name = getattr(id_obj.identification, 'declaredName', None)
-        except (AttributeError, TypeError):
+        # Use the is_definition property — reliable across all 29 subclasses
+        is_def = self.is_definition
+
+        # Suppress auto-generated UUID names (they are meaningless to callers)
+        name = getattr(self, 'name', None)
+        if name and _is_uuid(name):
             name = None
-        
-        # Safely get shortname
+
+        # Shortname from grammar when present — path differs by definition vs usage
+        shortname = None
         try:
-            shortname = None
             id_obj = getattr(self.grammar, 'usage', None)
             if id_obj:
                 id_obj = getattr(id_obj.declaration, 'declaration', None)
                 if id_obj:
                     shortname = getattr(id_obj.identification, 'declaredShortName', None)
+            if not shortname:
+                # Definition path: grammar.definition.declaration.identification.declaredShortName
+                def_obj = getattr(self.grammar, 'definition', None)
+                if def_obj:
+                    id_obj = getattr(def_obj, 'declaration', None)
+                    if id_obj:
+                        shortname = getattr(id_obj.identification, 'declaredShortName', None)
             if shortname:
                 shortname = shortname.strip('<').strip('>')
         except (AttributeError, TypeError):
             shortname = None
-            
-        is_def = hasattr(self.grammar, 'definition')
+
         cls_name = self.__class__.__name__
-        
+        parts = []
         if is_def:
-            if name and shortname:
-                return f"{cls_name}(definition=True, name={name!r}, shortname={shortname!r})"
-            elif name:
-                return f"{cls_name}(definition=True, name={name!r})"
-            else:
-                return f"{cls_name}(definition=True)"
-        else:
-            if name and shortname:
-                return f"{cls_name}(name={name!r}, shortname={shortname!r})"
-            elif name:
-                return f"{cls_name}(name={name!r})"
-            else:
-                return f"{cls_name}()"
+            parts.append('definition=True')
+        if name:
+            parts.append(f'name={name!r}')
+        if shortname:
+            parts.append(f'shortname={shortname!r}')
+        return f"{cls_name}({', '.join(parts)})"
 
     def _set_name(self, name, short=False):
         """Set the declared name or short name on the grammar element.

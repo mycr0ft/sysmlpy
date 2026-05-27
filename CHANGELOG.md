@@ -1,6 +1,47 @@
 # CHANGELOG
 
 
+## v0.30.0 (2026-05-27)
+
+### :sparkles: Constructor-Mirroring `__repr__` for All Public API Classes
+
+Every public-facing class now has a `__repr__` that reads like a constructor call,
+making debugging in REPLs and notebooks vastly more informative.
+
+**Fixed `Usage.__repr__` (`usage.py`)**
+- Replaced flawed `hasattr(self.grammar, 'definition')` heuristic with `self.is_definition`
+  — 13 of 24 usage/definition classes (Action, State, Constraint, Requirement, UseCase,
+  Calculation, Enumeration, View, Viewpoint, Concern, Case, AnalysisCase, VerificationCase)
+  previously silently dropped `definition=True` from their repr.
+- Added `_is_uuid()` helper — auto-generated UUID names are suppressed.
+  `Part()` now prints `Part()` instead of `Part(name='f8a3...96b1')`.
+- Added definition-path shortname lookup so `Part(definition=True, name='Engine', shortname='E')`
+  works correctly for API-constructed objects.
+
+**Fixed `Package.__repr__` (`definition.py`)**
+- UUID names suppressed for `Package()` constructed without a name.
+
+**Added `__repr__` to Store classes (`store.py`)**
+- `InMemoryStore()` → `InMemoryStore(elements=0, edges=0)`
+- `NetworkXStore(directed=True)` → `NetworkXStore(nodes=0, edges=0, directed=True)`
+- `KuzuStore(database=':memory:')` → `KuzuStore(database=':memory:')`
+- `CayleyStore(host='localhost', port=64210, label='sysmlpy')` → mirrors constructor
+
+**Added `__repr__` to Semantic classes (`semantic.py`)**
+- `SymbolTable()` → `SymbolTable(symbols=0, children=0)`
+- `SemanticAnalyzer()` → `SemanticAnalyzer()`
+
+### :white_check_mark: Tests
+
+- Added `tests/repr_test.py` with **33 tests** covering all repr changes.
+
+### :white_check_mark: Test Results
+
+- repr tests: 33/33 passing
+- All core tests: 200/200 passing (class, main, repr, semantic)
+- Grammar tests: 77/77 passing (100%)
+
+
 ## v0.29.0 (2026-05-26)
 
 ### :tada: Complete Control Flow Node Support

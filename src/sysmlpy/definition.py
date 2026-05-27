@@ -399,25 +399,31 @@ class Package(Searchable):
             self._set_name(shortname, short=True)
 
     def __repr__(self):
-        """Return a developer-friendly string representation.
+        """Return a constructor-mirroring string representation.
 
         Returns
         -------
         str
-            String showing name and shortname for debugging.
         """
         name = getattr(self, 'name', None)
-        shortname = getattr(self.grammar.declaration.identification, 'declaredShortName', None)
-        
+        # Suppress auto-generated UUID names
+        if name and len(name) == 36 and name.count('-') == 4:
+            name = None
+
+        try:
+            shortname = getattr(self.grammar.declaration.identification, 'declaredShortName', None)
+            if shortname:
+                shortname = shortname.strip('<').strip('>')
+        except (AttributeError, TypeError):
+            shortname = None
+
         cls_name = self.__class__.__name__
-        if name and shortname:
-            return f"{cls_name}(name={name!r}, shortname={shortname!r})"
-        elif name:
-            return f"{cls_name}(name={name!r})"
-        elif shortname:
-            return f"{cls_name}(shortname={shortname!r})"
-        else:
-            return f"{cls_name}()"
+        parts = []
+        if name:
+            parts.append(f'name={name!r}')
+        if shortname:
+            parts.append(f'shortname={shortname!r}')
+        return f"{cls_name}({', '.join(parts)})"
 
     def _set_name(self, name, short=False):
         """Set the declared name or short name on the package grammar.
