@@ -431,6 +431,56 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0300-2026-05-27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.30.0 (2026-05-27)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.30.0 (2026-05-27)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-constructor-mirroring-__repr__-for-all-public-api-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Constructor-Mirroring __repr__ for All Public API Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0290-2026-05-26" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -454,7 +504,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#white_check_mark-test-results" class="md-nav__link">
+  <a href="#white_check_mark-test-results_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         :white_check_mark: Test Results
@@ -493,7 +543,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#white_check_mark-test-results_1" class="md-nav__link">
+  <a href="#white_check_mark-test-results_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         :white_check_mark: Test Results
@@ -1113,6 +1163,56 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0300-2026-05-27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.30.0 (2026-05-27)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.30.0 (2026-05-27)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-constructor-mirroring-__repr__-for-all-public-api-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Constructor-Mirroring __repr__ for All Public API Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#white_check_mark-test-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :white_check_mark: Test Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0290-2026-05-26" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1136,7 +1236,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#white_check_mark-test-results" class="md-nav__link">
+  <a href="#white_check_mark-test-results_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         :white_check_mark: Test Results
@@ -1175,7 +1275,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#white_check_mark-test-results_1" class="md-nav__link">
+  <a href="#white_check_mark-test-results_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         :white_check_mark: Test Results
@@ -1754,6 +1854,39 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0300-2026-05-27">v0.30.0 (2026-05-27)<a class="headerlink" href="#v0300-2026-05-27" title="Permanent link">&para;</a></h2>
+<h3 id="sparkles-constructor-mirroring-__repr__-for-all-public-api-classes">:sparkles: Constructor-Mirroring <code>__repr__</code> for All Public API Classes<a class="headerlink" href="#sparkles-constructor-mirroring-__repr__-for-all-public-api-classes" title="Permanent link">&para;</a></h3>
+<p>Every public-facing class now has a <code>__repr__</code> that reads like a constructor call,
+making debugging in REPLs and notebooks vastly more informative.</p>
+<p><strong>Fixed <code>Usage.__repr__</code> (<code>usage.py</code>)</strong>
+- Replaced flawed <code>hasattr(self.grammar, 'definition')</code> heuristic with <code>self.is_definition</code>
+  — 13 of 24 usage/definition classes (Action, State, Constraint, Requirement, UseCase,
+  Calculation, Enumeration, View, Viewpoint, Concern, Case, AnalysisCase, VerificationCase)
+  previously silently dropped <code>definition=True</code> from their repr.
+- Added <code>_is_uuid()</code> helper — auto-generated UUID names are suppressed.
+  <code>Part()</code> now prints <code>Part()</code> instead of <code>Part(name='f8a3...96b1')</code>.
+- Added definition-path shortname lookup so <code>Part(definition=True, name='Engine', shortname='E')</code>
+  works correctly for API-constructed objects.</p>
+<p><strong>Fixed <code>Package.__repr__</code> (<code>definition.py</code>)</strong>
+- UUID names suppressed for <code>Package()</code> constructed without a name.</p>
+<p><strong>Added <code>__repr__</code> to Store classes (<code>store.py</code>)</strong>
+- <code>InMemoryStore()</code> → <code>InMemoryStore(elements=0, edges=0)</code>
+- <code>NetworkXStore(directed=True)</code> → <code>NetworkXStore(nodes=0, edges=0, directed=True)</code>
+- <code>KuzuStore(database=':memory:')</code> → <code>KuzuStore(database=':memory:')</code>
+- <code>CayleyStore(host='localhost', port=64210, label='sysmlpy')</code> → mirrors constructor</p>
+<p><strong>Added <code>__repr__</code> to Semantic classes (<code>semantic.py</code>)</strong>
+- <code>SymbolTable()</code> → <code>SymbolTable(symbols=0, children=0)</code>
+- <code>SemanticAnalyzer()</code> → <code>SemanticAnalyzer()</code></p>
+<h3 id="white_check_mark-tests">:white_check_mark: Tests<a class="headerlink" href="#white_check_mark-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <code>tests/repr_test.py</code> with <strong>33 tests</strong> covering all repr changes.</li>
+</ul>
+<h3 id="white_check_mark-test-results">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results" title="Permanent link">&para;</a></h3>
+<ul>
+<li>repr tests: 33/33 passing</li>
+<li>All core tests: 200/200 passing (class, main, repr, semantic)</li>
+<li>Grammar tests: 77/77 passing (100%)</li>
+</ul>
 <h2 id="v0290-2026-05-26">v0.29.0 (2026-05-26)<a class="headerlink" href="#v0290-2026-05-26" title="Permanent link">&para;</a></h2>
 <h3 id="tada-complete-control-flow-node-support">:tada: Complete Control Flow Node Support<a class="headerlink" href="#tada-complete-control-flow-node-support" title="Permanent link">&para;</a></h3>
 <p><strong>ALL 77 GRAMMAR TESTS PASSING (100%)</strong></p>
@@ -1762,7 +1895,7 @@
 - ControlNode (merge, decision, fork, join)<br />
 - IfNode (basic, else, elseif/else)
 - WhileLoopNode (while, loop, with until)</p>
-<h3 id="white_check_mark-test-results">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results" title="Permanent link">&para;</a></h3>
+<h3 id="white_check_mark-test-results_1">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Grammar round-trip tests: 77/77 passing (100%)</li>
 <li>Control flow tests: 14/14 passing (100%)</li>
@@ -1784,7 +1917,7 @@
 <li>Fixes <code>test_Send_Node</code> round-trip for <code>send msg { ... }</code> syntax</li>
 <li>The "action" keyword is only output when there's an explicit declaration</li>
 </ul>
-<h3 id="white_check_mark-test-results_1">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results_1" title="Permanent link">&para;</a></h3>
+<h3 id="white_check_mark-test-results_2">:white_check_mark: Test Results<a class="headerlink" href="#white_check_mark-test-results_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Grammar round-trip tests:</strong> 64/77 passing (83.1%)</li>
 <li><strong>Control flow tests:</strong> 2/14 passing (TerminateNode, SendNode basic)</li>
