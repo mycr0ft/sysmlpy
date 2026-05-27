@@ -1,7 +1,7 @@
 # CHANGELOG
 
 
-## v0.28.3 (2026-05-26)
+## v0.29.0 (2026-05-26)
 
 ### :tada: Complete Control Flow Node Support
 
