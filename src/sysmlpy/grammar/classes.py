@@ -2759,85 +2759,114 @@ class AcceptNode:
 
 class IfNode:
     # IfNode :
-    # 	prefix=OccurrenceUsagePrefix ifNodeDeclaration actionBody
+    # 	prefix=OccurrenceUsagePrefix IF condition thenBody (ELSE elseBody)?
     # ;
     def __init__(self, definition):
         self.prefix = None
-        self.declaration = None
-        self.body = None
+        self.condition = None
+        self.thenBody = None
+        self.elseBody = None
+        self.elseIf = None
         if valid_definition(definition, self.__class__.__name__):
             if definition.get("prefix") is not None:
                 self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-            if definition.get("declaration") is not None:
-                self.declaration = IfNodeDeclaration(definition["declaration"])
-            if definition.get("body") is not None:
-                self.body = ActionBody(definition["body"])
+            self.condition = definition.get("condition")
+            if definition.get("thenBody") is not None:
+                self.thenBody = ActionBody(definition["thenBody"])
+            if definition.get("elseBody") is not None:
+                self.elseBody = ActionBody(definition["elseBody"])
+            if definition.get("elseIf") is not None:
+                self.elseIf = IfNode(definition["elseIf"])
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        if self.declaration is not None:
-            output.append(self.declaration.dump())
-        if self.body is not None:
-            output.append(self.body.dump())
+        output.append("if")
+        if self.condition is not None:
+            output.append(self.condition)
+        if self.thenBody is not None:
+            output.append(self.thenBody.dump())
+        if self.elseIf is not None:
+            output.append("else")
+            output.append(self.elseIf.dump())
+        elif self.elseBody is not None:
+            output.append("else")
+            output.append(self.elseBody.dump())
         return " ".join(output)
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
             "prefix": None,
-            "declaration": None,
-            "body": None,
+            "condition": None,
+            "thenBody": None,
+            "elseBody": None,
+            "elseIf": None,
         }
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
-        if self.declaration is not None:
-            output["declaration"] = self.declaration.get_definition()
-        if self.body is not None:
-            output["body"] = self.body.get_definition()
+        output["condition"] = self.condition
+        if self.thenBody is not None:
+            output["thenBody"] = self.thenBody.get_definition()
+        if self.elseBody is not None:
+            output["elseBody"] = self.elseBody.get_definition()
+        if self.elseIf is not None:
+            output["elseIf"] = self.elseIf.get_definition()
         return output
 
 
 class WhileLoopNode:
     # WhileLoopNode :
-    # 	prefix=OccurrenceUsagePrefix whileLoopNodeDeclaration actionBody
+    # 	prefix=OccurrenceUsagePrefix (WHILE condition | LOOP) body (UNTIL untilCondition)?
     # ;
     def __init__(self, definition):
         self.prefix = None
-        self.declaration = None
+        self.keyword = None
+        self.condition = None
         self.body = None
+        self.until = None
         if valid_definition(definition, self.__class__.__name__):
             if definition.get("prefix") is not None:
                 self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-            if definition.get("declaration") is not None:
-                self.declaration = WhileLoopNodeDeclaration(definition["declaration"])
+            self.keyword = definition.get("keyword")
+            self.condition = definition.get("condition")
             if definition.get("body") is not None:
                 self.body = ActionBody(definition["body"])
+            self.until = definition.get("until")
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        if self.declaration is not None:
-            output.append(self.declaration.dump())
+        if self.keyword is not None:
+            output.append(self.keyword)
+        if self.condition is not None:
+            output.append(self.condition)
         if self.body is not None:
             output.append(self.body.dump())
+        if self.until is not None:
+            output.append("until")
+            output.append(self.until)
+            output.append(";")
         return " ".join(output)
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
             "prefix": None,
-            "declaration": None,
+            "keyword": None,
+            "condition": None,
             "body": None,
+            "until": None,
         }
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
-        if self.declaration is not None:
-            output["declaration"] = self.declaration.get_definition()
+        output["keyword"] = self.keyword
+        output["condition"] = self.condition
         if self.body is not None:
             output["body"] = self.body.get_definition()
+        output["until"] = self.until
         return output
 
 
