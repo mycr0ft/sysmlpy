@@ -2252,8 +2252,8 @@ class AcceptParameterPart:
 
 class SenderReceiverPart:
     # SenderReceiverPart :
-    # 	'via' nodeParameterMember 'to' emptyParameterMember
-    # 	| 'to' emptyParameterMember
+    # 	'via' nodeParameterMember 'to' nodeParameterMember
+    # 	| 'to' nodeParameterMember
     # ;
     def __init__(self, definition):
         self.via = None
@@ -2262,7 +2262,7 @@ class SenderReceiverPart:
             if definition.get("via") is not None:
                 self.via = NodeParameterMember(definition["via"])
             if definition.get("to") is not None:
-                self.to = EmptyParameterMember(definition["to"])
+                self.to = NodeParameterMember(definition["to"])
 
     def dump(self):
         output = []
@@ -2885,35 +2885,41 @@ class ForLoopNode:
 
 class ControlNode:
     # ControlNode :
-    # 	prefix=OccurrenceUsagePrefix controlNodeDeclaration
+    # 	prefix=OccurrenceUsagePrefix keyword actionBody
     # ;
     def __init__(self, definition):
         self.prefix = None
-        self.declaration = None
+        self.keyword = None
+        self.body = None
         if valid_definition(definition, self.__class__.__name__):
             if definition.get("prefix") is not None:
                 self.prefix = OccurrenceUsagePrefix(definition["prefix"])
-            if definition.get("declaration") is not None:
-                self.declaration = ControlNodeDeclaration(definition["declaration"])
+            self.keyword = definition.get("keyword")
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        if self.declaration is not None:
-            output.append(self.declaration.dump())
+        if self.keyword is not None:
+            output.append(self.keyword)
+        if self.body is not None:
+            output.append(self.body.dump())
         return " ".join(output)
 
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
             "prefix": None,
-            "declaration": None,
+            "keyword": None,
+            "body": None,
         }
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
-        if self.declaration is not None:
-            output["declaration"] = self.declaration.get_definition()
+        output["keyword"] = self.keyword
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
         return output
 
 
