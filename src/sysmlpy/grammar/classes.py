@@ -2916,6 +2916,57 @@ class ControlNode:
         return output
 
 
+class TerminateNode:
+    # TerminateNode :
+    # 	prefix=OccurrenceUsagePrefix actionNodeUsageDeclaration? TERMINATE nodeParameterMember? actionBody
+    # ;
+    def __init__(self, definition):
+        self.prefix = None
+        self.declaration = None
+        self.target = None
+        self.body = None
+        if valid_definition(definition, self.__class__.__name__):
+            if definition.get("prefix") is not None:
+                self.prefix = OccurrenceUsagePrefix(definition["prefix"])
+            if definition.get("declaration") is not None:
+                self.declaration = ActionNodeUsageDeclaration(definition["declaration"])
+            if definition.get("target") is not None:
+                self.target = NodeParameterMember(definition["target"])
+            if definition.get("body") is not None:
+                self.body = ActionBody(definition["body"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        output.append("terminate")
+        if self.target is not None:
+            output.append(self.target.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "declaration": None,
+            "target": None,
+            "body": None,
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        if self.declaration is not None:
+            output["declaration"] = self.declaration.get_definition()
+        if self.target is not None:
+            output["target"] = self.target.get_definition()
+        if self.body is not None:
+            output["body"] = self.body.get_definition()
+        return output
+
+
 class ActionNode:
     # ActionNode :
     # 	  node=SendNode
@@ -2925,6 +2976,7 @@ class ActionNode:
     #   | node=WhileLoopNode
     #   | node=ForLoopNode
     # 	| node=ControlNode
+    #   | node=TerminateNode
     # ;
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
