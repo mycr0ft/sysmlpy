@@ -1,6 +1,55 @@
 # CHANGELOG
 
 
+## v0.28.1 (2026-05-26)
+
+### :bug: PlantUML 1.2024.7+ Compatibility Fixes
+
+- :bug: **as_element_table()** — Changed from `|=` table syntax to rectangle-based layout
+  - Fixes "Syntax Error? (Assumed diagram type: sequence)" in generated images
+  - All table rows now render as stacked rectangles
+
+- :bug: **as_state_transition_view()** — Use `state` keyword instead of `rectangle`
+  - Added initial state marker (`[*]`) pointing to first non-terminal state
+  - Added final state markers (`--> [*]`) for terminal states (Error, Stopped, Final)
+  - Fixes "syntax error (Assumed diagram type: state)" in generated images
+
+- :bug: **as_internal_block_diagram()** — Removed `boundary { }` compartment syntax
+  - PlantUML 1.2024.7+ removed support for compartment syntax in class diagrams
+  - Ports now render as simple nested rectangles inside block
+  - Fixes "syntax error (Assumed diagram type: class)" in generated images
+
+- :bug: **Tabular Views** — Changed default output format from `"plantuml"` to `"markdown"`
+  - `as_tabular_view()` — Default: `"markdown"`
+  - `as_data_value_tabular_view()` — Default: `"markdown"`
+  - `as_relationship_matrix_view()` — Default: `"markdown"`
+  - PlantUML 1.2024.7+ removed support for legacy table syntax
+  - Markdown and HTML formats work universally across all versions
+
+- :bug: **Legend Tables** — Changed all 11 legend definitions from table format to plain text
+  - Changed `|= Relationship |= Notation |` to `Relationship: Notation`
+  - Ensures legends render in all PlantUML versions
+
+### :wastebasket: Cleanup
+
+- Removed 14 stale/duplicate PlantUML example files
+- All 10 PNG examples referenced in README.md verified to render without errors
+
+### :white_check_mark: Verification
+
+All PlantUML examples render without errors:
+- ✓ 03-vehicle-structure.png
+- ✓ 06-interconnection.png
+- ✓ 07-general-view.png
+- ✓ 08-package-view.png
+- ✓ 11-internal-block-diagram.png
+- ✓ 13-action-flow-view.png
+- ✓ 14-state-transition-view.png (now with start/end markers)
+- ✓ 15-tree-diagram.png
+- ✓ 16-element-table.png
+- ✓ 17-textual-notation.png
+
+
 ## v0.28.0 (2026-05-26)
 
 ### :sparkles:
