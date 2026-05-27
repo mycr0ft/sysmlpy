@@ -1412,10 +1412,11 @@ class ActionNodeUsageDeclaration:
                 self.declaration = UsageDeclaration(definition["declaration"])
 
     def dump(self):
+        # Only output keyword if there's a declaration (explicit "action" keyword)
         if self.declaration is not None:
             return " ".join([self.keyword, self.declaration.dump()])
         else:
-            return self.keyword
+            return ""  # No keyword when no declaration
 
     def get_definition(self):
         return {
