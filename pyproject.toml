@@ -7,10 +7,8 @@ build-backend = "poetry.core.masonry.api"
 [project]
 name = "sysmlpy"
 version = "0.31.0"
-allow_zero_version = true
-version = "0.31.0"
 description = ""
-authors = ["Jon R. Fox (mycr0ft) <jon.fox@drfox.com>"]
+authors = [{ name = "Jon R. Fox (mycr0ft)", email = "jon.fox@drfox.com" }]
 readme = "README.md"
 packages = [{ include = "sysmlpy", from = "src" }]
 

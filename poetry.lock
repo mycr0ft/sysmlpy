@@ -436,4 +436,4 @@ kuzu = ["kuzu"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "3aa17371e443f23164c1713400abe8cef826b9b100bc4269cefa3fac9c6b5299"
+content-hash = "6a192c11ce52f56970f598bbe8ccaaf6c3fd4fc2e54f39fe794820d71a080bf5"
