@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.31.1 (2026-05-27)
+
+### :bug: Fix pyproject.toml for CI compatibility
+
+- Removed `allow_zero_version = true` from `[project]` table (invalid PEP 621 field)
+- Removed duplicate `version` key in `[project]` (invalid per TOML spec)
+- Fixed `authors` format for Poetry 2.1.x compatibility
+
 ## v0.31.0 (2026-05-27)
 
 ### :memo: Documentation Overhaul — Public API Showcase
