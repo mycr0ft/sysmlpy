@@ -57,44 +57,60 @@ Documentation can be found [here.](https://mycr0ft.github.io/sysmlpy/)
 
 ### Basic Usage
 
-The code below will create a part called Stage 1, with a shortname of <'3.1'>
-referencing a specific requirement or document. It has a mass attribute of 100
-kg. It has a thrust attribute of 1000 N. These attributes are created and placed
-as a child of the part. Next, we recall the part value for thrust and add 199 N.
-Finally, we can dump the output from this class.
-```
-  from sysmlpy import Attribute, Part, ureg
+Build models programmatically using the public API:
 
-  a = Attribute(name='mass')
-  a.set_value(100 * ureg.kilogram)
-  b = Attribute(name='thrust')
-  b.set_value(1000 * ureg.newton)
-  c = Part(name="Stage_1", shortname="'3.1'")
-  c._set_child(a)
-  c._set_child(b)
-  v = "Stage_1.thrust"
-  c._get_child(v).set_value(c._get_child(v).get_value() + 199 * ureg.newton)
-  print(c.dump())
+```python
+from sysmlpy import Part, Item, Attribute, ureg
+
+# Create a sensor part with children
+sensor = Part(name="sensor")
+camera = Part(name="camera")
+lens = Item(name="lens")
+mass = Attribute(name="mass")
+mass.set_value(100 * ureg.kilogram)
+
+camera.add_child(mass)
+sensor.add_child(camera)
+sensor.add_child(lens)
+
+print(sensor.dump())
+# → part sensor {
+# →    part camera {
+# →       attribute mass = 100 [kilogram];
+# →    }
+# →    item lens;
+# → }
+
+# Navigate children by name
+found = sensor.find_one("camera")
+print(found.name)  # → camera
+
+# Iterate over children
+for child in sensor:
+    print(child.name)
+
+# Check containment
+"camera" in sensor  # → True
 ```
 
 It will output the following:
 ```
-  part <'3.1'> Stage_1 {
+part <'3.1'> Stage_1 {
     attribute mass= 100 [kilogram];
     attribute thrust= 1199.0 [newton];
-  }
+}
 ```
 
 The package is able to handle Items, Parts, and Attributes.
 
-```
+```python
 a = Part(name='camera')
 b = Item(name='lens')
 d = Attribute(name='mass')
 c = Part(name='sensor')
-c._set_child(a)
-c._set_child(b)
-a._set_child(d)
+c.add_child(a)
+c.add_child(b)
+a.add_child(d)
 print(c.dump())
 ```
 
@@ -158,6 +174,87 @@ print(r3.dump())
 # → ref :>> payload : Person;
 ```
 
+## Model Parsing
+
+```python
+from sysmlpy import loads, parse
+
+# loads() — raises on syntax error
+model = loads("package P { part def Engine; }")
+
+# parse() — returns (model, errors) tuple, never raises
+model, errors = parse("package P { part def Engine; }")
+assert errors == []
+
+model, errors = parse("invalid @@ syntax")
+assert model is None
+assert len(errors) > 0
+```
+
+## Model Navigation
+
+Every parsed model element supports search, iteration, and containment checks:
+
+```python
+from sysmlpy import loads, Part
+
+model = loads("""
+package Vehicle {
+    part def Engine;
+    part engine1 : Engine { attribute mass = 100 [kg]; }
+    part chassis { part wheel1; part wheel2; }
+}
+""")
+
+# find() — returns list of matching elements (empty list if none)
+parts = model.find(sysml_type="part")
+assert len(parts) >= 3
+
+# find_one() — returns single element or None
+engine = model.find_one("engine1")
+assert engine is not None
+
+missing = model.find_one("DoesNotExist")
+assert missing is None   # no IndexError!
+
+# find_one() raises LookupError if multiple matches
+# model.find_one("wheel")  → LookupError: 2 matches
+
+# Container protocol — iterate, length, containment
+for child in model:
+    print(child.name)
+
+len(model)         # → number of direct children
+"Vehicle" in model  # → True (checks child names)
+
+# __str__ returns SysML text
+print(str(model))
+# → package Vehicle { ... }
+
+# Typed property accessors
+model.packages        # direct Package children
+model.parts           # direct Part children
+model.actions         # direct Action children
+```
+
+All search methods accept `sysml_type=` (keyword string or class) and `recursive=`:
+
+```python
+from sysmlpy import Part
+
+# By string keyword
+model.find(sysml_type="action")
+
+# By class
+model.find(sysml_type=Part)
+
+# Non-recursive (direct children only)
+model.find("engine1", recursive=False)
+
+# Legacy type= keyword still works (emits DeprecationWarning)
+model.find(type="action")
+```
+
 ## Grammar Round-Trip
 
 `loads()` parses SysML v2 text and `classtree()` converts the result back to text. This round-trip is the basis for the grammar test suite.
@@ -193,7 +290,7 @@ tree = classtree(model)
 print(tree.dump())
 ```
 
-**61 of 77 grammar round-trip tests pass** (61/77). All 61 non-control-flow tests pass (100%). The 16 deferred tests require action control-flow node classes (`IfNode`, `WhileLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`) not yet ported to `grammar/classes.py`. Covered categories: packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, and trade studies.
+**All 77 grammar round-trip tests pass** (100%). Covered categories: packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, control flow (if/else, while, loop, fork, join, decision, send, accept, terminate), and trade studies.
 
 ## Semantic Analysis
 
@@ -213,10 +310,33 @@ model = loads("""
     }
 """)
 
-issues = analyze(model)
-for issue in issues:
+result = analyze(model)
+
+# Iterate issues (backward-compatible with list)
+for issue in result:
     print(f"[{issue.severity}] {issue.code}: {issue.message}")
 # → [error] UNDEFINED_SYMBOL: Undefined symbol 'Wheel' referenced in Part 'myWheel'
+
+# Separated by severity
+for err in result.errors:
+    print(f"ERROR: {err.message}")
+
+for warn in result.warnings:
+    print(f"WARNING: {warn.message}")
+
+# Boolean check: True when no errors (warnings are OK)
+if result:
+    print("Model is semantically valid!")
+else:
+    print(f"Found {len(result.errors)} error(s) — fix before proceeding")
+
+# Raise on errors
+result.raise_on_errors()  # ValueError if any errors exist
+
+# Strict mode: raise immediately on any error
+result = analyze(model, strict=True)
+# → ValueError: Semantic errors found:
+#     [UNDEFINED_SYMBOL] Undefined symbol 'Wheel' referenced in Part 'myWheel'
 ```
 
 ### Symbol Resolution

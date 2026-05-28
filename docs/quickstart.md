@@ -20,20 +20,19 @@ Basic Workflow
 
 sysmlpy provides two-way translation between SysML v2 text and Python objects:
 
-1. **Parse SysML text → Python object** using ``load_grammar()``
+1. **Parse SysML text → Python object** using ``loads()``
 2. **Build Python object → SysML text** using ``.dump()``
 
 ::
 
-    from sysmlpy import Package, load_grammar as loads
-    from sysmlpy.formatting import classtree
+    from sysmlpy import loads
 
     # Parse text to Python
     text = "package Rocket;"
-    pkg = loads(text)
+    model = loads(text)
     
     # Python to text
-    output = classtree(pkg).dump()
+    output = model.dump()
     # → "package Rocket;"
 
 Packages
@@ -43,14 +42,14 @@ Create a package::
 
     from sysmlpy import Package
 
-    p = Package()._set_name("Rocket")
+    p = Package(name="Rocket")
     print(p.dump())
     # → "package Rocket;"
 
 Package with body::
 
     p = Package(name="Rocket")
-    p._set_child(Package(name="Engine"))
+    p.add_child(Package(name="Engine"))
     print(p.dump())
     # → package Rocket {
     #        package Engine;
@@ -82,7 +81,7 @@ Item definition::
 Items with children::
 
     i = Item(name="Fuel")
-    i._set_child(Item(name="Oxidizer"))
+    i.add_child(Item(name="Oxidizer"))
     print(i.dump())
     # → item Fuel {
     #        item Oxidizer;
@@ -116,8 +115,8 @@ Composite structures::
     from sysmlpy import Part, Attribute
 
     p = Part(name="Stage1")
-    p._set_child(Attribute(name="mass"))
-    p._set_child(Attribute(name="thrust"))
+    p.add_child(Attribute(name="mass"))
+    p.add_child(Attribute(name="thrust"))
     print(p.dump())
     # → part Stage1 {
     #        attribute mass;
@@ -182,7 +181,7 @@ An item can be typed by a definition::
     
     # Create usage typed by definition
     hydrogen = Item(name="Hydrogen")
-    hydrogen._set_typed_by(fuel_def)
+    hydrogen.set_typed_by(fuel_def)
     print(hydrogen.dump())
     # → item Hydrogen : Fuel;
 
@@ -194,8 +193,8 @@ A Model contains packages::
     from sysmlpy import Model, Package
 
     m = Model()
-    m._set_child(Package(name="Rocket"))
-    m._set_child(Package(name="Payload"))
+    m.add_child(Package(name="Rocket"))
+    m.add_child(Package(name="Payload"))
     print(m.dump())
     # → package Rocket;
     #     package Payload;
@@ -205,14 +204,14 @@ Loading full text
 
 Parse complete SysML text::
 
-    from sysmlpy import Model
+    from sysmlpy import loads
 
     text = """package Rocket {
            item def Fuel;
            item Hydrogen : Fuel;
         }"""
 
-    model = Model().load(text)
+    model = loads(text)
     print(model.dump())
 
 Reference

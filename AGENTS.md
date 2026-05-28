@@ -41,13 +41,12 @@ poetry run pytest tests/class_test.py --tb=short -q
 poetry run pytest tests/ --tb=short -q
 ```
 
-### Known expected failures (do not investigate these)
+### Grammar test status
 
-16 grammar tests fail with `KeyError` for action control-flow node classes:
-`IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `SendNode`,
-`AcceptNode`, `TerminateNode`, and succession variants.
-These classes exist in the ANTLR visitor output but are not yet ported to
-`grammar/classes.py`. Do not try to fix these unless specifically asked.
+All **77 grammar round-trip tests pass** (100%) as of v0.30.0+.
+If you see failures, check that the control-flow grammar classes
+(`IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `SendNode`,
+`AcceptNode`, `TerminateNode`) are correctly ported to `grammar/classes.py`.
 
 ---
 
@@ -135,7 +134,7 @@ else:
 
 | File | Count | What it tests |
 |------|-------|--------------|
-| `grammar_test.py` | 77 (61 pass) | Parse → grammar object → `dump()` round-trips |
+| `grammar_test.py` | 77 (all pass) | Parse → grammar object → `dump()` round-trips |
 | `class_test.py` | 54 | Programmatic API: `Part()`, `Action()`, `dump()`, etc. |
 | `main_test.py` | 7 | `load()` / `loads()` / `load_grammar()` public API |
 | `plantuml_test.py` | 108 | All `as_*_view()` functions |
@@ -220,8 +219,7 @@ All accept: `focus`, `elements`, `style` (`"bw"` or `"color"`), `direction`,
 
 ## Before You Finish a Task
 
-1. Run `poetry run pytest tests/ -m "not conformance" --tb=short -q` and confirm
-   the only failures are the 16 known control-flow tests.
+1. Run `poetry run pytest tests/class_test.py tests/main_test.py tests/repr_test.py tests/navigate_test.py tests/grammar_test.py tests/semantic_test.py --tb=short -q` and confirm all pass.
 2. If you touched `grammar/classes.py`, also run
    `poetry run pytest tests/grammar_test.py --tb=short`.
 3. If you touched `plantuml.py`, run

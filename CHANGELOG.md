@@ -1,6 +1,167 @@
 # CHANGELOG
 
 
+## v0.31.0 (2026-05-27)
+
+### :memo: Documentation Overhaul — Public API Showcase
+
+All project documentation (`README.md`, `docs/quickstart.md`, `TUTORIAL.md`) has been
+rewritten to showcase the modern public API, replacing all private underscore-prefixed
+methods with their public equivalents.
+
+**Changes across all docs:**
+- `_set_child()` → `add_child()`
+- `_set_name()` → `set_name()` / constructor `name=`
+- `_set_typed_by()` → `set_typed_by()`
+- `type=` parameter → `sysml_type=`
+- `Model().load(text)` → `loads(text)`
+- `load_grammar()` → `loads()`
+
+**New sections added to README:**
+- "Model Parsing" — `loads()` vs `parse()` with error handling
+- "Model Navigation" — `find()`, `find_one()`, container protocol (`__iter__`, `__len__`,
+  `__contains__`), `__str__`, typed property accessors (`model.parts`, `model.actions`),
+  `sysml_type=` keyword with class support
+- Semantic Analysis — `AnalysisResult.errors`/`.warnings`, `result.raise_on_errors()`,
+  `bool(result)`, `strict=True`
+
+**Grammar round-trip status updated:**
+- All 77 tests pass (100%) — removed the outdated "16 deferred tests" caveat
+
+**TUTORIAL.md:**
+- `find_all()` examples replaced with `find()` / `find_one()` / `all()`
+- "Convenience Functions" renamed to "Model Navigation" (v0.30.2+)
+- `parse()` added to loading functions table
+- Table of base classes updated with public method names
+
+**docs/quickstart.md:**
+- Full sweep from old private API (`_set_child`, `_set_name`, `_set_typed_by`)
+  to public methods (`add_child`, constructor `name=`, `set_typed_by`)
+- `Model().load(text)` pattern replaced with `loads(text)`
+- Simplified imports (no more `classtree` in basic examples)
+
+**AGENTS.md:**
+- Updated grammar test status from "61 pass" to "77 pass (100%)"
+- Removed "known expected failures" section
+- Updated test commands to run specific file sets
+
+### :white_check_mark: Test Results
+- All core tests: 211/211 passing (class, main, repr, navigate, grammar, semantic)
+- Grammar tests: 77/77 passing (100%)
+- Semantic tests: 118/118 passing
+
+
+## v0.30.2 (2026-05-27)
+
+### :sparkles: Tier 3 — Polish
+
+**Jupyter `_repr_html_()` for all model elements (`navigate.py`)**
+- Added collapsible HTML tree representation: `model` in a Jupyter cell shows a
+  nested `<details>` tree with type badges and element names, making interactive
+  exploration much more pleasant.
+
+**Non-raising `sysmlpy.parse()` variant (`__init__.py`)**
+- Added `parse(text)` that returns `(Model, [])` on success and `(None, [errors])`
+  on syntax error — never raises. Ideal for IDE integrations, linters, and batch
+  processing pipelines.
+
+**Stabilized mutation API — private methods made public (`usage.py`, `definition.py`)**
+- `add_child(child)` — public alias for `_set_child()` (added in T2-1, now fully promoted)
+- `set_name(name)` — public alias for `_set_name()`
+- `set_typed_by(defn)` — public alias for `_set_typed_by()`
+- `set_specializes(*parents)` — public alias for `_set_specializes()`
+- `set_subsets(*parents)` — public alias for `_set_subsets()`
+- `set_redefines(parent)` — public alias for `_set_redefines()`
+- `get_child(path)` — public alias for `_get_child()`
+- Old underscore-prefixed names kept for backward compatibility.
+
+**Fixed `grammar = True` placeholder in `UseCase` and `Action` (`usage.py`)**
+- Replaced `self.grammar = True` with `self.grammar = None` to avoid
+  `AttributeError: 'bool' object has no attribute 'some_method'` in downstream code.
+
+**Added return type annotations to all public functions**
+- `loads()` → `Model`, `load()` → `Model`, `load_antlr()` → `Model`
+- `Searchable.find()` → `list[Searchable]`, `Searchable.all()` → `list[Searchable]`
+- `Usage.dump()` → `str`, `Package.dump()` → `str`, `Model.dump()` → `str`
+- All `Usage` subclass `__init__` methods now have parameter type annotations.
+
+**Documentation overhaul (`README.md`, `docs/quickstart.md`, `TUTORIAL.md`)**
+- All docs updated to use public API: `add_child()` instead of `_set_child()`,
+  `set_name()` instead of `_set_name()`, `set_typed_by()` instead of `_set_typed_by()`,
+  `sysml_type=` instead of `type=`, etc.
+- New "Model Parsing" section (README) with `parse()` example.
+- New "Model Navigation" section (README) with `find()`, `find_one()`, container
+  protocol (`__iter__`, `__len__`, `__contains__`), `__str__`, typed property
+  accessors (`model.parts`, `model.actions`, etc.), and `sysml_type=` keyword.
+- Semantic Analysis section updated to show `AnalysisResult.errors`/`.warnings`,
+  `result.raise_on_errors()`, `bool(result)`, and `strict=True`.
+- `TUTORIAL.md`: `find_all()` examples replaced with `find()` / `find_one()` / `all()`.
+- `docs/quickstart.md`: full sweep from old private API to public methods.
+
+### :white_check_mark: Test Results
+- All core tests: passing
+- Grammar tests: 77/77 passing (100%)
+- Semantic tests: passing with new AnalysisResult/strict tests
+- Navigate tests: passing with new find_one/container tests
+
+
+## v0.30.1 (2026-05-27)
+
+### :sparkles: Tier 1 — High Impact, Trivial Effort
+
+**Exported `SysMLSyntaxError` from package root (`__init__.py`)**
+- `from sysmlpy import SysMLSyntaxError` now works — no more reaching into
+  `sysmlpy.antlr_parser` internals.
+
+**Fixed stale `load()` and `load_antlr()` docstrings (`__init__.py`)**
+- Both said "Returns: dict" but actually return `Model`. Fixed.
+- Added proper return type annotations.
+
+**Removed `print()` side effect on parse error (`__init__.py`)**
+- Library code no longer prints to stdout when a `SysMLSyntaxError` is raised.
+  The exception message already contains the full error text — the print was
+  redundant and polluted CI pipelines.
+
+**Added `find_one()` to `Searchable` mixin (`navigate.py`)**
+- `model.find_one('Engine')` returns the element or `None` (never `IndexError`).
+- Raises `LookupError` when multiple matches are found.
+
+### :sparkles: Tier 2 — High Impact, Medium Effort
+
+**Public `add_child()` method (`usage.py`, `definition.py`)**
+- `parent.add_child(child)` appends child and sets `child.parent`.
+- Returns `self` for fluent chaining: `pkg.add_child(Part(...)).add_child(Part(...))`
+- Old `_set_child()` kept as backward-compatible alias.
+
+**Container protocol — `__iter__`, `__len__`, `__contains__` (`navigate.py`)**
+- `for child in model:` — iterate over direct children
+- `len(model)` — number of direct children
+- `'Engine' in model` — True/False by child name or identity
+
+**`__str__` returns SysML text (`usage.py`, `definition.py`)**
+- `str(part)` → `'part engine;'` instead of `"Part(name='engine')"`
+- `repr(part)` still returns the constructor-mirroring form.
+
+**`AnalysisResult` and `strict=True` (`semantic.py`)**
+- `analyze()` now returns `AnalysisResult` (subclass of `list`, fully backward-compatible)
+- `result.errors` — only error-severity issues
+- `result.warnings` — only warning-severity issues
+- `result.raise_on_errors()` — raises `ValueError` if errors exist
+- `bool(result)` — `True` when no errors (warnings are OK)
+- `analyze(model, strict=True)` — raises immediately on any error
+
+**Renamed `type=` parameter to `sysml_type=` (`navigate.py`)**
+- `model.find(sysml_type='part')` replaces `model.find(type='part')`
+- Old `type=` keyword emits `DeprecationWarning` but still works
+- `all(sysml_type=Part)` and `find_one(sysml_type='action')` also support the new name
+
+### :white_check_mark: Test Results
+- All core tests: passing
+- Grammar tests: 77/77 passing (100%)
+- New tests: `find_one()`, `add_child()` chaining, container protocol, `__str__` vs repr,
+  `AnalysisResult`, `sysml_type=` deprecation — all passing
+
+
 ## v0.30.0 (2026-05-27)
 
 ### :sparkles: Constructor-Mirroring `__repr__` for All Public API Classes

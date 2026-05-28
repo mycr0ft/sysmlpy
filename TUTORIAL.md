@@ -27,7 +27,7 @@ package MyModel {
 p = Part(name="Stage_1", shortname="'3.1'")
 a = Attribute(name="mass")
 a.set_value(100 * ureg.kilogram)
-p._set_child(a)
+p.add_child(a)
 print(p.dump())
 # → part <'3.1'> Stage_1 { attribute mass = 100 [kilogram]; }
 ```
@@ -50,8 +50,8 @@ SysML text → ANTLR Lexer/Parser → Visitor → dict → Grammar Classes → P
 
 | Python Class | Role | Key Methods |
 |---|---|---|
-| `Searchable` | Mixin — `find()`, `all()`, typed property accessors | `find(name, type, recursive)`, `parts`, `actions`, `states`, etc. |
-| `Usage` | Base for all usage/definition wrappers | `dump()`, `load_from_grammar()`, `_set_child()`, `_set_typed_by()`, `_set_specializes()`, `_set_subsets()`, `_set_redefines()` |
+| `Searchable` | Mixin — `find()`, `all()`, typed property accessors | `find(name, sysml_type, recursive)`, `find_one()`, `parts`, `actions`, `states`, etc. |
+| `Usage` | Base for all usage/definition wrappers | `dump()`, `load_from_grammar()`, `add_child()`, `set_typed_by()`, `set_specializes()`, `set_subsets()`, `set_redefines()` |
 | `Model` | Root container | `load(s)`, `dump()` |
 | `Package` | Namespace container | `load_from_grammar()`, `dump()` |
 | `Transition` | State machine transition (standalone) | `load_from_grammar()`, `source`, `trigger`, `guard`, `target`, `effect` |
@@ -139,9 +139,9 @@ lens = Item(name="lens")
 mass = Attribute(name="mass")
 mass.set_value(100 * ureg.kilogram)
 
-camera._set_child(mass)
-sensor._set_child(camera)
-sensor._set_child(lens)
+camera.add_child(mass)
+sensor.add_child(camera)
+sensor.add_child(lens)
 
 print(sensor.dump())
 # part sensor {
@@ -265,16 +265,16 @@ a.set_value(a.get_value() + 199 * ureg.newton)
 print(a.dump())  # attribute thrust = 1199.0 [newton];
 ```
 
-## Convenience Functions (v0.12.0+)
+## Model Navigation (v0.30.2+)
 
-These methods are available on `Model` and `Package` for navigating and analyzing large models.
+These methods are available on `Model`, `Package`, and every usage node for navigating and analyzing models.
 
-### find_all
+### find
 
-Recursively find all matching elements across the full tree:
+Recursively find matching elements with flexible filtering:
 
 ```python
-from sysmlpy import loads
+from sysmlpy import loads, Part
 
 model = loads("""
 package Vehicle {
@@ -289,17 +289,23 @@ package Vehicle {
 }
 """)
 
-# Find all parts by type string
-all_parts = model.find_all('part')
+# Find by type string using sysml_type=
+all_parts = model.find(sysml_type="part")
 print(f"Found {len(all_parts)} parts: {[p.name for p in all_parts]}")
-# → Found 3 parts: ['engine1', 'chassis', 'wheel1', 'wheel2']
+# → Found 4 parts: ['engine1', 'chassis', 'wheel1', 'wheel2']
 
 # Find by class
-from sysmlpy import Part
-all_parts = model.find_all(type=Part)
+all_parts = model.find(sysml_type=Part)
 
-# Find by name
-engines = model.find_all(name='engine1')
+# Find by name (single or ambiguous)
+engine = model.find_one("engine1")  # returns element or None
+assert engine is not None
+
+# find_one() raises LookupError on multiple matches
+# model.find_one("wheel")  → LookupError: 2 matches
+
+# Shorthand for all parts
+all_parts = model.all("part")
 ```
 
 ### count
@@ -309,12 +315,12 @@ Count elements by type across the full tree:
 ```python
 # Count specific type
 part_count = model.count('part')
-print(f"Parts: {part_count}")  # → Parts: 3
+print(f"Parts: {part_count}")  # → Parts: 4
 
 # Count all types
 counts = model.count()
 print(counts)
-# → {'part': 3, 'attribute': 1}
+# → {'part': 4, 'attribute': 1}
 ```
 
 ### traverse
@@ -418,6 +424,7 @@ print(path)  # → None
 |---|---|
 | `loads(text)` | Parse SysML v2 text string into a `Model` |
 | `load(file)` | Parse SysML v2 file into a `Model` |
+| `parse(text)` | Parse SysML v2 text into `(Model, errors)` tuple — never raises |
 | `load_grammar(text)` | Parse into grammar dict (internal) |
 | `load_antlr(text)` | Explicit ANTLR4 parsing path |
 | `load_grammar_antlr(text)` | Parse into grammar dict via ANTLR4 |
