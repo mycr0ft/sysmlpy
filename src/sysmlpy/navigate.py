@@ -188,7 +188,7 @@ class Searchable:
     # Search methods
     # ------------------------------------------------------------------
 
-    def find(self, name=None, *, sysml_type=None, type=None, recursive=True):
+    def find(self, name=None, *, sysml_type=None, type=None, recursive=True) -> "list[Searchable]":
         """Find model elements by name and/or SysML type.
 
         Parameters
@@ -262,7 +262,7 @@ class Searchable:
 
         return results
 
-    def all(self, sysml_type, type=None, recursive=True):
+    def all(self, sysml_type, type=None, recursive=True) -> "list[Searchable]":
         """Return all elements of *sysml_type*, searching recursively by default.
 
         This is a convenience alias for ``find(sysml_type=sysml_type, recursive=recursive)``.
@@ -290,7 +290,7 @@ class Searchable:
             sysml_type = type
         return self.find(sysml_type=sysml_type, recursive=recursive)
 
-    def find_one(self, name=None, *, sysml_type=None):
+    def find_one(self, name=None, *, sysml_type=None) -> "Searchable | None":
         """Return the single matching element, or None if not found.
 
         Raises LookupError if more than one match is found.
@@ -322,3 +322,22 @@ class Searchable:
         if isinstance(item, str):
             return any(getattr(c, 'name', None) == item for c in self.children)
         return item in self.children
+
+    # ------------------------------------------------------------------
+    # Jupyter HTML representation
+    # ------------------------------------------------------------------
+
+    def _repr_html_(self) -> str:
+        """Jupyter-friendly collapsible HTML tree."""
+        def _render(elem, depth=0):
+            name = getattr(elem, 'name', '?')
+            stype = getattr(elem, 'sysml_type', type(elem).__name__)
+            is_def = getattr(elem, 'is_definition', False)
+            badge = f'<code style="color:#888;font-size:0.8em">{stype}{"_def" if is_def else ""}</code>'
+            children = getattr(elem, 'children', [])
+            if children:
+                inner = ''.join(_render(c, depth + 1) for c in children)
+                return (f'<details open><summary>{badge} <b>{name}</b></summary>'
+                        f'<div style="margin-left:1em">{inner}</div></details>')
+            return f'<div>{badge} {name}</div>'
+        return f'<div style="font-family:monospace">{_render(self)}</div>'

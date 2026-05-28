@@ -298,7 +298,7 @@ class Usage(Searchable):
 
         return package
 
-    def dump(self, child=None):
+    def dump(self, child=None) -> str:
         """Serialize this element to SysML v2 textual notation.
 
         Parameters
@@ -409,6 +409,8 @@ class Usage(Searchable):
 
         return self
 
+    set_name = _set_name
+
     def _get_name(self):
         """Retrieve the declared name from the grammar element.
 
@@ -467,6 +469,8 @@ class Usage(Searchable):
                     return child
                 else:
                     return child._get_child(featurechain)
+
+    get_child = _get_child
 
     def _set_typed_by(self, typed):
         """Set the typing relationship for this usage element.
@@ -531,6 +535,8 @@ class Usage(Searchable):
             raise ValueError("Typed by element was not a definition.")
         return self
 
+    set_typed_by = _set_typed_by
+
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for definitions.
         
@@ -564,6 +570,8 @@ class Usage(Searchable):
             SubclassificationPart(package)
         )
         return self
+
+    set_specializes = _set_specializes
 
     def _set_subsets(self, *parents):
         """Set subsetting (`:>`) for usage elements.
@@ -611,6 +619,8 @@ class Usage(Searchable):
         )
         return self
 
+    set_subsets = _set_subsets
+
     def _set_redefines(self, parent):
         """Set redefinition (`:>>`) for usage elements.
         
@@ -651,6 +661,8 @@ class Usage(Searchable):
             FeatureSpecializationPart(package)
         )
         return self
+
+    set_redefines = _set_redefines
 
     def _get_grammar(self):
         """Ensure the grammar tree is up to date and return it.
@@ -1517,7 +1529,7 @@ class Interface(Usage):
         self.children = []
         self.typedby = None
         self.parent = None
-        self.grammar = True
+        self.grammar = None
         self.iface_shortname = shortname
         self.ends = []  # list of (name, type_name, multiplicity, children)
         self.iface_connections = []  # list of (from_path, to_path)
@@ -1553,12 +1565,16 @@ class Interface(Usage):
         self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
         return self
 
+    set_typed_by = _set_typed_by
+
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for interface definitions."""
         self._specializes_names = [
             p.name if hasattr(p, 'name') else str(p) for p in parents
         ]
         return self
+
+    set_specializes = _set_specializes
 
     def dump(self):
         name_str = getattr(self, 'name', "") or ""
@@ -2190,12 +2206,16 @@ class Action(Usage):
         self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
         return self
 
+    set_typed_by = _set_typed_by
+
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for action definitions."""
         self._specializes_names = [
             p.name if hasattr(p, 'name') else str(p) for p in parents
         ]
         return self
+
+    set_specializes = _set_specializes
 
 
 class UseCase(Usage):
@@ -2215,7 +2235,7 @@ class UseCase(Usage):
             self.grammar = UseCaseDefinition()
             self.grammar.declaration.identification.declaredName = name if name else None
         else:
-            self.grammar = True
+            self.grammar = None
         
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
@@ -2310,12 +2330,16 @@ class UseCase(Usage):
         self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
         return self
 
+    set_typed_by = _set_typed_by
+
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for use case definitions."""
         self._specializes_names = [
             p.name if hasattr(p, 'name') else str(p) for p in parents
         ]
         return self
+
+    set_specializes = _set_specializes
 
     def dump(self):
         name_str = getattr(self, 'name', "") or ""
@@ -2409,7 +2433,7 @@ class Requirement(Usage):
             if self.grammar.declaration is not None and hasattr(self.grammar.declaration, 'identification'):
                 self.grammar.declaration.identification.declaredName = name if name else None
         else:
-            self.grammar = True
+            self.grammar = None
         
         self.is_definition = definition
         self.name = name if name else str(uuidlib.uuid4())
@@ -2522,12 +2546,16 @@ class Requirement(Usage):
         self._typed_by_name = typed.name if hasattr(typed, 'name') else str(typed)
         return self
 
+    set_typed_by = _set_typed_by
+
     def _set_specializes(self, *parents):
         """Set specialization (`:>`) for requirement definitions."""
         self._specializes_names = [
             p.name if hasattr(p, 'name') else str(p) for p in parents
         ]
         return self
+
+    set_specializes = _set_specializes
 
     def dump(self):
         name_str = getattr(self, 'name', "") or ""
@@ -2653,7 +2681,7 @@ class Message(Usage):
         self.children = []
         self.typedby = None
         self.parent = None
-        self.grammar = True
+        self.grammar = None
         self.from_port = from_port
         self.to_port = to_port
         self.of_type = of_type
@@ -3803,6 +3831,8 @@ class Reference(Usage):
     def _set_typed_by(self, type_obj):
         """Alias for set_type for consistency with other classes."""
         return self.set_type(type_obj)
+
+    set_typed_by = _set_typed_by
 
     def dump(self):
         name_str = getattr(self, 'name', "") or ""

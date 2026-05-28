@@ -8,7 +8,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 """
 
 __all__ = [
-    "load", "loads", "load_grammar", "load_antlr", "load_grammar_antlr",
+    "load", "loads", "parse", "load_grammar", "load_antlr", "load_grammar_antlr",
     "load_files", "load_project", "load_with_dependencies",
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
@@ -21,7 +21,7 @@ __all__ = [
     "SysMLSyntaxError",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.30.1"
+__version__ = "0.30.2"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -154,6 +154,27 @@ def loads(s: str, library=None) -> Model:
         Model instance built from the SysML source.
     """
     return Model().load(s, library=library)
+
+
+def parse(s: str, library=None):
+    """Parse SysML source, returning (model, errors) rather than raising.
+
+    Parameters
+    ----------
+    s : str
+        The SysML v2 source code to parse.
+    library : str or Path, optional
+        Path to SysML v2 library files for resolving imports.
+
+    Returns
+    -------
+    tuple[Model | None, list[str]]
+        ``(Model, [])`` on success, ``(None, [error_lines])`` on syntax error.
+    """
+    try:
+        return loads(s, library=library), []
+    except SysMLSyntaxError as e:
+        return None, str(e).splitlines()
 
 
 def load_grammar_antlr(fp, debug=False, library=None):

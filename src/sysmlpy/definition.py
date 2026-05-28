@@ -203,7 +203,7 @@ class Model(Searchable):
         """
         return self.grammar.get_definition()
 
-    def dump(self):
+    def dump(self) -> str:
         """Serialize the model to SysML v2 textual notation.
 
         Returns
@@ -299,6 +299,8 @@ class Model(Searchable):
                     return child
                 else:
                     return child._get_child(featurechain)
+
+    get_child = _get_child
 
     # ── Convenience functions ───────────────────────────────────────────
 
@@ -476,6 +478,8 @@ class Package(Searchable):
 
         return self
 
+    set_name = _set_name
+
     def _get_name(self):
         """Retrieve the declared name from the package grammar.
 
@@ -550,6 +554,8 @@ class Package(Searchable):
                 else:
                     return child._get_child(featurechain)
 
+    get_child = _get_child
+
     def _ensure_body(self):
         """Rebuild the package grammar body from current children and imports.
 
@@ -613,7 +619,7 @@ class Package(Searchable):
 
         return package
 
-    def dump(self, child=None):
+    def dump(self, child=None) -> str:
         """Serialize the package to SysML v2 textual notation.
 
         Parameters
