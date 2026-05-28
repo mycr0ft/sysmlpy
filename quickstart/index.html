@@ -897,32 +897,31 @@
 <h2 id="basic-workflow">Basic Workflow<a class="headerlink" href="#basic-workflow" title="Permanent link">&para;</a></h2>
 <p>sysmlpy provides two-way translation between SysML v2 text and Python objects:</p>
 <ol>
-<li><strong>Parse SysML text → Python object</strong> using <code>load_grammar()</code></li>
+<li><strong>Parse SysML text → Python object</strong> using <code>loads()</code></li>
 <li><strong>Build Python object → SysML text</strong> using <code>.dump()</code></li>
 </ol>
 <p>::</p>
-<div class="highlight"><pre><span></span><code>from sysmlpy import Package, load_grammar as loads
-from sysmlpy.formatting import classtree
+<div class="highlight"><pre><span></span><code>from sysmlpy import loads
 
 # Parse text to Python
 text = &quot;package Rocket;&quot;
-pkg = loads(text)
+model = loads(text)
 
 # Python to text
-output = classtree(pkg).dump()
+output = model.dump()
 # → &quot;package Rocket;&quot;
 </code></pre></div>
 <h2 id="packages">Packages<a class="headerlink" href="#packages" title="Permanent link">&para;</a></h2>
 <p>Create a package::</p>
 <div class="highlight"><pre><span></span><code>from sysmlpy import Package
 
-p = Package()._set_name(&quot;Rocket&quot;)
+p = Package(name=&quot;Rocket&quot;)
 print(p.dump())
 # → &quot;package Rocket;&quot;
 </code></pre></div>
 <p>Package with body::</p>
 <div class="highlight"><pre><span></span><code>p = Package(name=&quot;Rocket&quot;)
-p._set_child(Package(name=&quot;Engine&quot;))
+p.add_child(Package(name=&quot;Engine&quot;))
 print(p.dump())
 # → package Rocket {
 #        package Engine;
@@ -948,7 +947,7 @@ print(i.dump())
 </code></pre></div>
 <p>Items with children::</p>
 <div class="highlight"><pre><span></span><code>i = Item(name=&quot;Fuel&quot;)
-i._set_child(Item(name=&quot;Oxidizer&quot;))
+i.add_child(Item(name=&quot;Oxidizer&quot;))
 print(i.dump())
 # → item Fuel {
 #        item Oxidizer;
@@ -975,8 +974,8 @@ print(a.dump())
 <div class="highlight"><pre><span></span><code>from sysmlpy import Part, Attribute
 
 p = Part(name=&quot;Stage1&quot;)
-p._set_child(Attribute(name=&quot;mass&quot;))
-p._set_child(Attribute(name=&quot;thrust&quot;))
+p.add_child(Attribute(name=&quot;mass&quot;))
+p.add_child(Attribute(name=&quot;thrust&quot;))
 print(p.dump())
 # → part Stage1 {
 #        attribute mass;
@@ -1032,7 +1031,7 @@ fuel_def = Item(definition=True, name=&quot;Fuel&quot;)
 
 # Create usage typed by definition
 hydrogen = Item(name=&quot;Hydrogen&quot;)
-hydrogen._set_typed_by(fuel_def)
+hydrogen.set_typed_by(fuel_def)
 print(hydrogen.dump())
 # → item Hydrogen : Fuel;
 </code></pre></div>
@@ -1041,22 +1040,22 @@ print(hydrogen.dump())
 <div class="highlight"><pre><span></span><code>from sysmlpy import Model, Package
 
 m = Model()
-m._set_child(Package(name=&quot;Rocket&quot;))
-m._set_child(Package(name=&quot;Payload&quot;))
+m.add_child(Package(name=&quot;Rocket&quot;))
+m.add_child(Package(name=&quot;Payload&quot;))
 print(m.dump())
 # → package Rocket;
 #     package Payload;
 </code></pre></div>
 <h2 id="loading-full-text">Loading full text<a class="headerlink" href="#loading-full-text" title="Permanent link">&para;</a></h2>
 <p>Parse complete SysML text::</p>
-<div class="highlight"><pre><span></span><code>from sysmlpy import Model
+<div class="highlight"><pre><span></span><code>from sysmlpy import loads
 
 text = &quot;&quot;&quot;package Rocket {
        item def Fuel;
        item Hydrogen : Fuel;
     }&quot;&quot;&quot;
 
-model = Model().load(text)
+model = loads(text)
 print(model.dump())
 </code></pre></div>
 <h2 id="reference">Reference<a class="headerlink" href="#reference" title="Permanent link">&para;</a></h2>

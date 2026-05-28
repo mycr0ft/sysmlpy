@@ -593,22 +593,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#convenience-functions-v0120" class="md-nav__link">
+  <a href="#model-navigation-v0302" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Convenience Functions (v0.12.0+)
+        Model Navigation (v0.30.2+)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Convenience Functions (v0.12.0+)">
+    <nav class="md-nav" aria-label="Model Navigation (v0.30.2+)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#find_all" class="md-nav__link">
+  <a href="#find" class="md-nav__link">
     <span class="md-ellipsis">
       
-        find_all
+        find
       
     </span>
   </a>
@@ -1083,22 +1083,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#convenience-functions-v0120" class="md-nav__link">
+  <a href="#model-navigation-v0302" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Convenience Functions (v0.12.0+)
+        Model Navigation (v0.30.2+)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Convenience Functions (v0.12.0+)">
+    <nav class="md-nav" aria-label="Model Navigation (v0.30.2+)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#find_all" class="md-nav__link">
+  <a href="#find" class="md-nav__link">
     <span class="md-ellipsis">
       
-        find_all
+        find
       
     </span>
   </a>
@@ -1229,7 +1229,7 @@
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">p</span> <span class="o">=</span> <span class="n">Part</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;Stage_1&quot;</span><span class="p">,</span> <span class="n">shortname</span><span class="o">=</span><span class="s2">&quot;&#39;3.1&#39;&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">a</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mass&quot;</span><span class="p">)</span>
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">a</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">kilogram</span><span class="p">)</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">p</span><span class="o">.</span><span class="n">_set_child</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">p</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="c1"># → part &lt;&#39;3.1&#39;&gt; Stage_1 { attribute mass = 100 [kilogram]; }</span>
 </code></pre></div>
@@ -1256,12 +1256,12 @@
 <tr>
 <td><code>Searchable</code></td>
 <td>Mixin — <code>find()</code>, <code>all()</code>, typed property accessors</td>
-<td><code>find(name, type, recursive)</code>, <code>parts</code>, <code>actions</code>, <code>states</code>, etc.</td>
+<td><code>find(name, sysml_type, recursive)</code>, <code>find_one()</code>, <code>parts</code>, <code>actions</code>, <code>states</code>, etc.</td>
 </tr>
 <tr>
 <td><code>Usage</code></td>
 <td>Base for all usage/definition wrappers</td>
-<td><code>dump()</code>, <code>load_from_grammar()</code>, <code>_set_child()</code>, <code>_set_typed_by()</code>, <code>_set_specializes()</code>, <code>_set_subsets()</code>, <code>_set_redefines()</code></td>
+<td><code>dump()</code>, <code>load_from_grammar()</code>, <code>add_child()</code>, <code>set_typed_by()</code>, <code>set_specializes()</code>, <code>set_subsets()</code>, <code>set_redefines()</code></td>
 </tr>
 <tr>
 <td><code>Model</code></td>
@@ -1596,9 +1596,9 @@
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">mass</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mass&quot;</span><span class="p">)</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">mass</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">kilogram</span><span class="p">)</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">camera</span><span class="o">.</span><span class="n">_set_child</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">sensor</span><span class="o">.</span><span class="n">_set_child</span><span class="p">(</span><span class="n">camera</span><span class="p">)</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">sensor</span><span class="o">.</span><span class="n">_set_child</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">camera</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">sensor</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">camera</span><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">sensor</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span>
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">sensor</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># part sensor {</span>
@@ -1703,11 +1703,11 @@
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="n">a</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_value</span><span class="p">()</span> <span class="o">+</span> <span class="mi">199</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">newton</span><span class="p">)</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>  <span class="c1"># attribute thrust = 1199.0 [newton];</span>
 </code></pre></div>
-<h2 id="convenience-functions-v0120">Convenience Functions (v0.12.0+)<a class="headerlink" href="#convenience-functions-v0120" title="Permanent link">&para;</a></h2>
-<p>These methods are available on <code>Model</code> and <code>Package</code> for navigating and analyzing large models.</p>
-<h3 id="find_all">find_all<a class="headerlink" href="#find_all" title="Permanent link">&para;</a></h3>
-<p>Recursively find all matching elements across the full tree:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span>
+<h2 id="model-navigation-v0302">Model Navigation (v0.30.2+)<a class="headerlink" href="#model-navigation-v0302" title="Permanent link">&para;</a></h2>
+<p>These methods are available on <code>Model</code>, <code>Package</code>, and every usage node for navigating and analyzing models.</p>
+<h3 id="find">find<a class="headerlink" href="#find" title="Permanent link">&para;</a></h3>
+<p>Recursively find matching elements with flexible filtering:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">Part</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="s2">package Vehicle {</span>
@@ -1722,28 +1722,34 @@
 <a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="s2">}</span>
 <a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 <a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="c1"># Find all parts by type string</span>
-<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">all_parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;part&#39;</span><span class="p">)</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="c1"># Find by type string using sysml_type=</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="n">all_parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">sysml_type</span><span class="o">=</span><span class="s2">&quot;part&quot;</span><span class="p">)</span>
 <a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_parts</span><span class="p">)</span><span class="si">}</span><span class="s2"> parts: </span><span class="si">{</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">all_parts</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="c1"># → Found 3 parts: [&#39;engine1&#39;, &#39;chassis&#39;, &#39;wheel1&#39;, &#39;wheel2&#39;]</span>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="c1"># → Found 4 parts: [&#39;engine1&#39;, &#39;chassis&#39;, &#39;wheel1&#39;, &#39;wheel2&#39;]</span>
 <a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>
 <a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="c1"># Find by class</span>
-<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Part</span>
-<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="n">all_parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="n">Part</span><span class="p">)</span>
-<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>
-<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="c1"># Find by name</span>
-<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="n">engines</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;engine1&#39;</span><span class="p">)</span>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="n">all_parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">sysml_type</span><span class="o">=</span><span class="n">Part</span><span class="p">)</span>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="c1"># Find by name (single or ambiguous)</span>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="n">engine</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span><span class="s2">&quot;engine1&quot;</span><span class="p">)</span>  <span class="c1"># returns element or None</span>
+<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="k">assert</span> <span class="n">engine</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>
+<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="c1"># find_one() raises LookupError on multiple matches</span>
+<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="c1"># model.find_one(&quot;wheel&quot;)  → LookupError: 2 matches</span>
+<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>
+<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="c1"># Shorthand for all parts</span>
+<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="n">all_parts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="s2">&quot;part&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h3 id="count">count<a class="headerlink" href="#count" title="Permanent link">&para;</a></h3>
 <p>Count elements by type across the full tree:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Count specific type</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">part_count</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;part&#39;</span><span class="p">)</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parts: </span><span class="si">{</span><span class="n">part_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># → Parts: 3</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parts: </span><span class="si">{</span><span class="n">part_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>  <span class="c1"># → Parts: 4</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Count all types</span>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">counts</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 <a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># → {&#39;part&#39;: 3, &#39;attribute&#39;: 1}</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># → {&#39;part&#39;: 4, &#39;attribute&#39;: 1}</span>
 </code></pre></div>
 <h3 id="traverse">traverse<a class="headerlink" href="#traverse" title="Permanent link">&para;</a></h3>
 <p>Walk the element tree with a callback function:</p>
@@ -1840,6 +1846,10 @@
 <tr>
 <td><code>load(file)</code></td>
 <td>Parse SysML v2 file into a <code>Model</code></td>
+</tr>
+<tr>
+<td><code>parse(text)</code></td>
+<td>Parse SysML v2 text into <code>(Model, errors)</code> tuple — never raises</td>
 </tr>
 <tr>
 <td><code>load_grammar(text)</code></td>
