@@ -14,6 +14,10 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 ![Lines of Code Over Time](loc_history.svg)
 
+**v0.31.0:** Documentation overhaul — all docs rewritten to showcase the modern public API. New Model Parsing and Model Navigation sections. Semantic Analysis updated with `AnalysisResult`. Grammar round-trip: 77/77 (100%). 211 core tests passing.
+
+**v0.31.1:** Fixed `pyproject.toml` for CI compatibility — removed duplicate version and invalid `allow_zero_version` from `[project]` table.
+
 **v0.28.0:** Complete Gap 4 coverage — Block Definition Diagram (BDD), Internal Block Diagram (IBD), Parametric Diagram, and Package Diagram views. All 6 specialized SysML v2 view types now implemented (144 PlantUML tests). IBD shows flow/connection arrows with endpoint extraction. Parametric view extracts constraint parameters with types. Package diagram renders nested folder-style hierarchy.
 
 **v0.27.0:** General View (GV), Package View, and three GridView specializations (Tabular View, Data Value Tabular View, Relationship Matrix View) with PlantUML, Markdown, and HTML output. 108 PlantUML tests. All 68+ `NotImplementedError` stubs in `grammar/classes.py` replaced with graceful handling.

@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## v0.31.2 (2026-05-27)
+
+### :memo: Update README version notes and LOC diagram
+
+- Added v0.31.0 and v0.31.1 entries to README version history
+- Regenerated `loc_history.svg` (89,715 LOC, 581 commits)
+
 ## v0.31.1 (2026-05-27)
 
 ### :bug: Fix pyproject.toml for CI compatibility
