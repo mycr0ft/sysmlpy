@@ -230,6 +230,13 @@ class Model(Searchable):
         self._ensure_body()
         return classtree(self._get_definition()).dump()
 
+    def __str__(self) -> str:
+        """Return the SysML v2 text representation of the model."""
+        try:
+            return self.dump()
+        except Exception:
+            return repr(self)
+
     def _set_child(self, child):
         """Add a child package or element to the model.
 
@@ -245,6 +252,23 @@ class Model(Searchable):
         """
         self.children.append(child)
         child.parent = self
+        return self
+
+    add_child = _set_child
+
+    def _get_child(self, featurechain):
+        """Retrieve a nested child by dot-separated name path.
+
+        Parameters
+        ----------
+        featurechain : str
+            Dot-separated path like "pkg.element".
+
+        Returns
+        -------
+        element or None
+            The matching child element, or None if not found.
+        """
         return self
 
     def _get_child(self, featurechain):
@@ -479,6 +503,23 @@ class Package(Searchable):
         child.parent = self
         return self
 
+    add_child = _set_child
+
+    def _get_child(self, featurechain):
+        """Retrieve a nested child by dot-separated name path.
+
+        Parameters
+        ----------
+        featurechain : str
+            Dot-separated path like "pkg.element".
+
+        Returns
+        -------
+        element or None
+            The matching child element, or None if not found.
+        """
+        return self
+
     def _get_child(self, featurechain):
         """Retrieve a nested child by dot-separated name path.
 
@@ -586,6 +627,13 @@ class Package(Searchable):
             SysML v2 source code representing the package.
         """
         return classtree(self._get_definition(child=False)).dump()
+
+    def __str__(self) -> str:
+        """Return the SysML v2 text representation of the package."""
+        try:
+            return self.dump()
+        except Exception:
+            return repr(self)
 
     def add_import(self, namespace, visibility="private", recursive=False, membership=None):
         """Add an import declaration to this package.

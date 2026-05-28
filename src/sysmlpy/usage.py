@@ -313,6 +313,13 @@ class Usage(Searchable):
         """
         return classtree(self._get_definition(child)).dump()
 
+    def __str__(self) -> str:
+        """Return the SysML v2 text representation of this element."""
+        try:
+            return self.dump()
+        except Exception:
+            return repr(self)
+
     def __repr__(self):
         """Return a constructor-mirroring string representation.
 
@@ -428,6 +435,8 @@ class Usage(Searchable):
         self.children.append(child)
         child.parent = self
         return self
+
+    add_child = _set_child
 
     def _get_child(self, featurechain):
         """Retrieve a nested child by dot-separated name path.

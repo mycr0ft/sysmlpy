@@ -17,10 +17,11 @@ __all__ = [
     "as_general_view", "as_package_view", "as_package_diagram_view", "as_block_definition_view", "as_internal_block_diagram",
     "as_parametric_view", "as_requirement_view",
     "as_tabular_view", "as_data_value_tabular_view", "as_relationship_matrix_view",
-    "analyze", "SemanticIssue", "SemanticAnalyzer",
+    "analyze", "AnalysisResult", "SemanticIssue", "SemanticAnalyzer",
+    "SysMLSyntaxError",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.30.0"
+__version__ = "0.30.1"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -35,6 +36,7 @@ from sysmlpy.navigate import Searchable
 from sysmlpy.store import Store, InMemoryStore, NetworkXStore, KuzuStore, CayleyStore, create_store, new_id
 
 from sysmlpy.usage import ureg
+from sysmlpy.antlr_parser import SysMLSyntaxError
 
 
 def load_grammar(s, debug=False):
@@ -95,15 +97,14 @@ def load_grammar(s, debug=False):
         
         return result
     except antlr_parser.SysMLSyntaxError as e:
-        print("ANTLR4 returned the following error: {}".format(e))
         raise
 
 
-def load(fp):
+def load(fp) -> Model:
     """SysML load from file pointer
 
     Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
-    a SysML v2.0 document) to a Python dictionary object.
+    a SysML v2.0 document) to a Model object.
 
     Parameters
     ----------
@@ -112,8 +113,8 @@ def load(fp):
 
     Returns
     -------
-    dict
-        Dictionary version structured utilizing SysML v2.0 grammar
+    Model
+        Model instance structured utilizing SysML v2.0 grammar
 
     Raises
     ------
@@ -131,7 +132,7 @@ def load(fp):
     return loads(fp.read())
 
 
-def loads(s: str, library=None):
+def loads(s: str, library=None) -> Model:
     """Loads a model from string.
 
     This shortcut function allows a user to build a model from a string by
@@ -146,6 +147,11 @@ def loads(s: str, library=None):
         The SysML v2 source code to parse.
     library : str or Path, optional
         Path to SysML v2 library files for resolving imports.
+
+    Returns
+    -------
+    Model
+        Model instance built from the SysML source.
     """
     return Model().load(s, library=library)
 
@@ -195,15 +201,14 @@ def load_grammar_antlr(fp, debug=False, library=None):
     try:
         return antlr_visitor.parse_to_dict(s, library=library)
     except antlr_parser.SysMLSyntaxError as e:
-        print("ANTLR4 returned the following error: {}".format(e))
         raise
 
 
-def load_antlr(fp):
+def load_antlr(fp) -> Model:
     """SysML load from file pointer using ANTLR4 parser.
 
     Deserialize ``fp`` (a ``.read()``-supporting file-like object containing
-    a SysML v2.0 document) to a Python dictionary object.
+    a SysML v2.0 document) to a Model object.
 
     Parameters
     ----------
@@ -212,8 +217,8 @@ def load_antlr(fp):
 
     Returns
     -------
-    dict
-        Dictionary version structured utilizing SysML v2.0 grammar
+    Model
+        Model instance structured utilizing SysML v2.0 grammar
 
     Raises
     ------
@@ -237,7 +242,7 @@ from sysmlpy.plantuml import (to_plantuml, PlantUMLGenerator,
     as_parametric_view, as_requirement_view,
     as_tabular_view, as_data_value_tabular_view, as_relationship_matrix_view)
 
-from sysmlpy.semantic import analyze, SemanticIssue, SemanticAnalyzer
+from sysmlpy.semantic import analyze, AnalysisResult, SemanticIssue, SemanticAnalyzer
 
 from sysmlpy.project import load_files, load_project, load_with_dependencies
 

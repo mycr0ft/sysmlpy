@@ -267,3 +267,13 @@ def test_semantic_issue_repr_is_dataclass():
     assert "severity='error'" in r
     assert "code='UNDEF'" in r
     assert "message='undefined symbol'" in r
+
+
+# ---------------------------------------------------------------------------
+# T1-1: SysMLSyntaxError exported from package root
+# ---------------------------------------------------------------------------
+
+
+def test_sysml_syntax_error_exported():
+    import sysmlpy
+    assert sysmlpy.SysMLSyntaxError is not None

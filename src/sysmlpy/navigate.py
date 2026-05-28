@@ -16,12 +16,12 @@ After parsing, every node in the public-API tree supports::
     model.actions           # direct Action children
 
     model.find('Focus')                    # by name, any depth
-    model.find(type='action')              # by type keyword, any depth
-    model.find('Focus', type='action')     # name + type
-    model.find(type=Action)               # by class
-    model.find('Focus', recursive=False)  # direct children only
+    model.find(sysml_type='action')        # by type keyword, any depth
+    model.find('Focus', sysml_type='action')  # name + type
+    model.find(sysml_type=Action)          # by class
+    model.find('Focus', recursive=False)   # direct children only
 
-    model.all('part')                      # shorthand for find(type='part')
+    model.all('part')                      # shorthand for find(sysml_type='part')
 
 Type strings
 ------------
@@ -188,17 +188,19 @@ class Searchable:
     # Search methods
     # ------------------------------------------------------------------
 
-    def find(self, name=None, *, type=None, recursive=True):
+    def find(self, name=None, *, sysml_type=None, type=None, recursive=True):
         """Find model elements by name and/or SysML type.
 
         Parameters
         ----------
         name : str, optional
             Declared element name to match exactly.  ``None`` matches any name.
-        type : str or class, optional
+        sysml_type : str or class, optional
             SysML type to filter by.  Pass a string keyword (``'part'``,
             ``'action'``, …) or the corresponding class (``Part``,
             ``Action``, …).  ``None`` matches any type.
+        type : str or class, optional
+            Deprecated alias for ``sysml_type``.
         recursive : bool
             When ``True`` (default) the search descends recursively into
             every child that itself exposes a ``find`` method.
@@ -216,17 +218,25 @@ class Searchable:
 
         Find every action, top-level only::
 
-            model.find(type='action', recursive=False)
+            model.find(sysml_type='action', recursive=False)
 
         Find by class instead of string::
 
             from sysmlpy import Part
-            model.find(type=Part)
+            model.find(sysml_type=Part)
 
         Combine name and type::
 
-            model.find('engine', type='part')
+            model.find('engine', sysml_type='part')
         """
+        if type is not None and sysml_type is None:
+            import warnings
+            warnings.warn(
+                "find(type=...) is deprecated; use find(sysml_type=...) instead",
+                DeprecationWarning, stacklevel=2
+            )
+            sysml_type = type
+
         results = []
         for child in getattr(self, "children", []):
             # --- name gate ---
@@ -236,32 +246,34 @@ class Searchable:
                 name_ok = True
 
             # --- type gate ---
-            if type is None:
+            if sysml_type is None:
                 type_ok = True
-            elif isinstance(type, str):
-                type_ok = getattr(child, "sysml_type", None) == type
+            elif isinstance(sysml_type, str):
+                type_ok = getattr(child, "sysml_type", None) == sysml_type
             else:
-                type_ok = isinstance(child, type)
+                type_ok = isinstance(child, sysml_type)
 
             if name_ok and type_ok:
                 results.append(child)
 
             # --- recurse ---
             if recursive and hasattr(child, "find"):
-                results.extend(child.find(name=name, type=type, recursive=True))
+                results.extend(child.find(name=name, sysml_type=sysml_type, recursive=True))
 
         return results
 
-    def all(self, type, recursive=True):
-        """Return all elements of *type*, searching recursively by default.
+    def all(self, sysml_type, type=None, recursive=True):
+        """Return all elements of *sysml_type*, searching recursively by default.
 
-        This is a convenience alias for ``find(type=type, recursive=recursive)``.
+        This is a convenience alias for ``find(sysml_type=sysml_type, recursive=recursive)``.
 
         Parameters
         ----------
-        type : str or class
+        sysml_type : str or class
             SysML type string (``'part'``, ``'action'``, …) or the
             corresponding class.
+        type : str or class, optional
+            Deprecated alias for ``sysml_type``.
         recursive : bool
             When ``True`` (default) the search descends into every child.
 
@@ -269,4 +281,44 @@ class Searchable:
         -------
         list
         """
-        return self.find(type=type, recursive=recursive)
+        if type is not None and sysml_type is None:
+            import warnings
+            warnings.warn(
+                "all(type=...) is deprecated; use all(sysml_type=...) instead",
+                DeprecationWarning, stacklevel=2
+            )
+            sysml_type = type
+        return self.find(sysml_type=sysml_type, recursive=recursive)
+
+    def find_one(self, name=None, *, sysml_type=None):
+        """Return the single matching element, or None if not found.
+
+        Raises LookupError if more than one match is found.
+        Use find() if you expect multiple results.
+        """
+        results = self.find(name, sysml_type=sysml_type)
+        if not results:
+            return None
+        if len(results) > 1:
+            raise LookupError(
+                f"find_one: {len(results)} matches for {name!r}, expected at most 1"
+            )
+        return results[0]
+
+    # ------------------------------------------------------------------
+    # Container protocol (__iter__, __len__, __contains__)
+    # ------------------------------------------------------------------
+
+    def __iter__(self):
+        """Iterate over direct children."""
+        return iter(self.children)
+
+    def __len__(self) -> int:
+        """Return the number of direct children."""
+        return len(self.children)
+
+    def __contains__(self, item) -> bool:
+        """True if item is a direct child, or if a string matches any child's name."""
+        if isinstance(item, str):
+            return any(getattr(c, 'name', None) == item for c in self.children)
+        return item in self.children

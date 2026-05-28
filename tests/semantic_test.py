@@ -3,7 +3,7 @@
 """Tests for semantic analysis (undefined symbol detection)."""
 
 import pytest
-from sysmlpy import loads, analyze, SemanticIssue
+from sysmlpy import loads, analyze, AnalysisResult, SemanticIssue
 
 
 class TestBasicUndefinedDetection:
@@ -1387,3 +1387,98 @@ class TestFilePackageMatch:
         mismatch = [i for i in issues if i.code == "FILE_PACKAGE_MISMATCH"]
         for issue in mismatch:
             assert issue.severity == "warning"
+
+
+class TestAnalysisResult:
+    """Tests for AnalysisResult wrapper and strict mode."""
+
+    def test_analyze_returns_analysis_result(self):
+        model = loads("package P {}")
+        result = analyze(model)
+        assert isinstance(result, AnalysisResult)
+
+    def test_analysis_result_is_list_subclass(self):
+        model = loads("package P {}")
+        result = analyze(model)
+        assert isinstance(result, list)
+
+    def test_strict_raises_on_errors(self):
+        model = loads("""
+            package P {
+                part x : MissingType;
+            }
+        """)
+        with pytest.raises(ValueError, match="Semantic errors found"):
+            analyze(model, strict=True)
+
+    def test_strict_no_raise_on_clean_model(self):
+        model = loads("""
+            package P {
+                part def Engine;
+                part e : Engine;
+            }
+        """)
+        result = analyze(model, strict=True)
+        assert isinstance(result, AnalysisResult)
+        assert len(result) == 0
+
+    def test_errors_property(self):
+        model = loads("""
+            package P {
+                part x : MissingA;
+                part y : MissingB;
+            }
+        """)
+        result = analyze(model)
+        assert len(result.errors) > 0
+        assert all(i.severity == "error" for i in result.errors)
+
+    def test_warnings_property(self):
+        model = loads("""
+            package P {
+                part def engine_lowercase;
+            }
+        """)
+        result = analyze(model)
+        warnings = result.warnings
+        assert any("engine_lowercase" in i.message for i in warnings)
+
+    def test_raise_on_errors_raises_when_errors_exist(self):
+        model = loads("""
+            package P {
+                part x : MissingType;
+            }
+        """)
+        result = analyze(model)
+        with pytest.raises(ValueError, match="Semantic errors found"):
+            result.raise_on_errors()
+
+    def test_raise_on_errors_returns_self_when_clean(self):
+        model = loads("package P {}")
+        result = analyze(model)
+        returned = result.raise_on_errors()
+        assert returned is result
+
+    def test_bool_is_true_for_clean_model(self):
+        model = loads("package P {}")
+        result = analyze(model)
+        assert bool(result) is True
+
+    def test_bool_is_false_for_errored_model(self):
+        model = loads("""
+            package P {
+                part x : MissingType;
+            }
+        """)
+        result = analyze(model)
+        assert bool(result) is False
+
+    def test_analysis_result_still_iterable(self):
+        model = loads("""
+            package P {
+                part x : MissingType;
+            }
+        """)
+        result = analyze(model)
+        count = sum(1 for _ in result)
+        assert count == len(result)

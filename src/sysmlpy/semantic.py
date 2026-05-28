@@ -28,6 +28,38 @@ class SemanticIssue:
     reference: str = ""
 
 
+class AnalysisResult(list):
+    """A list of SemanticIssue with convenience accessors.
+
+    Backward-compatible with ``list[SemanticIssue]`` — existing code that
+    iterates or checks ``isinstance(result, list)`` continues to work.
+    """
+
+    @property
+    def errors(self) -> list[SemanticIssue]:
+        """Return only error-severity issues."""
+        return [i for i in self if i.severity == "error"]
+
+    @property
+    def warnings(self) -> list[SemanticIssue]:
+        """Return only warning-severity issues."""
+        return [i for i in self if i.severity == "warning"]
+
+    def raise_on_errors(self, message: str = "Semantic errors found") -> "AnalysisResult":
+        """Raise ValueError if any error-severity issues exist.
+
+        Returns self for chaining when no errors are present.
+        """
+        if self.errors:
+            details = "\n".join(f"  [{i.code}] {i.message}" for i in self.errors)
+            raise ValueError(f"{message}:\n{details}")
+        return self
+
+    def __bool__(self) -> bool:
+        """True when there are no errors (warnings are acceptable)."""
+        return len(self.errors) == 0
+
+
 # ---------------------------------------------------------------------------
 # Library Symbol Index
 # ---------------------------------------------------------------------------
@@ -2096,7 +2128,8 @@ def analyze(
     library: Path | Sequence[Path] | str | Sequence[str] | None = None,
     filename: str | Path | None = None,
     style_checks: bool = True,
-) -> list[SemanticIssue]:
+    strict: bool = False,
+) -> AnalysisResult:
     """Run semantic analysis on *model* and return issues.
 
     Parameters
@@ -2111,12 +2144,20 @@ def analyze(
     style_checks : bool
         If True (default), run stylistic checks (naming conventions,
         file-package matching). Set to False to skip warnings.
+    strict : bool
+        If True, raises ValueError when any error-severity issues are found.
+        Default False.
 
     Returns
     -------
-    list[SemanticIssue]
-        List of semantic issues found.
+    AnalysisResult
+        List of semantic issues found, wrapped in AnalysisResult for
+        convenient access to ``.errors`` and ``.warnings`` properties.
     """
-    return SemanticAnalyzer().analyze(
+    issues = SemanticAnalyzer().analyze(
         model, library=library, filename=filename, style_checks=style_checks
     )
+    result = AnalysisResult(issues)
+    if strict:
+        result.raise_on_errors()
+    return result

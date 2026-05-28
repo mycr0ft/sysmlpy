@@ -212,20 +212,31 @@ def test_find_by_name_on_package(pkg):
 
 
 def test_find_by_type_string(model):
-    result = model.find(type="action")
+    result = model.find(sysml_type="action")
     assert len(result) >= 2
     assert all(r.sysml_type == "action" for r in result)
 
 
 def test_find_by_type_class(model):
-    result = model.find(type=Action)
+    result = model.find(sysml_type=Action)
     assert len(result) >= 2
     assert all(isinstance(r, Action) for r in result)
 
 
 def test_find_by_type_part_class(model):
-    result = model.find(type=Part)
+    result = model.find(sysml_type=Part)
     assert all(isinstance(r, Part) for r in result)
+
+
+def test_find_deprecated_type_still_works(model):
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        result = model.find(type="action")
+        assert len(result) >= 2
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "find(type=...) is deprecated" in str(w[0].message)
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +245,7 @@ def test_find_by_type_part_class(model):
 
 
 def test_find_name_and_type_match(model):
-    result = model.find("Focus", type="action")
+    result = model.find("Focus", sysml_type="action")
     assert len(result) >= 1
     assert result[0].name == "Focus"
     assert result[0].sysml_type == "action"
@@ -242,7 +253,7 @@ def test_find_name_and_type_match(model):
 
 def test_find_name_and_type_no_match(model):
     # "Focus" is an action, not a part
-    result = model.find("Focus", type="part")
+    result = model.find("Focus", sysml_type="part")
     assert result == []
 
 
@@ -381,10 +392,10 @@ def test_programmatic_model_navigation():
     assert len(found) == 1
     assert found[0].name == "Start"
 
-    found_typed = pkg.find("Engine", type="part")
+    found_typed = pkg.find("Engine", sysml_type="part")
     assert len(found_typed) == 1
 
-    not_found = pkg.find("Engine", type="action")
+    not_found = pkg.find("Engine", sysml_type="action")
     assert not_found == []
 
 
@@ -412,3 +423,54 @@ def test_all_on_programmatic_model():
     all_actions = m.all("action")
     assert len(all_actions) == 1
     assert all_actions[0].name == "Drive"
+
+
+# ---------------------------------------------------------------------------
+# find_one()
+# ---------------------------------------------------------------------------
+
+
+def test_find_one_returns_element_when_exactly_one_match(model):
+    result = model.find_one("Focus")
+    assert result is not None
+    assert result.name == "Focus"
+
+
+def test_find_one_returns_none_when_no_match(model):
+    result = model.find_one("DoesNotExist")
+    assert result is None
+
+
+def test_find_one_raises_lookup_error_on_multiple_matches():
+    """Multiple parts named 'engine' in different packages."""
+    m = loads("""
+    package A { part engine; }
+    package B { part engine; }
+    """)
+    with pytest.raises(LookupError, match="find_one.*2 matches"):
+        m.find_one("engine")
+
+
+def test_find_one_with_sysml_type_filter(pkg):
+    result = pkg.find_one("Focus", sysml_type="action")
+    assert result is not None
+    assert result.name == "Focus"
+    assert result.sysml_type == "action"
+
+
+def test_find_one_with_sysml_type_no_match(pkg):
+    result = pkg.find_one("Focus", sysml_type="part")
+    assert result is None
+
+
+def test_find_one_on_nested_element():
+    m = loads("""
+    package Test {
+        part engine {
+            part cylinder;
+        }
+    }
+    """)
+    result = m.find_one("cylinder")
+    assert result is not None
+    assert result.name == "cylinder"
