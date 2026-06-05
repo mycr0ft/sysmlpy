@@ -2199,10 +2199,35 @@ def test_Training_Analysis_Trade_Study_Analysis_Example():
     			);
     		}
     		
-    		return part :>> selectedAlternative : Engine;
+    	return part :>> selectedAlternative : Engine;
     	}
     	
     }"""
     a = loads(text)
     b = classtree(a)
     assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_dump_no_double_space_empty_body():
+    """Regression: part def Engine; must not produce double space before ;."""
+    text = """package P {
+    part def Engine;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    dump = b.dump()
+    assert "  ;" not in dump, f"Double space before semicolon in: {dump}"
+    assert "  {" not in dump, f"Double space before brace in: {dump}"
+
+
+def test_dump_no_double_space_typed_usage():
+    """Regression: part engine1 : Engine; must not produce double space."""
+    text = """package P {
+    part def Engine;
+    part engine1 : Engine;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    dump = b.dump()
+    assert "  ;" not in dump, f"Double space before semicolon in: {dump}"
+    assert "  {" not in dump, f"Double space before brace in: {dump}"
