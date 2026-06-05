@@ -274,6 +274,32 @@ def _get_redefines_names(element):
     return names
 
 
+def _get_multiplicity_label(element):
+    """Extract multiplicity string like '[4]' from an element's grammar."""
+    grammar = getattr(element, 'grammar', None)
+    if not grammar:
+        return ''
+    try:
+        usage = getattr(grammar, 'usage', None)
+        if usage is None:
+            return ''
+        decl = getattr(usage, 'declaration', None)
+        if decl is None:
+            return ''
+        inner_decl = getattr(decl, 'declaration', None)
+        if inner_decl is None:
+            return ''
+        spec = getattr(inner_decl, 'specialization', None)
+        if spec is None:
+            return ''
+        mp = getattr(spec, 'multiplicity', None)
+        if mp is None:
+            return ''
+        return mp.dump()
+    except AttributeError:
+        return ''
+
+
 def _get_stereotype(element, style="bw"):
     """Get the stereotype string for an element."""
     sysml_type = getattr(element, 'sysml_type', None)
@@ -1441,7 +1467,7 @@ def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
             "skinparam defaultFontSize 12",
             "skinparam defaultFontName Helvetica",
             "",
-            "skinparam rectangle<<block>> {",
+            "skinparam rectangle<<part def>> {",
             "    RoundCorner 0",
             "    BackgroundColor white",
             "    Padding 0",
@@ -1463,7 +1489,7 @@ def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
             "    FontName Helvetica",
             "    FontSize 13",
             "}",
-            "rectangle<<block>> {",
+            "rectangle<<part def>> {",
             "    LineColor #444444",
             "    LineThickness 1.5",
             "    BackgroundColor white",
@@ -1609,7 +1635,7 @@ def as_internal_block_diagram(model, focus=None, style="bw", direction="TB",
         conn_aliases[name] = f"C{i}"
     
     # Render block with nested structure
-    lines.append(f'rectangle "{block_name}" as {block_alias} <<block>> {{')
+    lines.append(f'rectangle "{block_name}" as {block_alias} <<part def>> {{')
     
     # Render ports first (on boundary) - just list them with the part
     # PlantUML 1.2024.7+ doesn't support boundary { } compartment syntax
@@ -3223,7 +3249,7 @@ def as_textual_notation(model, focus=None, style="bw", custom_style=None):
 
 def as_general_view(model, focus=None, elements=None, style="bw", direction="TB",
                     include_legend=True, max_depth=None, show_external=False,
-                    custom_style=None):
+                    custom_style=None, show_multiplicity=False):
     """Generate a General View (GV) diagram.
 
     Corresponds to SysML v2 ``GeneralView`` (short name ``gv``).
@@ -3241,6 +3267,7 @@ def as_general_view(model, focus=None, elements=None, style="bw", direction="TB"
         max_depth: Maximum depth to traverse from focus
         show_external: Show relationships to elements outside selection
         custom_style: Optional PlantUML style lines to append
+        show_multiplicity: Append multiplicity like [4] to element labels
 
     Returns:
         str: PlantUML text
@@ -3465,7 +3492,12 @@ def as_general_view(model, focus=None, elements=None, style="bw", direction="TB"
                 keyword = "state"
             elif sysml_type == 'view':
                 keyword = "folder"
-            lines.append(f'{keyword} "{name}" as {alias} {stereotype}')
+            label = name
+            if show_multiplicity:
+                mul = _get_multiplicity_label(elem)
+                if mul:
+                    label = f'{name} {mul}'
+            lines.append(f'{keyword} "{label}" as {alias} {stereotype}')
 
     lines.append("")
 
@@ -3547,7 +3579,7 @@ def as_block_definition_view(model, focus=None, elements=None, style="bw",
             "skinparam defaultFontSize 12",
             "skinparam defaultFontName Helvetica",
             "",
-            "skinparam rectangle<<block>> {",
+            "skinparam rectangle<<part def>> {",
             "    RoundCorner 0",
             "    BackgroundColor white",
             "    Padding 0",
@@ -3561,7 +3593,7 @@ def as_block_definition_view(model, focus=None, elements=None, style="bw",
             "    FontName Helvetica",
             "    FontSize 13",
             "}",
-            "rectangle<<block>> {",
+            "rectangle<<part def>> {",
             "    LineColor #444444",
             "    LineThickness 1.5",
             "    BackgroundColor white",
@@ -3708,14 +3740,14 @@ def as_block_definition_view(model, focus=None, elements=None, style="bw",
         
         # Build PlantUML rectangle with compartments
         if compartments:
-            lines.append(f'rectangle "{name}" as {alias} <<block>> {{')
+            lines.append(f'rectangle "{name}" as {alias} <<part def>> {{')
             for comp_name, items in compartments:
                 lines.append(f'  {comp_name}')
                 for item in items:
                     lines.append(f'    {item}')
             lines.append('}')
         else:
-            lines.append(f'rectangle "{name}" as {alias} <<block>>')
+            lines.append(f'rectangle "{name}" as {alias} <<part def>>')
     
     lines.append("")
     

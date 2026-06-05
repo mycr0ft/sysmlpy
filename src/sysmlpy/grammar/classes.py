@@ -2555,8 +2555,7 @@ class ActionDefinition:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
-        return " ".join(output)
+        return " ".join(filter(None, output)) + self.body.dump()
 
     def get_definition(self):
         output = {"name": self.__class__.__name__, "prefix": None}
@@ -4611,7 +4610,7 @@ class Definition:
             self.body = DefinitionBody()
 
     def dump(self):
-        return " ".join([self.declaration.dump(), self.body.dump()])
+        return "".join([self.declaration.dump(), self.body.dump()])
 
     def get_definition(self):
         return {

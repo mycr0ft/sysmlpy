@@ -1610,7 +1610,7 @@ class TestBlockDefinitionView:
         assert "@enduml" in puml
         assert "BlockA" in puml
         assert "BlockB" in puml
-        assert "<<block>>" in puml
+        assert "<<part def>>" in puml
 
     def test_as_block_definition_view_with_attributes(self):
         """BDD shows attribute compartments."""
@@ -1696,7 +1696,7 @@ class TestBlockDefinitionView:
         puml = as_block_definition_view(model, style="color")
 
         assert "<style>" in puml
-        assert "rectangle<<block>>" in puml
+        assert "rectangle<<part def>>" in puml
 
     def test_as_block_definition_view_no_legend(self):
         """BDD can omit legend."""
@@ -1752,7 +1752,7 @@ class TestInternalBlockDiagram:
         assert "@enduml" in puml
         assert "BlockB" in puml
         assert "part1" in puml
-        assert "<<block>>" in puml
+        assert "<<part def>>" in puml
         assert "<<part>>" in puml
 
     def test_as_internal_block_diagram_with_ports(self):
@@ -1816,7 +1816,7 @@ class TestInternalBlockDiagram:
         puml = as_internal_block_diagram(model, focus=block_a, style="color")
 
         assert "<style>" in puml
-        assert "rectangle<<block>>" in puml
+        assert "rectangle<<part def>>" in puml
 
     def test_as_internal_block_diagram_no_legend(self):
         """IBD can omit legend."""
