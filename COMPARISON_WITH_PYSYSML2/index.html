@@ -1,0 +1,1816 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SysML v2.0 Parser for Python">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>sysmlpy vs PySysML2: Comparison - sysmlpy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sysmlpy-vs-pysysml2-comparison" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="sysmlpy" class="md-header__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sysmlpy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              sysmlpy vs PySysML2: Comparison
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="sysmlpy" class="md-nav__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sysmlpy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TUTORIAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TODO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-parsing-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Parsing Coverage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Parsing Coverage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-programmatic-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Programmatic API
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Programmatic API">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-diagram-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Diagram Generation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Diagram Generation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy-17-view-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy (17 view functions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2-basic-graphviz-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2 (basic graphviz output)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-semantic-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Semantic Analysis
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Semantic Analysis">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-storage-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Storage Backends
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Storage Backends">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-output-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Output Formats
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. CLI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. CLI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-test-suite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Test Suite
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-standard-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Standard Library
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Standard Library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-unit-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Unit Validation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Unit Validation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-multi-file-project-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Multi-file Project Support
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Multi-file Project Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-model-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Model Navigation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Model Navigation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sysmlpy_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sysmlpy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pysysml2_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PySysML2
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verdict" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verdict
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sysmlpy-vs-pysysml2-comparison">sysmlpy vs PySysML2: Comparison<a class="headerlink" href="#sysmlpy-vs-pysysml2-comparison" title="Permanent link">&para;</a></h1>
+<p>A detailed comparison of two Python libraries for SysML v2 textual modeling.</p>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>sysmlpy</th>
+<th>PySysML2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Version</strong></td>
+<td>0.31.3</td>
+<td>0.1.1</td>
+</tr>
+<tr>
+<td><strong>Maintainer</strong></td>
+<td>Jon Fox (mycr0ft)</td>
+<td>Keith Lucas (DAF Digital Transformation Office)</td>
+</tr>
+<tr>
+<td><strong>License</strong></td>
+<td>MIT</td>
+<td>Apache 2.0</td>
+</tr>
+<tr>
+<td><strong>Repository</strong></td>
+<td>https://github.com/mycr0ft/sysmlpy</td>
+<td>https://github.com/DAF-Digital-Transformation-Office/PySysML2</td>
+</tr>
+<tr>
+<td><strong>Language</strong></td>
+<td>Python 3.9+</td>
+<td>Python 3.8+</td>
+</tr>
+<tr>
+<td><strong>Parser</strong></td>
+<td>ANTLR4 (full SysML v2 grammar)</td>
+<td>ANTLR4 (subset grammar)</td>
+</tr>
+<tr>
+<td><strong>Stars</strong></td>
+<td>~250+</td>
+<td>~60</td>
+</tr>
+<tr>
+<td><strong>Commits</strong></td>
+<td>1000+</td>
+<td>2 (initial commit + 1 update)</td>
+</tr>
+<tr>
+<td><strong>Core source</strong></td>
+<td>~37K lines across 11 modules</td>
+<td>~1.5K lines across 4 modules</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-parsing-coverage">1. Parsing Coverage<a class="headerlink" href="#1-parsing-coverage" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy">sysmlpy<a class="headerlink" href="#sysmlpy" title="Permanent link">&para;</a></h3>
+<p>Full SysML v2 / KerML metamodel via ANTLR4 grammar. 319 grammar classes in <code>grammar/classes.py</code> covering all SysML v2 constructs:</p>
+<p><strong>Structural:</strong> packages, parts, items, ports, interfaces, connections, flows (with flow definitions), attributes (with redefinition), enumerations, references, allocations, messages</p>
+<p><strong>Behavioral:</strong> actions (definition usage, shorthand, succession, decomposition), states (with transitions), calculations, constraints</p>
+<p><strong>Control flow:</strong> if/else, while loops, for loops, fork, join, decision, send, accept, terminate</p>
+<p><strong>Requirements &amp; analysis:</strong> requirements, use cases, objectives, analysis cases, verification cases, trade studies</p>
+<p><strong>Views &amp; cross-cutting:</strong> views (general, action flow, interconnection, state transition, package, BDD, IBD, parametric, requirement), viewpoints, concerns, metadata, renderings, individuals</p>
+<p><strong>Full round-trip:</strong> all 77 grammar tests pass (parse -&gt; grammar object -&gt; dump() -&gt; re-parse -&gt; identical)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># sysmlpy parsing examples</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">parse</span><span class="p">,</span> <span class="n">load_grammar</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Parse from string — returns Model</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="s2">    package Simple {</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="s2">        part def Motor;</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="s2">        part myMotor : Motor;</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="s2">    }</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1"># Parse with error handling (never raises)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">m</span><span class="p">,</span> <span class="n">errors</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="s2">&quot;invalid syntax {{}&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># returns (None, [error lines])</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># Raw dict access</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">d</span> <span class="o">=</span> <span class="n">load_grammar</span><span class="p">(</span><span class="s2">&quot;part def A;&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="pysysml2">PySysML2<a class="headerlink" href="#pysysml2" title="Permanent link">&para;</a></h3>
+<p>Partial SysML v2 grammar with ~15 element types, 4 relationship types:</p>
+<p><strong>Elements:</strong> package, part definition, attribute, comment, doc, import, include, item, objective, port, use case, connection end part</p>
+<p><strong>Relationships:</strong> connect, specializes, redefines, message</p>
+<p><strong>Not implemented (raise <code>NotImplementedError</code>):</strong> actor, about</p>
+<p><strong>Not covered at all:</strong> actions, states, constraints, calculations, flows (no flow def), interfaces, requirements, views/viewpoints, control flow, analysis cases, enumerations, references, allocations, messages (partially), metadata, renderings</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># PySysML2 parsing examples</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pysysml2.modeling</span><span class="w"> </span><span class="kn">import</span> <span class="n">Model</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">model</span><span class="o">.</span><span class="n">from_sysml2_file</span><span class="p">(</span><span class="s2">&quot;model.sysml2&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="c1"># No string-based API; only file-based</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="c1"># No load_grammar/loads equivalent — must write to file first</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># No error handling API</span>
+</code></pre></div>
+<hr />
+<h2 id="2-programmatic-api">2. Programmatic API<a class="headerlink" href="#2-programmatic-api" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_1">sysmlpy<a class="headerlink" href="#sysmlpy_1" title="Permanent link">&para;</a></h3>
+<p>Full programmatic construction of SysML models with type checking, unit support, and round-trip text generation:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Part</span><span class="p">,</span> <span class="n">Item</span><span class="p">,</span> <span class="n">Attribute</span><span class="p">,</span> <span class="n">Action</span><span class="p">,</span> <span class="n">Port</span><span class="p">,</span> <span class="n">Connection</span><span class="p">,</span> <span class="n">State</span><span class="p">,</span> \
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">Requirement</span><span class="p">,</span> <span class="n">Case</span><span class="p">,</span> <span class="n">Constraint</span><span class="p">,</span> <span class="n">Calculation</span><span class="p">,</span> <span class="n">Enumeration</span><span class="p">,</span> <span class="n">ureg</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Structure</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">sensor</span> <span class="o">=</span> <span class="n">Part</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sensor&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">camera</span> <span class="o">=</span> <span class="n">Part</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;camera&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">lens</span> <span class="o">=</span> <span class="n">Item</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;lens&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">mass</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mass&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">mass</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="mi">100</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">kilogram</span><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">camera</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">sensor</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">camera</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">sensor</span><span class="o">.</span><span class="n">add_child</span><span class="p">(</span><span class="n">lens</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">sensor</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># part sensor {</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1">#     part camera {</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="c1">#         attribute mass = 100 kg;</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1">#     }</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="c1">#     item lens;</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="c1"># }</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="c1"># Behavior</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="n">action</span> <span class="o">=</span> <span class="n">Action</span><span class="p">(</span><span class="n">definition</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Focus&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="n">action</span><span class="o">.</span><span class="n">add_input</span><span class="p">(</span><span class="s1">&#39;scene&#39;</span><span class="p">,</span> <span class="s1">&#39;Scene&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="n">action</span><span class="o">.</span><span class="n">add_output</span><span class="p">(</span><span class="s1">&#39;image&#39;</span><span class="p">,</span> <span class="s1">&#39;Image&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="c1"># Ports &amp; connections</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="n">port1</span> <span class="o">=</span> <span class="n">Port</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="n">port2</span> <span class="o">=</span> <span class="n">Port</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;power&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="n">conn</span> <span class="o">=</span> <span class="n">Connection</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;bus&#39;</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">port1</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">port2</span><span class="p">)</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="c1"># States</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="n">state</span> <span class="o">=</span> <span class="n">State</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Idle&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="n">state</span><span class="o">.</span><span class="n">add_transition</span><span class="p">(</span><span class="s1">&#39;Active&#39;</span><span class="p">,</span> <span class="n">trigger</span><span class="o">=</span><span class="s1">&#39;start&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="c1"># Requirements</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="n">req</span> <span class="o">=</span> <span class="n">Requirement</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Performance&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="n">req</span><span class="o">.</span><span class="n">add_text</span><span class="p">(</span><span class="s1">&#39;The system shall respond in &lt; 100ms&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="c1"># Analysis</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="n">case</span> <span class="o">=</span> <span class="n">Case</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;ThermalCase&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a><span class="n">constraint</span> <span class="o">=</span> <span class="n">Constraint</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;PowerBudget&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a><span class="n">calc</span> <span class="o">=</span> <span class="n">Calculation</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Sum&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a><span class="c1"># Typed values with units</span>
+<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a><span class="n">mass</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="mf">5.0</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">kilogram</span><span class="p">)</span>
+<a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a><span class="n">length</span> <span class="o">=</span> <span class="n">Attribute</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;length&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a><span class="n">length</span><span class="o">.</span><span class="n">set_value</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">*</span> <span class="n">ureg</span><span class="o">.</span><span class="n">meter</span><span class="p">)</span>
+<a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a>
+<a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a><span class="c1"># Enumeration</span>
+<a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a><span class="n">status</span> <span class="o">=</span> <span class="n">Enumeration</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Status&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ON&#39;</span><span class="p">,</span> <span class="s1">&#39;OFF&#39;</span><span class="p">,</span> <span class="s1">&#39;STANDBY&#39;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="pysysml2_1">PySysML2<a class="headerlink" href="#pysysml2_1" title="Permanent link">&para;</a></h3>
+<p>Minimal programmatic API. Elements are constructed by the parser only — no factory-style <code>Part(name=...)</code> construction. Elements carry parsed properties as dict-like attributes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># PySysML2 — no programmatic construction API</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># Elements only exist after parsing a .sysml2 file</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">model</span><span class="o">.</span><span class="n">from_sysml2_file</span><span class="p">(</span><span class="s2">&quot;model.sysml2&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Traversal via anytree RenderTree</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">anytree</span><span class="w"> </span><span class="kn">import</span> <span class="n">RenderTree</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">for</span> <span class="n">pre</span><span class="p">,</span> <span class="n">fill</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">RenderTree</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">):</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pre</span><span class="si">}{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># Element properties (populated by parser)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">part</span> <span class="o">=</span> <span class="n">some_node</span>  <span class="c1"># from tree</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>        <span class="c1"># str</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">sysml2_type</span><span class="p">)</span> <span class="c1"># e.g. &#39;part&#39;</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">idx</span><span class="p">)</span>         <span class="c1"># int index</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">keywords</span><span class="p">)</span>    <span class="c1"># list of matched keywords</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">value_types</span><span class="p">)</span> <span class="c1"># typing info</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">constants</span><span class="p">)</span>   <span class="c1"># constant values</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">multiplicity</span><span class="p">)</span> <span class="c1"># multiplicity strings</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="c1"># No set_value(), add_child(), dump(), etc.</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="c1"># No unit support (units not modeled)</span>
+</code></pre></div>
+<hr />
+<h2 id="3-diagram-generation">3. Diagram Generation<a class="headerlink" href="#3-diagram-generation" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy-17-view-functions">sysmlpy (17 view functions)<a class="headerlink" href="#sysmlpy-17-view-functions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># PlantUML generation with 17 view types</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">as_general_view</span><span class="p">,</span> <span class="n">as_block_definition_view</span><span class="p">,</span> \
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">as_internal_block_diagram</span><span class="p">,</span> <span class="n">as_action_flow_view</span><span class="p">,</span> <span class="n">as_state_transition_view</span><span class="p">,</span> \
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">as_interconnection_view</span><span class="p">,</span> <span class="n">as_package_view</span><span class="p">,</span> <span class="n">as_package_diagram_view</span><span class="p">,</span> \
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">as_parametric_view</span><span class="p">,</span> <span class="n">as_tabular_view</span><span class="p">,</span> <span class="n">as_data_value_tabular_view</span><span class="p">,</span> \
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">as_relationship_matrix_view</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="s2">    package Sys {</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="s2">        part def Motor;</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="s2">        part myMotor : Motor;</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="s2">    }</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1"># General view — full graph</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># @startuml</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1"># skinparam style strictuml</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># ...</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># @enduml</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="c1"># Block definition diagram — definitions with compartments</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_block_definition_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="c1"># Internal block diagram — single block internals</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_internal_block_diagram</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="s2">&quot;myMotor&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="c1"># Action flow view — control/object flows</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_action_flow_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="c1"># State transition view — hierarchical states</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_state_transition_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="c1"># Tabular output in multiple formats</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;markdown&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="c1"># Relationship matrix</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_relationship_matrix_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="c1"># Style options: &quot;bw&quot; (default) or &quot;color&quot;</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;color&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="c1"># Direction: &quot;left_to_right&quot; or &quot;top_to_bottom&quot;</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;left_to_right&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="c1"># Filtering: focus on subtree</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_block_definition_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="s2">&quot;Sensor&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="c1"># Custom PlantUML styling</span>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="n">custom</span> <span class="o">=</span> <span class="s2">&quot;skinparam backgroundColor #lightyellow&quot;</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">custom_style</span><span class="o">=</span><span class="n">custom</span><span class="p">))</span>
+</code></pre></div>
+<h3 id="pysysml2-basic-graphviz-output">PySysML2 (basic graphviz output)<a class="headerlink" href="#pysysml2-basic-graphviz-output" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Single graphviz dot/png export — not SysML-aware views</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">()</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">model</span><span class="o">.</span><span class="n">from_sysml2_file</span><span class="p">(</span><span class="s2">&quot;model.sysml2&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Export to graphviz DOT</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">model</span><span class="o">.</span><span class="n">to_dot</span><span class="p">(</span><span class="n">out_dir</span><span class="o">=</span><span class="s2">&quot;./output&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="c1"># Export to PNG (requires graphviz `dot` command)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="n">model</span><span class="o">.</span><span class="n">to_png</span><span class="p">(</span><span class="n">out_dir</span><span class="o">=</span><span class="s2">&quot;./output&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># What the output shows: a generic anytree node-link diagram</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="c1"># No SysML-specific view types (no BDD, IBD, parametric, etc.)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># No PlantUML support</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="c1"># No tabular/matrix views</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="c1"># No style customization</span>
+</code></pre></div>
+<hr />
+<h2 id="4-semantic-analysis">4. Semantic Analysis<a class="headerlink" href="#4-semantic-analysis" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_2">sysmlpy<a class="headerlink" href="#sysmlpy_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">analyze</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="s2">    package Test {</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="s2">        part def Motor;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="s2">        part myMotor : Motor;</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="s2">    }</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyze</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="c1"># Check for errors</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="k">for</span> <span class="n">issue</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">severity</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">code</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Element: </span><span class="si">{</span><span class="n">issue</span><span class="o">.</span><span class="n">element</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="c1"># Raise on errors</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="n">result</span><span class="o">.</span><span class="n">raise_on_errors</span><span class="p">()</span>  <span class="c1"># ValueError if any errors found</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="c1"># Check severity</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span>    <span class="c1"># filter error-severity</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="p">)</span>  <span class="c1"># filter warning-severity</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="nb">print</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>     <span class="c1"># True if no errors (warnings OK)</span>
+</code></pre></div>
+<p><strong>9 OCL well-formedness checks:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DUPLICATE_NAME</code></td>
+<td>No duplicate names in scope</td>
+</tr>
+<tr>
+<td><code>CYCLIC_SPECIALIZATION</code></td>
+<td>No cyclic specialization</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_SUBSETTING</code></td>
+<td>Subsetting references defined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_REDEFINITION</code></td>
+<td>Redefinition references defined feature</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PART_DEFINITION</code></td>
+<td>Part usage typed by PartDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_PORT_DEFINITION</code></td>
+<td>Port usage typed by PortDefinition</td>
+</tr>
+<tr>
+<td><code>INCOMPATIBLE_FEATURE_CHAIN</code></td>
+<td>Chained features compatible types</td>
+</tr>
+<tr>
+<td><code>INVALID_MULTIPLICITY_BOUNDS</code></td>
+<td>Lower &lt;= upper bound</td>
+</tr>
+<tr>
+<td><code>UNRESOLVED_IMPORT</code></td>
+<td>Import target exists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Import resolution:</strong> 5 patterns (private <code>*</code>, specific name, recursive <code>::*::**</code>, public, protected), hierarchical scope resolution, qualified name lookup (<code>P::A</code>).</p>
+<p><strong>Library symbol index:</strong> scans 88 bundled <code>.kerml</code>/<code>.sysml</code> library files (~1,417 symbols).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Semantic analysis with import resolution</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_with_dependencies</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">model</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_with_dependencies</span><span class="p">(</span><span class="s2">&quot;main.sysml&quot;</span><span class="p">,</span> <span class="n">search_paths</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;./libraries&quot;</span><span class="p">])</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">result</span> <span class="o">=</span> <span class="n">analyze</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Symbol table access</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">SemanticAnalyzer</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="n">analyzer</span> <span class="o">=</span> <span class="n">SemanticAnalyzer</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">scope</span> <span class="o">=</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">current_scope</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">scope</span><span class="o">.</span><span class="n">symbols</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="pysysml2_2">PySysML2<a class="headerlink" href="#pysysml2_2" title="Permanent link">&para;</a></h3>
+<p>No semantic analysis module. No validation, no OCL checks, no symbol resolution, no import resolution beyond recording the <code>import</code> element in the tree.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># PySysML2 — no analyze() equivalent</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># The parser records imports as elements but does not resolve them</span>
+</code></pre></div>
+<hr />
+<h2 id="5-storage-backends">5. Storage Backends<a class="headerlink" href="#5-storage-backends" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_3">sysmlpy<a class="headerlink" href="#sysmlpy_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">InMemoryStore</span><span class="p">,</span> <span class="n">NetworkXStore</span><span class="p">,</span> <span class="n">KuzuStore</span><span class="p">,</span> <span class="n">CayleyStore</span><span class="p">,</span> \
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">create_store</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Abstract Store protocol with 4 implementations</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># In-memory (stdlib, no deps)</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">store</span> <span class="o">=</span> <span class="n">InMemoryStore</span><span class="p">()</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Motor&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;Part&quot;</span><span class="p">})</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="n">store</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;part2&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Sensor&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;Part&quot;</span><span class="p">})</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">store</span><span class="o">.</span><span class="n">put_edge</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">,</span> <span class="s2">&quot;connects&quot;</span><span class="p">,</span> <span class="s2">&quot;part2&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="c1"># Get/query</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">))</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;Part&quot;</span><span class="p">))</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">store</span><span class="o">.</span><span class="n">neighbors</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">,</span> <span class="s2">&quot;connects&quot;</span><span class="p">))</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="c1"># NetworkX graph analysis</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="n">store</span> <span class="o">=</span> <span class="n">NetworkXStore</span><span class="p">()</span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="c1"># ... populate ...</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="n">store</span><span class="o">.</span><span class="n">connected_components</span><span class="p">()</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="n">store</span><span class="o">.</span><span class="n">centrality</span><span class="p">()</span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="n">store</span><span class="o">.</span><span class="n">cycles</span><span class="p">()</span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="n">store</span><span class="o">.</span><span class="n">stats</span><span class="p">()</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="n">store</span><span class="o">.</span><span class="n">export_graphml</span><span class="p">()</span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a><span class="c1"># KuzuDB (embedded, persistent, Cypher queries)</span>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="n">store</span> <span class="o">=</span> <span class="n">KuzuStore</span><span class="p">(</span><span class="n">database_path</span><span class="o">=</span><span class="s2">&quot;./my_model.kuzu&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a><span class="c1"># Cayley (remote graph DB via HTTP)</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="n">store</span> <span class="o">=</span> <span class="n">CayleyStore</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:64210&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="c1"># Factory</span>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a><span class="n">store</span> <span class="o">=</span> <span class="n">create_store</span><span class="p">(</span><span class="s2">&quot;memory&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a><span class="n">store</span> <span class="o">=</span> <span class="n">create_store</span><span class="p">(</span><span class="s2">&quot;networkx&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="c1"># Graph traversal</span>
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a><span class="n">store</span><span class="o">.</span><span class="n">descendants</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a><span class="n">store</span><span class="o">.</span><span class="n">ancestors</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a><span class="n">store</span><span class="o">.</span><span class="n">path</span><span class="p">(</span><span class="s2">&quot;part1&quot;</span><span class="p">,</span> <span class="s2">&quot;part5&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="pysysml2_3">PySysML2<a class="headerlink" href="#pysysml2_3" title="Permanent link">&para;</a></h3>
+<p>No storage abstraction. Models live in memory as anytree <code>NodeMixin</code> trees. No persistence, no graph DB integration, no query language support.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># PySysML2 — only in-memory anytree trees</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="c1"># Export via to_JSON(), to_csv(), to_excel() — file-based serialization only</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">model</span><span class="o">.</span><span class="n">to_JSON</span><span class="p">(</span><span class="s2">&quot;./output.json&quot;</span><span class="p">)</span>    <span class="c1"># anytree JSON export</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">model</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;./output.csv&quot;</span><span class="p">)</span>      <span class="c1"># pandas DataFrame export</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">model</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">&quot;./output.xlsx&quot;</span><span class="p">)</span>   <span class="c1"># Excel via openpyxl</span>
+</code></pre></div>
+<hr />
+<h2 id="6-output-formats">6. Output Formats<a class="headerlink" href="#6-output-formats" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>sysmlpy</th>
+<th>PySysML2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SysML v2 text (<code>dump()</code>)</td>
+<td>Yes (full round-trip)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>PlantUML</td>
+<td>Yes (17 view types)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Graphviz DOT</td>
+<td>No (uses PlantUML)</td>
+<td>Yes (basic tree)</td>
+</tr>
+<tr>
+<td>PNG</td>
+<td>Via PlantUML renderer</td>
+<td>Via graphviz</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Yes (<code>get_definition()</code>)</td>
+<td>Yes (anytree)</td>
+</tr>
+<tr>
+<td>CSV</td>
+<td>Via pandas export</td>
+<td>Yes (via anytree-&gt;DataFrame)</td>
+</tr>
+<tr>
+<td>Excel</td>
+<td>Via pandas export</td>
+<td>Yes (via openpyxl)</td>
+</tr>
+<tr>
+<td>Markdown tables</td>
+<td>Yes (GridView output)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>HTML tables</td>
+<td>Yes (GridView output)</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Python <code>repr()</code></td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>In-place formatting</td>
+<td>Yes (<code>--in-place</code> CLI flag)</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-cli">7. CLI<a class="headerlink" href="#7-cli" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_4">sysmlpy<a class="headerlink" href="#sysmlpy_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Format/analyze SysML files from command line</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w">                  </span><span class="c1"># Print model repr</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>--dump<span class="w">           </span><span class="c1"># Print SysML text</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>--json<span class="w">           </span><span class="c1"># Print JSON/dict</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>--python<span class="w">         </span><span class="c1"># Print Python repr</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>-i<span class="w">               </span><span class="c1"># Format in-place</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>--check<span class="w">          </span><span class="c1"># Check formatting, exit 1 if unformatted</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>sysmlpy<span class="w"> </span>model.sysml2<span class="w"> </span>-l<span class="w"> </span>./libraries<span class="w">   </span><span class="c1"># Use library path</span>
+</code></pre></div>
+<h3 id="pysysml2_4">PySysML2<a class="headerlink" href="#pysysml2_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Export model to various data formats</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>pysysml2<span class="w"> </span><span class="nb">export</span><span class="w"> </span>model.sysml2<span class="w"> </span>--format<span class="w"> </span>json,txt,csv,xlsx,dot,png
+</code></pre></div>
+<hr />
+<h2 id="8-test-suite">8. Test Suite<a class="headerlink" href="#8-test-suite" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>sysmlpy</th>
+<th>PySysML2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Total tests</strong></td>
+<td>545+</td>
+<td>~14</td>
+</tr>
+<tr>
+<td><strong>Test files</strong></td>
+<td>14</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>Grammar round-trip</strong></td>
+<td>77 (100% pass)</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Public API</strong></td>
+<td>54</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>PlantUML views</strong></td>
+<td>108</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Semantic analysis</strong></td>
+<td>107</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Navigation</strong></td>
+<td>33</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Validator (ISQ)</strong></td>
+<td>34</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Storage backends</strong></td>
+<td>46</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Conformance (OMG)</strong></td>
+<td>123 (100% pass)</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Project loading</strong></td>
+<td>17</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Imports</strong></td>
+<td>16</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Model serialization</strong></td>
+<td>—</td>
+<td>~14</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-standard-library">9. Standard Library<a class="headerlink" href="#9-standard-library" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_5">sysmlpy<a class="headerlink" href="#sysmlpy_5" title="Permanent link">&para;</a></h3>
+<p>Bundles <strong>88 library files</strong> (<code>.kerml</code> + <code>.sysml</code>) across kernel, systems, and domain packages:</p>
+<ul>
+<li><strong>kernel/ (36 files):</strong> Base, ScalarValues, Collections, Functions (Boolean, Integer, Real, String, Trig, Vector), Occurrences, Performances, Transfers, Clocks, Links, Controls, SpatialFrames</li>
+<li><strong>systems/ (21 files):</strong> Actions, Allocations, AnalysisCases, Attributes, Calculations, Cases, Connections, Constraints, Flows, Interfaces, Items, Metadata, Parts, Ports, Requirements, StandardViewDefinitions, States, SysML, UseCases, VerificationCases, Views</li>
+<li><strong>domain/ (30+ files):</strong> Analysis, CauseEffect, Geometry, Metadata, QuantitiesUnits, RequirementDerivation</li>
+</ul>
+<p>All 88 files indexed (~1,417 symbols) for import resolution.</p>
+<h3 id="pysysml2_5">PySysML2<a class="headerlink" href="#pysysml2_5" title="Permanent link">&para;</a></h3>
+<p>No bundled standard library. No library symbol indexing.</p>
+<hr />
+<h2 id="10-unit-validation">10. Unit Validation<a class="headerlink" href="#10-unit-validation" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_6">sysmlpy<a class="headerlink" href="#sysmlpy_6" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy.validator</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_unit_conformance</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="s2">    package Test {</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="s2">        part def Sensor {</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="s2">            attribute mass : MassValue;</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="s2">        }</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="s2">        part mySensor : Sensor {</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="s2">            attribute mass = 100 kg;</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="s2">        }</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="s2">    }</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="n">issues</span> <span class="o">=</span> <span class="n">validate_unit_conformance</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="c1"># Checks pint unit dimensions against 300+ ISQ type mappings</span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="c1"># Reports mismatches like &quot;Expected dimension [mass], got [length]&quot;</span>
+</code></pre></div>
+<p>300+ ISQ type-to-dimension mappings across base quantities, space &amp; time, mechanics, electromagnetism, thermodynamics, photometry. 21 US Customary unit definitions (inch, foot, psi, horsepower, BTU, gallon, etc.).</p>
+<p><strong>Known issue:</strong> <code>antlr_visitor.py</code> hardcodes <code>specialization=None</code> for top-level attributes, so unit validation may miss some type information at the top level.</p>
+<h3 id="pysysml2_6">PySysML2<a class="headerlink" href="#pysysml2_6" title="Permanent link">&para;</a></h3>
+<p>No ISQ validation, no unit system, no dimensional analysis.</p>
+<hr />
+<h2 id="11-multi-file-project-support">11. Multi-file Project Support<a class="headerlink" href="#11-multi-file-project-support" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_7">sysmlpy<a class="headerlink" href="#sysmlpy_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_files</span><span class="p">,</span> <span class="n">load_project</span><span class="p">,</span> <span class="n">load_with_dependencies</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># Load specific files (same-named packages merge)</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_files</span><span class="p">([</span><span class="s2">&quot;a.sysml&quot;</span><span class="p">,</span> <span class="s2">&quot;b.sysml&quot;</span><span class="p">])</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># Load all .sysml/.kerml in a directory</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">load_project</span><span class="p">(</span><span class="s2">&quot;./models&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="c1"># Auto-resolve imports from search paths</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="n">model</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_with_dependencies</span><span class="p">(</span><span class="s2">&quot;main.sysml&quot;</span><span class="p">,</span> <span class="n">search_paths</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;./libs&quot;</span><span class="p">,</span> <span class="s2">&quot;./components&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="pysysml2_7">PySysML2<a class="headerlink" href="#pysysml2_7" title="Permanent link">&para;</a></h3>
+<p>Single-file loading only. No project resolution.</p>
+<hr />
+<h2 id="12-model-navigation">12. Model Navigation<a class="headerlink" href="#12-model-navigation" title="Permanent link">&para;</a></h2>
+<h3 id="sysmlpy_8">sysmlpy<a class="headerlink" href="#sysmlpy_8" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="s2">    package Sys {</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="s2">        part def Motor;</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="s2">        part sensor : Sensor;</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="s2">        part myMotor : Motor {</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="s2">            attribute power : Real;</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="s2">        }</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="s2">    }</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="c1"># Typed accessors</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parts</span><span class="p">)</span>       <span class="c1"># [Part(&#39;sensor&#39;), Part(&#39;myMotor&#39;)]</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">attributes</span><span class="p">)</span>  <span class="c1"># [Attribute(&#39;power&#39;)]</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">packages</span><span class="p">)</span>    <span class="c1"># [Package(&#39;Sys&#39;)]</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="c1"># Searchable mixin</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="n">model</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;Motor&quot;</span><span class="p">)</span>                       <span class="c1"># by name (recursive)</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="n">model</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">sysml_type</span><span class="o">=</span><span class="s2">&quot;Part&quot;</span><span class="p">)</span>             <span class="c1"># by type</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="n">model</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sensor&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="n">model</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span><span class="s2">&quot;Motor&quot;</span><span class="p">)</span>                   <span class="c1"># raises if 0 or &gt;1</span>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a>
+<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="n">model</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="s2">&quot;Part&quot;</span><span class="p">)</span>       <span class="c1"># shortcut for find(sysml_type=&quot;Part&quot;)</span>
+<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a><span class="n">model</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="s2">&quot;Attribute&quot;</span><span class="p">)</span>
+<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a>
+<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="c1"># Container protocol</span>
+<a id="__codelineno-15-28" name="__codelineno-15-28" href="#__codelineno-15-28"></a><span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>              <span class="c1"># number of direct children</span>
+<a id="__codelineno-15-29" name="__codelineno-15-29" href="#__codelineno-15-29"></a><span class="s2">&quot;Motor&quot;</span> <span class="ow">in</span> <span class="n">model</span>        <span class="c1"># name containment check</span>
+<a id="__codelineno-15-30" name="__codelineno-15-30" href="#__codelineno-15-30"></a><span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">model</span><span class="p">:</span>     <span class="c1"># iterate over children</span>
+<a id="__codelineno-15-31" name="__codelineno-15-31" href="#__codelineno-15-31"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+<a id="__codelineno-15-32" name="__codelineno-15-32" href="#__codelineno-15-32"></a>
+<a id="__codelineno-15-33" name="__codelineno-15-33" href="#__codelineno-15-33"></a><span class="c1"># String representation</span>
+<a id="__codelineno-15-34" name="__codelineno-15-34" href="#__codelineno-15-34"></a><span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>              <span class="c1"># SysML text</span>
+<a id="__codelineno-15-35" name="__codelineno-15-35" href="#__codelineno-15-35"></a>
+<a id="__codelineno-15-36" name="__codelineno-15-36" href="#__codelineno-15-36"></a><span class="c1"># Dictionary round-trip</span>
+<a id="__codelineno-15-37" name="__codelineno-15-37" href="#__codelineno-15-37"></a><span class="n">model</span><span class="o">.</span><span class="n">get_definition</span><span class="p">()</span>  <span class="c1"># dict form</span>
+</code></pre></div>
+<h3 id="pysysml2_8">PySysML2<a class="headerlink" href="#pysysml2_8" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Only anytree RenderTree traversal</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">anytree</span><span class="w"> </span><span class="kn">import</span> <span class="n">RenderTree</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="k">for</span> <span class="n">pre</span><span class="p">,</span> <span class="n">fill</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">RenderTree</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Element</span><span class="p">):</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pre</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">idx</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># No typed accessors (no model.parts, model.attributes, etc.)</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="c1"># No find/find_one/all search</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="c1"># No container protocol (len, in, iteration not on Model)</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="c1"># No dump()/get_definition() round-trip</span>
+</code></pre></div>
+<hr />
+<h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>sysmlpy</th>
+<th>PySysML2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Full SysML v2 grammar coverage</td>
+<td>✓ (319 classes)</td>
+<td>✗ (~15 elements)</td>
+</tr>
+<tr>
+<td>Round-trip text output</td>
+<td>✓ <code>dump()</code> → parseable SysML</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Programmatic model construction</td>
+<td>✓ 30+ public API classes</td>
+<td>✗ No factory API</td>
+</tr>
+<tr>
+<td>Type relationships</td>
+<td>✓ (set_type, typing)</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Unit system (pint ISQ)</td>
+<td>✓ 300+ mappings</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Unit validation</td>
+<td>✓ dimensional analysis</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>PlantUML diagrams</td>
+<td>✓ 17 view types</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Graphviz output</td>
+<td>✗ (uses PlantUML)</td>
+<td>✓ basic DOT/PNG</td>
+</tr>
+<tr>
+<td>Semantic analysis</td>
+<td>✓ 9 OCL checks</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Symbol resolution</td>
+<td>✓ hierarchical + libraries</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Import resolution</td>
+<td>✓ 5 patterns</td>
+<td>✗ (records imports only)</td>
+</tr>
+<tr>
+<td>Storage backends</td>
+<td>✓ 4 (memory/networkx/kuzu/cayley)</td>
+<td>✗ (in-memory only)</td>
+</tr>
+<tr>
+<td>Standard library</td>
+<td>✓ 88 bundled files</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Multi-file projects</td>
+<td>✓ load_files/project/dependencies</td>
+<td>✗ single file</td>
+</tr>
+<tr>
+<td>Model navigation/search</td>
+<td>✓ Searchable mixin, 29 typed accessors</td>
+<td>✗ anytree RenderTree only</td>
+</tr>
+<tr>
+<td>CLI</td>
+<td>✓ format/check/dump/python/in-place</td>
+<td>✓ export (6 formats)</td>
+</tr>
+<tr>
+<td>CSV/Excel/JSON export</td>
+<td>✓ via pandas</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Control flow grammar</td>
+<td>✓ if/while/for/fork/join/decision/send/accept/terminate</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Requirements</td>
+<td>✓ Requirement, UseCase</td>
+<td>✗ partial use case</td>
+</tr>
+<tr>
+<td>States</td>
+<td>✓ State with transitions</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>✓ Action with I/O</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Constraints</td>
+<td>✓ Constraint</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Calculations</td>
+<td>✓ Calculation</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Interfaces</td>
+<td>✓ Interface</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Flow connections</td>
+<td>✓ Flow, FlowDef</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Allocations</td>
+<td>✓ Allocation</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Views/Viewpoints</td>
+<td>✓ View, Viewpoint, Concern</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Analysis cases</td>
+<td>✓ Case, AnalysisCase, VerificationCase</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Enumerations</td>
+<td>✓ Enumeration</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Message passing</td>
+<td>✓ Message</td>
+<td>✓ (partial)</td>
+</tr>
+<tr>
+<td>ISQ library files</td>
+<td>✓ 88 indexed files</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>OMG conformance tests</td>
+<td>✓ 123/123 pass</td>
+<td>✗</td>
+</tr>
+<tr>
+<td>Test suite size</td>
+<td>545+ tests</td>
+<td>~14 tests</td>
+</tr>
+<tr>
+<td>Maturity</td>
+<td>Active development (v0.31)</td>
+<td>Early prototype (v0.1)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="verdict">Verdict<a class="headerlink" href="#verdict" title="Permanent link">&para;</a></h2>
+<p><strong>sysmlpy</strong> provides comprehensive, production-grade SysML v2 support with full grammar coverage, programmatic model construction, semantic analysis, 17 PlantUML view types, 4 storage backends, ISQ unit validation, multi-file project support, and a complete standard library. It supports round-trip text output (<code>dump()</code>) from all grammar objects.</p>
+<p><strong>PySysML2</strong> is a lightweight early-prototype focused on data-science-oriented model export (CSV, Excel, JSON, graphviz). It parses a subset of SysML v2 (~15 element types) into an anytree hierarchy and can export to pandas-friendly formats. It has no semantic analysis, no programmatic construction API, no round-trip text output, no unit validation, and no diagram generation beyond basic anytree graphviz trees.</p>
+<p><strong>Choose sysmlpy if you need:</strong> full SysML v2 modeling, diagram generation, semantic validation, multi-file projects, or programmatic model construction.</p>
+<p><strong>Choose PySysML2 if you need:</strong> a lightweight parse-to-DataFrame pipeline for simple SysML models with basic element types, and do not need round-trip, validation, diagrams, or behavioral elements.</p>
+<hr />
+<p><em>Comparison generated 2026-06-06 based on sysmlpy v0.31.3 and PySysML2 v0.1.1.</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
