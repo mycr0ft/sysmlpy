@@ -228,3 +228,38 @@ All accept: `focus`, `elements`, `style` (`"bw"` or `"color"`), `direction`,
    `poetry run pytest tests/semantic_test.py --tb=short`.
 5. If you bumped the version, update all three locations listed above.
 6. Update `CHANGELOG.md`, `STATUS.md`, and `docs/PROJECT_SUMMARY.md`.
+
+---
+
+## CAD / Shape Modeling Extracted
+
+The parametric CAD bridge (`sysmlpy.cad.*`, `tests/cad_test.py`) was extracted
+into a **separate project** at `/storage16/home/jfox/sysmlcad/`.
+
+- Package name: **`sysmlcad`** (import `from sysmlcad import ...`)
+- Depends on `sysmlpy` as a sibling via path dependency
+- Uses Poetry: `cd ../sysmlcad && poetry run pytest`
+- Contains the Shape IR, expression system, pluggable backend registry, and
+  OpenSCAD backend (85 tests)
+- Upstream: no files from the CAD module remain in the sysmlpy tree
+
+---
+
+## Future Project: sysmlpad — SysML v2 Diagram Editor
+
+A standalone interactive diagram editor using **Gaphas** (GTK4 + Cairo) +
+**sysmlpy** as the model backend.
+
+- **Gaphas** provides the canvas, constraint solver, items (Element/Line),
+  handles, zoom/pan, GTK integration — all manual positioning for free.
+- **sysmlpy** provides parsing, grammar classes (319 types), semantic
+  analysis, round-trip `dump()`, and PlantUML export.
+- A thin adapter layer maps sysmlpy grammar classes to Gaphas Items.
+
+  ```
+  .sysml file → sysmlpy.parse() → adapter → Gaphas Canvas → GTK Window
+                   ↑                              ↓ user drags/resizes
+                   ← sysmlpy.dump()  ← adapter  ←
+  ```
+
+- Estimate: ~4–6 weeks for structural subset (parts, ports, connections, BDD).

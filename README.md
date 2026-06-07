@@ -776,5 +776,12 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).
 
+## Companion Projects
+
+Two companion tools for the SysML v2 community, created by the same author:
+
+- **[sysml-style](https://github.com/mycr0ft/sysml-style)** — A SysML v2 code formatter with configurable indentation, line width, and bracket style. Can be used standalone or integrated as a pre-commit hook.
+- **[sysml-vim](https://github.com/mycr0ft/sysml-vim)** — Vim syntax highlighting and indentation support for SysML v2 textual notation (`.sysml` and `.kerml` files).
+
 ## License
 sysmlpy is released under the MIT license, hence allowing commercial use of the library.
