@@ -11,7 +11,7 @@ already knows.
 | Field | Value |
 |-------|-------|
 | Name | sysmlpy |
-| Current version | 0.31.3 |
+| Current version | 0.32.0 |
 | Language | Python 3.9+ |
 | Package manager | **Poetry** (use `poetry run` for all commands) |
 | Test runner | pytest via `poetry run pytest` |
@@ -83,11 +83,10 @@ SysML text
 
 ### Version bumping
 
-Version string appears in **three** places — update all three together:
+Version string appears in **two** places — update both together:
 
 1. `src/sysmlpy/__init__.py` — `__version__ = "X.Y.Z"`
 2. `pyproject.toml` — `[project] version = "X.Y.Z"`
-3. `pyproject.toml` — `[tool.poetry] version = "X.Y.Z"`
 
 ### Grammar class pattern
 

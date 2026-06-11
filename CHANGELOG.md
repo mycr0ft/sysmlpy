@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.32.0 (2026-06-11)
+
+### :sparkles: Package imports exposed on public API
+
+- Added `Package.imports` property — returns grammar objects for `Import` and
+  `AliasMember` declarations within a package
+- `Package.load_from_grammar()` now collects imports into a public-facing list
+- `Package.add_import()` syncs with the new `._imports` list
+- Imports now fully accessible in the public API while surviving round-trip
+  (parse → dump → parse)
+- 5 new tests in `TestPackageImportsProperty`
+
+
 ## v0.31.2 (2026-05-27)
 
 ### :memo: Update README version notes and LOC diagram
