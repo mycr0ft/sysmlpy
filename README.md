@@ -16,6 +16,8 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 **v0.31.0:** Documentation overhaul — all docs rewritten to showcase the modern public API. New Model Parsing and Model Navigation sections. Semantic Analysis updated with `AnalysisResult`. Grammar round-trip: 77/77 (100%). 211 core tests passing.
 
+**v0.32.2:** Added `docs/TODO.md` stub (was a dangling symlink, broke mkdocs build).
+
 **v0.32.1:** Fixed critical round-trip data loss bug — `Usage.load_from_grammar()` in `usage.py` silently dropped definition-type children (`part def`, `item def`, etc.) when mixed with usage-type children in the same body, due to an incorrect `hasattr(child, 'body')` guard. Nested structures with mixed definition/usage children now survive parse → dump → parse round-trip correctly.
 
 **v0.28.0:** Complete Gap 4 coverage — Block Definition Diagram (BDD), Internal Block Diagram (IBD), Parametric Diagram, and Package Diagram views. All 6 specialized SysML v2 view types now implemented (144 PlantUML tests). IBD shows flow/connection arrows with endpoint extraction. Parametric view extracts constraint parameters with types. Package diagram renders nested folder-style hierarchy.
