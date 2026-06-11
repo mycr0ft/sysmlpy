@@ -11,7 +11,7 @@ already knows.
 | Field | Value |
 |-------|-------|
 | Name | sysmlpy |
-| Current version | 0.27.0 |
+| Current version | 0.31.3 |
 | Language | Python 3.9+ |
 | Package manager | **Poetry** (use `poetry run` for all commands) |
 | Test runner | pytest via `poetry run pytest` |
@@ -43,10 +43,7 @@ poetry run pytest tests/ --tb=short -q
 
 ### Grammar test status
 
-All **77 grammar round-trip tests pass** (100%) as of v0.30.0+.
-If you see failures, check that the control-flow grammar classes
-(`IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `SendNode`,
-`AcceptNode`, `TerminateNode`) are correctly ported to `grammar/classes.py`.
+All **79 grammar round-trip tests pass** (100%) as of v0.31.3+.
 
 ---
 
@@ -134,7 +131,7 @@ else:
 
 | File | Count | What it tests |
 |------|-------|--------------|
-| `grammar_test.py` | 77 (all pass) | Parse → grammar object → `dump()` round-trips |
+| `grammar_test.py` | 79 (all pass) | Parse → grammar object → `dump()` round-trips |
 | `class_test.py` | 54 | Programmatic API: `Part()`, `Action()`, `dump()`, etc. |
 | `main_test.py` | 7 | `load()` / `loads()` / `load_grammar()` public API |
 | `plantuml_test.py` | 108 | All `as_*_view()` functions |

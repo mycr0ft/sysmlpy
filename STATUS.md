@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.27.0** (2026-05-25)
+Current version: **v0.31.3** (2026-05-27)
 
 ---
 
@@ -45,51 +45,53 @@ These classes are fully implemented, have programmatic construction, `dump()` se
 
 | Method | Syntax |
 |---|---|
-| `_set_typed_by()` | `: TypeName` |
-| `_set_specializes()` | `:> SuperDef` (definitions) |
-| `_set_subsets()` | `:> superset` (usages) |
-| `_set_redefines()` | `:>> original` |
+| `set_typed_by()` | `: TypeName` |
+| `set_specializes()` | `:> SuperDef` (definitions) |
+| `set_subsets()` | `:> superset` (usages) |
+| `set_redefines()` | `:>> original` |
+| `add_child()` | fluent child builder |
 
 ### Parser
 
 - **ANTLR4 parser** — default parser, using OMG grammar v2026.03.0
-  - `load()`, `loads()`, `load_grammar()` (public API)
+  - `load()`, `loads()`, `parse()`, `load_grammar()` (public API)
   - `load_antlr()`, `load_grammar_antlr()` (explicit ANTLR4 path)
   - Full ANTLR4 visitor (`antlr_visitor.py`, ~11K lines) converting parse tree to internal dict representation
   - Supports comments, documentation blocks, and annotating elements
   - Supports Case, AnalysisCase, VerificationCase, and TradeStudy definitions
   - State machine support: entry/do/exit actions, accept/send/perform/assign nodes, transitions with guards
+  - Non-raising `parse(text)` variant: returns `(Model, [])` on success, `(None, [errors])` on syntax error
 
 ### Grammar Round-Trip Coverage (parse → dump)
 
-**61 / 77 tests passing** as of 2026-05-25.
+**79 / 79 tests passing (100%)** as of v0.31.3.
 
-16 tests deferred: action control-flow node classes (`IfNode`, `WhileLoopNode`,
-`ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`) not yet ported to
-`grammar/classes.py`. All 61 non-control-flow grammar tests pass.
+All categories pass, including the 14 control flow node tests (IfNode,
+WhileLoopNode, ForLoopNode, ControlNode, SendNode, AcceptNode, TerminateNode).
 
-| Category | Pass | Total | Notes |
-|---|---|---|---|
-| Packages | 3 | 3 | Comments, docs, package structure |
-| Part definitions | 1 | 1 | |
-| Generalization / Subsetting / Redefinition | 3 | 3 | |
-| Enumerations | 2 | 2 | |
-| Parts | 2 | 2 | |
-| Items | 1 | 1 | |
-| Connections | 1 | 1 | |
-| Ports | 2 | 2 | |
-| Interfaces | 2 | 2 | |
-| Binding connectors | 2 | 2 | |
-| Flow connections | 3 | 3 | |
-| Actions | 5 | 5 | |
-| States | 6 | 6 | |
-| Expressions | 4 | 4 | |
-| Calculations | 3 | 3 | |
-| Constraints | 7 | 7 | |
-| Requirements | 4 | 4 | |
-| Analysis | 3 | 3 | |
-| Control flow (deferred) | 0 | 16 | IfNode, WhileLoopNode, ControlNode, SendNode, AcceptNode, TerminateNode |
-| **Total** | **61** | **77** | |
+| Category | Pass | Total |
+|---|---|---|
+| Packages | 3 | 3 |
+| Part definitions | 1 | 1 |
+| Generalization / Subsetting / Redefinition | 3 | 3 |
+| Enumerations | 2 | 2 |
+| Parts | 2 | 2 |
+| Items | 1 | 1 |
+| Connections | 1 | 1 |
+| Ports | 2 | 2 |
+| Interfaces | 2 | 2 |
+| Binding connectors | 2 | 2 |
+| Flow connections | 3 | 3 |
+| Actions | 5 | 5 |
+| States | 6 | 6 |
+| Expressions | 4 | 4 |
+| Calculations | 3 | 3 |
+| Constraints | 7 | 7 |
+| Requirements | 4 | 4 |
+| Analysis | 3 | 3 |
+| Control flow | 14 | 14 |
+| Lifecycle metadata | 9 | 9 |
+| **Total** | **79** | **79** | |
 
 ### Grammar Resilience (v0.27.0)
 
@@ -169,18 +171,18 @@ All views support: `focus`, `elements`, `show_external`, `direction`, B&W/color 
 
 | Test file | Tests | Status |
 |---|---|---|
-| `tests/grammar_test.py` | 77 | 61 pass, 16 deferred (control flow nodes) |
+| `tests/grammar_test.py` | 79 | ✅ All pass (100%) |
 | `tests/class_test.py` | 54 | ✅ All pass |
 | `tests/main_test.py` | 7 | ✅ All pass |
 | `tests/plantuml_test.py` | 108 | ✅ All pass |
-| `tests/semantic_test.py` | 107 | ✅ All pass |
+| `tests/semantic_test.py` | 118 | ✅ All pass |
 | `tests/navigate_test.py` | 33 | ✅ All pass |
 | `tests/import_test.py` | 16 | ✅ All pass |
 | `tests/validator_test.py` | 34 | ✅ All pass |
 | `tests/project_test.py` | 17 | ✅ All pass |
 | `tests/store_test.py` | 46 | Pass (optional deps skipped if not installed) |
 | `tests/conformance_test.py` | 123 | ✅ All pass (100%) |
-| **Total** | **622** | **606 pass, 16 deferred** |
+| **Total** | **635** | **635 pass** |
 
 ### Documentation
 
@@ -188,19 +190,18 @@ All views support: `focus`, `elements`, `show_external`, `direction`, B&W/color 
 - `AGENTS.md` — AI agent onboarding guide
 - `docs/index.md` — project overview
 - `docs/quickstart.md` — step-by-step usage guide
-- `docs/TUTORIAL.md` — comprehensive guide with class mapping tables
+- `TUTORIAL.md` — comprehensive guide with class mapping tables
 - `docs/PROJECT_SUMMARY.md` — work summary for future agents/team members
 - `docs/plantuml-reference-analysis.md` — PlantUML generator assessment
 - `docs/plantuml-examples/` — rendered diagram examples
 
 ---
 
-## In Progress
+## Completed Since v0.27.0
 
-### Action Control-Flow Node Classes (16 deferred grammar tests)
+### Action Control-Flow Node Classes (v0.28.0–v0.29.0)
 
-The following grammar classes are defined in the visitor but not yet ported to
-`grammar/classes.py`. Their tests currently fail with `KeyError`:
+All 14 control flow grammar classes are now ported to `grammar/classes.py`:
 
 - `IfNode`, `WhileLoopNode`, `ForLoopNode`, `ControlNode`, `InitialNode`,
   `InitialNodeMember`, `SendNode`, `AcceptNode`, `TerminateNode`,
@@ -208,7 +209,41 @@ The following grammar classes are defined in the visitor but not yet ported to
   `GuardedSuccession`, `GuardedSuccessionMember`,
   `SourceSuccession`, `SourceSuccessionMember`
 
-### Known Bugs
+### Mutation API Stabilization (v0.30.2)
+
+All private underscore-prefixed mutation methods given public aliases:
+- `_set_child()` → `add_child()`; `_set_name()` → `set_name()`; `_set_typed_by()` → `set_typed_by()`
+- `_set_specializes()` → `set_specializes()`; `_set_subsets()` → `set_subsets()`
+- `_set_redefines()` → `set_redefines()`; `_get_child()` → `get_child()`
+- Private names kept as backward-compatible aliases.
+
+### Model Navigation Enhancements (v0.30.2–v0.31.0)
+
+- `find_one()` — single-match find with `LookupError` on ambiguity
+- `__iter__`, `__len__`, `__contains__` — container protocol on all model elements
+- `__str__` — returns SysML text (delegates to `dump()`)
+- `find()` uses `sysml_type=` keyword (legacy `type=` still works with deprecation)
+- Typed property accessors (`model.parts`, `model.actions`, etc.)
+
+### Semantic Analysis Enhancements (v0.30.2)
+
+- `AnalysisResult` class with `.errors`, `.warnings`, `.raise_on_errors()`, `bool()`
+- `analyze(model, strict=True)` raises immediately on errors
+- `SysMLSyntaxError` exported from package root
+- Non-raising `parse()` variant: `model, errors = parse(text)`
+
+### Jupyter Integration (v0.30.2)
+
+- `_repr_html_()` on all model elements — collapsible HTML tree in notebooks
+
+### Grammar Round-Trip (v0.31.0)
+
+- All 79 grammar tests pass (100%) — control flow, lifecycle metadata complete
+- No deferred tests remaining
+
+---
+
+## Known Issues
 
 | Location | Description |
 |---|---|
@@ -220,13 +255,12 @@ The following grammar classes are defined in the visitor but not yet ported to
 
 ---
 
-## Not Started
+## Remaining Work
 
 ### High Priority
 
 | Feature | Description |
 |---|---|
-| Action control-flow classes | Port `IfNode`, `WhileLoopNode`, `ControlNode`, `SendNode`, `AcceptNode`, `TerminateNode`, etc. to `grammar/classes.py` |
 | Typed-by preservation | Type relationships not preserved when loading elements from grammar (`usage.py`, marked `#!TODO Typed By`) |
 | Fix top-level attribute multiplicity | Visitor hardcodes `specialization=None` for top-level attributes |
 | AliasMember / Import handling | `definition.py` `load_package_body()` needs these node types |
@@ -258,7 +292,7 @@ Test files: **123 `.sysml` files** under `tests/sysmlv2/`, each with a `.error` 
 
 Run with: `poetry run pytest -m conformance`
 
-### Current results (2026-05-25)
+### Current results (2026-05-27)
 
 **123 / 123 passing (100%)**
 
@@ -276,15 +310,15 @@ Run with: `poetry run pytest -m conformance`
 ## Summary Counts
 
 | Category | Count |
-|---|---|
+|---|---|---|
 | Public API classes (complete) | 28 |
-| Grammar classes with `get_definition()` | ~180+ of 319 |
+| Grammar classes with `get_definition()` | ~260+ of 319 |
 | Grammar classes with graceful fallback | All 319 (no more NotImplementedError crashes) |
-| Unit + grammar + integration tests | 606 passing |
-| Grammar round-trip tests passing | **61 / 77** (16 deferred — control flow nodes) |
+| Unit + grammar + integration tests | 635 passing |
+| Grammar round-trip tests passing | **79 / 79 (100%)** |
 | PlantUML rendering tests | **108 passing** |
 | Conformance tests (2026-03 XPect suite) | **123 / 123 (100%)** |
-| Semantic analysis tests | **107 passing** |
+| Semantic analysis tests | **118 passing** |
 | Storage backend tests | **46 passing** (optional deps skipped if missing) |
 | Bundled standard library files | 88 (kernel `.kerml` + systems `.sysml` + domain `.sysml`) |
 | Library symbols indexed | ~1,417 |
