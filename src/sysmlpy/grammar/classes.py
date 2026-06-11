@@ -3,7 +3,7 @@
 """
 Created on Sat Jun  3 12:37:27 2023
 
-@author: christophercox
+@author: mycr0ft
 """
 
 import json

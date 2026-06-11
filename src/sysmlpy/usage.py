@@ -3,7 +3,7 @@
 """
 Created on Fri Jun 30 23:23:31 2023
 
-@author: christophercox
+@author: mycr0ft
 """
 
 
@@ -790,7 +790,7 @@ class Usage(Searchable):
 
         for child in children:
             # Handle different child types
-            if hasattr(child, 'definition') and hasattr(child, 'body'):
+            if hasattr(child, 'definition'):
                 # It's a Definition (PartDefinition, ItemDefinition, etc.)
                 sc = child
             elif hasattr(child, 'children'):

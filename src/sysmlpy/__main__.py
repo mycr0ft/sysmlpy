@@ -39,6 +39,16 @@ def main():
         action="store_true",
         help="Display the dictionary/JSON representation"
     )
+    parser.add_argument(
+        "-i", "--in-place",
+        action="store_true",
+        help="Format the file in-place (overwrites the input file)"
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Check if the file is already formatted; exit 1 if not"
+    )
 
     args = parser.parse_args()
 
@@ -65,8 +75,20 @@ def main():
         grammar_dict = load_grammar(content)
         import json
         print(json.dumps(grammar_dict, indent=2))
-    elif args.dump:
-        print(model.dump())
+    elif args.dump or args.in_place or args.check:
+        formatted = model.dump()
+        if args.check:
+            if formatted == content:
+                sys.exit(0)
+            else:
+                print(f"{file_path} would be reformatted")
+                sys.exit(1)
+        elif args.in_place:
+            with open(file_path, 'w') as f:
+                f.write(formatted)
+            print(f"Formatted {file_path}")
+        else:
+            print(formatted)
     else:
         # Default or --python flag: show repr()
         print(repr(model))

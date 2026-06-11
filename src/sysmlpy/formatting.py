@@ -3,7 +3,7 @@
 """
 Created on Wed May 31 13:26:53 2023
 
-@author: christophercox
+@author: mycr0ft
 """
 
 from sysmlpy.grammar.classes import RootNamespace

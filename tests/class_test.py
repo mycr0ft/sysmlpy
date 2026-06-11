@@ -3,7 +3,7 @@
 """
 Created on Tue Jul 11 16:46:28 2023
 
-@author: christophercox
+@author: mycr0ft
 """
 
 import pytest
@@ -503,22 +503,60 @@ def test_port_directed_error():
         o1.add_directed_feature("error", "Fuel")
 
 
-# This test doesn't work right now
-# def test_item_def_subchild():
-#     i = Item(definition=True)._set_name("Engine")
-#     import astropy.units as u
+def test_item_def_subchild():
+    """Item definition with nested attribute should survive round-trip."""
+    text = """item Engine {
+        attribute mass= 100.0 [kg];
+    }"""
+    q = classtree(loads(text)).dump()
+    assert "attribute mass" in q
+    assert "100.0" in q
 
-#     a = Attribute()._set_name("mass")
-#     a.set_value(100 * ureg.kg)
-#     i._set_child(a)
 
-#     text = """item Engine {
-#         attribute mass= 100.0 [kg];
-#     }"""
+def test_nested_definition_with_mixed_children():
+    """PartDefinition with mixed definition+usage children should survive round-trip.
 
-#     q = classtree(loads(text))
+    Regression test: definition types (PartDefinition, ItemDefinition, etc.)
+    were silently dropped when mixed with usage types in the same body.
+    """
+    import sysmlpy
+    text = """package P {
+        part def Vehicle {
+            part def Engine;
+            attribute mass : Real;
+        }
+    }"""
+    m = sysmlpy.loads(text)
+    out = m.dump()
+    assert "part def Engine" in out
+    assert "attribute mass" in out
+    assert "Vehicle" in out
 
-#     assert i.dump() == q.dump()
+
+def test_deeply_nested_definition():
+    """Deeply nested part definitions should survive round-trip.
+
+    Regression test for the exact scenario from the sysml-style bug report.
+    """
+    import sysmlpy
+    text = """package Test {
+        public import OMGIDL::*;
+        part Module : IDLModule {
+            attribute :>> identifier = "Module";
+            part def NestedType :> IDLStruct {
+                part field1 : IDLField {
+                    attribute :>> identifier = "field1";
+                }
+            }
+        }
+    }"""
+    m = sysmlpy.loads(text)
+    out = m.dump()
+    assert "NestedType" in out
+    assert "field1" in out
+    assert "IDLStruct" in out
+    assert "IDLField" in out
+    assert "import OMGIDL" in out
 
 
 def test_attribute_definition():
