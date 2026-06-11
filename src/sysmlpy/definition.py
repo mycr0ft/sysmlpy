@@ -415,6 +415,7 @@ class Package(Searchable):
         """
         self.name = str(uuidlib.uuid4())
         self.children = []
+        self._imports = []
         self.typedby = None
         self.grammar = PackageGrammar()
         self.parent = None
@@ -773,7 +774,19 @@ class Package(Searchable):
             self.grammar.body = PackageBody({"name": "PackageBody", "ownedRelationship": []})
 
         self.grammar.body.children.append(import_rel)
+        self._imports.append(import_rel)
         return self
+
+    @property
+    def imports(self):
+        """Import and AliasMember declarations in this package.
+
+        Returns
+        -------
+        list
+            Grammar objects (Import or AliasMember) that belong to this package.
+        """
+        return list(self._imports)
 
     def load_from_grammar(self, grammar):
         """Load package structure from a parsed grammar object.
@@ -1282,6 +1295,12 @@ class Package(Searchable):
                 self.children.append(r)
             else:
                 print(f"[Package.load_from_grammar] Unknown class: {inner_class} - skipping")  # pragma: no cover
+        
+        # Collect Import and AliasMember grammar objects for public API access
+        self._imports = []
+        for child in grammar.body.children:
+            if child.__class__.__name__ in ('Import', 'AliasMember'):
+                self._imports.append(child)
         
         return self
 

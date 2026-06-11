@@ -194,3 +194,58 @@ class TestAddImport:
 
         result = pkg.add_import('A', visibility='private').add_import('B', visibility='public')
         assert result is pkg
+
+
+class TestPackageImportsProperty:
+    """Tests for the Package.imports property."""
+
+    def test_imports_after_parse(self):
+        """Imports should be accessible via .imports property after parsing."""
+        model = sysmlpy.loads("""
+        package P {
+            private import ScalarValues::*;
+            public import BaseTypes;
+        }
+        """)
+        pkg = model.children[0]
+        assert len(pkg.imports) == 2
+        assert all(imp.__class__.__name__ == 'Import' for imp in pkg.imports)
+
+    def test_imports_after_add_import(self):
+        """Imports added via add_import should appear in .imports."""
+        model = sysmlpy.loads("package P { part def X; }")
+        pkg = model.children[0]
+        assert len(pkg.imports) == 0
+
+        pkg.add_import('ScalarValues', visibility='private')
+        assert len(pkg.imports) == 1
+        assert pkg.imports[0].__class__.__name__ == 'Import'
+
+    def test_imports_survive_round_trip(self):
+        """Imports should be accessible via .imports after round-trip parse -> dump -> parse."""
+        model = sysmlpy.loads("""
+        package P {
+            private import ScalarValues::*;
+            public import BaseTypes;
+            protected import ISQ;
+        }
+        """)
+        output = model.dump()
+        model2 = sysmlpy.loads(output)
+        pkg = model2.children[0]
+        assert len(pkg.imports) == 3
+        assert all(imp.__class__.__name__ == 'Import' for imp in pkg.imports)
+
+    def test_imports_empty_when_no_imports(self):
+        """Package with no imports should have empty imports list."""
+        model = sysmlpy.loads("package P { part def X; }")
+        pkg = model.children[0]
+        assert pkg.imports == []
+
+    def test_imports_returns_copy(self):
+        """imports property should return a copy, not the internal list."""
+        model = sysmlpy.loads("package P { private import A; }")
+        pkg = model.children[0]
+        imports = pkg.imports
+        imports.clear()
+        assert len(pkg.imports) == 1
