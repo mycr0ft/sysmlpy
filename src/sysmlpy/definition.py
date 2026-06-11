@@ -101,7 +101,8 @@ class Model(Searchable):
                 if member.get("name") in ("Import", "AliasMember"):
                     member_grammar.append(member)
                 continue
-            if member["ownedRelatedElement"]["name"] == "DefinitionElement":
+            elem_type = member["ownedRelatedElement"]["name"]
+            if elem_type == "DefinitionElement":
                 de = member["ownedRelatedElement"]
                 if de["ownedRelatedElement"]["name"] == "Package":
                     found_package = True
@@ -110,6 +111,12 @@ class Model(Searchable):
                     )
                     self.children.append(p)
                     member_grammar.append(p._get_definition(child="PackageBody"))
+                elif found_package:
+                    member_grammar.append(member)
+                    p.grammar.body.children.append(PackageMember(member))
+            elif elem_type == "UsageElement" and found_package:
+                member_grammar.append(member)
+                p.grammar.body.children.append(PackageMember(member))
 
         if not found_package:
             # Wrap bare top-level definitions in a synthetic package
