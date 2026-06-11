@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sysmlpy-todo" class="md-skip">
+        <a href="#todo" class="md-skip">
           Skip to content
         </a>
       
@@ -405,24 +405,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    TODO
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -439,58 +421,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#immediate-high-priority" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Immediate / High Priority
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#known-bugs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Known Bugs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#completed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Completed
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -516,47 +446,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#immediate-high-priority" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Immediate / High Priority
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#known-bugs" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Known Bugs
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#completed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Completed
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -575,45 +464,9 @@
   
 
 
-<h1 id="sysmlpy-todo">sysmlpy TODO<a class="headerlink" href="#sysmlpy-todo" title="Permanent link">&para;</a></h1>
-<p>See <a href="../STATUS/">STATUS.md</a> for the full completed / in-progress / not-started breakdown.</p>
-<h2 id="immediate-high-priority">Immediate / High Priority<a class="headerlink" href="#immediate-high-priority" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Sync version: <code>pyproject.toml</code> still says <code>0.10.0</code>, bump to <code>0.11.0</code></li>
-<li>[ ] Improve grammar round-trip (<code>get_definition()</code>) coverage from 61% toward 100%</li>
-<li>[ ] Implement <code>Import</code> / <code>AliasMember</code> so package imports round-trip</li>
-<li>[ ] Fix typed-by preservation in <code>load_from_grammar</code> (<code>usage.py:459</code>)</li>
-<li>[ ] Update CHANGELOG for v0.11.0</li>
-</ul>
-<h2 id="known-bugs">Known Bugs<a class="headerlink" href="#known-bugs" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[ ] Duplicate <code>elif inner_class == "ActionUsage"</code> dead-code block in <code>definition.py</code></li>
-<li>[ ] <code>RootNamespace</code> hardcoded <code>PackageBodyElement</code> name (<code>grammar/classes.py</code>)</li>
-<li>[ ] Broken code path at <code>grammar/classes.py</code></li>
-<li>[ ] Remove leftover <code>temp.txt</code> files from repo root and <code>tests/</code></li>
-</ul>
-<h2 id="completed">Completed<a class="headerlink" href="#completed" title="Permanent link">&para;</a></h2>
-<ul>
-<li>[x] <code>Reference</code> class — <code>ref name;</code>, <code>ref name : Type;</code>, <code>ref :&gt;&gt; name : Type;</code></li>
-<li>[x] ANTLR4 parser — now the default parser (OMG grammar v2026.03.0)</li>
-<li>[x] <code>Action</code> in/out parameters (programmatic construction)</li>
-<li>[x] <code>Requirement</code>, <code>UseCase</code>, <code>Interface</code>, <code>Message</code> public API classes</li>
-<li>[x] Conformance suite: 50/123 (41%) → 123/123 (100%) passing</li>
-<li>[x] <code>InterfaceBody</code> / <code>InterfaceBodyItem</code> / <code>InterfaceDefinition</code> / <code>InterfaceUsage</code> serialization</li>
-<li>[x] <code>AnnotatingElement</code> / <code>CommentSysML</code> / <code>Annotation</code> / <code>Documentation</code> grammar classes</li>
-<li>[x] <code>ActionUsage.get_definition()</code> — action serialization</li>
-<li>[x] <code>LiteralString</code> / <code>LiteralReal</code> / <code>LiteralInfinity.get_definition()</code></li>
-<li>[x] <code>RequirementDefinition(None)</code> handling for definition=True constructor</li>
-<li>[x] Auto-wrapping bare definitions in synthetic package</li>
-<li>[x] Documentation + comment ANTLR visitor support</li>
-<li>[x] Case / AnalysisCase / VerificationCase definition visitors</li>
-<li>[x] Element filter cast syntax <code>(as Type)</code> in ANTLR grammar</li>
-<li>[x] Path expressions with lambda/filter syntax <code>.{in ref v:Type; v.prop == val}</code></li>
-<li>[x] <code>filterPackage</code> import handling in visitor</li>
-<li>[x] <code>UsageExtensionKeyword</code> keyword field support</li>
-<li>[x] <code>SuccessionFlowConnectionUsage.get_definition()</code></li>
-<li>[x] <code>CaseDefinition</code> in <code>DefinitionElement</code> dispatch table</li>
-</ul>
+<h1 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h1>
+<p>This page tracks planned work and known issues for sysmlpy.</p>
+<p>See <a href="../STATUS/">STATUS.md</a> and <a href="../CHANGELOG/">CHANGELOG.md</a> for the current project status and release history.</p>
 
 
 

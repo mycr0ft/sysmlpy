@@ -431,6 +431,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0320-2026-06-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.32.0 (2026-06-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.32.0 (2026-06-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-package-imports-exposed-on-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Package imports exposed on public API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0312-2026-05-27" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1347,6 +1375,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0320-2026-06-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.32.0 (2026-06-11)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.32.0 (2026-06-11)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparkles-package-imports-exposed-on-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :sparkles: Package imports exposed on public API
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0312-2026-05-27" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2222,6 +2278,17 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0320-2026-06-11">v0.32.0 (2026-06-11)<a class="headerlink" href="#v0320-2026-06-11" title="Permanent link">&para;</a></h2>
+<h3 id="sparkles-package-imports-exposed-on-public-api">:sparkles: Package imports exposed on public API<a class="headerlink" href="#sparkles-package-imports-exposed-on-public-api" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Added <code>Package.imports</code> property — returns grammar objects for <code>Import</code> and
+  <code>AliasMember</code> declarations within a package</li>
+<li><code>Package.load_from_grammar()</code> now collects imports into a public-facing list</li>
+<li><code>Package.add_import()</code> syncs with the new <code>._imports</code> list</li>
+<li>Imports now fully accessible in the public API while surviving round-trip
+  (parse → dump → parse)</li>
+<li>5 new tests in <code>TestPackageImportsProperty</code></li>
+</ul>
 <h2 id="v0312-2026-05-27">v0.31.2 (2026-05-27)<a class="headerlink" href="#v0312-2026-05-27" title="Permanent link">&para;</a></h2>
 <h3 id="memo-update-readme-version-notes-and-loc-diagram">:memo: Update README version notes and LOC diagram<a class="headerlink" href="#memo-update-readme-version-notes-and-loc-diagram" title="Permanent link">&para;</a></h3>
 <ul>
