@@ -936,7 +936,7 @@ class Attribute(Usage):
         # Add children
         body = []
         for abc in self.children:
-            body.append(DefinitionBodyItem(abc.dump(child=True)).get_definition())
+            body.append(DefinitionBodyItem(abc._get_definition(child="DefinitionBody")).get_definition())
         if len(body) > 0:
             self.grammar.usage.completion.body.body = DefinitionBody(
                 {"name": "DefinitionBody", "ownedRelatedElement": body}

@@ -16,6 +16,8 @@ The project had diverged so much from sysml2py that a new name, sysmlpy, was sel
 
 **v0.31.0:** Documentation overhaul — all docs rewritten to showcase the modern public API. New Model Parsing and Model Navigation sections. Semantic Analysis updated with `AnalysisResult`. Grammar round-trip: 77/77 (100%). 211 core tests passing.
 
+**v0.32.4:** Fixed `Attribute.usage_dump()` calling `dump(child=True)` (returns str) when it should call `_get_definition(child="DefinitionBody")` (returns dict). Broke inline anonymous attribute usages with nested children.
+
 **v0.32.3:** Fixed `Model.load()` silently dropping top-level elements declared after a semicolon-terminated package (e.g. `package P;\npart def Vehicle {...}`). Also handles `UsageElement` siblings.
 
 **v0.32.2:** Added `docs/TODO.md` stub (was a dangling symlink, broke mkdocs build).
