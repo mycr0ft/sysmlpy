@@ -173,6 +173,12 @@ unreservedKeyword
     | PREDICATE
     | INTERACTION
     | METACLASS
+    | COLOR
+    | SHAPE
+    | SHOW
+    | EVENTS
+    | ANNOTATION
+    | GUARD
     ;
 
 // ===== Parser rules =====
@@ -180,7 +186,12 @@ unreservedKeyword
 identification
     : LT name GT name
     | LT name GT
+    | qualifiedIdentification
     | name
+    ;
+
+qualifiedIdentification
+    : (DOLLAR COLON_COLON)? name COLON_COLON (name COLON_COLON)* name
     ;
 
 relationshipBody
@@ -2026,7 +2037,7 @@ triggerAction
     ;
 
 guardExpressionMember
-    : IF ownedExpression
+    : (IF | GUARD) ownedExpression
     ;
 
 effectBehaviorMember
@@ -2296,6 +2307,7 @@ viewDefinitionBody
 viewDefinitionBodyItem
     : definitionBodyItem
     | elementFilterMember
+    | renderStateMember
     | viewRenderingMember
     ;
 
@@ -2320,8 +2332,48 @@ viewBody
 viewBodyItem
     : definitionBodyItem
     | elementFilterMember
+    | renderStateMember
     | viewRenderingMember
     | expose
+    ;
+
+renderStateMember
+    : memberPrefix RENDER STATE name renderStateBody
+    ;
+
+renderStateBody
+    : SEMI
+    | LBRACE renderStateBodyItem* RBRACE
+    ;
+
+renderStateBodyItem
+    : shapeDirective
+    | colorDirective
+    | showDirective
+    | annotationDirective
+    ;
+
+shapeDirective
+    : SHAPE name SEMI
+    ;
+
+colorDirective
+    : COLOR name SEMI
+    ;
+
+showDirective
+    : SHOW showTarget SEMI
+    ;
+
+showTarget
+    : ENTRY BEHAVIOR
+    | DO BEHAVIOR
+    | EVENTS
+    | name
+    ;
+
+annotationDirective
+    : ANNOTATION STRING SEMI
     ;
 
 expose

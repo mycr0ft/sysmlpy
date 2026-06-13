@@ -1,4 +1,4 @@
-# Generated from /storage16/home/jfox/sysmlpy/src/sysmlpy/grammar/antlr4/SysMLv2Parser.g4 by ANTLR 4.13.0
+# Generated from /storage16/home/jfox/sysmlpy/src/sysmlpy/grammar/antlr4/SysMLv2Parser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .SysMLv2Parser import SysMLv2Parser
@@ -131,6 +131,11 @@ class SysMLv2ParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SysMLv2Parser#identification.
     def visitIdentification(self, ctx:SysMLv2Parser.IdentificationContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#qualifiedIdentification.
+    def visitQualifiedIdentification(self, ctx:SysMLv2Parser.QualifiedIdentificationContext):
         return self.visitChildren(ctx)
 
 
@@ -2366,6 +2371,46 @@ class SysMLv2ParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by SysMLv2Parser#viewBodyItem.
     def visitViewBodyItem(self, ctx:SysMLv2Parser.ViewBodyItemContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#renderStateMember.
+    def visitRenderStateMember(self, ctx:SysMLv2Parser.RenderStateMemberContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#renderStateBody.
+    def visitRenderStateBody(self, ctx:SysMLv2Parser.RenderStateBodyContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#renderStateBodyItem.
+    def visitRenderStateBodyItem(self, ctx:SysMLv2Parser.RenderStateBodyItemContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#shapeDirective.
+    def visitShapeDirective(self, ctx:SysMLv2Parser.ShapeDirectiveContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#colorDirective.
+    def visitColorDirective(self, ctx:SysMLv2Parser.ColorDirectiveContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#showDirective.
+    def visitShowDirective(self, ctx:SysMLv2Parser.ShowDirectiveContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#showTarget.
+    def visitShowTarget(self, ctx:SysMLv2Parser.ShowTargetContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#annotationDirective.
+    def visitAnnotationDirective(self, ctx:SysMLv2Parser.AnnotationDirectiveContext):
         return self.visitChildren(ctx)
 
 

@@ -34,22 +34,31 @@ def _extract_name_from_ident(ident):
     Handles:
     - `name` → (name, None)
     - `<shortname> name` → (name, shortname)
+    - `qualifiedName` → (qualifiedName, None)
     """
     name = None
     shortname = None
     if ident is None:
         return name, shortname
     
+    if hasattr(ident, 'qualifiedIdentification') and ident.qualifiedIdentification():
+        qn = ident.qualifiedIdentification()
+        if hasattr(qn, 'name') and qn.name():
+            names = qn.name()
+            if isinstance(names, list):
+                name = "::".join([n.getText() for n in names])
+            else:
+                name = names.getText()
+        return name, shortname
+    
     if hasattr(ident, 'name'):
         name_list = ident.name()
         if name_list and isinstance(name_list, list):
             if len(name_list) == 2:
-                # <shortname> name pattern
                 shortname = name_list[0].getText()
                 name = name_list[1].getText()
             elif len(name_list) == 1:
                 name_text = name_list[0].getText()
-                # Check for explicit angle brackets: <name> → shortname only
                 if hasattr(ident, 'LT') and ident.LT() is not None:
                     shortname = name_text
                 else:
@@ -5373,16 +5382,19 @@ def _visit_guard_expression_member(ctx):
     if ctx is None:
         return None
     
+    keyword = "if"
+    if hasattr(ctx, 'GUARD') and ctx.GUARD():
+        keyword = "guard"
+    elif hasattr(ctx, 'IF') and ctx.IF():
+        keyword = "if"
+    
     owned_element = None
-    if hasattr(ctx, 'guardExpression') and ctx.guardExpression():
-        expr_dict = _visit_expression(ctx.guardExpression())
-        owned_element = {
-            "name": "OwnedExpression",
-            "expression": expr_dict
-        }
+    if hasattr(ctx, 'ownedExpression') and ctx.ownedExpression():
+        owned_element = _visit_owned_expression(ctx.ownedExpression())
     
     return {
         "name": "GuardExpressionMember",
+        "keyword": keyword,
         "ownedRelatedElement": owned_element
     }
 
@@ -7265,12 +7277,10 @@ def _make_view_definition_dict(ctx, member_prefix=None):
     """
     name, shortname = _get_definition_identification(ctx)
     occ_prefix = _get_occurrence_definition_prefix(ctx)
-    # Get body items from definition body
+    # Get body items from viewDefinitionBody
     body_items = []
-    if hasattr(ctx, "definition") and ctx.definition():
-        defn = ctx.definition()
-        if hasattr(defn, "definitionBody") and defn.definitionBody():
-            body_items = _visit_definition_body_dict(defn.definitionBody())
+    if hasattr(ctx, "viewDefinitionBody") and ctx.viewDefinitionBody():
+        body_items = _visit_view_definition_body_dict(ctx.viewDefinitionBody())
     # ViewDefinition uses _DeclaredDefinitionBase pattern: prefix + keyword + declaration + body
     return {
         "name": "PackageMember",
@@ -7290,7 +7300,7 @@ def _make_view_definition_dict(ctx, member_prefix=None):
                     "subclassificationpart": _get_subclassification_part(ctx)
                 },
                 "body": {
-                    "name": "DefinitionBody",
+                    "name": "ViewDefinitionBody",
                     "ownedRelatedElement": body_items
                 }
             }
@@ -7504,6 +7514,10 @@ def _make_view_usage_dict(ctx, prefix=None):
     viewUsage: occurrenceUsagePrefix VIEW usageDeclaration? valuePart? viewBody
     """
     name, shortname = _get_usage_identification(ctx)
+    # Get body items from viewBody
+    body_items = []
+    if hasattr(ctx, 'viewBody') and ctx.viewBody():
+        body_items = _visit_view_body_dict(ctx.viewBody())
     return {
         "name": "PackageMember",
         "prefix": None,
@@ -7531,8 +7545,8 @@ def _make_view_usage_dict(ctx, prefix=None):
                         "body": {
                             "name": "UsageBody",
                             "body": {
-                                "name": "DefinitionBody",
-                                "ownedRelatedElement": []
+                                "name": "ViewBody",
+                                "ownedRelatedElement": body_items
                             }
                         }
                     }
@@ -8230,6 +8244,217 @@ def _visit_definition_body_dict(body_ctx):
         # print("  No definitionBodyItem found")
         pass
     # print(f"  Returning {len(items)} items")
+    return items
+
+
+def _make_view_rendering_member_dict(ctx, prefix=None):
+    """Create a ViewRenderingMember dictionary.
+    
+    viewRenderingMember : memberPrefix RENDER viewRenderingUsage
+    viewRenderingUsage
+        : ownedReferenceSubsetting featureSpecializationPart? usageBody
+        | ( usageExtensionKeyword* RENDERING | usageExtensionKeyword+) usage
+        ;
+    """
+    member_prefix = prefix
+    
+    reference = None
+    specialization = None
+    body = None
+    rendering_usage = None
+    usage_dict = None
+    
+    if hasattr(ctx, 'viewRenderingUsage') and ctx.viewRenderingUsage():
+        vru = ctx.viewRenderingUsage()
+        
+        if hasattr(vru, 'ownedReferenceSubsetting') and vru.ownedReferenceSubsetting():
+            ref_ctx = vru.ownedReferenceSubsetting()
+            if hasattr(ref_ctx, 'qualifiedName') and ref_ctx.qualifiedName():
+                qn_list = ref_ctx.qualifiedName()
+                if isinstance(qn_list, list) and len(qn_list) > 0:
+                    qn = qn_list[0]
+                else:
+                    qn = qn_list
+                if hasattr(qn, 'name') and qn.name():
+                    names = qn.name()
+                    if isinstance(names, list):
+                        reference = {"name": "QualifiedName", "names": [n.getText() for n in names]}
+                    else:
+                        reference = {"name": "QualifiedName", "names": [names.getText()]}
+            
+            if hasattr(vru, 'featureSpecializationPart') and vru.featureSpecializationPart():
+                pass  # TODO: handle featureSpecializationPart
+            
+            if hasattr(vru, 'usageBody') and vru.usageBody():
+                body = {"name": "UsageBody", "body": {"name": "DefinitionBody", "ownedRelatedElement": []}}
+        
+        elif hasattr(vru, 'usage') and vru.usage():
+            usage_ctx = vru.usage()
+            name, shortname = _get_usage_identification(usage_ctx)
+            # Check if RENDERING keyword was present
+            has_rendering_keyword = False
+            if hasattr(vru, 'RENDERING') and vru.RENDERING():
+                has_rendering_keyword = True
+            usage_dict = {
+                "name": "Usage",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": None
+                    }
+                },
+                "completion": None
+            }
+            if has_rendering_keyword:
+                rendering_usage = usage_dict
+                usage_dict = None
+    
+    return {
+        "name": "ViewRenderingMember",
+        "prefix": member_prefix,
+        "usage": {
+            "name": "ViewRenderingUsage",
+            "reference": reference,
+            "specialization": specialization,
+            "body": body,
+            "renderingUsage": rendering_usage,
+            "usage": usage_dict
+        }
+    }
+
+
+def _make_render_state_member_dict(ctx, prefix=None):
+    """Create a RenderStateMember dictionary.
+    
+    renderStateMember : memberPrefix RENDER STATE name renderStateBody
+    renderStateBody : SEMI | LBRACE renderStateBodyItem* RBRACE
+    """
+    member_prefix = prefix
+    
+    state_name = None
+    if hasattr(ctx, 'name') and ctx.name():
+        state_name = ctx.name().getText()
+    
+    body_items = []
+    if hasattr(ctx, 'renderStateBody') and ctx.renderStateBody():
+        body_ctx = ctx.renderStateBody()
+        if hasattr(body_ctx, 'renderStateBodyItem') and body_ctx.renderStateBodyItem():
+            items_list = body_ctx.renderStateBodyItem()
+            if not isinstance(items_list, list):
+                items_list = [items_list]
+            for item in items_list:
+                if hasattr(item, 'shapeDirective') and item.shapeDirective():
+                    sd = item.shapeDirective()
+                    shape_name = sd.name().getText() if hasattr(sd, 'name') and sd.name() else None
+                    body_items.append({"name": "ShapeDirective", "shape": shape_name})
+                elif hasattr(item, 'colorDirective') and item.colorDirective():
+                    cd = item.colorDirective()
+                    color_name = cd.name().getText() if hasattr(cd, 'name') and cd.name() else None
+                    body_items.append({"name": "ColorDirective", "color": color_name})
+                elif hasattr(item, 'showDirective') and item.showDirective():
+                    sd = item.showDirective()
+                    target = None
+                    if hasattr(sd, 'showTarget') and sd.showTarget():
+                        st = sd.showTarget()
+                        if hasattr(st, 'ENTRY') and st.ENTRY():
+                            target = "entry behavior"
+                        elif hasattr(st, 'DO') and st.DO():
+                            target = "do behavior"
+                        elif hasattr(st, 'EVENTS') and st.EVENTS():
+                            target = "events"
+                        elif hasattr(st, 'name') and st.name():
+                            target = st.name().getText()
+                    body_items.append({"name": "ShowDirective", "target": target})
+                elif hasattr(item, 'annotationDirective') and item.annotationDirective():
+                    ad = item.annotationDirective()
+                    text = ad.STRING().getText() if hasattr(ad, 'STRING') and ad.STRING() else None
+                    body_items.append({"name": "AnnotationDirective", "text": text})
+    
+    return {
+        "name": "RenderStateMember",
+        "prefix": member_prefix,
+        "stateName": state_name,
+        "body": body_items
+    }
+
+
+def _visit_view_definition_body_dict(body_ctx):
+    """Visit a viewDefinitionBody and return a list of body item dicts.
+    
+    viewDefinitionBody : SEMI | LBRACE viewDefinitionBodyItem* RBRACE
+    viewDefinitionBodyItem
+        : definitionBodyItem
+        | elementFilterMember
+        | renderStateMember
+        | viewRenderingMember
+        ;
+    """
+    if body_ctx is None:
+        return []
+    
+    items = []
+    if hasattr(body_ctx, 'viewDefinitionBodyItem') and body_ctx.viewDefinitionBodyItem():
+        items_list = body_ctx.viewDefinitionBodyItem()
+        if not isinstance(items_list, list):
+            items_list = [items_list]
+        for item_ctx in items_list:
+            if hasattr(item_ctx, 'renderStateMember') and item_ctx.renderStateMember():
+                item_dict = _make_render_state_member_dict(item_ctx.renderStateMember())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'definitionBodyItem') and item_ctx.definitionBodyItem():
+                item_dict = _visit_definition_body_item_dict(item_ctx.definitionBodyItem())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'viewRenderingMember') and item_ctx.viewRenderingMember():
+                item_dict = _make_view_rendering_member_dict(item_ctx.viewRenderingMember())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'elementFilterMember') and item_ctx.elementFilterMember():
+                pass  # TODO: handle elementFilterMember
+    
+    return items
+
+
+def _visit_view_body_dict(body_ctx):
+    """Visit a viewBody and return a list of body item dicts.
+    
+    viewBody : SEMI | LBRACE viewBodyItem* RBRACE
+    viewBodyItem
+        : definitionBodyItem
+        | elementFilterMember
+        | viewRenderingMember
+        | expose
+        ;
+    """
+    if body_ctx is None:
+        return []
+    
+    items = []
+    if hasattr(body_ctx, 'viewBodyItem') and body_ctx.viewBodyItem():
+        items_list = body_ctx.viewBodyItem()
+        if not isinstance(items_list, list):
+            items_list = [items_list]
+        for item_ctx in items_list:
+            if hasattr(item_ctx, 'definitionBodyItem') and item_ctx.definitionBodyItem():
+                item_dict = _visit_definition_body_item_dict(item_ctx.definitionBodyItem())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'viewRenderingMember') and item_ctx.viewRenderingMember():
+                item_dict = _make_view_rendering_member_dict(item_ctx.viewRenderingMember())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'elementFilterMember') and item_ctx.elementFilterMember():
+                pass  # TODO: handle elementFilterMember
+            elif hasattr(item_ctx, 'expose') and item_ctx.expose():
+                pass  # TODO: handle expose
+    
     return items
 
 
@@ -9084,6 +9309,13 @@ def _visit_nested_occurrence_usage(occ_elem):
                 inner = result.get("ownedRelatedElement", {})
                 return inner
             return result
+        elif hasattr(occ_elem, 'renderingUsage') and occ_elem.renderingUsage():
+            ctx = occ_elem.renderingUsage()
+            result = _make_rendering_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                inner = result.get("ownedRelatedElement", {})
+                return inner
+            return result
         return None
     
     # print(f"DEBUG _visit_nested_occurrence_usage: {type(occ_elem).__name__}")
@@ -9376,6 +9608,13 @@ def _visit_nested_occurrence_usage(occ_elem):
         elif hasattr(struct_elem, 'interfaceUsage') and struct_elem.interfaceUsage():
             ctx = struct_elem.interfaceUsage()
             result = _make_interface_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                inner = result.get("ownedRelatedElement", {})
+                return inner
+            return result
+        elif hasattr(struct_elem, 'renderingUsage') and struct_elem.renderingUsage():
+            ctx = struct_elem.renderingUsage()
+            result = _make_rendering_usage_dict(ctx, None)
             if result and result.get("name") == "PackageMember":
                 inner = result.get("ownedRelatedElement", {})
                 return inner

@@ -21,7 +21,7 @@ __all__ = [
     "SysMLSyntaxError",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.32.5"
+__version__ = "0.33.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,

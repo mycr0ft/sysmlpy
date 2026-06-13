@@ -1834,12 +1834,14 @@ class GuardedTargetSuccession:
 
 class GuardExpressionMember:
     # GuardExpressionMember :
-    # 	GuardFeatureKind ownedRelatedElement=OwnedExpression
+    # 	(IF | GUARD) ownedExpression
     # ;
     def __init__(self, definition):
         self.keyword = "if"
         self.children = None
         if valid_definition(definition, self.__class__.__name__):
+            if definition.get("keyword") is not None:
+                self.keyword = definition["keyword"]
             if definition.get("ownedRelatedElement") is not None:
                 self.children = OwnedExpression(definition["ownedRelatedElement"])
 
@@ -8310,7 +8312,11 @@ class UsageBody:
     def __init__(self, definition=None):
         if definition is not None:
             if valid_definition(definition, "UsageBody"):
-                self.body = DefinitionBody(definition["body"])
+                body_dict = definition["body"]
+                if isinstance(body_dict, dict) and body_dict.get("name") == "ViewBody":
+                    self.body = ViewBody(body_dict)
+                else:
+                    self.body = DefinitionBody(body_dict)
         else:
             self.body = DefinitionBody()
 
@@ -9002,11 +9008,251 @@ class VerificationCaseDefinition(_DeclaredDefinitionBase):
     body_class = CaseBody
 
 
+class ElementFilterMember:
+    # Stub for elementFilterMember — not yet fully implemented
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, "ElementFilterMember"):
+                pass  # TODO: parse filter expression
+
+    def dump(self):
+        return ""
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__}
+
+
+class Expose:
+    # Stub for expose — not yet fully implemented
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, "Expose"):
+                pass  # TODO: parse expose
+
+    def dump(self):
+        return ""
+
+    def get_definition(self):
+        return {"name": self.__class__.__name__}
+
+
+class RenderStateMember:
+    # renderStateMember : memberPrefix RENDER STATE name renderStateBody
+    def __init__(self, definition=None):
+        self.prefix = None
+        self.state_name = None
+        self.body_items = []
+        if definition is not None:
+            if valid_definition(definition, "RenderStateMember"):
+                if definition.get("prefix") is not None:
+                    self.prefix = MemberPrefix(definition["prefix"])
+                self.state_name = definition.get("stateName")
+                for item in definition.get("body", []):
+                    self.body_items.append(item)
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        output.append("render state")
+        if self.state_name is not None:
+            output.append(self.state_name)
+        if len(self.body_items) == 0:
+            output.append(";")
+            return " ".join(output)
+        body_parts = []
+        for item in self.body_items:
+            name = item.get("name", "")
+            if name == "ShapeDirective":
+                body_parts.append(f"shape {item.get('shape', '')};")
+            elif name == "ColorDirective":
+                body_parts.append(f"color {item.get('color', '')};")
+            elif name == "ShowDirective":
+                body_parts.append(f"show {item.get('target', '')};")
+            elif name == "AnnotationDirective":
+                body_parts.append(f"annotation {item.get('text', '')};")
+        return " ".join(output) + " {\n" + "\n".join(body_parts) + "\n}"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "stateName": self.state_name,
+            "body": self.body_items,
+        }
+
+
+class ViewRenderingUsage:
+    # viewRenderingUsage
+    #     : ownedReferenceSubsetting featureSpecializationPart? usageBody
+    #     | ( usageExtensionKeyword* RENDERING | usageExtensionKeyword+) usage
+    #     ;
+    def __init__(self, definition=None):
+        self.reference = None
+        self.specialization = None
+        self.body = None
+        self.has_rendering_keyword = False
+        self.usage_name = None
+        if definition is not None:
+            if valid_definition(definition, "ViewRenderingUsage"):
+                if definition.get("reference") is not None:
+                    self.reference = QualifiedName(definition["reference"])
+                if definition.get("specialization") is not None:
+                    self.specialization = FeatureSpecializationPart(definition["specialization"])
+                if definition.get("body") is not None:
+                    self.body = UsageBody(definition["body"])
+                if definition.get("renderingUsage") is not None:
+                    self.has_rendering_keyword = True
+                    ru = definition["renderingUsage"]
+                    if isinstance(ru, dict):
+                        decl = ru.get("declaration", {})
+                        if isinstance(decl, dict):
+                            inner_decl = decl.get("declaration", {})
+                            if isinstance(inner_decl, dict):
+                                ident = inner_decl.get("identification", {})
+                                if isinstance(ident, dict):
+                                    self.usage_name = ident.get("declaredName")
+                if definition.get("usage") is not None:
+                    u = definition["usage"]
+                    if isinstance(u, dict):
+                        decl = u.get("declaration", {})
+                        if isinstance(decl, dict):
+                            inner_decl = decl.get("declaration", {})
+                            if isinstance(inner_decl, dict):
+                                ident = inner_decl.get("identification", {})
+                                if isinstance(ident, dict):
+                                    self.usage_name = ident.get("declaredName")
+
+    def dump(self):
+        output = []
+        if self.reference is not None:
+            output.append(self.reference.dump())
+        if self.specialization is not None:
+            output.append(self.specialization.dump())
+        if self.body is not None:
+            output.append(self.body.dump())
+        if self.has_rendering_keyword:
+            output.append("rendering")
+        if self.usage_name is not None:
+            output.append(self.usage_name)
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "reference": self.reference.get_definition() if self.reference else None,
+            "specialization": self.specialization.get_definition() if self.specialization else None,
+            "body": self.body.get_definition() if self.body else None,
+            "renderingUsage": None,
+            "usage": None,
+        }
+
+
+class ViewRenderingMember:
+    # viewRenderingMember : memberPrefix RENDER viewRenderingUsage
+    def __init__(self, definition=None):
+        self.prefix = None
+        self.usage = None
+        if definition is not None:
+            if valid_definition(definition, "ViewRenderingMember"):
+                if definition.get("prefix") is not None:
+                    self.prefix = MemberPrefix(definition["prefix"])
+                if definition.get("usage") is not None:
+                    self.usage = ViewRenderingUsage(definition["usage"])
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        output.append("render")
+        if self.usage is not None:
+            output.append(self.usage.dump())
+            if self.usage.body is None:
+                output.append(";")
+        return " ".join(output)
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "usage": self.usage.get_definition() if self.usage else None,
+        }
+
+
+class ViewDefinitionBody:
+    # viewDefinitionBody : SEMI | LBRACE viewDefinitionBodyItem* RBRACE
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, "ViewDefinitionBody"):
+                for item in definition.get("ownedRelatedElement", []):
+                    item_name = item.get("name")
+                    if item_name == "DefinitionBodyItem":
+                        self.children.append(DefinitionBodyItem(item))
+                    elif item_name == "ViewRenderingMember":
+                        self.children.append(ViewRenderingMember(item))
+                    elif item_name == "RenderStateMember":
+                        self.children.append(RenderStateMember(item))
+                    elif item_name == "ElementFilterMember":
+                        self.children.append(ElementFilterMember(item))
+                    else:
+                        print(f"ViewDefinitionBody: unknown item {item_name}")  # pragma: no cover
+
+    def dump(self):
+        if len(self.children) == 0:
+            return ";"
+        output = []
+        for child in self.children:
+            output.append(child.dump())
+        return " {\n" + "\n".join(output) + "\n}"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [child.get_definition() for child in self.children],
+        }
+
+
+class ViewBody:
+    # viewBody : SEMI | LBRACE viewBodyItem* RBRACE
+    def __init__(self, definition=None):
+        self.children = []
+        if definition is not None:
+            if valid_definition(definition, "ViewBody"):
+                for item in definition.get("ownedRelatedElement", []):
+                    item_name = item.get("name")
+                    if item_name == "DefinitionBodyItem":
+                        self.children.append(DefinitionBodyItem(item))
+                    elif item_name == "ViewRenderingMember":
+                        self.children.append(ViewRenderingMember(item))
+                    elif item_name == "ElementFilterMember":
+                        self.children.append(ElementFilterMember(item))
+                    elif item_name == "Expose":
+                        self.children.append(Expose(item))
+                    else:
+                        print(f"ViewBody: unknown item {item_name}")  # pragma: no cover
+
+    def dump(self):
+        if len(self.children) == 0:
+            return ";"
+        output = []
+        for child in self.children:
+            output.append(child.dump())
+        return " {\n" + "\n".join(output) + "\n}"
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "ownedRelatedElement": [child.get_definition() for child in self.children],
+        }
+
+
 class ViewDefinition(_DeclaredDefinitionBase):
     # viewDefinition : occurrenceDefinitionPrefix VIEW DEF definitionDeclaration viewDefinitionBody
-    # Uses DefinitionBody as approximation since ViewDefinitionBody not yet implemented
     keyword = "view def"
-    body_class = DefinitionBody
+    body_class = ViewDefinitionBody
 
 
 class ViewpointDefinition(_DeclaredDefinitionBase):
@@ -9307,11 +9553,13 @@ class Dependency:
 class _PrefixedUsageBase:
     """Base class for usages with: prefix + keyword + Usage."""
     keyword = "usage"
+    body_class = None  # Set in subclass, defaults to UsageBody
 
     def __init__(self, definition=None):
         self.prefix = None
         self.declaration = None
         self.body = None
+        body_cls = self.body_class if self.body_class else UsageBody
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
                 if definition.get("prefix") is not None:
@@ -9319,10 +9567,10 @@ class _PrefixedUsageBase:
                 if definition.get("declaration") is not None:
                     self.declaration = UsageDeclaration(definition["declaration"])
                 if definition.get("body") is not None:
-                    self.body = UsageBody(definition["body"])
+                    self.body = body_cls(definition["body"])
         else:
             self.declaration = UsageDeclaration()
-            self.body = UsageBody()
+            self.body = body_cls(None)
 
     def dump(self):
         output = []
@@ -9372,6 +9620,7 @@ class FlowUsageSimple(_PrefixedUsageBase):
 class ViewUsage(_PrefixedUsageBase):
     # viewUsage : occurrenceUsagePrefix VIEW usageDeclaration? valuePart? viewBody
     keyword = "view"
+    body_class = ViewBody
 
 
 class ViewpointUsage(_PrefixedUsageBase):

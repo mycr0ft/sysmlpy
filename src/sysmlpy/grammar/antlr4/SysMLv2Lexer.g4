@@ -322,6 +322,10 @@ IF
     : 'if'
     ;
 
+GUARD
+    : 'guard'
+    ;
+
 IMPLIES
     : 'implies'
     ;
@@ -881,6 +885,26 @@ RBRACE
 
 TILDE
     : '~'
+     ;
+
+SHAPE
+    : 'shape'
+    ;
+
+COLOR
+    : 'color'
+    ;
+
+SHOW
+    : 'show'
+    ;
+
+EVENTS
+    : 'events'
+    ;
+
+ANNOTATION
+    : 'annotation'
     ;
 
 // Identifiers

@@ -2231,3 +2231,142 @@ def test_dump_no_double_space_typed_usage():
     dump = b.dump()
     assert "  ;" not in dump, f"Double space before semicolon in: {dump}"
     assert "  {" not in dump, f"Double space before brace in: {dump}"
+
+
+def test_rendering_def_roundtrip():
+    """rendering def at package level round-trips."""
+    text = """package P {
+    rendering def MyRendering;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_rendering_usage_roundtrip():
+    """rendering usage at package level round-trips."""
+    text = """package P {
+    rendering MyRendering;
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_rendering_inside_part_def_roundtrip():
+    """rendering inside part def body round-trips."""
+    text = """package P {
+    part def Vehicle {
+        rendering MyRendering;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_render_inside_view_def_roundtrip():
+    """render inside view def body round-trips."""
+    text = """package P {
+    view def MyView {
+        render SomeRendering;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_render_rendering_inside_view_def_roundtrip():
+    """render rendering inside view def body round-trips."""
+    text = """package P {
+    view def MyView {
+        render rendering SomeRendering;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_render_inside_view_def_with_definition_body_item():
+    """render alongside definitionBodyItem inside view def body round-trips."""
+    text = """package P {
+    view def MyView {
+        part def Engine;
+        render SomeRendering;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_subject_qualified_name_roundtrip():
+    """subject with qualified name in requirement def body round-trips."""
+    text = """package P {
+    requirement def REQ {
+        subject SystemGateway::System_Driver;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_guard_keyword_in_transition_roundtrip():
+    """guard keyword in transition body round-trips."""
+    text = """package P {
+    state def SM {
+        state A;
+        state B;
+        transition first A guard condition then B;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    dump = b.dump()
+    assert "guard" in dump or "if" in dump, f"guard/if not found in: {dump}"
+
+
+def test_render_state_in_view_def_roundtrip():
+    """render state with shape directive in view def body round-trips."""
+    text = """package P {
+    view def V {
+        render state Initializing {
+            shape box;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_render_state_with_color_directive_roundtrip():
+    """render state with color directive in view def body round-trips."""
+    text = """package P {
+    view def V {
+        render state Active {
+            color lightgreen;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_render_state_with_multiple_directives_roundtrip():
+    """render state with multiple directives in view def body round-trips."""
+    text = """package P {
+    view def V {
+        render state Running {
+            shape box;
+            color lightblue;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())

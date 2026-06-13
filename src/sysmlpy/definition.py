@@ -1125,6 +1125,17 @@ class Package(Searchable):
                             r.name = feat_decl.identification.declaredName
                 r.parent = self
                 self.children.append(r)
+            elif inner_class == "RenderingUsage":
+                r = Rendering()
+                r.grammar = inner_element
+                if hasattr(inner_element, 'declaration') and inner_element.declaration:
+                    decl = inner_element.declaration
+                    if hasattr(decl, 'declaration') and decl.declaration:
+                        feat_decl = decl.declaration
+                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
+                            r.name = feat_decl.identification.declaredName
+                r.parent = self
+                self.children.append(r)
             elif inner_class == "IndividualDefinition":
                 i = Individual(definition=True)
                 i.grammar = inner_element

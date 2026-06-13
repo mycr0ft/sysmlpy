@@ -780,6 +780,13 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 
 ## Changelog
 
+- **v0.33.0** — Fix three parser issues from PARSING_ISSUES.md:
+  1. `subject` with qualified name (e.g. `subject SystemGateway::System_Driver;`) now parses and round-trips inside requirement def bodies.
+  2. `guard` keyword now accepted as alternative to `if` in transition guard expressions (e.g. `transition first A guard condition then B;`).
+  3. `render state` directives with `shape`, `color`, `show`, and `annotation` sub-directives now parse and round-trip inside `view def` and `view` bodies.
+  
+  Also: `rendering` usage now supported inside definition bodies (previously silently dropped), `RenderingUsage` dispatch added to `Package.load_from_grammar`, `ViewRenderingMember`/`ViewRenderingUsage` grammar classes added, `ViewDefinitionBody`/`ViewBody` grammar classes replace `DefinitionBody` for view contexts.
+
 - **v0.32.5** — Fix double-space in dump output when `:>>` (redefinition) or
   `: ` (typing) appears after `attribute`, `part`, or other usage keywords.
   Root cause: `Redefinitions.keyword` and `TypedBy.keyword` had leading spaces
