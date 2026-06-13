@@ -778,6 +778,13 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 | 20 | Relationship Matrix (GridView) | Relationship Matrix |
 | 21 | Tabular View — Color | Tabular View (color) |
 
+## Changelog
+
+- **v0.32.5** — Fix double-space in dump output when `:>>` (redefinition) or
+  `: ` (typing) appears after `attribute`, `part`, or other usage keywords.
+  Root cause: `Redefinitions.keyword` and `TypedBy.keyword` had leading spaces
+  that doubled the separator in `AttributeUsage.dump()` and similar join points.
+
 ## Conformance
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).

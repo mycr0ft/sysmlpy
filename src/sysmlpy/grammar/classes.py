@@ -7758,7 +7758,7 @@ class FeatureSpecializationPart:
             for child in self.specializations:
                 output.append(child.dump())
 
-        return "".join(output)
+        return " ".join(output)
 
     def get_definition(self):
         output = {
@@ -7982,7 +7982,7 @@ class FeatureSpecialization:
 class Redefinitions:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
-            self.keyword = " :>>"
+            self.keyword = ":>>"
             self.children = []
             for relationship in definition["ownedRelationship"]:
                 self.children.append(OwnedRedefinition(relationship))
@@ -8163,7 +8163,7 @@ class Typings:
 class TypedBy:
     def __init__(self, definition):
         if valid_definition(definition, "TypedBy"):
-            self.keyword = " : "
+            self.keyword = ": "
 
             self.relationships = []
             for relationship in definition["ownedRelationship"]:
