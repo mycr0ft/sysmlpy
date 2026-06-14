@@ -4301,20 +4301,31 @@ def _escape_html(text):
 
 
 def _format_table_rows_plantuml(header, rows):
-    """Format a PlantUML salt table from header and rows."""
+    """Format a PlantUML table from header and rows using rectangle-based layout.
+    
+    Uses rectangle elements with | separated labels connected by [hidden] edges,
+    compatible with PlantUML 1.2024.7+ (unlike deprecated salt syntax).
+    """
     lines = []
-    lines.append("salt")
-    lines.append("{")
-    lines.append("{")
-    # Header row with bold formatting
-    header_line = "|+" + "+|+".join([str(h).replace("|", "\\|") for h in header]) + "+|"
-    lines.append(header_line)
-    for row in rows:
-        safe_row = [str(c).replace("|", "\\|") for c in row]
-        row_line = "|" + "|".join(safe_row) + "|"
-        lines.append(row_line)
-    lines.append("}")
-    lines.append("}")
+    if not rows:
+        return lines
+    
+    # Header row with bold labels
+    safe_header = [str(h).replace("|", "\\|").replace('"', "''") for h in header]
+    header_label = "<b>" + "|</b><b>".join(safe_header) + "</b>"
+    lines.append(f'rectangle "{header_label}" as HEADER #LightGray')
+    
+    # Data rows
+    for i, row in enumerate(rows):
+        safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
+        row_label = "|".join(safe_row)
+        lines.append(f'rectangle "{row_label}" as R{i}')
+    
+    # Connect rows with hidden lines for proper layout
+    lines.append('HEADER -[hidden]- R0')
+    for i in range(len(rows) - 1):
+        lines.append(f'R{i} -[hidden]- R{i+1}')
+    
     return lines
 
 
@@ -4387,9 +4398,6 @@ def as_tabular_view(model, focus=None, style="bw", output_format="markdown",
     Presents exposed model elements in a table with configurable columns.
     Default columns: Name, Type, Kind, Parent, Typed By, Specializes.
 
-    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
-    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
-
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
@@ -4453,7 +4461,7 @@ def as_tabular_view(model, focus=None, style="bw", output_format="markdown",
             parts = css_lines + parts
         return "\n".join(parts)
 
-    # PlantUML output (default) - use salt component
+    # PlantUML output — rectangle-based table for modern PlantUML compatibility
     lines = []
     lines.append("@startuml")
     lines.append("")
@@ -4505,15 +4513,12 @@ def as_data_value_tabular_view(model, focus=None, style="bw",
     Presents attribute elements and their values in a table.
     Shows: parent element, attribute name, value, unit, and attribute type.
 
-    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
-    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
-
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
         style: "bw" (default) or "color"
         output_format: "markdown" (default), "html", or "plantuml"
-        include_units: Whether to show units (default True)
+        include_units: If True, includes unit column (default True)
         custom_style: Optional style lines (PlantUML) or CSS (HTML)
 
     Returns:
@@ -4662,9 +4667,6 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     Each cell indicates the type of relationship (C=composite, T=typing,
     G=specialization, B=binding, F=flow, etc.).
 
-    NOTE: For PlantUML 1.2024.7+, use output_format="markdown" or "html" as
-    the PlantUML table syntax has changed. Markdown and HTML formats work universally.
-
     Args:
         model: A sysmlpy Model instance
         focus: Optional element to focus on (lists its subtree)
@@ -4745,7 +4747,7 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
         parts.append("<!-- Legend: " + ", ".join(f"{k}={v}" for k, v in RELATIONSHIP_LABELS.items()) + " -->")
         return "\n".join(parts)
 
-    # PlantUML output (default) - use salt matrix
+    # PlantUML output — rectangle-based matrix for modern PlantUML compatibility
     lines = []
     lines.append("@startuml")
     lines.append("")
@@ -4775,18 +4777,24 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     lines.append(f'title {title}')
     lines.append("")
 
-    # Build PlantUML salt matrix
-    lines.append("salt")
-    lines.append("{")
-    # Header row (empty corner + column names)
-    header_cells = '| ' + ' | '.join(f'<&question> {h}' if h else '?' for h in [''] + header)
-    lines.append(header_cells)
-    # Data rows
-    for row in matrix_rows:
-        safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
-        row_cells = '| ' + ' | '.join(safe_row)
-        lines.append(row_cells)
-    lines.append("}")
+    # Build matrix using rectangle-based layout
+    if matrix_rows:
+        # Header row — empty corner cell + column names
+        safe_header = [str(h).replace("|", "\\|").replace('"', "''") for h in header]
+        header_label = "<b>|</b><b>" + "</b>|<b>".join(safe_header) + "</b>"
+        lines.append(f'rectangle "{header_label}" as MAT_HEADER #LightGray')
+        
+        # Data rows
+        for i, row in enumerate(matrix_rows):
+            safe_row = [str(c).replace("|", "\\|").replace('"', "''") for c in row]
+            row_label = "|".join(safe_row)
+            lines.append(f'rectangle "{row_label}" as M{i}')
+        
+        # Connect rows
+        lines.append('MAT_HEADER -[hidden]- M0')
+        for i in range(len(matrix_rows) - 1):
+            lines.append(f'M{i} -[hidden]- M{i+1}')
+
     lines.append("")
 
     # Legend
@@ -4795,6 +4803,280 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     for rel_name, rel_code in RELATIONSHIP_LABELS.items():
         lines.append(f"  {rel_code} = {rel_name}")
     lines.append("endlegend")
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+# ============================================================
+# 7. Sequence View
+# ============================================================
+
+def as_sequence_view(model, focus=None, elements=None, style="bw",
+                     auto_include_flows=True, custom_style=None):
+    """Generate a Sequence Diagram View.
+
+    Maps SysML v2 action flows and message passing between parts/actions
+    onto PlantUML sequence diagram syntax. Each part or action becomes a
+    lifeline; flow connections and action successions become messages.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        auto_include_flows: Auto-discover flows connected to selected elements
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    title = "Sequence View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Sequence View \u2014 {focus_name}"
+    elif elements is not None:
+        title = f"Sequence View \u2014 Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    # Collect participants (lifelines)
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=None,
+                            include_legend=False, show_external=True)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+
+    participants = []
+    for alias, name, stereotype, elem, is_included in gen.elements:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type in ('part', 'action', 'state'):
+            participants.append((alias, name, sysml_type))
+
+    # Deduplicate by alias
+    seen = set()
+    participants = [p for p in participants if not (p[0] in seen or seen.add(p[0]))]
+
+    for alias, name, sysml_type in participants:
+        lines.append(f'participant "{name}" as {alias}')
+
+    lines.append("")
+
+    # Collect messages from flow connections
+    messages = []
+    flow_connections = _extract_flow_connections(model)
+    for from_names, to_names, flow_name, is_grammar_obj in flow_connections:
+        if not from_names or not to_names:
+            continue
+        from_name = from_names[0] if isinstance(from_names, list) else from_names
+        to_name = to_names[0] if isinstance(to_names, list) else to_names
+        label = flow_name or ""
+        # Find matching participant aliases
+        from_alias = None
+        to_alias = None
+        for alias, name, _ in participants:
+            if name == from_name:
+                from_alias = alias
+            if name == to_name:
+                to_alias = alias
+        if from_alias and to_alias:
+            arrow = "->"
+            msg_line = f'{from_alias} {arrow} {to_alias}'
+            if label:
+                msg_line += f' : {label}'
+            messages.append(msg_line)
+
+    # Also add messages from action successions in grammar bodies
+    _add_succession_messages(model, messages, participants)
+
+    if not messages:
+        lines.append("note top of **Participants**")
+        lines.append("  No interactions found.")
+        lines.append("end note")
+    else:
+        lines.extend(messages)
+
+    lines.append("")
+    lines.append("@enduml")
+    return "\n".join(lines)
+
+
+def _add_succession_messages(model, messages, participants):
+    """Scan grammar bodies for action successions and add as messages."""
+    visited = set()
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        grammar = getattr(element, 'grammar', None)
+        if grammar and hasattr(grammar, 'body') and grammar.body:
+            _scan_body(grammar.body, element)
+
+        for child in getattr(element, 'children', []):
+            _scan(child)
+
+    def _scan_body(body, parent):
+        for child in getattr(body, 'children', []):
+            if child.__class__.__name__ in ('SuccessionMember', 'GuardedSuccession'):
+                _extract_succession(child, parent)
+            elif child.__class__.__name__ == 'DefinitionBodyItem':
+                for inner in getattr(child, 'children', []):
+                    if inner.__class__.__name__ in ('SuccessionMember', 'GuardedSuccession'):
+                        _extract_succession(inner, parent)
+                    _scan_body(inner, parent)
+            else:
+                _scan_body(child, parent)
+
+    def _extract_succession(succ, parent):
+        source_name = getattr(succ, 'source', None)
+        target_name = getattr(succ, 'target', None)
+        if not source_name or not target_name:
+            if hasattr(succ, 'children') and succ.children:
+                for c in succ.children:
+                    if hasattr(c, 'source') and c.source:
+                        source_name = c.source
+                    if hasattr(c, 'target') and c.target:
+                        target_name = c.target
+        if source_name and target_name:
+            from_alias = None
+            to_alias = None
+            for alias, name, _ in participants:
+                if name == source_name:
+                    from_alias = alias
+                if name == target_name:
+                    to_alias = alias
+            if from_alias and to_alias:
+                msg = f'{from_alias} -> {to_alias} : succession'
+                if msg not in messages:
+                    messages.append(msg)
+
+    _scan(model)
+
+
+# ============================================================
+# 8. Case / Use-Case View
+# ============================================================
+
+def as_case_view(model, focus=None, elements=None, style="bw",
+                 custom_style=None):
+    """Generate a Case / Use-Case Diagram View.
+
+    Maps SysML v2 actions (as use cases) and external parts (as actors)
+    onto PlantUML use-case diagram syntax.
+
+    Args:
+        model: A sysmlpy Model instance
+        focus: Optional element to focus on (renders its subtree)
+        elements: Optional list of specific elements to include
+        style: "bw" (default) or "color"
+        custom_style: Optional PlantUML style lines to append
+
+    Returns:
+        str: PlantUML text
+    """
+    lines = []
+    lines.append("@startuml")
+    lines.append("")
+
+    if style == "bw":
+        lines.extend([
+            "skinparam monochrome true",
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+    else:
+        lines.extend([
+            "skinparam defaultFontSize 12",
+            "skinparam defaultFontName Helvetica",
+        ])
+
+    if custom_style:
+        lines.append("")
+        lines.extend(custom_style)
+
+    lines.append("")
+
+    title = "Case View"
+    if focus is not None:
+        focus_name = getattr(focus, 'name', None) or "Focus"
+        title = f"Case View \u2014 {focus_name}"
+    elif elements is not None:
+        title = f"Case View \u2014 Selected Elements ({len(elements)})"
+    lines.append(f'title {title}')
+    lines.append("")
+
+    # Collect elements
+    gen = PlantUMLGenerator(model, style=style, focus=focus,
+                            elements=elements, max_depth=None,
+                            include_legend=False, show_external=True)
+    gen._build_inclusion_set()
+    gen._traverse(gen.model)
+
+    actors = []
+    usecases = []
+    for alias, name, stereotype, elem, is_included in gen.elements:
+        sysml_type = getattr(elem, 'sysml_type', '')
+        if sysml_type == 'part':
+            parent = getattr(elem, 'parent', None)
+            if parent and getattr(parent, 'sysml_type', '') != 'part':
+                actors.append((alias, name))
+        elif sysml_type == 'action':
+            usecases.append((alias, name))
+
+    # Deduplicate
+    seen = set()
+    actors = [a for a in actors if not (a[0] in seen or seen.add(a[0]))]
+    seen = set()
+    usecases = [u for u in usecases if not (u[0] in seen or seen.add(u[0]))]
+
+    # System boundary
+    focus_name = getattr(focus, 'name', None) if focus else None
+    system_name = focus_name or "System"
+    lines.append(f'rectangle "{system_name}" {{')
+
+    for alias, name in usecases:
+        lines.append(f'  usecase "{name}" as {alias}')
+
+    lines.append("}")
+    lines.append("")
+
+    for alias, name in actors:
+        lines.append(f'actor "{name}" as {alias}')
+
+    if not usecases and not actors:
+        lines.append("note top of **Elements**")
+        lines.append("  No use cases or actors found in this scope.")
+        lines.append("end note")
+    else:
+        for a_alias, _ in actors:
+            for u_alias, _ in usecases:
+                lines.append(f'{a_alias} --> {u_alias}')
 
     lines.append("")
     lines.append("@enduml")

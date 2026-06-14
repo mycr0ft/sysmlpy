@@ -800,6 +800,12 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   
   Rejected: `interface` as unquoted identifier (use `'interface'` per spec), guard after `then` in transitions (guard must precede `then` per spec).
 
+- **v0.33.3** — Fix grid views for modern PlantUML, add two new views:
+  1. PlantUML grid views (`as_tabular_view`, `as_data_value_tabular_view`, `as_relationship_matrix_view`) replaced deprecated salt syntax with rectangle-based layout, compatible with PlantUML 1.2024.7+.
+  2. New `as_sequence_view()` — maps action flows and message passing onto PlantUML sequence diagram syntax (participant lifelines, `->` messages).
+  3. New `as_case_view()` — maps actors and use cases onto PlantUML use-case diagram syntax.
+  4. Added `docs/GUARDS.md` documenting guard condition syntax for confused users (canonical keyword is `if`, transition order is `accept` before `if` before `do` before `then`).
+
 ## Conformance
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).

@@ -2137,7 +2137,7 @@ class TestTabularView:
             part def Wheel;
         }
         """)
-        puml = as_tabular_view(model)
+        puml = as_tabular_view(model, output_format="plantuml")
 
         assert "@startuml" in puml
         assert "@enduml" in puml
@@ -2233,7 +2233,7 @@ class TestDataValueTabularView:
             }
         }
         """)
-        puml = as_data_value_tabular_view(model)
+        puml = as_data_value_tabular_view(model, output_format="plantuml")
 
         assert "@startuml" in puml
         assert "@enduml" in puml
@@ -2335,11 +2335,10 @@ class TestRelationshipMatrixView:
             part def Wheel;
         }
         """)
-        puml = as_relationship_matrix_view(model)
+        puml = as_relationship_matrix_view(model, output_format="plantuml")
 
         assert "@startuml" in puml
         assert "@enduml" in puml
-        assert "salt" in puml
         assert "Relationship Matrix" in puml
         assert "Engine" in puml
         assert "Wheel" in puml
@@ -2548,3 +2547,92 @@ class TestRelationshipMatrixView:
         puml = as_requirement_view(model, focus=focus)
 
         assert "Requirement View — MyFocus" in puml
+
+
+class TestSequenceView:
+    """Tests for as_sequence_view."""
+
+    def test_as_sequence_view_basic(self):
+        """Sequence View produces basic PlantUML output."""
+        from sysmlpy.plantuml import as_sequence_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Engine;
+            part def Wheel;
+        }
+        """)
+        puml = as_sequence_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Sequence View" in puml
+        assert "participant" in puml
+
+    def test_as_sequence_view_title_with_focus(self):
+        """Sequence View title includes focus name."""
+        from sysmlpy.plantuml import as_sequence_view
+
+        model = sysmlpy.loads("""
+        package P { action def MyAction; }
+        """)
+        focus = model.find('MyAction')[0]
+        puml = as_sequence_view(model, focus=focus)
+
+        assert "Sequence View — MyAction" in puml
+
+    def test_as_sequence_view_custom_style(self):
+        """Sequence View accepts custom style."""
+        from sysmlpy.plantuml import as_sequence_view
+
+        model = sysmlpy.loads("""
+        package P { part def A; part def B; }
+        """)
+        custom = ["skinparam monochrome false"]
+        puml = as_sequence_view(model, custom_style=custom)
+
+        assert "skinparam monochrome false" in puml
+
+
+class TestCaseView:
+    """Tests for as_case_view."""
+
+    def test_as_case_view_basic(self):
+        """Case View produces basic PlantUML output."""
+        from sysmlpy.plantuml import as_case_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Driver;
+            action def StartEngine;
+        }
+        """)
+        puml = as_case_view(model)
+
+        assert "@startuml" in puml
+        assert "@enduml" in puml
+        assert "Case View" in puml
+
+    def test_as_case_view_title_with_focus(self):
+        """Case View title includes focus name."""
+        from sysmlpy.plantuml import as_case_view
+
+        model = sysmlpy.loads("""
+        package P { action def MyCase; }
+        """)
+        focus = model.find('MyCase')[0]
+        puml = as_case_view(model, focus=focus)
+
+        assert "Case View — MyCase" in puml
+
+    def test_as_case_view_custom_style(self):
+        """Case View accepts custom style."""
+        from sysmlpy.plantuml import as_case_view
+
+        model = sysmlpy.loads("""
+        package P { part def Ext; action def DoSomething; }
+        """)
+        custom = ["skinparam monochrome false"]
+        puml = as_case_view(model, custom_style=custom)
+
+        assert "skinparam monochrome false" in puml

@@ -17,11 +17,12 @@ __all__ = [
     "as_general_view", "as_package_view", "as_package_diagram_view", "as_block_definition_view", "as_internal_block_diagram",
     "as_parametric_view", "as_requirement_view",
     "as_tabular_view", "as_data_value_tabular_view", "as_relationship_matrix_view",
+    "as_sequence_view", "as_case_view",
     "analyze", "AnalysisResult", "SemanticIssue", "SemanticAnalyzer",
     "SysMLSyntaxError",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.33.2"
+__version__ = "0.33.3"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -261,7 +262,8 @@ from sysmlpy.plantuml import (to_plantuml, PlantUMLGenerator,
     as_action_flow_view, as_interconnection_view, as_state_transition_view,
     as_general_view, as_package_view, as_package_diagram_view, as_block_definition_view, as_internal_block_diagram,
     as_parametric_view, as_requirement_view,
-    as_tabular_view, as_data_value_tabular_view, as_relationship_matrix_view)
+    as_tabular_view, as_data_value_tabular_view, as_relationship_matrix_view,
+    as_sequence_view, as_case_view)
 
 from sysmlpy.semantic import analyze, AnalysisResult, SemanticIssue, SemanticAnalyzer
 
