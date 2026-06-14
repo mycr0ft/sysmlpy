@@ -2370,3 +2370,60 @@ def test_render_state_with_multiple_directives_roundtrip():
     a = loads(text)
     b = classtree(a)
     assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_performed_action_usage_regression():
+    """Regression: PerformedActionUsage should not raise AttributeError on keyword."""
+    text = """package P {
+    state def SM {
+        entry;
+        then StateA;
+        state StateA {
+            entry action initialize {
+                doc /* Initialize */
+            }
+        }
+        transition StateA then StateB;
+        state StateB {
+            do action performWork {
+                doc /* Do work */
+            }
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    dump = b.dump()
+    assert "state def" in dump
+    assert "entry action initialize" in dump
+    assert "do action performWork" in dump
+
+
+def test_annotation_double_quoted_string_roundtrip():
+    """Double-quoted strings in annotation directives should parse and round-trip."""
+    text = """package P {
+    view def V {
+        render state Active {
+            shape box;
+            annotation "This is a description";
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_annotation_single_quoted_string_roundtrip():
+    """Single-quoted strings in annotation directives should still work."""
+    text = """package P {
+    view def V {
+        render state Active {
+            shape box;
+            annotation 'This is a description';
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())

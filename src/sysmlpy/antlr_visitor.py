@@ -7543,11 +7543,8 @@ def _make_view_usage_dict(ctx, prefix=None):
                             }
                         },
                         "body": {
-                            "name": "UsageBody",
-                            "body": {
-                                "name": "ViewBody",
-                                "ownedRelatedElement": body_items
-                            }
+                            "name": "ViewBody",
+                            "ownedRelatedElement": body_items
                         }
                     }
                 }
@@ -8373,7 +8370,11 @@ def _make_render_state_member_dict(ctx, prefix=None):
                     body_items.append({"name": "ShowDirective", "target": target})
                 elif hasattr(item, 'annotationDirective') and item.annotationDirective():
                     ad = item.annotationDirective()
-                    text = ad.STRING().getText() if hasattr(ad, 'STRING') and ad.STRING() else None
+                    text = None
+                    if hasattr(ad, 'STRING') and ad.STRING():
+                        text = ad.STRING().getText()
+                    elif hasattr(ad, 'DOUBLE_STRING') and ad.DOUBLE_STRING():
+                        text = ad.DOUBLE_STRING().getText()
                     body_items.append({"name": "AnnotationDirective", "text": text})
     
     return {
@@ -8429,6 +8430,7 @@ def _visit_view_body_dict(body_ctx):
     viewBodyItem
         : definitionBodyItem
         | elementFilterMember
+        | renderStateMember
         | viewRenderingMember
         | expose
         ;
@@ -8442,7 +8444,11 @@ def _visit_view_body_dict(body_ctx):
         if not isinstance(items_list, list):
             items_list = [items_list]
         for item_ctx in items_list:
-            if hasattr(item_ctx, 'definitionBodyItem') and item_ctx.definitionBodyItem():
+            if hasattr(item_ctx, 'renderStateMember') and item_ctx.renderStateMember():
+                item_dict = _make_render_state_member_dict(item_ctx.renderStateMember())
+                if item_dict:
+                    items.append(item_dict)
+            elif hasattr(item_ctx, 'definitionBodyItem') and item_ctx.definitionBodyItem():
                 item_dict = _visit_definition_body_item_dict(item_ctx.definitionBodyItem())
                 if item_dict:
                     items.append(item_dict)

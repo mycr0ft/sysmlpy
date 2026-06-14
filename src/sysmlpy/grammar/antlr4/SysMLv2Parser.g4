@@ -2373,7 +2373,7 @@ showTarget
     ;
 
 annotationDirective
-    : ANNOTATION STRING SEMI
+    : ANNOTATION (STRING | DOUBLE_STRING) SEMI
     ;
 
 expose

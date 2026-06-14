@@ -794,6 +794,12 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 
 - **v0.33.1** — Fix `guard` keyword preservation in round-trip: `GuardExpressionMember.get_definition()` now includes the `keyword` field so `guard` is no longer silently converted to `if` on dump.
 
+- **v0.33.2** — Fix two user-reported bugs:
+  1. `PerformedActionUsage` regression: `get_definition()` no longer references non-existent `self.keyword` and `self.children` attributes.
+  2. Double-quoted strings now accepted in `annotation` directives per SysML v2 spec (string literals use `"..."`, single quotes `'...'` are for escaped names only).
+  
+  Rejected: `interface` as unquoted identifier (use `'interface'` per spec), guard after `then` in transitions (guard must precede `then` per spec).
+
 ## Conformance
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).
