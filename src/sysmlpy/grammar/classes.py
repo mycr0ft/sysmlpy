@@ -1694,10 +1694,11 @@ class PerformedActionUsage:
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
-            "declaration": None,
+            "keyword": self.keyword,
+            "ownedRelatedElement": None,
         }
-        if self.declaration is not None:
-            output["declaration"] = self.declaration.get_definition()
+        if self.children is not None:
+            output["ownedRelatedElement"] = self.children.get_definition()
         return output
 
 
@@ -1853,6 +1854,7 @@ class GuardExpressionMember:
     def get_definition(self):
         output = {
             "name": self.__class__.__name__,
+            "keyword": self.keyword,
             "ownedRelatedElement": None,
         }
         if self.children is not None:

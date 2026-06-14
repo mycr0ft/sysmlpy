@@ -780,6 +780,11 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 
 ## Changelog
 
+- **v0.32.5** — Fix double-space in dump output when `:>>` (redefinition) or
+  `: ` (typing) appears after `attribute`, `part`, or other usage keywords.
+  Root cause: `Redefinitions.keyword` and `TypedBy.keyword` had leading spaces
+  that doubled the separator in `AttributeUsage.dump()` and similar join points.
+
 - **v0.33.0** — Fix three parser issues from PARSING_ISSUES.md:
   1. `subject` with qualified name (e.g. `subject SystemGateway::System_Driver;`) now parses and round-trips inside requirement def bodies.
   2. `guard` keyword now accepted as alternative to `if` in transition guard expressions (e.g. `transition first A guard condition then B;`).
@@ -787,10 +792,7 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   
   Also: `rendering` usage now supported inside definition bodies (previously silently dropped), `RenderingUsage` dispatch added to `Package.load_from_grammar`, `ViewRenderingMember`/`ViewRenderingUsage` grammar classes added, `ViewDefinitionBody`/`ViewBody` grammar classes replace `DefinitionBody` for view contexts.
 
-- **v0.32.5** — Fix double-space in dump output when `:>>` (redefinition) or
-  `: ` (typing) appears after `attribute`, `part`, or other usage keywords.
-  Root cause: `Redefinitions.keyword` and `TypedBy.keyword` had leading spaces
-  that doubled the separator in `AttributeUsage.dump()` and similar join points.
+- **v0.33.1** — Fix `guard` keyword preservation in round-trip: `GuardExpressionMember.get_definition()` now includes the `keyword` field so `guard` is no longer silently converted to `if` on dump.
 
 ## Conformance
 
