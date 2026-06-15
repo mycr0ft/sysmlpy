@@ -431,6 +431,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0336-2026-06-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.33.6 (2026-06-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.33.6 (2026-06-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fix-library-import-resolution-with-custom-library-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fix library import resolution with custom library paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0335-2026-06-15" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1571,6 +1599,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0336-2026-06-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.33.6 (2026-06-15)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.33.6 (2026-06-15)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fix-library-import-resolution-with-custom-library-paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fix library import resolution with custom library paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0335-2026-06-15" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2670,6 +2726,14 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0336-2026-06-15">v0.33.6 (2026-06-15)<a class="headerlink" href="#v0336-2026-06-15" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fix-library-import-resolution-with-custom-library-paths">:bug: Fix library import resolution with custom library paths<a class="headerlink" href="#bug-fix-library-import-resolution-with-custom-library-paths" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Threaded <code>lib_roots</code> through <code>SymbolTable.build_from_model()</code> → <code>_resolve_imports()</code> → <code>_resolve_single_import()</code> → <code>_resolve_membership_import()</code> / <code>_resolve_namespace_import()</code></li>
+<li>LibrarySymbolIndex fallback now passes custom library paths to <code>get_symbols()</code> instead of using only the default bundled library</li>
+<li><code>import CustomTypes::*</code> now resolves correctly when <code>CustomTypes</code> is in a user-provided library path</li>
+<li>All 2 library project tests, 118 semantic tests passing</li>
+</ul>
 <h2 id="v0335-2026-06-15">v0.33.5 (2026-06-15)<a class="headerlink" href="#v0335-2026-06-15" title="Permanent link">&para;</a></h2>
 <h3 id="bug-fix-bare-end-in-interface-def-body-stop-injecting-spurious-part-keyword">:bug: Fix bare <code>end</code> in interface def body — stop injecting spurious <code>part</code> keyword<a class="headerlink" href="#bug-fix-bare-end-in-interface-def-body-stop-injecting-spurious-part-keyword" title="Permanent link">&para;</a></h3>
 <ul>
