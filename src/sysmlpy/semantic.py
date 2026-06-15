@@ -329,10 +329,10 @@ class SymbolTable:
             return self._parent.lookup(name, from_child=True)
         return None
 
-    def build_from_model(self, model: Any) -> None:
+    def build_from_model(self, model: Any, lib_roots: list[Path] | None = None) -> None:
         """Walk the model tree and populate the symbol table."""
         self._walk_element(model, self)
-        self._resolve_imports(self)
+        self._resolve_imports(self, lib_roots)
         self._propagate_public_imports(self)
 
     # -- internals -----------------------------------------------------------
@@ -380,14 +380,14 @@ class SymbolTable:
             if child_type == "Import":
                 table._imports.append(child)
 
-    def _resolve_imports(self, table: SymbolTable) -> None:
+    def _resolve_imports(self, table: SymbolTable, lib_roots: list[Path] | None = None) -> None:
         """Resolve all imports for this scope and its children."""
         for imp in table._imports:
-            self._resolve_single_import(imp, table)
+            self._resolve_single_import(imp, table, lib_roots)
 
         # Recurse into children
         for child_table in table._children.values():
-            self._resolve_imports(child_table)
+            self._resolve_imports(child_table, lib_roots)
 
     def _propagate_public_imports(self, table: SymbolTable) -> None:
         """Propagate public and protected imports through the namespace hierarchy.
@@ -429,7 +429,7 @@ class SymbolTable:
             # Recurse into children
             self._propagate_public_imports(child_table)
 
-    def _resolve_single_import(self, imp: Any, table: SymbolTable) -> None:
+    def _resolve_single_import(self, imp: Any, table: SymbolTable, lib_roots: list[Path] | None = None) -> None:
         """Resolve a single Import object into the symbol table."""
         if not imp.children:
             return
@@ -441,9 +441,9 @@ class SymbolTable:
         child_type = type(import_child).__name__
 
         if child_type == "MembershipImport":
-            self._resolve_membership_import(import_child, table, visibility)
+            self._resolve_membership_import(import_child, table, visibility, lib_roots)
         elif child_type == "NamespaceImport":
-            self._resolve_namespace_import(import_child, table, visibility)
+            self._resolve_namespace_import(import_child, table, visibility, lib_roots)
 
     def _extract_import_visibility(self, imp: Any) -> str:
         """Extract visibility keyword from an Import object.
@@ -471,7 +471,7 @@ class SymbolTable:
         else:
             return "private"
 
-    def _resolve_membership_import(self, mem_import: Any, table: SymbolTable, visibility: str) -> None:
+    def _resolve_membership_import(self, mem_import: Any, table: SymbolTable, visibility: str, lib_roots: list[Path] | None = None) -> None:
         """Resolve a MembershipImport (import specific element)."""
         imported_mem = getattr(mem_import, "membership", None)
         if imported_mem is None:
@@ -492,8 +492,14 @@ class SymbolTable:
             simple_name = names[-1]
             table._imported_symbols[simple_name] = element
             table._import_visibility[simple_name] = visibility
+        else:
+            # Fall back to LibrarySymbolIndex for library symbols
+            if ref_str in LibrarySymbolIndex.get_symbols(lib_roots):
+                simple_name = names[-1]
+                table._imported_symbols[simple_name] = ref_str
+                table._import_visibility[simple_name] = visibility
 
-    def _resolve_namespace_import(self, ns_import: Any, table: SymbolTable, visibility: str) -> None:
+    def _resolve_namespace_import(self, ns_import: Any, table: SymbolTable, visibility: str, lib_roots: list[Path] | None = None) -> None:
         """Resolve a NamespaceImport (import all from namespace)."""
         imported_ns = getattr(ns_import, "namespace", None)
         if imported_ns is None:
@@ -512,17 +518,33 @@ class SymbolTable:
         # Find the target namespace table
         ref_str = "::".join(names)
         target_table = self._find_namespace_table(ref_str, table)
-        if target_table is None:
-            return
+        if target_table is not None:
+            # Import all symbols from the target namespace
+            for sym_name, element in target_table._symbols.items():
+                table._imported_symbols[sym_name] = element
+                table._import_visibility[sym_name] = visibility
 
-        # Import all symbols from the target namespace
-        for sym_name, element in target_table._symbols.items():
-            table._imported_symbols[sym_name] = element
-            table._import_visibility[sym_name] = visibility
-
-        # If recursive, also import from all child namespaces
-        if is_recursive:
-            self._recursive_import(target_table, table, visibility)
+            # If recursive, also import from all child namespaces
+            if is_recursive:
+                self._recursive_import(target_table, table, visibility)
+        else:
+            # Fall back to LibrarySymbolIndex for library namespaces
+            prefix = ref_str + "::"
+            lib_symbols = LibrarySymbolIndex.get_symbols(lib_roots)
+            for sym in lib_symbols:
+                if sym.startswith(prefix):
+                    simple_name = sym[len(prefix):]
+                    # Only import direct children (no nested :: in the remainder)
+                    if "::" not in simple_name:
+                        table._imported_symbols[simple_name] = sym
+                        table._import_visibility[simple_name] = visibility
+                    elif is_recursive:
+                        # For recursive imports, also import deeply nested symbols
+                        # Use the next-level name as the imported name
+                        next_name = simple_name.split("::")[0]
+                        if next_name not in table._imported_symbols:
+                            table._imported_symbols[next_name] = sym
+                            table._import_visibility[next_name] = visibility
 
     def _recursive_import(self, source_table: SymbolTable, dest_table: SymbolTable, visibility: str) -> None:
         """Recursively import symbols from all child namespaces."""
@@ -989,7 +1011,7 @@ class SemanticAnalyzer:
 
         # Step 1: Build symbol table
         symtab = SymbolTable()
-        symtab.build_from_model(model)
+        symtab.build_from_model(model, lib_roots)
 
         # Step 2: Validate imports (check if import targets exist)
         issues.extend(self._validate_imports(symtab, lib_roots))

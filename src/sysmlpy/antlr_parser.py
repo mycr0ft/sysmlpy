@@ -67,26 +67,11 @@ def parse(source, library=None):
     else:
         content = source
     
-    # Load library files if library path is provided
-    if library is not None:
-        library_paths = [library] if isinstance(library, (str, Path)) else library
-        library_content = []
-        
-        for lib_path in library_paths:
-            lib_path = Path(lib_path)
-            if lib_path.exists() and lib_path.is_dir():
-                # Load all .sysml and .kerml files from library directory
-                for ext in ['*.sysml', '*.kerml']:
-                    for lib_file in lib_path.glob(f'**/{ext}'):
-                        try:
-                            lib_content = lib_file.read_text(encoding='utf-8')
-                            library_content.append(lib_content)
-                        except Exception:
-                            pass  # Skip files that can't be read
-        
-        # Prepend library content to main content
-        if library_content:
-            content = '\n\n'.join(library_content) + '\n\n' + content
+    # Library parameter — previously prepended library files to the parse input.
+    # Bundled library files use KerML syntax (datatype, classifier, standard library package)
+    # which the SysML v2 ANTLR grammar cannot parse. Library symbol resolution is handled
+    # by LibrarySymbolIndex (regex scanning) during semantic analysis (analyze()).
+    # The library parameter is accepted for API compatibility but the content is not prepended.
     
     # Create input stream
     input_stream = InputStream(content)

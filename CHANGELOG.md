@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v0.33.6 (2026-06-15)
+
+### :bug: Fix library import resolution with custom library paths
+
+- Threaded `lib_roots` through `SymbolTable.build_from_model()` → `_resolve_imports()` → `_resolve_single_import()` → `_resolve_membership_import()` / `_resolve_namespace_import()`
+- LibrarySymbolIndex fallback now passes custom library paths to `get_symbols()` instead of using only the default bundled library
+- `import CustomTypes::*` now resolves correctly when `CustomTypes` is in a user-provided library path
+- All 2 library project tests, 118 semantic tests passing
+
 ## v0.33.5 (2026-06-15)
 
 ### :bug: Fix bare `end` in interface def body — stop injecting spurious `part` keyword

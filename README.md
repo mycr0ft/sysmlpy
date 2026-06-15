@@ -813,6 +813,10 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   4. Added `load_from_grammar` handler for `PortionUsage` in `usage.py`.
   5. PlantUML `_get_stereotype()` now includes `individual`/`timeslice`/`snapshot` prefixes (e.g. `<<timeslice part>>`, `<<individual part>>`).
 
+- **v0.33.6** — Fix library import resolution with custom library paths:
+  1. Threaded `lib_roots` through `build_from_model()` → `_resolve_imports()` → `_resolve_membership_import()` / `_resolve_namespace_import()` for `LibrarySymbolIndex` fallback.
+  2. `import CustomTypes::*` now resolves correctly when `CustomTypes` is in a user-provided library path.
+
 - **v0.33.5** — Fix `DefaultInterfaceEnd` keyword injection:
   1. Removed spurious `part` keyword from interface ends without explicit `part`/`item`/`port` prefix.
   2. Bare `end e1 : Type;` now round-trips correctly as `end e1: Type;` (no extraneous `part`).
