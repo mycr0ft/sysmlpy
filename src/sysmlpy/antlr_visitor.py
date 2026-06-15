@@ -1079,6 +1079,81 @@ def _get_occurrence_usage_prefix(ctx):
     }
 
 
+def _make_portion_usage_prefix(ctx):
+    """Build an OccurrenceUsagePrefix dict from a PortionUsageContext.
+    
+    PortionUsageContext has basicUsagePrefix directly (not via occurrenceUsagePrefix),
+    plus optional INDIVIDUAL and required portionKind.
+    """
+    is_reference = False
+    direction_in = ""
+    direction_out = ""
+    direction_inout = ""
+    is_end = False
+    is_individual = False
+    portion_kind = None
+
+    if hasattr(ctx, 'basicUsagePrefix') and ctx.basicUsagePrefix():
+        bup = ctx.basicUsagePrefix()
+        is_reference = hasattr(bup, 'REF') and bup.REF() is not None
+        if hasattr(bup, 'refPrefix') and bup.refPrefix():
+            rp = bup.refPrefix()
+            if hasattr(rp, 'featureDirection') and rp.featureDirection():
+                fd = rp.featureDirection()
+                direction_in = "in " if fd.IN() is not None else ""
+                direction_out = "out" if fd.OUT() is not None else ""
+                direction_inout = "inout" if fd.INOUT() is not None else ""
+            if hasattr(rp, 'END') and rp.END() is not None:
+                is_end = True
+
+    if hasattr(ctx, 'INDIVIDUAL') and ctx.INDIVIDUAL() is not None:
+        is_individual = True
+
+    if hasattr(ctx, 'portionKind') and ctx.portionKind():
+        pk_ctx = ctx.portionKind()
+        if hasattr(pk_ctx, 'SNAPSHOT') and pk_ctx.SNAPSHOT() is not None:
+            portion_kind = "snapshot"
+        elif hasattr(pk_ctx, 'TIMESLICE') and pk_ctx.TIMESLICE() is not None:
+            portion_kind = "timeslice"
+
+    ref_prefix = None
+    has_direction = any([direction_in, direction_out, direction_inout])
+    if has_direction or is_end:
+        ref_prefix = {
+            "name": "RefPrefix",
+            "direction": {
+                "name": "FeatureDirection",
+                "in": direction_in,
+                "out": direction_out,
+                "inout": direction_inout
+            },
+            "isAbstract": None,
+            "isVariation": None,
+            "isReadOnly": None,
+            "isDerived": None,
+            "isEnd": "end" if is_end else None
+        }
+
+    portion_kind_dict = None
+    if portion_kind is not None:
+        portion_kind_dict = {
+            "name": "PortionKind",
+            "kind": portion_kind
+        }
+
+    return {
+        "name": "OccurrenceUsagePrefix",
+        "prefix": {
+            "name": "BasicUsagePrefix",
+            "prefix": ref_prefix,
+            "isReference": is_reference
+        },
+        "isIndividual": "individual" if is_individual else None,
+        "portionKind": portion_kind_dict,
+        "usageExtension": []
+    }
+
+
 def _get_occurrence_definition_prefix(ctx):
     """Extract OccurrenceDefinitionPrefix from a definition context (for 'abstract' etc.)."""
     is_abstract = False
@@ -9322,6 +9397,22 @@ def _visit_nested_occurrence_usage(occ_elem):
                 inner = result.get("ownedRelatedElement", {})
                 return inner
             return result
+        elif hasattr(occ_elem, 'portionUsage') and occ_elem.portionUsage():
+            ctx = occ_elem.portionUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(occ_elem, 'individualUsage') and occ_elem.individualUsage():
+            ctx = occ_elem.individualUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         return None
     
     # print(f"DEBUG _visit_nested_occurrence_usage: {type(occ_elem).__name__}")
@@ -9377,6 +9468,22 @@ def _visit_nested_occurrence_usage(occ_elem):
         elif hasattr(struct_elem, 'connectionUsage') and struct_elem.connectionUsage():
             ctx = struct_elem.connectionUsage()
             return _make_nested_connection_usage_dict(ctx, None)
+        elif hasattr(struct_elem, 'portionUsage') and struct_elem.portionUsage():
+            ctx = struct_elem.portionUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(struct_elem, 'individualUsage') and struct_elem.individualUsage():
+            ctx = struct_elem.individualUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
     
     # Check for interface occurrence usage element (has defaultInterfaceEnd keyword)
     if hasattr(occ_elem, 'defaultInterfaceEnd') and occ_elem.defaultInterfaceEnd() is not None:
@@ -9625,6 +9732,22 @@ def _visit_nested_occurrence_usage(occ_elem):
                 inner = result.get("ownedRelatedElement", {})
                 return inner
             return result
+        elif hasattr(struct_elem, 'portionUsage') and struct_elem.portionUsage():
+            ctx = struct_elem.portionUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(struct_elem, 'individualUsage') and struct_elem.individualUsage():
+            ctx = struct_elem.individualUsage()
+            name, shortname = _get_usage_identification(ctx)
+            body_items = _get_usage_body_items(ctx)
+            occ_prefix = _make_portion_usage_prefix(ctx)
+            specialization = _build_full_specialization_from_ctx(ctx)
+            valuepart = _get_usage_value_part(ctx)
+            return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
     
     # Check behavior usage elements (action)
     if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -10653,6 +10776,22 @@ def _visit_nested_usage(usage_elem_ctx):
                 specialization = _build_full_specialization_from_ctx(ctx)
                 valuepart = _get_usage_value_part(ctx)
                 return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+            elif hasattr(struct_elem, 'portionUsage') and struct_elem.portionUsage():
+                ctx = struct_elem.portionUsage()
+                name, shortname = _get_usage_identification(ctx)
+                body_items = _get_usage_body_items(ctx)
+                occ_prefix = _make_portion_usage_prefix(ctx)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+            elif hasattr(struct_elem, 'individualUsage') and struct_elem.individualUsage():
+                ctx = struct_elem.individualUsage()
+                name, shortname = _get_usage_identification(ctx)
+                body_items = _get_usage_body_items(ctx)
+                occ_prefix = _make_portion_usage_prefix(ctx)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                return _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
         
         # Check behavior usage elements (action)
         if hasattr(occ_elem, 'behaviorUsageElement') and occ_elem.behaviorUsageElement():
@@ -10837,6 +10976,21 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             elif hasattr(struct_elem, 'individualUsage') and struct_elem.individualUsage():
                 ctx = struct_elem.individualUsage()
                 return _make_individual_usage_dict(ctx, prefix)
+            elif hasattr(struct_elem, 'portionUsage') and struct_elem.portionUsage():
+                ctx = struct_elem.portionUsage()
+                name, shortname = _get_usage_identification(ctx)
+                body_items = _get_usage_body_items(ctx)
+                occ_prefix = _make_portion_usage_prefix(ctx)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                valuepart = _get_usage_value_part(ctx)
+                inner = _make_nested_usage_element("PortionUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+                if inner:
+                    return {
+                        "name": "PackageMember",
+                        "prefix": None,
+                        "ownedRelatedElement": inner
+                    }
+                return None
             elif hasattr(struct_elem, 'viewUsage') and struct_elem.viewUsage():
                 ctx = struct_elem.viewUsage()
                 return _make_view_usage_dict(ctx, prefix)

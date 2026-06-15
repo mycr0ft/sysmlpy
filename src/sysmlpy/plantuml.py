@@ -310,14 +310,35 @@ def _get_stereotype(element, style="bw"):
     stereotype_map = DEFINITION_STEREOTYPES if is_def else USAGE_STEREOTYPES
     label = stereotype_map.get(sysml_type, sysml_type)
 
+    # Check for portionKind and individual in the grammar prefix
+    prefix = _get_grammar_prefix(element)
+    if prefix is not None:
+        parts = []
+        if getattr(prefix, 'isIndividual', None):
+            parts.append("individual")
+        pk = getattr(prefix, 'portionKind', None)
+        if pk is not None:
+            pk_kind = getattr(pk, 'kind', None)
+            if pk_kind:
+                parts.append(pk_kind)
+        if parts:
+            label = " ".join(parts) + " " + label
+
     if style == "bw":
-        # Simple label without colors for journal rendering
         return f"<<{label}>>"
 
     color_info = STEREOTYPE_COLORS.get(sysml_type, ("T", "#3498DB"))
     letter, color = color_info
 
     return f"<<({letter},{color}) {label}>>"
+
+
+def _get_grammar_prefix(element):
+    """Navigate element.grammar to find the OccurrenceUsagePrefix."""
+    grammar = getattr(element, 'grammar', None)
+    if grammar is None:
+        return None
+    return getattr(grammar, 'prefix', None)
 
 
 def _get_element_name(element):

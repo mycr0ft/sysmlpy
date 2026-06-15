@@ -818,6 +818,10 @@ class Usage(Searchable):
                 c = Item().load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
+            elif class_name == "PortionUsage":
+                c = Part().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "AttributeUsage":
                 c = Attribute().load_from_grammar(sc)
                 c.parent = self
@@ -847,6 +851,10 @@ class Usage(Searchable):
                         self.children.append(c)
                     elif inner.__class__.__name__ == "FlowConnectionUsage":
                         c = Flow().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "PortionUsage":
+                        c = Part().load_from_grammar(inner)
                         c.parent = self
                         self.children.append(c)
             elif class_name == "StructureDefinitionElement":

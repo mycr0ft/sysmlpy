@@ -2427,3 +2427,32 @@ def test_annotation_single_quoted_string_roundtrip():
     a = loads(text)
     b = classtree(a)
     assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_portion_usage_timeslice_snapshot_roundtrip():
+    """timeslice and snapshot inside a part body should parse and round-trip."""
+    text = """package P {
+    individual part p1;
+    part p2;
+    individual part p3 : P3 {
+        timeslice ts1;
+        snapshot ts2;
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())
+
+
+def test_portion_usage_nested_timeslice_snapshot():
+    """Nested timeslice with snapshot child should parse correctly."""
+    text = """package P {
+    individual part individual1 {
+        timeslice timeslice1 {
+            snapshot snapshot1;
+        }
+    }
+}"""
+    a = loads(text)
+    b = classtree(a)
+    assert strip_ws(text) == strip_ws(b.dump())

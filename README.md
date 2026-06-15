@@ -806,6 +806,13 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   3. New `as_case_view()` — maps actors and use cases onto PlantUML use-case diagram syntax.
   4. Added `docs/GUARDS.md` documenting guard condition syntax for confused users (canonical keyword is `if`, transition order is `accept` before `if` before `do` before `then`).
 
+- **v0.33.4** — Fix `timeslice`/`snapshot`/`individual` parsing and PlantUML rendering:
+  1. `portionUsage` and `individualUsage` were silently dropped from nested body definitions (visitor gaps in `_visit_nested_occurrence_usage`, `_visit_nested_usage`).
+  2. Added `PortionUsage` grammar class and dispatch in `StructureUsageElement.__init__`.
+  3. Added `_make_portion_usage_prefix()` to extract prefix info from `PortionUsageContext`.
+  4. Added `load_from_grammar` handler for `PortionUsage` in `usage.py`.
+  5. PlantUML `_get_stereotype()` now includes `individual`/`timeslice`/`snapshot` prefixes (e.g. `<<timeslice part>>`, `<<individual part>>`).
+
 ## Conformance
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).

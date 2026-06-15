@@ -192,6 +192,25 @@ class TestPlantUMLGenerator:
         assert "part>>" in puml
         assert "part def>>" in puml  # Wheel and Vehicle are definitions
 
+    def test_stereotype_for_portion_kind(self):
+        """Test that individual/timeslice/snapshot prefixes appear in stereotype."""
+        model = sysmlpy.loads("""
+        package P {
+            individual part p1;
+            part p2;
+            individual part p3 : P3 {
+                timeslice ts1;
+                snapshot ts2;
+            }
+        }
+        """)
+        puml = to_plantuml(model)
+
+        assert "<<individual part>>" in puml
+        assert "<<part>>" in puml
+        assert "<<timeslice part>>" in puml
+        assert "<<snapshot part>>" in puml
+
     def test_multiple_relationships(self):
         """Test complex model with multiple relationship types."""
         model = sysmlpy.loads("""

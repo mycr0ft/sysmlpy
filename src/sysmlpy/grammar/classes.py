@@ -6298,6 +6298,8 @@ class StructureUsageElement:
                 self.children = AllocationUsage(definition["ownedRelatedElement"])
             elif name == "RenderingUsage":
                 self.children = RenderingUsage(definition["ownedRelatedElement"])
+            elif name == "PortionUsage":
+                self.children = PortionUsage(definition["ownedRelatedElement"])
             elif name == "ViewUsage":
                 self.children = ViewUsage(definition["ownedRelatedElement"])
             elif name == "SuccessionFlowConnectionUsage":
@@ -9613,6 +9615,40 @@ class MetadataUsage(_PrefixedUsageBase):
 class IndividualUsageSimple(_PrefixedUsageBase):
     """Simpler IndividualUsage for the user-facing API."""
     keyword = "individual"
+
+
+class PortionUsage:
+    """Portion usage (timeslice or snapshot) inside a body."""
+
+    def __init__(self, definition=None):
+        if definition is not None:
+            if valid_definition(definition, "PortionUsage"):
+                if definition.get("prefix") is not None:
+                    prefix_name = definition["prefix"].get("name", "OccurrenceUsagePrefix")
+                    self.prefix = globals()[prefix_name](definition["prefix"])
+                else:
+                    self.prefix = None
+                self.usage = Usage(definition.get("usage"))
+        else:
+            self.prefix = None
+            self.usage = Usage()
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        if self.usage is not None:
+            output.append(self.usage.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        pre = None
+        if self.prefix is not None:
+            pre = self.prefix.get_definition()
+        u = None
+        if self.usage is not None:
+            u = self.usage.get_definition()
+        return {"name": self.__class__.__name__, "prefix": pre, "usage": u}
 
 
 class FlowUsageSimple(_PrefixedUsageBase):
