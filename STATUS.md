@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.31.3** (2026-05-27)
+Current version: **v0.33.5** (2026-06-15)
 
 ---
 
@@ -322,4 +322,4 @@ Run with: `poetry run pytest -m conformance`
 | Storage backend tests | **46 passing** (optional deps skipped if missing) |
 | Bundled standard library files | 88 (kernel `.kerml` + systems `.sysml` + domain `.sysml`) |
 | Library symbols indexed | ~1,417 |
-| PlantUML view functions | 8 (GV, PV, AFV, IV, STV, Tabular, DataValue, RelMatrix) |
+| PlantUML view functions | 10 (GV, PV, AFV, IV, STV, SV, CV, Tabular, DataValue, RelMatrix) |

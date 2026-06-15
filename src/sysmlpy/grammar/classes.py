@@ -3897,15 +3897,16 @@ class DefaultInterfaceEnd:
     def __init__(self, definition):
         if valid_definition(definition, self.__class__.__name__):
             self.direction = None
-            self.isAbstract = definition["isAbstract"]
-            self.isVariation = definition["isVariation"]
-            self.isEnd = definition["isEnd"]
+            self.isAbstract = definition.get("isAbstract")
+            self.isVariation = definition.get("isVariation")
+            self.isEnd = definition.get("isEnd")
+            self.keyword = definition.get("keyword")
             self.usage = None
 
-            if definition["direction"] is not None:
+            if definition.get("direction") is not None:
                 self.direction = FeatureDirection(definition["direction"])
 
-            if definition["usage"] is not None:
+            if definition.get("usage") is not None:
                 self.usage = Usage(definition["usage"])
 
     def dump(self):
@@ -3918,6 +3919,8 @@ class DefaultInterfaceEnd:
             output.append("variation")
         if self.isEnd:
             output.append("end")
+        if self.keyword is not None:
+            output.append(self.keyword)
         if self.usage is not None:
             output.append(self.usage.dump())
         return " ".join(output)
@@ -3929,6 +3932,7 @@ class DefaultInterfaceEnd:
             "isAbstract": self.isAbstract,
             "isVariation": self.isVariation,
             "isEnd": self.isEnd,
+            "keyword": self.keyword,
             "usage": self.usage.get_definition() if self.usage else None,
         }
 

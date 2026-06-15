@@ -813,6 +813,11 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   4. Added `load_from_grammar` handler for `PortionUsage` in `usage.py`.
   5. PlantUML `_get_stereotype()` now includes `individual`/`timeslice`/`snapshot` prefixes (e.g. `<<timeslice part>>`, `<<individual part>>`).
 
+- **v0.33.5** — Fix `DefaultInterfaceEnd` keyword injection:
+  1. Removed spurious `part` keyword from interface ends without explicit `part`/`item`/`port` prefix.
+  2. Bare `end e1 : Type;` now round-trips correctly as `end e1: Type;` (no extraneous `part`).
+  3. 3 previously-failing interface round-trip grammar tests now pass.
+
 ## Conformance
 
 **100% of 123 OMG XPect conformance tests pass** (123/123).

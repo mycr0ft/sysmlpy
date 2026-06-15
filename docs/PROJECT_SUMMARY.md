@@ -1,8 +1,8 @@
 # sysmlpy — Project Work Summary
 
 > **For:** Future agents and team members
-> **Last Updated:** May 25, 2026
-> **Current Version:** v0.27.0
+> **Last Updated:** June 15, 2026
+> **Current Version:** v0.33.5
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 
 ---
@@ -35,7 +35,7 @@ sysmlpy/
 │       ├── systems/         # SysML base (SysML.sysml)
 │       └── domain/          # ISQ, SI units, base quantities
 ├── tests/
-│   ├── grammar_test.py      # 77 round-trip tests (61 pass, 16 deferred)
+│   ├── grammar_test.py      # 95 round-trip tests (95 pass, 0 deferred)
 │   ├── class_test.py        # 54 programmatic API tests
 │   ├── main_test.py         # 7 integration tests
 │   ├── plantuml_test.py     # 108 PlantUML view rendering tests

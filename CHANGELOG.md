@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## v0.33.5 (2026-06-15)
+
+### :bug: Fix bare `end` in interface def body — stop injecting spurious `part` keyword
+
+- Removed `"PartUsage": "part"` from `DefaultInterfaceEnd` keyword mapping in `antlr_visitor.py:9269`
+- `end e1 : Type;` now round-trips correctly as `end e1: Type;` (no extra `part`)
+- `end item e1` / `end port e1` keywords preserved correctly
+- 3 previously-failing interface round-trip grammar tests now pass
+- All 95 grammar tests, 232 core tests, 118 semantic tests passing
+
+## v0.33.4 (2026-06-15)
+
+### :sparkles: Portion kind (timeslice/snapshot/individual) parsing, PlantUML rendering, interface keyword preservation
+
+- Filled `portionUsage`/`individualUsage` visitor gaps in 4 nested dispatch paths
+- Added `PortionUsage` grammar class with `dump()`/`get_definition()`, dispatch in `StructureUsageElement.__init__`
+- Added `_make_portion_usage_prefix()` visitor helper for `PortionUsageContext`
+- PlantUML `_get_stereotype()` includes `individual`/`timeslice`/`snapshot` prefixes
+- Fixed `DefaultInterfaceEnd` keyword loss: visitor preserves `item`/`port` keywords in interface body ends
+- Fixed `DefaultInterfaceEnd.__init__` for missing dict keys via `.get()`
+- 4 new tests: portion round-trip (2), port kind stereotype (1), interface round-trip (1)
+
+## v0.33.3 (2026-06-13)
+
+### :sparkles: Grid view fix, sequence/case PlantUML views, guards documentation
+
+- Fixed `_format_table_rows_plantuml` and `as_relationship_matrix_view`: replaced deprecated `salt` syntax with rectangle-based layout (PlantUML 1.2024.7+ compatible)
+- Added `as_sequence_view()` — maps action flows/messages to PlantUML sequence diagram
+- Added `as_case_view()` — maps parts/actions to PlantUML use-case diagram
+- Created `docs/GUARDS.md` documenting canonical `if` keyword and transition ordering
+- Added 6 regression tests for sequence/case views; updated 3 grid view tests
+
+## v0.33.2 (2026-06-12)
+
+### :bug: Fix PerformedActionUsage regression, accept double-quoted annotation strings
+
+- Fixed `PerformedActionUsage.get_definition()` referencing `self.declaration` instead of `self.keyword`/`self.children` (Bug 1)
+- Fixed `annotationDirective` visitor to accept `DOUBLE_STRING` (`"..."`) alongside `STRING` (`'...'`) (Bug 4)
+- `_make_view_usage_dict` emits `ViewBody` directly for annotation body items
+
+## v0.33.1 (2026-06-12)
+
+### :bug: Fix guard keyword preservation in round-trip
+
+- Fixed `GuardExpressionMember.get_definition()` to preserve `if` keyword
+- Reorganized README.md changelog to chronological order
+
+## v0.33.0 (2026-06-12)
+
+### :sparkles: View/Rendering round-trip, qualified-name subject, guard keyword, render state directives
+
+- Closed render/rendering round-trip gaps: `RenderingUsage` dispatch, `ViewRenderingMember`, `ViewRenderingUsage`, `ViewDefinitionBody`, `ViewBody`, `RenderStateMember` grammar classes
+- Fixed 3 parser issues from `PARSING_ISSUES.md`:
+  - Qualified-name `subject` (e.g., `subject a.b.c`)
+  - `guard` as `if` alias
+  - `render state` directives
+- Removed author attribution `christophercox` → `mycr0ft` in 8 files
+
+## v0.32.5 (2026-06-11)
+
+### :bug: Fix double-space in redefinition and typing dump output
+
+- Fixed `:>> ` (double space after `:>>`) when no specialization follows
+- Fixed `: ` (double space after `:`) when no type name follows
 
 ## v0.32.0 (2026-06-11)
 

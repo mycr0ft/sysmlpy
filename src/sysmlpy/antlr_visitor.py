@@ -9265,12 +9265,18 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
                         dir_dict = ref_prefix["direction"]
                         if dir_dict and isinstance(dir_dict, dict) and len(dir_dict) > 0:
                             direction = dir_dict
+                    # Preserve the keyword from the usage type
+                    # Only set keyword for non-default types (item/port).
+                    # PartUsage is the default interface end type — no keyword needed.
+                    usage_to_keyword = {"ItemUsage": "item", "PortUsage": "port"}
+                    keyword = usage_to_keyword.get(usage_name, None)
                     default_interface_end = {
                         "name": "DefaultInterfaceEnd",
                         "direction": direction,
                         "isAbstract": is_abstract,
                         "isVariation": is_variation,
                         "isEnd": is_end,
+                        "keyword": keyword,
                         "usage": usage_dict
                     }
                     iface_elem = {
