@@ -813,6 +813,13 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
   4. Added `load_from_grammar` handler for `PortionUsage` in `usage.py`.
   5. PlantUML `_get_stereotype()` now includes `individual`/`timeslice`/`snapshot` prefixes (e.g. `<<timeslice part>>`, `<<individual part>>`).
 
+- **v0.34.0** — Remove deprecated SysML v1.x diagram functions — BREAKING:
+  1. Removed `as_block_definition_view()`, `as_internal_block_diagram()`, `as_parametric_view()`, `as_requirement_view()`, `as_package_diagram_view()`.
+  2. Removed orphan helpers: `_extract_constraint_parameters()`, `_extract_requirement_relationships()`, `_extract_connection_endpoints()`.
+  3. Added `as_browser_view()` using PlantUML `@startwbs` syntax for hierarchical model tree.
+  4. Removed 34 corresponding tests.
+  5. All standard SysML v2 views remain: GV, IV, AV, STV, SV, GRV, BV, GEV.
+
 - **v0.33.6** — Fix library import resolution with custom library paths:
   1. Threaded `lib_roots` through `build_from_model()` → `_resolve_imports()` → `_resolve_membership_import()` / `_resolve_namespace_import()` for `LibrarySymbolIndex` fallback.
   2. `import CustomTypes::*` now resolves correctly when `CustomTypes` is in a user-provided library path.

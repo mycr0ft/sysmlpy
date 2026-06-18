@@ -1610,539 +1610,6 @@ class TestPackageView:
         assert "}" in puml
 
 
-class TestBlockDefinitionView:
-    """Tests for the Block Definition Diagram (BDD) View."""
-
-    def test_as_block_definition_view_basic(self):
-        """BDD renders block definitions with stereotypes."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA;
-            part def BlockB;
-        }
-        """)
-        puml = as_block_definition_view(model)
-
-        assert "@startuml" in puml
-        assert "@enduml" in puml
-        assert "BlockA" in puml
-        assert "BlockB" in puml
-        assert "<<part def>>" in puml
-
-    def test_as_block_definition_view_with_attributes(self):
-        """BDD shows attribute compartments."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA {
-                attribute attr1 : String;
-                attribute attr2 : Integer;
-            }
-        }
-        """)
-        puml = as_block_definition_view(model)
-
-        assert "BlockA" in puml
-        assert "attributes" in puml
-        assert "attr1" in puml
-        assert "attr2" in puml
-
-    def test_as_block_definition_view_with_ports(self):
-        """BDD shows port compartments."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA {
-                port port1;
-                port port2;
-            }
-        }
-        """)
-        puml = as_block_definition_view(model)
-
-        assert "BlockA" in puml
-        assert "ports" in puml
-        assert "port1" in puml
-        assert "port2" in puml
-
-    def test_as_block_definition_view_with_references(self):
-        """BDD shows part reference compartments."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA {
-                part part1 : BlockB;
-            }
-            part def BlockB;
-        }
-        """)
-        puml = as_block_definition_view(model)
-
-        assert "BlockA" in puml
-        assert "parts" in puml
-        assert "part1" in puml
-
-    def test_as_block_definition_view_generalization(self):
-        """BDD shows generalization relationships."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def Parent;
-            part def Child :> Parent;
-        }
-        """)
-        puml = as_block_definition_view(model)
-
-        assert "Parent" in puml
-        assert "Child" in puml
-        assert "--|>" in puml
-
-    def test_as_block_definition_view_style_color(self):
-        """BDD supports color style."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA;
-        }
-        """)
-        puml = as_block_definition_view(model, style="color")
-
-        assert "<style>" in puml
-        assert "rectangle<<part def>>" in puml
-
-    def test_as_block_definition_view_no_legend(self):
-        """BDD can omit legend."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA;
-        }
-        """)
-        puml = as_block_definition_view(model, include_legend=False)
-
-        assert "legend" not in puml.lower()
-
-    def test_as_block_definition_view_hide_compartments(self):
-        """BDD can hide specific compartments."""
-        from sysmlpy.plantuml import as_block_definition_view
-
-        model = sysmlpy.loads("""
-        package Blocks {
-            part def BlockA {
-                attribute attr1;
-                port port1;
-            }
-        }
-        """)
-        puml = as_block_definition_view(model, show_attributes=False, show_ports=False)
-
-        assert "BlockA" in puml
-        assert "attributes" not in puml
-        assert "ports" not in puml
-
-
-class TestInternalBlockDiagram:
-    """Tests for the Internal Block Diagram (IBD) View."""
-
-    def test_as_internal_block_diagram_basic(self):
-        """IBD renders block with nested parts."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def BlockA;
-            part def BlockB {
-                part part1 : BlockA;
-            }
-        }
-        """)
-        block_b = model.find('BlockB')[0]
-        puml = as_internal_block_diagram(model, focus=block_b)
-
-        assert "@startuml" in puml
-        assert "@enduml" in puml
-        assert "BlockB" in puml
-        assert "part1" in puml
-        assert "<<part def>>" in puml
-        assert "<<part>>" in puml
-
-    def test_as_internal_block_diagram_with_ports(self):
-        """IBD shows ports on boundary."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def BlockA {
-                port port1;
-                port port2;
-            }
-        }
-        """)
-        block_a = model.find('BlockA')[0]
-        puml = as_internal_block_diagram(model, focus=block_a)
-
-        assert "BlockA" in puml
-        assert "boundary" in puml
-        assert "port1" in puml
-        assert "port2" in puml
-        assert "<<port>>" in puml
-
-    def test_as_internal_block_diagram_with_flows(self):
-        """IBD shows flow connections."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def PartA {
-                port p1;
-            }
-            part def PartB {
-                port p2;
-            }
-            part def Assembly {
-                part a : PartA;
-                part b : PartB;
-                flow f1 from a.p1 to b.p2;
-            }
-        }
-        """)
-        assembly = model.find('Assembly')[0]
-        puml = as_internal_block_diagram(model, focus=assembly)
-
-        assert "Assembly" in puml
-        assert "a" in puml
-        assert "b" in puml
-        assert "f1" in puml
-
-    def test_as_internal_block_diagram_style_color(self):
-        """IBD supports color style."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def BlockA;
-        }
-        """)
-        block_a = model.find('BlockA')[0]
-        puml = as_internal_block_diagram(model, focus=block_a, style="color")
-
-        assert "<style>" in puml
-        assert "rectangle<<part def>>" in puml
-
-    def test_as_internal_block_diagram_no_legend(self):
-        """IBD can omit legend."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def BlockA;
-        }
-        """)
-        block_a = model.find('BlockA')[0]
-        puml = as_internal_block_diagram(model, focus=block_a, include_legend=False)
-
-        assert "legend" not in puml.lower()
-
-    def test_as_internal_block_diagram_hide_parts(self):
-        """IBD can hide parts."""
-        from sysmlpy.plantuml import as_internal_block_diagram
-
-        model = sysmlpy.loads("""
-        package System {
-            part def BlockA {
-                part part1 : BlockB;
-                port port1;
-            }
-            part def BlockB;
-        }
-        """)
-        block_a = model.find('BlockA')[0]
-        puml = as_internal_block_diagram(model, focus=block_a, show_parts=False)
-
-        assert "BlockA" in puml
-        assert "part1" not in puml
-        assert "port1" in puml
-
-
-class TestParametricView:
-    """Tests for the Parametric Diagram View."""
-
-    def test_as_parametric_view_basic(self):
-        """Parametric view renders constraint definitions."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def MassAnalysis {
-                attribute totalMass : Real;
-                attribute componentMasses : Real[0..*];
-            }
-        }
-        """)
-        puml = as_parametric_view(model)
-
-        assert "@startuml" in puml
-        assert "@enduml" in puml
-        assert "MassAnalysis" in puml
-        assert "<<constraint def>>" in puml
-        assert "<<parameter>>" in puml
-        assert "totalMass" in puml
-        assert "componentMasses" in puml
-
-    def test_as_parametric_view_with_types(self):
-        """Parametric view shows parameter types."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def ForceBalance {
-                attribute netForce : Real;
-                attribute forces : Real[0..*];
-            }
-        }
-        """)
-        puml = as_parametric_view(model)
-
-        assert "netForce: Real" in puml
-        assert "forces: Real" in puml
-
-    def test_as_parametric_view_multiple_constraints(self):
-        """Parametric view shows multiple constraint definitions."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def MassAnalysis {
-                attribute totalMass : Real;
-            }
-            constraint def ForceBalance {
-                attribute netForce : Real;
-            }
-        }
-        """)
-        puml = as_parametric_view(model)
-
-        assert "MassAnalysis" in puml
-        assert "ForceBalance" in puml
-        assert "totalMass" in puml
-        assert "netForce" in puml
-
-    def test_as_parametric_view_with_focus(self):
-        """Parametric view supports focus element."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def MassAnalysis {
-                attribute totalMass : Real;
-            }
-            constraint def ForceBalance {
-                attribute netForce : Real;
-            }
-        }
-        """)
-        mass_analysis = model.find('MassAnalysis')[0]
-        puml = as_parametric_view(model, focus=mass_analysis)
-
-        assert "Parametric Diagram — MassAnalysis" in puml
-        assert "MassAnalysis" in puml
-
-    def test_as_parametric_view_style_color(self):
-        """Parametric view supports color style."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def MassAnalysis {
-                attribute totalMass : Real;
-            }
-        }
-        """)
-        puml = as_parametric_view(model, style="color")
-
-        assert "<style>" in puml
-        assert "rectangle<<constraint def>>" in puml
-
-    def test_as_parametric_view_no_legend(self):
-        """Parametric view can omit legend."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            constraint def MassAnalysis {
-                attribute totalMass : Real;
-            }
-        }
-        """)
-        puml = as_parametric_view(model, include_legend=False)
-
-        assert "legend" not in puml.lower()
-
-    def test_as_parametric_view_nested_package(self):
-        """Parametric view finds constraints in nested packages."""
-        from sysmlpy.plantuml import as_parametric_view
-
-        model = sysmlpy.loads("""
-        package System {
-            package Constraints {
-                constraint def MassAnalysis {
-                    attribute totalMass : Real;
-                }
-            }
-        }
-        """)
-        puml = as_parametric_view(model)
-
-        assert "MassAnalysis" in puml
-        assert "totalMass" in puml
-
-
-class TestPackageDiagramView:
-    """Tests for the Package Diagram View."""
-
-    def test_as_package_diagram_view_basic(self):
-        """Package diagram shows package hierarchy with nested elements."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            package Subsystem1 {
-                part def ComponentA;
-                part def ComponentB;
-            }
-            package Subsystem2 {
-                part def ComponentC;
-            }
-        }
-        """)
-        puml = as_package_diagram_view(model)
-
-        assert "@startuml" in puml
-        assert "@enduml" in puml
-        assert "System" in puml
-        assert "Subsystem1" in puml
-        assert "Subsystem2" in puml
-        assert "ComponentA" in puml
-        assert "ComponentB" in puml
-        assert "ComponentC" in puml
-        assert "<<package>>" in puml
-
-    def test_as_package_diagram_view_nested_structure(self):
-        """Package diagram shows proper nesting of elements."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            package Subsystem1 {
-                part def ComponentA;
-            }
-        }
-        """)
-        puml = as_package_diagram_view(model)
-
-        # ComponentA should be inside Subsystem1
-        assert "Subsystem1" in puml
-        assert "ComponentA" in puml
-
-    def test_as_package_diagram_view_with_focus(self):
-        """Package diagram supports focus on a specific package."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            package Subsystem1 {
-                part def ComponentA;
-            }
-            package Subsystem2 {
-                part def ComponentB;
-            }
-        }
-        """)
-        subsystem1 = model.find('Subsystem1')[0]
-        puml = as_package_diagram_view(model, focus=subsystem1)
-
-        assert "Package Diagram — Subsystem1" in puml
-        assert "Subsystem1" in puml
-        assert "ComponentA" in puml
-        # Should not show Subsystem2 when focused on Subsystem1
-        assert "Subsystem2" not in puml
-
-    def test_as_package_diagram_view_style_color(self):
-        """Package diagram supports color style."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            part def ComponentA;
-        }
-        """)
-        puml = as_package_diagram_view(model, style="color")
-
-        assert "<style>" in puml
-        assert "rectangle<<package>>" in puml
-
-    def test_as_package_diagram_view_no_legend(self):
-        """Package diagram can omit legend."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            part def ComponentA;
-        }
-        """)
-        puml = as_package_diagram_view(model, include_legend=False)
-
-        assert "legend" not in puml.lower()
-
-    def test_as_package_diagram_view_hide_types(self):
-        """Package diagram can hide element type stereotypes."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package System {
-            part def ComponentA;
-        }
-        """)
-        puml = as_package_diagram_view(model, show_element_types=False)
-
-        # Element line should not end with stereotype
-        assert 'rectangle "ComponentA" as' in puml
-        # Check that element line doesn't have <<part>> after the alias
-        lines = puml.split('\n')
-        for line in lines:
-            if 'ComponentA' in line and 'rectangle' in line:
-                assert '<<part>>' not in line
-        assert "ComponentA" in puml
-
-    def test_as_package_diagram_view_deep_nesting(self):
-        """Package diagram handles deeply nested packages."""
-        from sysmlpy.plantuml import as_package_diagram_view
-
-        model = sysmlpy.loads("""
-        package Level1 {
-            package Level2 {
-                package Level3 {
-                    part def DeepComponent;
-                }
-            }
-        }
-        """)
-        puml = as_package_diagram_view(model)
-
-        assert "Level1" in puml
-        assert "Level2" in puml
-        assert "Level3" in puml
-        assert "DeepComponent" in puml
-
-
 class TestTabularView:
     """Tests for the Tabular View (GridView specialization)."""
 
@@ -2447,127 +1914,6 @@ class TestRelationshipMatrixView:
         assert "power" in md
         assert "Wheel" not in md
 
-    def test_as_requirement_view_basic(self):
-        """Requirement View renders requirements with stereotypes."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package Requirements {
-            requirement def SafetyRequirement;
-            requirement R1 : SafetyRequirement;
-        }
-        """)
-        puml = as_requirement_view(model)
-
-        assert "@startuml" in puml
-        assert "@enduml" in puml
-        assert "SafetyRequirement" in puml
-        assert "R1" in puml
-        assert "<<requirement def>>" in puml
-        assert "<<requirement>>" in puml
-
-    def test_as_requirement_view_with_documentation(self):
-        """Requirement View includes documentation notes."""
-        from sysmlpy import Requirement
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.Model()
-        pkg = sysmlpy.Package(name="Requirements")
-        model.children.append(pkg)
-        pkg.parent = model
-        
-        req_def = Requirement(definition=True, name="SafetyRequirement")
-        req_def.set_doc("The system shall be safe")
-        pkg.children.append(req_def)
-        req_def.parent = pkg
-        
-        req_usage = Requirement(name="R1")
-        req_usage._set_typed_by(req_def)
-        req_usage.set_doc("Main safety requirement")
-        pkg.children.append(req_usage)
-        req_usage.parent = pkg
-
-        puml = as_requirement_view(model)
-
-        assert "SafetyRequirement" in puml
-        assert "R1" in puml
-        assert "note right" in puml
-
-    def test_as_requirement_view_style_color(self):
-        """Requirement View supports color style."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package R { requirement def Req; }
-        """)
-        puml = as_requirement_view(model, style="color")
-
-        assert "<style>" in puml
-        assert "BackgroundColor white" in puml
-
-    def test_as_requirement_view_direction(self):
-        """Requirement View supports direction parameter."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package R { requirement def Req; }
-        """)
-        puml = as_requirement_view(model, direction="LR")
-
-        assert "left to right direction" in puml
-
-    def test_as_requirement_view_no_legend(self):
-        """Requirement View can omit legend."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package R { requirement def Req; }
-        """)
-        puml = as_requirement_view(model, include_legend=False)
-
-        assert "legend" not in puml.lower()
-
-    def test_as_requirement_view_with_focus(self):
-        """Requirement View with focus shows focused element."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package P {
-            requirement def FocusReq;
-            requirement def Other;
-        }
-        """)
-        focus = model.find('FocusReq')[0]
-        puml = as_requirement_view(model, focus=focus)
-
-        assert "FocusReq" in puml
-        assert "Other" not in puml
-
-    def test_as_requirement_view_custom_style(self):
-        """Requirement View accepts custom style."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package R { requirement def Req; }
-        """)
-        custom = ["skinparam BackgroundColor #FFFF00"]
-        puml = as_requirement_view(model, custom_style=custom)
-
-        assert "skinparam BackgroundColor #FFFF00" in puml
-
-    def test_as_requirement_view_title_with_focus(self):
-        """Requirement View title includes focus name."""
-        from sysmlpy.plantuml import as_requirement_view
-
-        model = sysmlpy.loads("""
-        package P { requirement def MyFocus; }
-        """)
-        focus = model.find('MyFocus')[0]
-        puml = as_requirement_view(model, focus=focus)
-
-        assert "Requirement View — MyFocus" in puml
-
-
 class TestSequenceView:
     """Tests for as_sequence_view."""
 
@@ -2655,3 +2001,123 @@ class TestCaseView:
         puml = as_case_view(model, custom_style=custom)
 
         assert "skinparam monochrome false" in puml
+
+
+class TestBrowserView:
+    """Tests for as_browser_view."""
+
+    def test_as_browser_view_basic(self):
+        """Browser View produces basic PlantUML WBS output."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def Wheel;
+            part def Vehicle {
+                part frontLeft : Wheel;
+            }
+        }
+        """)
+        puml = as_browser_view(model)
+
+        assert "@startwbs" in puml
+        assert "@endwbs" in puml
+        assert "Browser View" in puml
+        assert "«package»" in puml or "<<package>>" in puml
+        assert "Wheel" in puml
+        assert "Vehicle" in puml
+        assert "frontLeft" in puml
+
+    def test_as_browser_view_hierarchy(self):
+        """Browser View preserves tree structure."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package Outer {
+            package Inner {
+                part def Widget;
+            }
+        }
+        """)
+        puml = as_browser_view(model)
+
+        # Check hierarchy markers — deeper nesting = more asterisks
+        lines = [l for l in puml.splitlines() if l.strip().startswith(('*', ' ', 'skinparam', '@', 'title'))]
+        # Find the WBS items (asterisk lines)
+        wbs_lines = [l for l in lines if l.startswith('*')]
+        assert len(wbs_lines) >= 3  # root + Outer + Inner + Widget
+
+        # Outer and Inner should both be present
+        assert "Outer" in puml
+        assert "Inner" in puml
+        assert "Widget" in puml
+
+    def test_as_browser_view_focus(self):
+        """Browser View with focus shows only focused element subtree."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def FocusPart;
+            part def OtherPart;
+        }
+        """)
+        focus = model.find('FocusPart')[0]
+        puml = as_browser_view(model, focus=focus)
+
+        assert "FocusPart" in puml
+        assert "OtherPart" not in puml
+
+    def test_as_browser_view_style_color(self):
+        """Browser View supports color style."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package P { part def A; }
+        """)
+        puml = as_browser_view(model, style="color")
+
+        assert "@startwbs" in puml
+        # Color mode should not have monochrome
+        assert "monochrome true" not in puml
+
+    def test_as_browser_view_custom_style(self):
+        """Browser View accepts custom style."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package P { part def A; }
+        """)
+        custom = ["skinparam BackgroundColor #FFFF00"]
+        puml = as_browser_view(model, custom_style=custom)
+
+        assert "skinparam BackgroundColor #FFFF00" in puml
+
+    def test_as_browser_view_empty_model(self):
+        """Browser View handles minimal model gracefully."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("package Empty {}")
+        puml = as_browser_view(model)
+
+        assert "@startwbs" in puml
+        assert "@endwbs" in puml
+        assert "Empty" in puml
+
+    def test_as_browser_view_with_elements(self):
+        """Browser View with specific elements list."""
+        from sysmlpy.plantuml import as_browser_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part def A;
+            part def B;
+        }
+        """)
+        a = model.find('A')[0]
+        b = model.find('B')[0]
+        puml = as_browser_view(model, elements=[a, b])
+
+        assert "A" in puml
+        assert "B" in puml
+        assert "Selected Elements" in puml

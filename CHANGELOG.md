@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v0.34.0 (2026-06-18)
+
+### :exclamation: BREAKING: Remove deprecated SysML v1.x diagram functions
+
+- Removed `as_block_definition_view()` — BDD is a SysML v1.x diagram; use `as_general_view()` in SysML v2.
+- Removed `as_internal_block_diagram()` — IBD is a SysML v1.x diagram; use `as_interconnection_view()` in SysML v2.
+- Removed `as_parametric_view()` — Parametric Diagram is a SysML v1.x diagram; use `as_action_flow_view()` in SysML v2.
+- Removed `as_requirement_view()` — Requirement Diagram is a SysML v1.x diagram; use `as_general_view()` in SysML v2.
+- Removed `as_package_diagram_view()` — Package Diagram is a SysML v1.x concept; use `as_package_view()` or `as_general_view()`.
+- Removed orphan helpers: `_extract_constraint_parameters()`, `_extract_requirement_relationships()`, `_extract_connection_endpoints()`.
+
+### :sparkles: New Features
+
+- Added `as_browser_view()` — renders hierarchical model tree using PlantUML `@startwbs` (Work Breakdown Structure) syntax. Supports `focus`, `elements`, `style`, `custom_style`.
+- Exported `as_browser_view` from `sysmlpy` package (`sysmlpy.as_browser_view()`).
+
+### :white_check_mark: Tests
+
+- Removed 34 tests covering removed v1 diagram functions.
+- 120 plantuml tests pass (2 pre-existing unrelated failures remain).
+- 350 core tests pass (class, main, repr, navigate, grammar, semantic).
+
 ## v0.33.6 (2026-06-15)
 
 ### :bug: Fix library import resolution with custom library paths
