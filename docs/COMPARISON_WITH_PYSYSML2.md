@@ -30,7 +30,7 @@ Full SysML v2 / KerML metamodel via ANTLR4 grammar. 319 grammar classes in `gram
 
 **Requirements & analysis:** requirements, use cases, objectives, analysis cases, verification cases, trade studies
 
-**Views & cross-cutting:** views (general, action flow, interconnection, state transition, package, BDD, IBD, parametric, requirement), viewpoints, concerns, metadata, renderings, individuals
+**Views & cross-cutting:** views (general, action flow, interconnection, state transition, package), viewpoints, concerns, metadata, renderings, individuals
 
 **Full round-trip:** all 77 grammar tests pass (parse -> grammar object -> dump() -> re-parse -> identical)
 
@@ -174,15 +174,13 @@ print(part.multiplicity) # multiplicity strings
 
 ## 3. Diagram Generation
 
-### sysmlpy (17 view functions)
+### sysmlpy (14 view functions)
 
 ```python
-# PlantUML generation with 17 view types
-from sysmlpy import loads, as_general_view, as_block_definition_view, \
-    as_internal_block_diagram, as_action_flow_view, as_state_transition_view, \
-    as_interconnection_view, as_package_view, as_package_diagram_view, \
-    as_parametric_view, as_tabular_view, as_data_value_tabular_view, \
-    as_relationship_matrix_view
+# PlantUML generation with 14 view types
+from sysmlpy import loads, as_general_view, as_action_flow_view, \
+    as_state_transition_view, as_interconnection_view, as_package_view, \
+    as_tabular_view, as_data_value_tabular_view, as_relationship_matrix_view
 
 model = loads("""
     package Sys {
@@ -197,12 +195,6 @@ print(as_general_view(model))
 # skinparam style strictuml
 # ...
 # @enduml
-
-# Block definition diagram — definitions with compartments
-print(as_block_definition_view(model))
-
-# Internal block diagram — single block internals
-print(as_internal_block_diagram(model, focus="myMotor"))
 
 # Action flow view — control/object flows
 print(as_action_flow_view(model))
@@ -222,9 +214,6 @@ print(as_general_view(model, style="color"))
 
 # Direction: "left_to_right" or "top_to_bottom"
 print(as_general_view(model, direction="left_to_right"))
-
-# Filtering: focus on subtree
-print(as_block_definition_view(model, focus="Sensor"))
 
 # Custom PlantUML styling
 custom = "skinparam backgroundColor #lightyellow"
@@ -393,7 +382,7 @@ model.to_excel("./output.xlsx")   # Excel via openpyxl
 | Format | sysmlpy | PySysML2 |
 |--------|---------|----------|
 | SysML v2 text (`dump()`) | Yes (full round-trip) | No |
-| PlantUML | Yes (17 view types) | No |
+| PlantUML | Yes (14 view types) | No |
 | Graphviz DOT | No (uses PlantUML) | Yes (basic tree) |
 | PNG | Via PlantUML renderer | Via graphviz |
 | JSON | Yes (`get_definition()`) | Yes (anytree) |
@@ -444,7 +433,7 @@ pysysml2 export model.sysml2 --format json,txt,csv,xlsx,dot,png
 | **Validator (ISQ)** | 34 | 0 |
 | **Storage backends** | 46 | 0 |
 | **Conformance (OMG)** | 123 (100% pass) | 0 |
-| **Project loading** | 17 | 0 |
+| **Project loading** | 14 | 0 |
 | **Imports** | 16 | 0 |
 | **Model serialization** | — | ~14 |
 
@@ -597,7 +586,7 @@ for pre, fill, node in RenderTree(model):
 | Type relationships | ✓ (set_type, typing) | ✗ |
 | Unit system (pint ISQ) | ✓ 300+ mappings | ✗ |
 | Unit validation | ✓ dimensional analysis | ✗ |
-| PlantUML diagrams | ✓ 17 view types | ✗ |
+| PlantUML diagrams | ✓ 14 view types | ✗ |
 | Graphviz output | ✗ (uses PlantUML) | ✓ basic DOT/PNG |
 | Semantic analysis | ✓ 9 OCL checks | ✗ |
 | Symbol resolution | ✓ hierarchical + libraries | ✗ |
@@ -630,7 +619,7 @@ for pre, fill, node in RenderTree(model):
 
 ## Verdict
 
-**sysmlpy** provides comprehensive, production-grade SysML v2 support with full grammar coverage, programmatic model construction, semantic analysis, 17 PlantUML view types, 4 storage backends, ISQ unit validation, multi-file project support, and a complete standard library. It supports round-trip text output (`dump()`) from all grammar objects.
+**sysmlpy** provides comprehensive, production-grade SysML v2 support with full grammar coverage, programmatic model construction, semantic analysis, 14 PlantUML view types, 4 storage backends, ISQ unit validation, multi-file project support, and a complete standard library. It supports round-trip text output (`dump()`) from all grammar objects.
 
 **PySysML2** is a lightweight early-prototype focused on data-science-oriented model export (CSV, Excel, JSON, graphviz). It parses a subset of SysML v2 (~15 element types) into an anytree hierarchy and can export to pandas-friendly formats. It has no semantic analysis, no programmatic construction API, no round-trip text output, no unit validation, and no diagram generation beyond basic anytree graphviz trees.
 

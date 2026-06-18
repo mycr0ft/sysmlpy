@@ -203,7 +203,7 @@ print("\n18. Tabular View (Color)")
 html = as_tabular_view(VEHICLE_MODEL, output_format="html", style="color")
 with open(os.path.join(OUTPUT_DIR, "18-tabular-view-color.html"), 'w') as f:
     f.write(html)
-print(f"✓ Generated 21-tabular-view-color.html")
+print(f"✓ Generated 18-tabular-view-color.html")
 
 print("\n" + "=" * 60)
 print("Generation complete!")

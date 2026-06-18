@@ -79,8 +79,8 @@ rectangle "Controller" as E8 <<part def>>
 rectangle "s" as E9 <<part>>
 rectangle "p" as E10 <<part>>
 rectangle "a" as E11 <<part>>
-rectangle "9689f028-57e3-4c0f-a3f9-be28bcf50156" as E12 <<flow>>
-rectangle "1efb7cd9-b9b8-482b-9988-6be9fc6b6035" as E13 <<flow>>
+rectangle "8cd8a969-008b-449e-9b26-e344ec765368" as E12 <<flow>>
+rectangle "887f1ff3-0d6b-4377-b74e-4fe33f21700b" as E13 <<flow>>
 
 E1 *-- E2
 E3 *-- E4
@@ -95,6 +95,8 @@ E11 --:|> E6 : types
 E8 *-- E12
 E8 *-- E13
 
+E9 --> E10 : 8cd8a969-008b-449e-9b26-e344ec765368
+E10 --> E11 : 887f1ff3-0d6b-4377-b74e-4fe33f21700b
 
 legend right
   <b>Interconnection Legend</b>
