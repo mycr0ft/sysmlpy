@@ -531,10 +531,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#sysmlpy-17-view-functions" class="md-nav__link">
+  <a href="#sysmlpy-14-view-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        sysmlpy (17 view functions)
+        sysmlpy (14 view functions)
       
     </span>
   </a>
@@ -960,7 +960,7 @@
 <p><strong>Behavioral:</strong> actions (definition usage, shorthand, succession, decomposition), states (with transitions), calculations, constraints</p>
 <p><strong>Control flow:</strong> if/else, while loops, for loops, fork, join, decision, send, accept, terminate</p>
 <p><strong>Requirements &amp; analysis:</strong> requirements, use cases, objectives, analysis cases, verification cases, trade studies</p>
-<p><strong>Views &amp; cross-cutting:</strong> views (general, action flow, interconnection, state transition, package, BDD, IBD, parametric, requirement), viewpoints, concerns, metadata, renderings, individuals</p>
+<p><strong>Views &amp; cross-cutting:</strong> views (general, action flow, interconnection, state transition, package), viewpoints, concerns, metadata, renderings, individuals</p>
 <p><strong>Full round-trip:</strong> all 77 grammar tests pass (parse -&gt; grammar object -&gt; dump() -&gt; re-parse -&gt; identical)</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># sysmlpy parsing examples</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">parse</span><span class="p">,</span> <span class="n">load_grammar</span>
@@ -1080,59 +1080,48 @@
 </code></pre></div>
 <hr />
 <h2 id="3-diagram-generation">3. Diagram Generation<a class="headerlink" href="#3-diagram-generation" title="Permanent link">&para;</a></h2>
-<h3 id="sysmlpy-17-view-functions">sysmlpy (17 view functions)<a class="headerlink" href="#sysmlpy-17-view-functions" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># PlantUML generation with 17 view types</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">as_general_view</span><span class="p">,</span> <span class="n">as_block_definition_view</span><span class="p">,</span> \
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">as_internal_block_diagram</span><span class="p">,</span> <span class="n">as_action_flow_view</span><span class="p">,</span> <span class="n">as_state_transition_view</span><span class="p">,</span> \
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">as_interconnection_view</span><span class="p">,</span> <span class="n">as_package_view</span><span class="p">,</span> <span class="n">as_package_diagram_view</span><span class="p">,</span> \
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">as_parametric_view</span><span class="p">,</span> <span class="n">as_tabular_view</span><span class="p">,</span> <span class="n">as_data_value_tabular_view</span><span class="p">,</span> \
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">as_relationship_matrix_view</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="s2">    package Sys {</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="s2">        part def Motor;</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="s2">        part myMotor : Motor;</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="s2">    }</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1"># General view — full graph</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># @startuml</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1"># skinparam style strictuml</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="c1"># ...</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># @enduml</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="c1"># Block definition diagram — definitions with compartments</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_block_definition_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="c1"># Internal block diagram — single block internals</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_internal_block_diagram</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="s2">&quot;myMotor&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="c1"># Action flow view — control/object flows</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_action_flow_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="c1"># State transition view — hierarchical states</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_state_transition_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="c1"># Tabular output in multiple formats</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;markdown&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="c1"># Relationship matrix</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_relationship_matrix_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="c1"># Style options: &quot;bw&quot; (default) or &quot;color&quot;</span>
-<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;color&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
-<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="c1"># Direction: &quot;left_to_right&quot; or &quot;top_to_bottom&quot;</span>
-<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;left_to_right&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>
-<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="c1"># Filtering: focus on subtree</span>
-<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_block_definition_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="s2">&quot;Sensor&quot;</span><span class="p">))</span>
-<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>
-<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="c1"># Custom PlantUML styling</span>
-<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="n">custom</span> <span class="o">=</span> <span class="s2">&quot;skinparam backgroundColor #lightyellow&quot;</span>
-<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">custom_style</span><span class="o">=</span><span class="n">custom</span><span class="p">))</span>
+<h3 id="sysmlpy-14-view-functions">sysmlpy (14 view functions)<a class="headerlink" href="#sysmlpy-14-view-functions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># PlantUML generation with 14 view types</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sysmlpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">loads</span><span class="p">,</span> <span class="n">as_general_view</span><span class="p">,</span> <span class="n">as_action_flow_view</span><span class="p">,</span> \
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">as_state_transition_view</span><span class="p">,</span> <span class="n">as_interconnection_view</span><span class="p">,</span> <span class="n">as_package_view</span><span class="p">,</span> \
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">as_tabular_view</span><span class="p">,</span> <span class="n">as_data_value_tabular_view</span><span class="p">,</span> <span class="n">as_relationship_matrix_view</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="s2">    package Sys {</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="s2">        part def Motor;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="s2">        part myMotor : Motor;</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="s2">    }</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="c1"># General view — full graph</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="c1"># @startuml</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="c1"># skinparam style strictuml</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="c1"># ...</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="c1"># @enduml</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="c1"># Action flow view — control/object flows</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_action_flow_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="c1"># State transition view — hierarchical states</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_state_transition_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="c1"># Tabular output in multiple formats</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;markdown&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_tabular_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="s2">&quot;html&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="c1"># Relationship matrix</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_relationship_matrix_view</span><span class="p">(</span><span class="n">model</span><span class="p">))</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="c1"># Style options: &quot;bw&quot; (default) or &quot;color&quot;</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;color&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="c1"># Direction: &quot;left_to_right&quot; or &quot;top_to_bottom&quot;</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;left_to_right&quot;</span><span class="p">))</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="c1"># Custom PlantUML styling</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="n">custom</span> <span class="o">=</span> <span class="s2">&quot;skinparam backgroundColor #lightyellow&quot;</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="nb">print</span><span class="p">(</span><span class="n">as_general_view</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">custom_style</span><span class="o">=</span><span class="n">custom</span><span class="p">))</span>
 </code></pre></div>
 <h3 id="pysysml2-basic-graphviz-output">PySysML2 (basic graphviz output)<a class="headerlink" href="#pysysml2-basic-graphviz-output" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Single graphviz dot/png export — not SysML-aware views</span>
@@ -1315,7 +1304,7 @@
 </tr>
 <tr>
 <td>PlantUML</td>
-<td>Yes (17 view types)</td>
+<td>Yes (14 view types)</td>
 <td>No</td>
 </tr>
 <tr>
@@ -1444,7 +1433,7 @@
 </tr>
 <tr>
 <td><strong>Project loading</strong></td>
-<td>17</td>
+<td>14</td>
 <td>0</td>
 </tr>
 <tr>
@@ -1609,7 +1598,7 @@
 </tr>
 <tr>
 <td>PlantUML diagrams</td>
-<td>✓ 17 view types</td>
+<td>✓ 14 view types</td>
 <td>✗</td>
 </tr>
 <tr>
@@ -1751,7 +1740,7 @@
 </table>
 <hr />
 <h2 id="verdict">Verdict<a class="headerlink" href="#verdict" title="Permanent link">&para;</a></h2>
-<p><strong>sysmlpy</strong> provides comprehensive, production-grade SysML v2 support with full grammar coverage, programmatic model construction, semantic analysis, 17 PlantUML view types, 4 storage backends, ISQ unit validation, multi-file project support, and a complete standard library. It supports round-trip text output (<code>dump()</code>) from all grammar objects.</p>
+<p><strong>sysmlpy</strong> provides comprehensive, production-grade SysML v2 support with full grammar coverage, programmatic model construction, semantic analysis, 14 PlantUML view types, 4 storage backends, ISQ unit validation, multi-file project support, and a complete standard library. It supports round-trip text output (<code>dump()</code>) from all grammar objects.</p>
 <p><strong>PySysML2</strong> is a lightweight early-prototype focused on data-science-oriented model export (CSV, Excel, JSON, graphviz). It parses a subset of SysML v2 (~15 element types) into an anytree hierarchy and can export to pandas-friendly formats. It has no semantic analysis, no programmatic construction API, no round-trip text output, no unit validation, and no diagram generation beyond basic anytree graphviz trees.</p>
 <p><strong>Choose sysmlpy if you need:</strong> full SysML v2 modeling, diagram generation, semantic validation, multi-file projects, or programmatic model construction.</p>
 <p><strong>Choose PySysML2 if you need:</strong> a lightweight parse-to-DataFrame pipeline for simple SysML models with basic element types, and do not need round-trip, validation, diagrams, or behavioral elements.</p>

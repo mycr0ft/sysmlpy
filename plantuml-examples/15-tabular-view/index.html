@@ -21,7 +21,7 @@
     
     
       
-        <title>20 relationship matrix - sysmlpy</title>
+        <title>15 tabular view - sysmlpy</title>
       
     
     
@@ -103,7 +103,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              20 relationship matrix
+              15 tabular view
             
           </span>
         </div>
@@ -445,143 +445,99 @@
   
 
 
-  <h1>20 relationship matrix</h1>
+  <h1>15 tabular view</h1>
 
 <table>
 <thead>
 <tr>
-<th>Wheel</th>
-<th>radius</th>
-<th>pressure</th>
-<th>BrakeSystem</th>
-<th>padThickness</th>
-<th>VehicleAssembly</th>
-<th>frontLeft</th>
-<th>frontRight</th>
-<th>brakes</th>
-<th>myVehicle</th>
+<th style="text-align: left;">Name</th>
+<th>Type</th>
+<th>Kind</th>
+<th>Parent</th>
+<th style="text-align: left;">Typed By</th>
+<th style="text-align: left;">Specializes</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td style="text-align: left;">Wheel</td>
+<td>part def</td>
+<td>def</td>
+<td>(root)</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: left;">radius</td>
+<td>attribute</td>
+<td>usage</td>
 <td>Wheel</td>
-<td></td>
-<td>C</td>
-<td>C</td>
-<td>S</td>
-<td></td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">Real</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>radius</td>
-<td></td>
-<td></td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">pressure</td>
+<td>attribute</td>
+<td>usage</td>
+<td>Wheel</td>
+<td style="text-align: left;">Real</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>pressure</td>
-<td></td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">BrakeSystem</td>
+<td>part def</td>
+<td>def</td>
+<td>(root)</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
+<td style="text-align: left;">padThickness</td>
+<td>attribute</td>
+<td>usage</td>
 <td>BrakeSystem</td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
-<td>C</td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">Real</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>padThickness</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">VehicleAssembly</td>
+<td>part def</td>
+<td>def</td>
+<td>(root)</td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
+<td style="text-align: left;">frontLeft</td>
+<td>part</td>
+<td>usage</td>
 <td>VehicleAssembly</td>
-<td>S</td>
-<td></td>
-<td></td>
-<td>S</td>
-<td></td>
-<td></td>
-<td>C</td>
-<td>C</td>
-<td>C</td>
+<td style="text-align: left;">Wheel</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>frontLeft</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>S</td>
-<td>S</td>
+<td style="text-align: left;">frontRight</td>
+<td>part</td>
+<td>usage</td>
+<td>VehicleAssembly</td>
+<td style="text-align: left;">Wheel</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>frontRight</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>S</td>
-<td></td>
-<td>S</td>
+<td style="text-align: left;">brakes</td>
+<td>part</td>
+<td>usage</td>
+<td>VehicleAssembly</td>
+<td style="text-align: left;">BrakeSystem</td>
+<td style="text-align: left;"></td>
 </tr>
 <tr>
-<td>brakes</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td>S</td>
-<td>S</td>
-<td></td>
-</tr>
-<tr>
-<td>myVehicle</td>
-<td>S</td>
-<td></td>
-<td></td>
-<td>S</td>
-<td></td>
-<td>S</td>
-<td></td>
-<td></td>
-<td></td>
+<td style="text-align: left;">myVehicle</td>
+<td>part</td>
+<td>usage</td>
+<td>(root)</td>
+<td style="text-align: left;">VehicleAssembly</td>
+<td style="text-align: left;"></td>
 </tr>
 </tbody>
 </table>
