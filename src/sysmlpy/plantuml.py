@@ -516,6 +516,68 @@ def _expand_with_connected_flows(model, included_ids, show_external=False):
                     included_ids.add(id(ref))
 
 
+# ============================================================
+# Diagram Frame Helpers
+# ============================================================
+
+RENDERING_KINDS = {
+    "as_general_view": "gv",
+    "as_interconnection_diagram": "iv",
+    "as_interconnection_view": "iv",
+    "as_action_flow_view": "av",
+    "as_state_transition_view": "stv",
+    "as_sequence_view": "sv",
+    "as_browser_view": "bv",
+    "as_tabular_view": "grv",
+    "as_data_value_tabular_view": "grv",
+    "as_relationship_matrix_view": "grv",
+    "as_package_view": "gv",
+    "as_case_view": "gv",
+    "as_tree_diagram": "gv",
+    "as_element_table": "grv",
+    "as_textual_notation": "gv",
+}
+
+
+def _get_element_type_name(element):
+    """Get the SysML type name for the diagram header, e.g. 'package', 'part def'."""
+    if element is None:
+        return "model"
+    sysml_type = getattr(element, 'sysml_type', None)
+    if sysml_type:
+        is_def = getattr(element, 'is_definition', False)
+        return f"{sysml_type} def" if is_def else sysml_type
+    return type(element).__name__.lower()
+
+
+def _make_diagram_header(rendering_kind, model, focus=None, elements=None, label=None):
+    """Build a spec-compliant diagram header string.
+
+    Format: ``renderingKind [ElementType] Name [Label]``
+
+    Args:
+        rendering_kind: Short name e.g. 'gv', 'iv', 'av'
+        model: The sysmlpy Model instance
+        focus: Optional focused element
+        elements: Optional list of specific elements
+        label: Optional human-readable label
+
+    Returns:
+        str: Header string ready for ``title`` or ``frame``
+    """
+    anchor = focus if focus is not None else (elements[0] if elements else model)
+    elem_type = _get_element_type_name(anchor)
+    name = getattr(anchor, 'name', getattr(model, 'name', None)) or ""
+    parts = [rendering_kind]
+    if elem_type:
+        parts.append(f"[{elem_type}]")
+    if name:
+        parts.append(name)
+    if label:
+        parts.append(f"[{label}]")
+    return " ".join(parts)
+
+
 class PlantUMLGenerator:
     """
     Generates PlantUML text from a sysmlpy Model.
@@ -625,15 +687,11 @@ class PlantUMLGenerator:
             lines.append("top to bottom direction")
         lines.append("")
 
-        # Title
-        if self.focus is not None:
-            focus_name = getattr(self.focus, 'name', None) or "Focus"
-            title = f"SysML v2 — {focus_name}"
-        elif self.elements_filter is not None:
-            title = f"SysML v2 — Selected Elements ({len(self.elements_filter)})"
-        else:
-            title = getattr(self.model, 'name', None) or "SysML v2 Diagram"
-        lines.append(f'title {title}')
+        # Title — spec-compliant header
+        header = _make_diagram_header(
+            "gv", self.model, focus=self.focus, elements=self.elements_filter
+        )
+        lines.append(f'title {header}')
         lines.append("")
 
         # Hide default circle on state diagrams
@@ -1236,13 +1294,11 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "Interconnection View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Interconnection — {focus_name}"
-    elif elements is not None:
-        title = f"Interconnection — Selected Elements ({len(elements)})"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "iv", model, focus=focus, elements=elements,
+        label="Interconnection View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -1512,11 +1568,10 @@ def as_action_flow_view(model, focus=None, elements=None, style="bw", direction=
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "Action Flow View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Action Flow — {focus_name}"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "av", model, focus=focus, label="Action Flow View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -1945,13 +2000,10 @@ def as_state_transition_view(model, focus=None, elements=None, style="bw",
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "State Transition View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"State Transition — {focus_name}"
-    elif elements is not None:
-        title = f"State Transition — Selected Elements ({len(elements)})"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "stv", model, focus=focus, elements=elements, label="State Transition View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -2157,11 +2209,10 @@ def as_tree_diagram(model, focus=None, style="bw", direction="TB",
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "Tree Diagram"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Tree — {focus_name}"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "gv", model, focus=focus, label="Tree Diagram"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -2273,11 +2324,10 @@ def as_element_table(model, focus=None, style="bw", custom_style=None):
 
     lines.append("")
 
-    title = "Element Table"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Element Table — {focus_name}"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "grv", model, focus=focus, label="Element Table"
+    )
+    lines.append(f'title {header}')
     lines.append("")
 
     # Collect elements
@@ -2382,11 +2432,10 @@ def as_textual_notation(model, focus=None, style="bw", custom_style=None):
 
     lines.append("")
 
-    title = "Textual Notation"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Textual — {focus_name}"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "gv", model, focus=focus, label="Textual Notation"
+    )
+    lines.append(f'title {header}')
     lines.append("")
 
     # Build textual representation
@@ -2648,13 +2697,10 @@ def as_general_view(model, focus=None, elements=None, style="bw", direction="TB"
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "General View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"General View \u2014 {focus_name}"
-    elif elements is not None:
-        title = f"General View \u2014 Selected Elements ({len(elements)})"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "gv", model, focus=focus, elements=elements, label="General View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -2862,11 +2908,10 @@ def as_package_view(model, focus=None, style="bw", direction="TB",
         lines.append("top to bottom direction")
     lines.append("")
 
-    title = "Package View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Package View \u2014 {focus_name}"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "gv", model, focus=focus, label="Package View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
     lines.append("hide circle")
     lines.append("")
@@ -3244,11 +3289,10 @@ def as_tabular_view(model, focus=None, style="bw", output_format="markdown",
 
     lines.append("")
 
-    title = "Tabular View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Tabular \u2014 {focus_name}"
-    lines.append(f'title {title}')
+    diagram_title = _make_diagram_header(
+        "grv", model, focus=focus, label="Tabular View"
+    )
+    lines.append(f'title {diagram_title}')
     lines.append("")
 
     lines.extend(_format_table_rows_plantuml(header, rows))
@@ -3339,11 +3383,10 @@ def as_data_value_tabular_view(model, focus=None, style="bw",
 
     lines.append("")
 
-    title = "Data Value Tabular View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Data Values \u2014 {focus_name}"
-    lines.append(f'title {title}')
+    diagram_title = _make_diagram_header(
+        "grv", model, focus=focus, label="Data Value Tabular View"
+    )
+    lines.append(f'title {diagram_title}')
     lines.append("")
 
     lines.extend(_format_table_rows_plantuml(header, rows))
@@ -3530,11 +3573,10 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
 
     lines.append("")
 
-    title = "Relationship Matrix View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Relationship Matrix \u2014 {focus_name}"
-    lines.append(f'title {title}')
+    diagram_title = _make_diagram_header(
+        "grv", model, focus=focus, label="Relationship Matrix View"
+    )
+    lines.append(f'title {diagram_title}')
     lines.append("")
 
     # Build matrix using rectangle-based layout
@@ -3614,15 +3656,12 @@ def as_sequence_view(model, focus=None, elements=None, style="bw",
 
     lines.append("")
 
-    title = "Sequence View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Sequence View \u2014 {focus_name}"
-    elif elements is not None:
-        title = f"Sequence View \u2014 Selected Elements ({len(elements)})"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "sv", model, focus=focus, elements=elements, label="Sequence View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
-
+    
     # Collect participants (lifelines)
     gen = PlantUMLGenerator(model, style=style, focus=focus,
                             elements=elements, max_depth=None,
@@ -3782,15 +3821,12 @@ def as_case_view(model, focus=None, elements=None, style="bw",
 
     lines.append("")
 
-    title = "Case View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Case View \u2014 {focus_name}"
-    elif elements is not None:
-        title = f"Case View \u2014 Selected Elements ({len(elements)})"
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "gv", model, focus=focus, elements=elements, label="Case View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
-
+    
     # Collect elements
     gen = PlantUMLGenerator(model, style=style, focus=focus,
                             elements=elements, max_depth=None,
@@ -3884,16 +3920,12 @@ def as_browser_view(model, focus=None, elements=None, style="bw",
 
     lines.append("")
 
-    title = "Browser View"
-    if focus is not None:
-        focus_name = getattr(focus, 'name', None) or "Focus"
-        title = f"Browser View \u2014 {focus_name}"
-    elif elements is not None:
-        title = f"Browser View \u2014 Selected Elements ({len(elements)})"
-
-    lines.append(f'title {title}')
+    header = _make_diagram_header(
+        "bv", model, focus=focus, elements=elements, label="Browser View"
+    )
+    lines.append(f'title {header}')
     lines.append("")
-
+    
     # Determine the root(s) to walk
     roots: list = []
     if focus is not None:

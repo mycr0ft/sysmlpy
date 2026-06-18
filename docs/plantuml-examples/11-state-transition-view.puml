@@ -7,7 +7,7 @@ skinparam defaultFontName Helvetica
 
 top to bottom direction
 
-title State Transition — Operational
+title stv [state def] Operational [State Transition View]
 
 hide circle
 

@@ -470,7 +470,7 @@ class TestPlantUMLFiltering:
         assert "Vehicle" in puml.split('title')[1].split('\n')[0]
 
     def test_elements_title(self):
-        """Test that element count appears in title."""
+        """Test that header contains rendering kind and element info."""
         model = sysmlpy.loads("""
         package P {
             part def Wheel;
@@ -481,7 +481,7 @@ class TestPlantUMLFiltering:
         axle = model.find('Axle')[0]
         puml = to_plantuml(model, elements=[wheel, axle])
 
-        assert "Selected Elements (2)" in puml
+        assert "gv [part def] Wheel" in puml
 
 
 class TestViewRenderings:
@@ -1944,7 +1944,7 @@ class TestSequenceView:
         focus = model.find('MyAction')[0]
         puml = as_sequence_view(model, focus=focus)
 
-        assert "Sequence View — MyAction" in puml
+        assert "sv [action def] MyAction [Sequence View]" in puml
 
     def test_as_sequence_view_custom_style(self):
         """Sequence View accepts custom style."""
@@ -1988,7 +1988,7 @@ class TestCaseView:
         focus = model.find('MyCase')[0]
         puml = as_case_view(model, focus=focus)
 
-        assert "Case View — MyCase" in puml
+        assert "gv [action def] MyCase [Case View]" in puml
 
     def test_as_case_view_custom_style(self):
         """Case View accepts custom style."""
@@ -2120,4 +2120,4 @@ class TestBrowserView:
 
         assert "A" in puml
         assert "B" in puml
-        assert "Selected Elements" in puml
+        assert "bv [part def] A [Browser View]" in puml
