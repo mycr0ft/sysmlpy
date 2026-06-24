@@ -64,7 +64,7 @@ skinparam rectangle<<flow>> {
 
 top to bottom direction
 
-title Interconnection View
+title iv [model] 304ae5b3-77c1-462a-95f4-20b9fc335441 [Interconnection View]
 
 hide circle
 
@@ -79,8 +79,8 @@ rectangle "Controller" as E8 <<part def>>
 rectangle "s" as E9 <<part>>
 rectangle "p" as E10 <<part>>
 rectangle "a" as E11 <<part>>
-rectangle "8cd8a969-008b-449e-9b26-e344ec765368" as E12 <<flow>>
-rectangle "887f1ff3-0d6b-4377-b74e-4fe33f21700b" as E13 <<flow>>
+rectangle "f4fc15c4-0b9c-4bb1-aab1-9ccdc41c34c7" as E12 <<flow>>
+rectangle "164cfbc4-872e-41a0-b94d-9d66dff9f59a" as E13 <<flow>>
 
 E1 *-- E2
 E3 *-- E4
@@ -95,8 +95,8 @@ E11 --:|> E6 : types
 E8 *-- E12
 E8 *-- E13
 
-E9 --> E10 : 8cd8a969-008b-449e-9b26-e344ec765368
-E10 --> E11 : 887f1ff3-0d6b-4377-b74e-4fe33f21700b
+E9 --> E10 : f4fc15c4-0b9c-4bb1-aab1-9ccdc41c34c7
+E10 --> E11 : 164cfbc4-872e-41a0-b94d-9d66dff9f59a
 
 legend right
   <b>Interconnection Legend</b>

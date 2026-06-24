@@ -431,6 +431,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0341-2026-06-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.34.1 (2026-06-23)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.34.1 (2026-06-23)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fix-standard-library-type-resolution-and-add-implicit-import-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fix standard library type resolution and add implicit import warnings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0340-2026-06-18" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1649,6 +1677,34 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0341-2026-06-23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.34.1 (2026-06-23)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="v0.34.1 (2026-06-23)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bug-fix-standard-library-type-resolution-and-add-implicit-import-warnings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        :bug: Fix standard library type resolution and add implicit import warnings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0340-2026-06-18" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2826,6 +2882,16 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0341-2026-06-23">v0.34.1 (2026-06-23)<a class="headerlink" href="#v0341-2026-06-23" title="Permanent link">&para;</a></h2>
+<h3 id="bug-fix-standard-library-type-resolution-and-add-implicit-import-warnings">:bug: Fix standard library type resolution and add implicit import warnings<a class="headerlink" href="#bug-fix-standard-library-type-resolution-and-add-implicit-import-warnings" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>_is_resolved()</code> now checks unqualified (simple) names against the library symbol index, so bare references like <code>Real</code>, <code>String</code>, <code>Integer</code>, <code>Boolean</code> resolve without errors even without explicit imports.</li>
+<li>Added <code>LibrarySymbolIndex.get_simple_names()</code> with its own cache for efficient simple-name lookups.</li>
+<li>Added <code>_KNOWN_LIBRARY_SIMPLE_NAMES</code> hardcoded fallback derived from <code>_KNOWN_LIBRARY_SYMBOLS</code>.</li>
+<li>New <code>IMPLICIT_LIBRARY_IMPORT</code> warning emitted when a standard library type is used without an explicit import, suggesting the user add <code>import ScalarValues::&lt;Type&gt;;</code> or <code>import ScalarValues::*;</code>.</li>
+<li><code>public import ScalarValues::*;</code> at package level propagates to child scopes and suppresses all warnings.</li>
+<li>All 118 semantic tests pass.</li>
+</ul>
 <h2 id="v0340-2026-06-18">v0.34.0 (2026-06-18)<a class="headerlink" href="#v0340-2026-06-18" title="Permanent link">&para;</a></h2>
 <h3 id="exclamation-breaking-remove-deprecated-sysml-v1x-diagram-functions">:exclamation: BREAKING: Remove deprecated SysML v1.x diagram functions<a class="headerlink" href="#exclamation-breaking-remove-deprecated-sysml-v1x-diagram-functions" title="Permanent link">&para;</a></h3>
 <ul>
