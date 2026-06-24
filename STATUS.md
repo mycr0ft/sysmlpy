@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.34.0** (2026-06-18)
+Current version: **v0.34.1** (2026-06-23)
 
 ---
 

@@ -92,6 +92,7 @@ class LibrarySymbolIndex:
     """
 
     _cache: Optional[frozenset[str]] = None
+    _simple_names_cache: Optional[frozenset[str]] = None
     _library_roots: Optional[list[Path]] = None
 
     @classmethod
@@ -214,9 +215,27 @@ class LibrarySymbolIndex:
                 package_stack.pop()
 
     @classmethod
+    def get_simple_names(
+        cls,
+        library_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> frozenset[str]:
+        """Return all simple (unqualified) symbol names from the library.
+
+        For example, ``"ScalarValues::Integer"`` yields ``"Integer"``.
+        """
+        if cls._simple_names_cache is not None:
+            return cls._simple_names_cache
+        qualified = cls.get_symbols(library_roots)
+        cls._simple_names_cache = frozenset(
+            name.rsplit("::", 1)[-1] for name in qualified
+        )
+        return cls._simple_names_cache
+
+    @classmethod
     def clear_cache(cls) -> None:
         """Clear the cached symbol index (useful for testing)."""
         cls._cache = None
+        cls._simple_names_cache = None
 
 
 # Backwards-compatible constant (populated lazily from library files)
@@ -988,6 +1007,10 @@ _KNOWN_LIBRARY_SYMBOLS = frozenset({
     "SysML::Rendering", "SysML::Individual",
 })
 
+_KNOWN_LIBRARY_SIMPLE_NAMES: frozenset[str] = frozenset(
+    name.rsplit("::", 1)[-1] for name in _KNOWN_LIBRARY_SYMBOLS
+)
+
 
 class SemanticAnalyzer:
     """Analyzes a parsed SysML model for semantic issues."""
@@ -1023,6 +1046,16 @@ class SemanticAnalyzer:
         # Step 4: Cross-reference using scope-aware lookup
         for ref_str, element, scope_path in references:
             if self._is_resolved(ref_str, symtab, scope_path, lib_roots):
+                if self._is_implicit_library_reference(ref_str, symtab, scope_path, lib_roots):
+                    issues.append(SemanticIssue(
+                        severity="warning",
+                        code="IMPLICIT_LIBRARY_IMPORT",
+                        message=f"Standard library type '{ref_str}' used without "
+                                f"explicit import; add 'import ScalarValues::{ref_str};' "
+                                f"or 'import ScalarValues::*;' to suppress this warning",
+                        element=element,
+                        reference=ref_str,
+                    ))
                 continue
             issues.append(SemanticIssue(
                 severity="error",
@@ -1248,6 +1281,47 @@ class SemanticAnalyzer:
 
             # Fall back to simple name lookup for the last part
             return current.lookup(parts[-1]) is not None
+
+        if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
+            return True
+        if ref_str in _KNOWN_LIBRARY_SIMPLE_NAMES:
+            return True
+
+        return False
+
+    def _is_implicit_library_reference(
+        self,
+        ref_str: str,
+        symtab: SymbolTable,
+        scope_path: list[str],
+        lib_roots: list[Path] | None = None,
+    ) -> bool:
+        """Check if *ref_str* resolves ONLY via the library simple-name fallback.
+
+        Returns True when the reference is a bare name (no ``::``), is not
+        found in the model's own symbol table, but matches a standard library
+        simple name.  This indicates the user is relying on an implicit import.
+        """
+        if "::" in ref_str:
+            return False
+
+        current = symtab
+        for scope_name in scope_path:
+            child = current._children.get(scope_name)
+            if child is not None:
+                current = child
+            else:
+                break
+
+        if current.lookup(ref_str) is not None:
+            return False
+        if self._resolve_inherited(ref_str, symtab, scope_path):
+            return False
+
+        if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
+            return True
+        if ref_str in _KNOWN_LIBRARY_SIMPLE_NAMES:
+            return True
 
         return False
 

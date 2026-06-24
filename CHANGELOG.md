@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v0.34.1 (2026-06-23)
+
+### :bug: Fix standard library type resolution and add implicit import warnings
+
+- `_is_resolved()` now checks unqualified (simple) names against the library symbol index, so bare references like `Real`, `String`, `Integer`, `Boolean` resolve without errors even without explicit imports.
+- Added `LibrarySymbolIndex.get_simple_names()` with its own cache for efficient simple-name lookups.
+- Added `_KNOWN_LIBRARY_SIMPLE_NAMES` hardcoded fallback derived from `_KNOWN_LIBRARY_SYMBOLS`.
+- New `IMPLICIT_LIBRARY_IMPORT` warning emitted when a standard library type is used without an explicit import, suggesting the user add `import ScalarValues::<Type>;` or `import ScalarValues::*;`.
+- `public import ScalarValues::*;` at package level propagates to child scopes and suppresses all warnings.
+- All 118 semantic tests pass.
+
 ## v0.34.0 (2026-06-18)
 
 ### :exclamation: BREAKING: Remove deprecated SysML v1.x diagram functions
