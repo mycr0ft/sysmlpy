@@ -885,6 +885,112 @@ class TestImportVisibility:
         # Q's protected import should not be visible to sibling R
         assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
 
+    def test_transitive_public_import_membership(self):
+        """A imports B::X, B publicly imports C::X -> A should see X."""
+        model = loads("""
+            package C {
+                part def BaseType;
+            }
+            package B {
+                public import C::BaseType;
+            }
+            package A {
+                private import B::BaseType;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_transitive_public_import_namespace(self):
+        """A imports B::*, B publicly imports C::* -> A should see C's elements."""
+        model = loads("""
+            package C {
+                part def BaseType;
+            }
+            package B {
+                public import C::*;
+            }
+            package A {
+                private import B::*;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_transitive_public_import_cross_branch(self):
+        """Cross-branch: A imports Mid::B::BaseType, B publicly imports Lib::C::BaseType."""
+        model = loads("""
+            package Lib {
+                package C {
+                    part def BaseType;
+                }
+            }
+            package Mid {
+                package B {
+                    public import Lib::C::BaseType;
+                }
+            }
+            package A {
+                private import Mid::B::BaseType;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert not any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_private_import_not_transitively_visible(self):
+        """Private imports should not be visible via qualified name from external scopes."""
+        model = loads("""
+            package C {
+                part def BaseType;
+            }
+            package B {
+                private import C::BaseType;
+            }
+            package A {
+                private import B::BaseType;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_protected_import_not_transitively_visible_externally(self):
+        """Protected imports should not be visible via qualified name from external scopes."""
+        model = loads("""
+            package C {
+                part def BaseType;
+            }
+            package B {
+                protected import C::BaseType;
+            }
+            package A {
+                private import B::BaseType;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
+    def test_private_namespace_import_not_transitively_visible(self):
+        """A imports B::*, B privately imports C::* -> A should NOT see C's elements."""
+        model = loads("""
+            package C {
+                part def BaseType;
+            }
+            package B {
+                private import C::*;
+            }
+            package A {
+                private import B::*;
+                part x : BaseType;
+            }
+        """)
+        issues = analyze(model)
+        assert any(i.code == "UNDEFINED_SYMBOL" and "BaseType" in i.message for i in issues)
+
 
 class TestDuplicateNames:
     """Namespace.duplicate_names: No two members may have the same name in a scope."""

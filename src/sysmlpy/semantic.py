@@ -538,10 +538,15 @@ class SymbolTable:
         ref_str = "::".join(names)
         target_table = self._find_namespace_table(ref_str, table)
         if target_table is not None:
-            # Import all symbols from the target namespace
             for sym_name, element in target_table._symbols.items():
                 table._imported_symbols[sym_name] = element
                 table._import_visibility[sym_name] = visibility
+
+            for sym_name, element in target_table._imported_symbols.items():
+                vis = target_table._import_visibility.get(sym_name, "private")
+                if vis == "public" and sym_name not in table._imported_symbols:
+                    table._imported_symbols[sym_name] = element
+                    table._import_visibility[sym_name] = visibility
 
             # If recursive, also import from all child namespaces
             if is_recursive:
@@ -572,6 +577,11 @@ class SymbolTable:
                 if sym_name not in dest_table._imported_symbols:
                     dest_table._imported_symbols[sym_name] = element
                     dest_table._import_visibility[sym_name] = visibility
+            for sym_name, element in child_table._imported_symbols.items():
+                vis = child_table._import_visibility.get(sym_name, "private")
+                if vis == "public" and sym_name not in dest_table._imported_symbols:
+                    dest_table._imported_symbols[sym_name] = element
+                    dest_table._import_visibility[sym_name] = visibility
             self._recursive_import(child_table, dest_table, visibility)
 
     def _resolve_qualified_name(self, ref_str: str, table: SymbolTable) -> Optional[Any]:
@@ -589,6 +599,11 @@ class SymbolTable:
             if found is None:
                 all_found = False
                 break
+            if part in lookup_table._imported_symbols:
+                vis = lookup_table._import_visibility.get(part, "private")
+                if vis != "public":
+                    all_found = False
+                    break
             last_found = found
             child_scope = lookup_table._children.get(part)
             if child_scope is None:
@@ -597,7 +612,7 @@ class SymbolTable:
                     child_scope = owner._children.get(part)
             if child_scope is not None:
                 lookup_table = child_scope
-            else:
+            elif i < len(parts) - 1:
                 all_found = False
                 break
 
@@ -642,6 +657,8 @@ class SymbolTable:
     def _find_symbol_owner(self, name: str) -> Optional[SymbolTable]:
         """Find the symbol table that directly contains *name* as a symbol."""
         if name in self._symbols:
+            return self
+        if name in self._imported_symbols:
             return self
         if self._parent is not None:
             return self._parent._find_symbol_owner(name)
