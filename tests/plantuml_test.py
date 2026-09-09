@@ -1167,6 +1167,21 @@ class TestInterconnectionView:
         puml = as_interconnection_view(model)
         assert "-[thickness=3]-" in puml
         assert ": clutch" in puml
+    def test_iv_binding_edges_render(self):
+        """Binding connectors render between the referenced features."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part paBlackbox {
+                port p;
+                part A { port p; }
+                bind p = A.p;
+            }
+        }
+        """)
+        puml = as_interconnection_view(model)
+        assert "E2 -[thickness=5]- E4" in puml
 
     def test_iv_interface_edges_render(self):
         """Interface usages render as thick plain lines between ports."""
