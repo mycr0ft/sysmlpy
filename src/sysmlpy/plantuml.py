@@ -1448,6 +1448,7 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
     # Collect all flow connections for arrow rendering
     flow_connections = _extract_flow_connections(model)
     connector_connections = _extract_connections(model)
+    binding_connections = _extract_binding_connections(model)
 
     # Traverse
     gen._traverse(gen.model)
@@ -1680,6 +1681,22 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
             lines.append(f'{fa} {ARROW_STYLES["connector"]} {ta} : {cn}')
         else:
             lines.append(f'{fa} {ARROW_STYLES["connector"]} {ta}')
+
+    # Binding edges (thicker plain line per official notation)
+    for from_names, to_names, binding_name in binding_connections:
+        fa = _resolve_endpoint(from_names)
+        ta = _resolve_endpoint(to_names)
+        if not fa or not ta or fa == ta:
+            continue
+        key = (fa, ta, binding_name, "binding")
+        if key in seen_edges:
+            continue
+        seen_edges.add(key)
+        bn = _clean_label(binding_name)
+        if bn:
+            lines.append(f'{fa} {ARROW_STYLES["binding"]} {ta} : {bn}')
+        else:
+            lines.append(f'{fa} {ARROW_STYLES["binding"]} {ta}')
 
     lines.append("")
 
@@ -2548,6 +2565,61 @@ def _extract_connections(model):
         _scan(child)
 
     return connections
+
+
+def _extract_binding_connections(model):
+    """Scan preserved binding usages for their endpoint paths."""
+    bindings = []
+    visited = set()
+
+    def endpoint_names(member):
+        ends = getattr(member, 'children', []) or []
+        end = ends[0] if ends else None
+        names = []
+        for relationship in getattr(end, 'children', []) or []:
+            if relationship.__class__.__name__ != 'OwnedReferenceSubsetting':
+                continue
+            referenced = getattr(relationship, 'referencedFeature', None)
+            if referenced is not None and getattr(referenced, 'names', None):
+                names.extend(referenced.names)
+            for chain in getattr(relationship, 'elements', []) or []:
+                feature = getattr(chain, 'feature', None)
+                for chaining in getattr(feature, 'children', []) or []:
+                    chained = getattr(chaining, 'chainingFeature', None)
+                    if chained is not None and getattr(chained, 'names', None):
+                        names.extend(chained.names)
+        return names or None
+
+    def qualify(binding, names):
+        prefix = []
+        owner = getattr(binding, 'parent', None)
+        while owner is not None:
+            if getattr(owner, 'sysml_type', '') == 'package':
+                break
+            owner_name = getattr(owner, 'name', None)
+            if owner_name:
+                prefix.insert(0, owner_name)
+            owner = getattr(owner, 'parent', None)
+        return prefix + names
+
+    def scan(element):
+        if id(element) in visited:
+            return
+        visited.add(id(element))
+        if getattr(element, 'sysml_type', '') == 'binding':
+            grammar = getattr(element, 'grammar', None)
+            endpoints = [endpoint_names(member)
+                         for member in getattr(grammar, 'children', []) or []]
+            endpoints = [qualify(element, names) for names in endpoints if names]
+            if len(endpoints) >= 2:
+                bindings.append((endpoints[0], endpoints[1],
+                                 getattr(element, 'name', None)))
+        for child in getattr(element, 'children', []) or []:
+            scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        scan(child)
+    return bindings
 
 
 def _find_state_in_children(element, state_name):
