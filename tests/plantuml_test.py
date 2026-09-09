@@ -1202,6 +1202,65 @@ class TestInterconnectionView:
         assert '"power : DeviceInput" as E6 <<port>>' in puml
         assert "E4 -[thickness=3]- E6 : interf" in puml
 
+    def test_iv_interface_body_ends_render(self):
+        """Body-declared interface ends resolve to nested part ports."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package Site {
+            interface def WaterSupply {
+                end supplierPort;
+                end consumerPort;
+            }
+            part def WaterTank { port waterOut; }
+            part def Brewer { port waterInlet; }
+            part def CoffeeMachine {
+                part waterTank : WaterTank;
+                part brewer : Brewer;
+                interface waterLine : WaterSupply {
+                    end supplierPort ::> waterTank.waterOut;
+                    end consumerPort ::> brewer.waterInlet;
+                }
+            }
+        }
+        """)
+        puml = as_interconnection_view(model)
+        assert '"waterOut" as P1 <<port>>' in puml
+        assert '"waterInlet" as P2 <<port>>' in puml
+        assert "P1 -[thickness=3]- P2 : waterLine" in puml
+
+    def test_iv_nested_interface_ends_are_scoped_to_containing_part(self):
+        """Same-named nested parts must not steal interface endpoints."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package Site {
+            interface def WaterSupply {
+                end supplierPort;
+                end consumerPort;
+            }
+            part def WaterTank { port waterOut; }
+            part def Brewer { port waterInlet; }
+            part def CoffeeMachine {
+                part waterTank : WaterTank;
+                part brewer : Brewer;
+                connect waterTank.waterOut to brewer.waterInlet;
+            }
+            part def CoffeeMachine2 {
+                part waterTank : WaterTank;
+                part brewer : Brewer;
+                interface waterLine : WaterSupply {
+                    end supplierPort ::> waterTank.waterOut;
+                    end consumerPort ::> brewer.waterInlet;
+                }
+            }
+        }
+        """)
+        puml = as_interconnection_view(model)
+        assert "P1 -[thickness=3]- P2" in puml
+        assert "P3 -[thickness=3]- P4 : waterLine" in puml
+        assert "P1 -[thickness=3]- P2 : waterLine" not in puml
+
     def test_iv_inherited_ports_on_usages(self):
         """Usages expose their typed definition's ports as boundary boxes."""
         from sysmlpy.plantuml import as_interconnection_view
