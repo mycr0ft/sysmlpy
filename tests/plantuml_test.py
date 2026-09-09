@@ -1182,6 +1182,26 @@ class TestInterconnectionView:
         puml = as_interconnection_view(model)
         assert "E2 -[thickness=3]- E4 : ifAB" in puml
 
+    def test_iv_named_interface_ends_render(self):
+        """Named interface ends resolve to the connected part ports."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package Site {
+            port def Outlet;
+            port def DeviceInput;
+            part HouseholdGrid { port outlet : Outlet; }
+            part Toaster { port power : DeviceInput; }
+            interface interf connect
+                outlet ::> HouseholdGrid.outlet to
+                device ::> Toaster.power;
+        }
+        """)
+        puml = as_interconnection_view(model)
+        assert '"outlet : Outlet" as E4 <<port>>' in puml
+        assert '"power : DeviceInput" as E6 <<port>>' in puml
+        assert "E4 -[thickness=3]- E6 : interf" in puml
+
     def test_iv_inherited_ports_on_usages(self):
         """Usages expose their typed definition's ports as boundary boxes."""
         from sysmlpy.plantuml import as_interconnection_view
