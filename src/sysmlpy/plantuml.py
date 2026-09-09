@@ -2616,6 +2616,55 @@ def _extract_allocations(model):
     allocations = []
     visited = set()
 
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if getattr(element, 'sysml_type', '') == 'allocation':
+            g = getattr(element, 'grammar', None)
+            binpart = getattr(getattr(g, 'connectorPart', None), 'part', None)
+            if binpart is not None and \
+                    binpart.__class__.__name__ == 'BinaryConnectorPart':
+                from_names, to_names = _extract_allocation_endpoints(element)
+                if from_names and to_names:
+                    allocations.append((from_names, to_names,
+                                        getattr(element, 'name', None)))
+            elif binpart is not None and \
+                    binpart.__class__.__name__ == 'NaryConnectorPart':
+                segs = []
+                for member in (getattr(binpart, 'children', None) or []):
+                    for end in (getattr(member, 'children', None) or []):
+                        for sub in (getattr(end, 'children', None) or []):
+                            if sub.__class__.__name__ != \
+                                    'OwnedReferenceSubsetting':
+                                continue
+                            seg = []
+                            for chain in (getattr(sub, 'elements', None) or []):
+                                fc = getattr(chain, 'feature', None)
+                                for oc in (getattr(fc, 'children', None) or []):
+                                    cf = getattr(oc, 'chainingFeature', None)
+                                    if cf is not None and \
+                                            getattr(cf, 'names', None):
+                                        seg.extend(cf.names)
+                            if seg:
+                                segs.append(seg)
+                for i, a in enumerate(segs):
+                    for b in segs[i + 1:]:
+                        allocations.append((a, b,
+                                            getattr(element, 'name', None)))
+
+        for child in getattr(element, 'children', []) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return allocations
+
+
+
 
 def _extract_interface_connections(model):
     """Scan interface usages for their connected port endpoints.
@@ -2630,9 +2679,25 @@ def _extract_interface_connections(model):
 
     def _endpoint_names(end):
         names = []
-        for relationship in getattr(end, 'relationships', []) or []:
+        relationships = list(getattr(end, 'relationships', []) or [])
+        # Body-declared interface ends (``end p ::> part.port``) keep the
+        # reference in the end usage's specialization relationship rather
+        # than directly on the DefaultInterfaceEnd object.
+        usage = getattr(end, 'usage', None)
+        declaration = getattr(usage, 'declaration', None)
+        feature_declaration = getattr(declaration, 'declaration', None)
+        specialization = getattr(feature_declaration, 'specialization', None)
+        for specialization_item in (getattr(specialization, 'specializations', [])
+                                    or []):
+            relationship = getattr(specialization_item, 'relationship', None)
+            if relationship is not None:
+                relationships.append(relationship)
+
+        def add_relationship(relationship):
             if relationship.__class__.__name__ != 'OwnedReferenceSubsetting':
-                continue
+                for child in getattr(relationship, 'children', []) or []:
+                    add_relationship(child)
+                return
             referenced = getattr(relationship, 'referencedFeature', None)
             if referenced is not None and getattr(referenced, 'names', None):
                 names.extend(referenced.names)
@@ -2642,7 +2707,29 @@ def _extract_interface_connections(model):
                     chained = getattr(chaining, 'chainingFeature', None)
                     if chained is not None and getattr(chained, 'names', None):
                         names.extend(chained.names)
+
+        for relationship in relationships:
+            add_relationship(relationship)
         return names or None
+
+    def _qualify_endpoint_names(element, names):
+        """Resolve body-end paths relative to the containing part.
+
+        Interface ends inside a part commonly use paths such as
+        ``waterTank.waterOut``.  Those paths are local to that part; treating
+        them as model-global names can resolve to an earlier part with the
+        same child names.
+        """
+        prefix = []
+        owner = getattr(element, 'parent', None)
+        while owner is not None:
+            if getattr(owner, 'sysml_type', '') == 'package':
+                break
+            owner_name = getattr(owner, 'name', None)
+            if owner_name:
+                prefix.insert(0, owner_name)
+            owner = getattr(owner, 'parent', None)
+        return prefix + names
 
     def _scan(element):
         elem_id = id(element)
@@ -2692,9 +2779,29 @@ def _extract_interface_connections(model):
             endpoint_names = [_endpoint_names(getattr(member, 'child', None))
                               for member in ends]
             endpoint_names = [names for names in endpoint_names if names]
+            endpoint_names = [_qualify_endpoint_names(element, names)
+                              for names in endpoint_names]
             if len(endpoint_names) >= 2:
                 for target in endpoint_names[1:]:
                     connections.append((endpoint_names[0], target,
+                                        getattr(element, 'name', None)))
+
+            # An interface can declare its connected ends in its body rather
+            # than in the top-level ``connect`` part.
+            body = getattr(grammar, 'body', None)
+            body_end_names = []
+            for item in getattr(body, 'items', []) or []:
+                for member in getattr(item, 'children', []) or []:
+                    for interface_element in getattr(member, 'elements', []) or []:
+                        end = getattr(interface_element, 'element', None)
+                        if end is not None:
+                            names = _endpoint_names(end)
+                            if names:
+                                body_end_names.append(
+                                    _qualify_endpoint_names(element, names))
+            if len(body_end_names) >= 2:
+                for target in body_end_names[1:]:
+                    connections.append((body_end_names[0], target,
                                         getattr(element, 'name', None)))
 
         for child in getattr(element, 'children', []) or []:
@@ -2703,7 +2810,7 @@ def _extract_interface_connections(model):
     for child in getattr(model, 'children', []) or []:
         _scan(child)
 
-    return allocations
+    return connections
 
 
 def _extract_satisfies(model):
