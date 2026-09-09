@@ -1448,6 +1448,7 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
     # Collect all flow connections for arrow rendering
     flow_connections = _extract_flow_connections(model)
     connector_connections = _extract_connections(model)
+    connector_connections.extend(_extract_interface_connections(model))
 
     # Traverse
     gen._traverse(gen.model)
@@ -2540,6 +2541,120 @@ def _extract_connections(model):
             if from_names and to_names:
                 connections.append((from_names, to_names,
                                     getattr(element, 'name', None)))
+
+        for child in getattr(element, 'children', []) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return connections
+
+
+def _extract_interface_connections(model):
+    """Scan interface usages for their connected port endpoints.
+
+    An interface usage is a specialized connection usage, but its endpoints
+    are stored in an ``InterfacePart`` rather than a ``ConnectorPart``.  Keep
+    the result in the same shape as :func:`_extract_connections` so the IV
+    renderer can draw both kinds of connection with the same edge code.
+    """
+    connections = []
+    visited = set()
+
+    def _endpoint_names(end):
+        names = []
+        relationships = list(getattr(end, 'relationships', []) or [])
+        # Body-declared interface ends (``end p ::> part.port``) keep the
+        # reference in the end usage's specialization relationship rather
+        # than directly on the DefaultInterfaceEnd object.
+        usage = getattr(end, 'usage', None)
+        declaration = getattr(usage, 'declaration', None)
+        feature_declaration = getattr(declaration, 'declaration', None)
+        specialization = getattr(feature_declaration, 'specialization', None)
+        for specialization_item in (getattr(specialization, 'specializations', [])
+                                    or []):
+            relationship = getattr(specialization_item, 'relationship', None)
+            if relationship is not None:
+                relationships.append(relationship)
+
+        def add_relationship(relationship):
+            if relationship.__class__.__name__ != 'OwnedReferenceSubsetting':
+                for child in getattr(relationship, 'children', []) or []:
+                    add_relationship(child)
+                return
+            referenced = getattr(relationship, 'referencedFeature', None)
+            if referenced is not None and getattr(referenced, 'names', None):
+                names.extend(referenced.names)
+            for element in getattr(relationship, 'elements', []) or []:
+                feature = getattr(element, 'feature', None)
+                for chaining in getattr(feature, 'children', []) or []:
+                    chained = getattr(chaining, 'chainingFeature', None)
+                    if chained is not None and getattr(chained, 'names', None):
+                        names.extend(chained.names)
+
+        for relationship in relationships:
+            add_relationship(relationship)
+        return names or None
+
+    def _qualify_endpoint_names(element, names):
+        """Resolve body-end paths relative to the containing part.
+
+        Interface ends inside a part commonly use paths such as
+        ``waterTank.waterOut``.  Those paths are local to that part; treating
+        them as model-global names can resolve to an earlier part with the
+        same child names.
+        """
+        prefix = []
+        owner = getattr(element, 'parent', None)
+        while owner is not None:
+            if getattr(owner, 'sysml_type', '') == 'package':
+                break
+            owner_name = getattr(owner, 'name', None)
+            if owner_name:
+                prefix.insert(0, owner_name)
+            owner = getattr(owner, 'parent', None)
+        return prefix + names
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if getattr(element, 'sysml_type', '') == 'interface':
+            grammar = getattr(element, 'grammar', None)
+            declaration = getattr(grammar, 'declaration', None)
+            part = getattr(declaration, 'part', None)
+            interface_part = getattr(part, 'children', None)
+            ends = getattr(interface_part, 'children', None) or []
+            endpoint_names = [_endpoint_names(getattr(member, 'child', None))
+                              for member in ends]
+            endpoint_names = [names for names in endpoint_names if names]
+            endpoint_names = [_qualify_endpoint_names(element, names)
+                              for names in endpoint_names]
+            if len(endpoint_names) >= 2:
+                for target in endpoint_names[1:]:
+                    connections.append((endpoint_names[0], target,
+                                        getattr(element, 'name', None)))
+
+            # An interface can declare its connected ends in its body rather
+            # than in the top-level ``connect`` part.
+            body = getattr(grammar, 'body', None)
+            body_end_names = []
+            for item in getattr(body, 'items', []) or []:
+                for member in getattr(item, 'children', []) or []:
+                    for interface_element in getattr(member, 'elements', []) or []:
+                        end = getattr(interface_element, 'element', None)
+                        if end is not None:
+                            names = _endpoint_names(end)
+                            if names:
+                                body_end_names.append(
+                                    _qualify_endpoint_names(element, names))
+            if len(body_end_names) >= 2:
+                for target in body_end_names[1:]:
+                    connections.append((body_end_names[0], target,
+                                        getattr(element, 'name', None)))
 
         for child in getattr(element, 'children', []) or []:
             _scan(child)
