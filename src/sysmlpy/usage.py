@@ -1068,6 +1068,13 @@ class Usage(Searchable):
                 c = Attribute(definition=True).load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
+            elif class_name == "BindingConnector":
+                # Binding connectors are non-occurrence usages. Preserve
+                # them in the public model tree so structural renderers can
+                # discover their two connected feature paths.
+                c = Binding().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "StructureUsageElement":
                 if hasattr(sc, 'children'):
                     inner = sc.children
@@ -1860,6 +1867,41 @@ class Part(Usage):
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+
+
+class Binding:
+    """SysML binding connector usage (``bind feature = feature``)."""
+
+    sysml_type = 'binding'
+
+    def __init__(self, name=None):
+        self.grammar = None
+        self.name = name if name is not None else str(uuidlib.uuid4())
+        self.children = []
+        self.parent = None
+
+    def load_from_grammar(self, grammar):
+        self.grammar = grammar
+        declaration = getattr(grammar, 'declaration', None)
+        declared = getattr(declaration, 'declaration', None)
+        ident = getattr(declared, 'identification', None)
+        if ident is not None and getattr(ident, 'declaredName', None):
+            self.name = ident.declaredName
+        return self
+
+    def _get_definition(self, child=None):
+        """Serialize the binding back into a definition-body member."""
+        return {
+            "name": "DefinitionBodyItem",
+            "ownedRelationship": [{
+                "name": "NonOccurrenceUsageMember",
+                "prefix": None,
+                "ownedRelatedElement": [{
+                    "name": "NonOccurrenceUsageElement",
+                    "ownedRelatedElement": self.grammar.get_definition(),
+                }],
+            }],
+        }
 
 
 class Item(Usage):
