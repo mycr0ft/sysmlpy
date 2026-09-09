@@ -1168,6 +1168,20 @@ class TestInterconnectionView:
         assert "-[thickness=3]-" in puml
         assert ": clutch" in puml
 
+    def test_iv_interface_edges_render(self):
+        """Interface usages render as thick plain lines between ports."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package Site {
+            part A { port pa; }
+            part B { port pb; }
+            interface ifAB connect (A.pa, B.pb);
+        }
+        """)
+        puml = as_interconnection_view(model)
+        assert "E2 -[thickness=3]- E4 : ifAB" in puml
+
     def test_iv_inherited_ports_on_usages(self):
         """Usages expose their typed definition's ports as boundary boxes."""
         from sysmlpy.plantuml import as_interconnection_view

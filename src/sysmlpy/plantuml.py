@@ -1448,6 +1448,7 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
     # Collect all flow connections for arrow rendering
     flow_connections = _extract_flow_connections(model)
     connector_connections = _extract_connections(model)
+    connector_connections.extend(_extract_interface_connections(model))
 
     # Traverse
     gen._traverse(gen.model)
@@ -2540,6 +2541,62 @@ def _extract_connections(model):
             if from_names and to_names:
                 connections.append((from_names, to_names,
                                     getattr(element, 'name', None)))
+
+        for child in getattr(element, 'children', []) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return connections
+
+
+def _extract_interface_connections(model):
+    """Scan interface usages for their connected port endpoints.
+
+    An interface usage is a specialized connection usage, but its endpoints
+    are stored in an ``InterfacePart`` rather than a ``ConnectorPart``.  Keep
+    the result in the same shape as :func:`_extract_connections` so the IV
+    renderer can draw both kinds of connection with the same edge code.
+    """
+    connections = []
+    visited = set()
+
+    def _endpoint_names(end):
+        names = []
+        for relationship in getattr(end, 'relationships', []) or []:
+            if relationship.__class__.__name__ != 'OwnedReferenceSubsetting':
+                continue
+            referenced = getattr(relationship, 'referencedFeature', None)
+            if referenced is not None and getattr(referenced, 'names', None):
+                names.extend(referenced.names)
+            for element in getattr(relationship, 'elements', []) or []:
+                feature = getattr(element, 'feature', None)
+                for chaining in getattr(feature, 'children', []) or []:
+                    chained = getattr(chaining, 'chainingFeature', None)
+                    if chained is not None and getattr(chained, 'names', None):
+                        names.extend(chained.names)
+        return names or None
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if getattr(element, 'sysml_type', '') == 'interface':
+            grammar = getattr(element, 'grammar', None)
+            declaration = getattr(grammar, 'declaration', None)
+            part = getattr(declaration, 'part', None)
+            interface_part = getattr(part, 'children', None)
+            ends = getattr(interface_part, 'children', None) or []
+            endpoint_names = [_endpoint_names(getattr(member, 'child', None))
+                              for member in ends]
+            endpoint_names = [names for names in endpoint_names if names]
+            if len(endpoint_names) >= 2:
+                for target in endpoint_names[1:]:
+                    connections.append((endpoint_names[0], target,
+                                        getattr(element, 'name', None)))
 
         for child in getattr(element, 'children', []) or []:
             _scan(child)
