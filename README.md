@@ -40,6 +40,7 @@ sysmlpy requires the following Python packages:
 - [networkx](https://networkx.org/) — graph analysis backend (install with `pip install sysmlpy[graph]`)
 - [kuzu](https://kuzudb.com/) — embedded graph database with disk persistence and Cypher queries (install with `pip install sysmlpy[kuzu]`)
 - [cayley](https://cayley.io/) — graph database via HTTP API, supports BoltDB/LevelDB backends (install with `pip install sysmlpy[cayley]`)
+- [reqif](https://github.com/strictdoc-project/reqif) — ReqIF 1.0 requirements interchange, import/export with any ReqIF-capable tool (install with `pip install sysmlpy[reqif]`; see [ReqIF Interchange](#reqif-interchange-requirements-interchange-format))
 - [PlantUML](https://plantuml.com/) **v1.2020.0+** — diagram rendering (requires Java + PlantUML JAR or [PlantUML server](https://www.plantuml.com/plantuml)). The generator uses `<style>` blocks and `skinparam` stereotype selectors introduced in v1.2020.
 - [IPython](https://ipython.org/) **v8.0+** — the `%%sysml` Jupyter cell magic (install with `pip install sysmlpy[jupyter]`; see [Jupyter integration](#jupyter-integration))
 
@@ -117,6 +118,8 @@ threshold or operational error, `2` = parse/load failure — so
 | `sysmlpy trace <file>` | Requirement traceability & verification coverage |
 | `sysmlpy export <file>` | Export to the JSON interchange format |
 | `sysmlpy import <file>` | Import a JSON interchange document as SysML text |
+| `sysmlpy reqif-import <file>` | Import a ReqIF file as SysML v2 requirements |
+| `sysmlpy reqif-export <file>` | Export model requirements as ReqIF 1.0 XML |
 | `sysmlpy eval <file>` | Evaluate expressions, attribute values, constraints |
 | `sysmlpy sim <file>` | Simulate a state machine (guards evaluated for real) |
 | `sysmlpy xlsx <file>` | Export tabular views to an Excel workbook |
@@ -830,6 +833,77 @@ See [`docs/plantuml-examples/`](docs/plantuml-examples/) for all rendered exampl
 | 14 | Data Value Tabular View (GridView) | Data Value View |
 | 15 | Relationship Matrix (GridView) | Relationship Matrix |
 | 16 | Tabular View — Color | Tabular View (color) |
+
+## ReqIF Interchange (Requirements Interchange Format)
+
+sysmlpy imports and exports **ReqIF 1.0** — the OMG requirements interchange
+standard used by DOORS, Polarion, ReqIF Studio, Capella, Enterprise Architect,
+and most requirements-management tools. This makes sysmlpy a viable
+*single source of truth* for requirements: author them as SysML v2
+`requirement` elements, then exchange them with any ReqIF-capable toolchain.
+
+Install the optional dependency once:
+
+```bash
+pip install sysmlpy[reqif]
+```
+
+### Import — ReqIF → SysML requirements
+
+```python
+from sysmlpy import reqif_import, loads
+
+text = reqif_import("requirements.reqif")   # ReqIF XML → SysML v2 text
+model = loads(text)                         # → live requirement tree
+```
+
+Each ReqIF SpecObject becomes a `requirement` element; the ReqIF
+specification hierarchy becomes requirement ownership nesting;
+`ReqIF.Text` (XHTML) becomes the requirement's `doc` comment with tags
+stripped; other attributes (e.g. `ReqIF.ForeignID`) are folded into the
+doc so no data is lost.
+
+### Export — SysML requirements → ReqIF
+
+```python
+from sysmlpy import loads, reqif_export
+
+model = loads("model.sysml")
+reqif_export(model, "requirements.reqif")
+```
+
+Requirement ownership becomes the ReqIF hierarchy; `doc` comments become
+`ReqIF.Text` XHTML values.
+
+### CLI
+
+```bash
+sysmlpy reqif-import requirements.reqif -o requirements.sysml
+sysmlpy reqif-export model.sysml -o requirements.reqif
+```
+
+The import direction was validated against real-world anonymized ReqIF
+files from multiple vendor flavors (ReqIF Studio, DOORS, Polarion,
+Eclipse RMF, Enterprise Architect — see the
+[reqif project's corpus](https://github.com/strictdoc-project/reqif/tree/main/tests/integration/reqif_software)),
+including a 137-requirement model with a 3-level hierarchy and 14
+relations, round-tripped through sysmlpy with exact structural fidelity.
+
+> **Note:** ReqIF "flavors" differ across tools (attribute naming,
+> datatypes, relation semantics). The importer handles the common
+> `ReqIF.Text` / `ReqIF.ChapterName` / `ReqIF.ForeignID` attributes
+> found in every flavor; exotic vendor extensions are skipped
+> gracefully. If a file fails to import, it is genuinely malformed.
+
+### Relationship to other tools
+
+- **Cameo / MagicDraw** — export ReqIF from them, import with sysmlpy;
+  no license needed on the sysmlpy side.
+- **Doorstop** — the [Doorstop](https://doorstop.readthedocs.io) text-file
+  requirements tool can serve as a git-native review/publishing front-end;
+  exchange via ReqIF or the XLSX bridge.
+- **[strictdoc/reqif](https://github.com/strictdoc-project/reqif)** — the
+  parser library sysmlpy uses for the ReqIF wire format (Apache-2.0).
 
 ## Conformance
 

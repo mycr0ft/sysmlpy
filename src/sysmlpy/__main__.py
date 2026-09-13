@@ -33,6 +33,7 @@ from sysmlpy import loads
 
 # Subcommand table, also used to detect the legacy flat invocation form.
 SUBCOMMANDS = ("parse", "analyze", "view", "trace", "export", "import",
+               "reqif-import", "reqif-export",
                "eval", "xlsx", "sim", "diff", "format", "fmt")
 
 
@@ -439,6 +440,60 @@ def cmd_import(args) -> int:
         print(f"Wrote {args.output}")
     else:
         print(output)
+    return 0
+
+
+def cmd_reqif_import(args) -> int:
+    """ReqIF file → SysML v2 requirements text."""
+    from sysmlpy.reqif_io import ReqIFImportError, reqif_import
+
+    path = Path(args.file)
+    if not path.exists():
+        print(f"Error: File '{path}' not found.", file=sys.stderr)
+        return 2
+
+    try:
+        output = reqif_import(str(path))
+    except ReqIFImportError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:  # noqa: BLE001 - surface parser failures cleanly
+        print(f"Error: ReqIF import failed: {e}", file=sys.stderr)
+        return 2
+
+    if args.output:
+        Path(args.output).write_text(output, encoding="utf-8")
+        print(f"Wrote {args.output}")
+    else:
+        print(output)
+    return 0
+
+
+def cmd_reqif_export(args) -> int:
+    """SysML requirements → ReqIF 1.0 XML."""
+    from sysmlpy.reqif_io import ReqIFExportError, reqif_export
+
+    paths = [Path(f) for f in args.files]
+    for p in _missing_files(paths):
+        print(f"Error: File '{p}' not found.", file=sys.stderr)
+        return 2
+
+    try:
+        model = sysmlpy.load_files(paths, library=args.library)
+    except Exception as e:
+        print(f"Parse error: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        reqif_export(model, args.output)
+    except ReqIFExportError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except Exception as e:  # noqa: BLE001 - surface unparser failures cleanly
+        print(f"Error: ReqIF export failed: {e}", file=sys.stderr)
+        return 1
+
+    print(f"Wrote {args.output}")
     return 0
 
 
@@ -921,6 +976,43 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the SysML text to a file instead of stdout",
     )
     p_import.set_defaults(func=cmd_import)
+
+    # -- reqif-import / reqif-export ------------------------------------------
+    p_reqif_import = sub.add_parser(
+        "reqif-import",
+        help="Import a ReqIF file as SysML v2 requirements",
+        description="Convert a ReqIF 1.0 XML file (ReqIF Studio, DOORS, "
+                    "Polarion, Eclipse RMF, ...) into SysML v2 requirement "
+                    "usages, nested by the ReqIF specification hierarchy. "
+                    "Exit 2 on invalid input. Requires the optional 'reqif' "
+                    "package.",
+    )
+    p_reqif_import.add_argument("file", help="ReqIF XML file")
+    p_reqif_import.add_argument(
+        "-o", "--output",
+        help="Write the SysML text to a file instead of stdout",
+    )
+    p_reqif_import.set_defaults(func=cmd_reqif_import)
+
+    p_reqif_export = sub.add_parser(
+        "reqif-export",
+        help="Export model requirements as a ReqIF 1.0 file",
+        description="Export the requirements of the merged model as ReqIF "
+                    "1.0 XML (one spec object per requirement, hierarchy "
+                    "from ownership, doc comments as ReqIF.Text). Exit 1 "
+                    "when the model has no requirements. Requires the "
+                    "optional 'reqif' package.",
+    )
+    p_reqif_export.add_argument("files", nargs="+", help="SysML v2 file(s)")
+    p_reqif_export.add_argument(
+        "-o", "--output", required=True,
+        help="Destination ReqIF XML file",
+    )
+    p_reqif_export.add_argument(
+        "-l", "--library",
+        help="Path to SysML v2 library files to use for parsing",
+    )
+    p_reqif_export.set_defaults(func=cmd_reqif_export)
 
     p_eval = sub.add_parser(
         "eval",
