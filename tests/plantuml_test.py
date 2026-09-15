@@ -1169,7 +1169,7 @@ class TestInterconnectionView:
         assert ": clutch" in puml
 
     def test_iv_inherited_ports_on_usages(self):
-        """Usages expose their typed definition's ports as boundary boxes."""
+        """Usages expose their typed definition's ports on the host boundary."""
         from sysmlpy.plantuml import as_interconnection_view
 
         model = sysmlpy.loads("""
@@ -1183,8 +1183,28 @@ class TestInterconnectionView:
         puml = as_interconnection_view(model)
         # the Sensor definition box is consumed by the usage label
         assert 'rectangle "Sensor" as' not in puml
-        # the port appears as a boundary node inside the usage
-        assert '"output" as P1 <<port>>' in puml
+        # ``port`` is PlantUML's boundary-port syntax; a nested rectangle
+        # would place the port wholly inside the usage.
+        assert 'port "output" as P1 <<port>>' in puml
+
+    def test_iv_own_ports_use_boundary_syntax_at_each_nesting_level(self):
+        """Own ports are boundary ports, including ports of nested parts."""
+        from sysmlpy.plantuml import as_interconnection_view
+
+        model = sysmlpy.loads("""
+        package System {
+            part paBlackbox {
+                port p;
+                part A { port p; }
+            }
+        }
+        """)
+        puml = as_interconnection_view(model)
+
+        assert 'rectangle "paBlackbox"' in puml
+        assert 'rectangle "A"' in puml
+        assert 'port "p" as' in puml
+        assert 'rectangle "p" as' not in puml
 
     def test_as_interconnection_view_with_focus(self):
         """Focus shows only subtree in interconnection view."""

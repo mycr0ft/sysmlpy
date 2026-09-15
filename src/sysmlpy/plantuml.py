@@ -1318,6 +1318,9 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
             "    RoundCorner 15",
             "    BackgroundColor white",
             "}",
+            "skinparam port {",
+            "    BackgroundColor white",
+            "}",
             "skinparam rectangle<<interface def>> {",
             "    RoundCorner 0",
             "    BackgroundColor white",
@@ -1569,7 +1572,7 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
         children_of.setdefault(id(parent) if parent is not None else None,
                                []).append(elem)
 
-    def _emit(elem, depth):
+    def _emit(elem, depth, boundary_port=False):
         alias = id_map.get(id(elem))
         if alias is None:
             return
@@ -1578,12 +1581,20 @@ def as_interconnection_diagram(model, focus=None, elements=None, style="bw",
         own_kids = [k for k, par in ordered if par is elem]
         inh = synth_ports.get(id(elem), [])
         pad = "    " * depth
+        if boundary_port:
+            # PlantUML's ``port`` keyword is attached to the containing
+            # rectangle's boundary.  A nested rectangle would instead be
+            # laid out entirely inside the host, which is incorrect for an
+            # interconnection view.
+            lines.append(f'{pad}port "{label}" as {alias} {stereo}')
+            return
         if own_kids or inh:
             lines.append(f'{pad}rectangle "{label}" as {alias} {stereo} {{')
             for k in own_kids:
-                _emit(k, depth + 1)
+                _emit(k, depth + 1,
+                      boundary_port=getattr(k, 'sysml_type', '') == 'port')
             for palias, plabel, _is_synth in inh:
-                lines.append(f'{pad}    rectangle "{plabel}" as {palias} <<port>>')
+                lines.append(f'{pad}    port "{plabel}" as {palias} <<port>>')
             lines.append(pad + "}")
         else:
             lines.append(f'{pad}rectangle "{label}" as {alias} {stereo}')
