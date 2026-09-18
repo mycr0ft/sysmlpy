@@ -539,6 +539,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0930-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.93.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0920-2026-09-16" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3360,6 +3371,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0930-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.93.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0920-2026-09-16" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6140,6 +6162,24 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0930-2026-09-16">v0.93.0 (2026-09-16)<a class="headerlink" href="#v0930-2026-09-16" title="Permanent link">&para;</a></h2>
+<p><strong>Relationship Matrix View: satisfy cells for requirements coverage.</strong></p>
+<p>Completes the cross-checking grid story: <code>satisfy &lt;req&gt; [by &lt;part&gt;];</code>
+relationships now land as check cells (vocabulary gains
+<code>"satisfy": "\u2713"</code>), so requirements coverage is visible at a
+glance in the same elements-on-both-axes grid as allocations (A) and
+connectors (N):</p>
+<ul>
+<li>new <code>_extract_satisfies</code> walks SatisfyRequirementUsage grammar
+  wrappers (<code>ors</code> -&gt; requirement reference, <code>ssm</code> -&gt; satisfying
+  feature); <code>satisfy &lt;req&gt;;</code> without <code>by</code> defaults to the enclosing
+  named usage per the SysML v2 requirements chapter</li>
+<li>satisfy wrappers are excluded from the axes like allocation and
+  connection usages (relationships are cells, not axes)</li>
+<li>2 new tests (explicit <code>by</code> and defaulted-to-enclosing forms),
+  placement-proofed via the <code>_matrix_cell</code> helper; the dedicated
+  requirements-vs-coverage report (<code>traceability.py</code>) is unchanged</li>
+</ul>
 <h2 id="v0920-2026-09-16">v0.92.0 (2026-09-16)<a class="headerlink" href="#v0920-2026-09-16" title="Permanent link">&para;</a></h2>
 <p><strong>Relationship Matrix View: allocations and connectors as cells.</strong></p>
 <p>The Grid View specialization (SysML v2 graphical notation, Part 9:
