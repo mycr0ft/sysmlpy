@@ -2251,6 +2251,40 @@ class TestRelationshipMatrixView:
         for row_name, col_name in (("x", "y"), ("x", "z"), ("y", "z")):
             assert "A" in _matrix_cell(md, row_name, col_name)
 
+    def test_as_relationship_matrix_view_shows_satisfy(self):
+        """``satisfy <req> by <part>;`` lands as a check cell (v0.93.0)."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            requirement MaxMass;
+            part myCar {
+                satisfy MaxMass by myCar;
+            }
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "| MaxMass " in md
+        assert "| myCar " in md
+        assert "\u2713" in _matrix_cell(md, "myCar", "MaxMass")
+
+    def test_as_relationship_matrix_view_satisfy_defaults_to_enclosing(self):
+        """``satisfy <req>;`` without ``by`` uses the enclosing usage."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            requirement MaxMass;
+            part myCar {
+                satisfy MaxMass;
+            }
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "\u2713" in _matrix_cell(md, "myCar", "MaxMass")
+
     def test_as_relationship_matrix_view_shows_connection(self):
         """``connect a to b;`` lands as an N cell between the parts."""
         from sysmlpy.plantuml import as_relationship_matrix_view

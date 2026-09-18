@@ -2652,6 +2652,57 @@ def _extract_allocations(model):
     return allocations
 
 
+def _extract_satisfies(model):
+    """Scan the model for satisfy relationships (``satisfy r [by X];``).
+
+    Returns a list of ``(subject_name, requirement_name)`` tuples,
+    satisfying element first, requirement second. ``satisfy <req>;``
+    without ``by`` defaults to the enclosing named usage per the SysML
+    v2 requirements chapter (v0.93.0).
+    """
+    satisfies = []
+    visited = set()
+
+    def _last_segment(ref):
+        for sep in ('::', '.'):
+            if sep in ref:
+                ref = ref.rsplit(sep, 1)[-1]
+        return ref
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        g = getattr(element, 'grammar', None)
+        if g is not None and g.__class__.__name__ == 'SatisfyRequirementUsage':
+            ors = getattr(g, 'ors', None)
+            ssm = getattr(g, 'ssm', None)
+            req = None
+            if ors is not None:
+                req = _last_segment(ors.dump().strip().rstrip(';').strip())
+            subj = None
+            if ssm is not None:
+                subj = _last_segment(ssm.dump().strip().rstrip(';').strip())
+            if subj is None:
+                # 'by' defaults to the enclosing named usage
+                parent = getattr(element, 'parent', None)
+                while parent is not None and not getattr(parent, 'name', None):
+                    parent = getattr(parent, 'parent', None)
+                subj = getattr(parent, 'name', None)
+            if req and subj:
+                satisfies.append((subj, req))
+
+        for child in getattr(element, 'children', None) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return satisfies
+
+
 def _find_state_in_children(element, state_name):
     """Find a child state element by name within a parent's children tree."""
     if state_name is None:
@@ -4392,6 +4443,7 @@ RELATIONSHIP_LABELS = {
     "flow": "F",
     "succession": "U",
     "allocation": "A",
+    "satisfy": "✓",
     "dependency": "D",
     "import": "I",
 }
@@ -4449,7 +4501,8 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
 
     Presents a matrix/grid showing relationships between model elements.
     Each cell indicates the type of relationship (C=composite, T=typing,
-    G=specialization, B=binding, F=flow, etc.).
+    G=specialization, B=binding, F=flow, A=allocation, N=connector,
+    ✓=satisfy, etc.).
 
     Args:
         model: A sysmlpy Model instance
@@ -4476,13 +4529,21 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
         direct.setdefault((from_names[0], to_names[0]), set()).add("allocation")
     for from_names, to_names, _n in _extract_connections(model):
         direct.setdefault((from_names[0], to_names[0]), set()).add("connector")
+    for subject_name, req_name in _extract_satisfies(model):
+        direct.setdefault((subject_name, req_name), set()).add("satisfy")
 
     # Relationship usages are cells, not axis elements (v0.92.0):
-    # "elements on both axes, relationships in cells" — allocations and
-    # connectors are the relationships the matrix displays.
+    # "elements on both axes, relationships in cells" — allocations,
+    # connectors and satisfy wrappers are the relationships displayed.
+    def _is_relationship_usage(e):
+        if getattr(e, 'sysml_type', '') in ('allocation', 'connection'):
+            return True
+        g = getattr(e, 'grammar', None)
+        return (g is not None
+                and g.__class__.__name__ == 'SatisfyRequirementUsage')
+
     all_elems = [e for e, _, _, _, _ in elements
-                 if getattr(e, 'sysml_type', '')
-                 not in ('allocation', 'connection')]
+                 if not _is_relationship_usage(e)]
     row_elems = all_elems
     col_elems = all_elems if symmetric else all_elems
 

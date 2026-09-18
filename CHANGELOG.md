@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## v0.93.0 (2026-09-16)
+
+**Relationship Matrix View: satisfy cells for requirements coverage.**
+
+Completes the cross-checking grid story: `satisfy <req> [by <part>];`
+relationships now land as check cells (vocabulary gains
+`"satisfy": "\u2713"`), so requirements coverage is visible at a
+glance in the same elements-on-both-axes grid as allocations (A) and
+connectors (N):
+
+- new `_extract_satisfies` walks SatisfyRequirementUsage grammar
+  wrappers (`ors` -> requirement reference, `ssm` -> satisfying
+  feature); `satisfy <req>;` without `by` defaults to the enclosing
+  named usage per the SysML v2 requirements chapter
+- satisfy wrappers are excluded from the axes like allocation and
+  connection usages (relationships are cells, not axes)
+- 2 new tests (explicit `by` and defaulted-to-enclosing forms),
+  placement-proofed via the `_matrix_cell` helper; the dedicated
+  requirements-vs-coverage report (`traceability.py`) is unchanged
+
+
 ## v0.92.0 (2026-09-16)
 
 **Relationship Matrix View: allocations and connectors as cells.**
