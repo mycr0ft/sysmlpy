@@ -1012,11 +1012,15 @@ class Usage(Searchable):
                 sc = child
             elif child.__class__.__name__ in (
                 "CalculationDefinition", "ConstraintDefinition",
+                "StateDefinition",
             ):
                 # v0.64.0 (Goal 4): definitions without a .definition
                 # wrapper (calc def / constraint def) — dispatch on the
                 # class itself rather than falling into the .children
                 # branch which turns ``sc`` into a list.
+                # v0.93.x: StateDefinition joins them — ``state def M
+                # { ... }`` inside a part/item def body was silently
+                # dropped (no .definition wrapper, no .children).
                 sc = child
             elif hasattr(child, 'children'):
                 # It's a StructureUsageElement or similar
@@ -1038,6 +1042,13 @@ class Usage(Searchable):
                 c = Calculation(definition=True).load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
+            elif class_name == "StateDefinition":
+                # v0.93.x: ``state def M { ... }`` inside a part/item def
+                # body was silently dropped (no .definition wrapper, no
+                # .children → fell off the dispatch).
+                s = State(definition=True).load_from_grammar(sc)
+                s.parent = self
+                self.children.append(s)
             elif class_name == "ItemDefinition":
                 c = Item(definition=True).load_from_grammar(sc)
                 c.parent = self
@@ -1390,6 +1401,51 @@ def _load_behavior_child(parent, inner, inner_name):
         # skipped the body walk, so nested states/actions inside a
         # state never surfaced in the API tree
         # (``part p { state s1 { action a1 : A; } }``).
+        c.load_from_grammar(inner)
+        c._extract_specialization_info(inner)
+        return c
+    if inner_name == "PerformActionUsage":
+        # ``perform action m : M { ... }`` inside a part/item def body —
+        # previously dropped entirely (mission-sequence showcase lost
+        # its Flight.perform). Reuse the Action public class: the
+        # PerformActionUsage grammar node carries a
+        # PerformActionUsageDeclaration (ors+fsp or UsageDeclaration)
+        # and an ActionBody, which Action.load_from_grammar reads
+        # (declaration chain walk + body items). Keyword is set so
+        # dump() emits ``perform action``.
+        c = Action(grammar=inner)
+        c.load_from_grammar(inner)
+        c._extract_specialization_info(inner)
+        # PerformActionUsageDeclaration keeps its parts in .children
+        # (UsageDeclaration, or OwnedReferenceSubsetting+fspart) rather
+        # than a .declaration attribute, so Action.load_from_grammar's
+        # declaration walk finds nothing — extract name + typing here.
+        pad = getattr(inner, "declaration", None)
+        for ch in getattr(pad, "children", None) or []:
+            cn = ch.__class__.__name__
+            if cn == "UsageDeclaration":
+                fd = getattr(ch, "declaration", None)
+                ident = getattr(fd, "identification", None)
+                if ident is not None and getattr(ident, "declaredName", None):
+                    c.name = ident.declaredName
+                spec = getattr(fd, "specialization", None)
+                if spec is not None:
+                    c._extract_specialization_info(
+                        type("_SpecHost", (), {"grammar": None, "fsp": spec})()
+                    )
+            elif cn == "FeatureSpecializationPart":
+                c._extract_specialization_info(
+                    type("_SpecHost", (), {"grammar": None, "fsp": ch})()
+                )
+        c.keyword = "perform action"
+        c.is_definition = False
+        return c
+    if inner_name == "ExhibitStateUsage":
+        # Defensive: the visitor normalizes ``exhibit state`` into a
+        # plain StateUsage (exhibit=True), so this branch should not
+        # normally fire. Kept so a raw ExhibitStateUsage dict never
+        # silently drops again.
+        c = State()
         c.load_from_grammar(inner)
         c._extract_specialization_info(inner)
         return c

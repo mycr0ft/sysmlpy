@@ -1,6 +1,6 @@
 # sysmlpy — Project Status
 
-Current version: **v0.90.1** (2026-09-08)
+Current version: **v0.95.0** (2026-09-18)
 
 ---
 
@@ -61,6 +61,10 @@ These classes are fully implemented, have programmatic construction, `dump()` se
   `format` (alias `fmt`, multiple files), `trace` (requirement
   traceability & verification coverage: `--format text|markdown|json`,
   `--fail-on uncovered`, `-o`; exit 0 clean, 1 uncovered, 2 parse error).
+  `repl` (v0.93.x — interactive session: declarations accumulate with
+  member-granularity merge; `%eval`/`%set`/`%calc`/`%check`/`%values`
+  over the evaluator, `%sim`/`%send`/`%step` over the simulator,
+  `%view`, `%list`/`%show`/`%dump`/`%load`/`%save`/`%reset`).
   Legacy flat invocation (`sysmlpy FILE --dump`) preserved with original
   exit codes.
 - **Requirement traceability** — `sysmlpy.traceability`
@@ -318,6 +322,7 @@ Counts from `pytest --collect-only` at v0.90.0 (1635 total).
 | `tests/spreadsheet_test.py` | 37 | ✅ 35 pass, 2 skip (no openpyxl) |
 | `tests/navigate_test.py` | 42 | ✅ All pass |
 | `tests/cli_test.py` | 39 | ✅ All pass |
+| `tests/repl_test.py` | 28 | ✅ Interactive REPL: session merge, %commands, loop, CLI |
 | `tests/validator_test.py` | 84 | ✅ All pass |
 | `tests/repr_test.py` | 34 | ✅ All pass |
 | `tests/kuzu_store_test.py` | 32 | Pass (skipped if kuzu not installed) |

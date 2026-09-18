@@ -123,6 +123,7 @@ threshold or operational error, `2` = parse/load failure — so
 | `sysmlpy eval <file>` | Evaluate expressions, attribute values, constraints |
 | `sysmlpy sim <file>` | Simulate a state machine (guards evaluated for real) |
 | `sysmlpy xlsx <file>` | Export tabular views to an Excel workbook |
+| `sysmlpy repl <file...>` | Interactive REPL: declarations accumulate into a session model; `%eval`, `%sim`, `%view`, `%check`, ... inspect it |
 | `sysmlpy-lsp` | Language server (stdio) for SysML v2 editors |
 
 Examples:
@@ -140,6 +141,15 @@ sysmlpy view model.sysml --view sv > model.puml
 
 # Drive a state machine interactively
 sysmlpy sim traffic_light.sysml
+
+# Or work in an accumulating session: declare, query, evaluate, simulate
+sysmlpy repl
+sysml> package Demo { part def Wheel { attribute diameter : Real = 16.0; } }
+✓ Demo
+sysml> %eval Demo::Wheel::diameter
+= 16.0
+sysml> %view Demo pkg
+sysml> %quit
 
 # Excel workbook of the tabular views
 sysmlpy xlsx bill_of_materials.sysml -o bom.xlsx

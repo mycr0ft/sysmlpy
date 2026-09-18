@@ -1055,11 +1055,16 @@ class StateBodyItem:
 class StateUsage:
     # prefix=OccurrenceUsagePrefix StateUsageKeyword
     # declaration=ActionUsageDeclaration body=StateUsageBody
+    # An ``exhibit state`` usage is the same node with exhibit=True; the
+    # visitor emits exhibit on the StateUsage dict (v0.93.x — previously
+    # ``exhibit state`` was dropped by the visitor entirely).
     def __init__(self, definition=None):
         self.prefix = None
         self.keyword = "state"
+        self.exhibit = None
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
+                self.exhibit = definition.get("exhibit")
                 if definition["prefix"] is not None:
                     self.prefix = OccurrenceUsagePrefix(definition["prefix"])
                 self.declaration = ActionUsageDeclaration(definition["declaration"])
@@ -1072,13 +1077,15 @@ class StateUsage:
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
+        if self.exhibit:
+            output.append("exhibit")
         output.append(self.keyword)
         output.append(self.declaration.dump())
         output.append(self.body.dump())
         return " ".join(output)
 
     def get_definition(self):
-        output = {"name": self.__class__.__name__, "prefix": None}
+        output = {"name": self.__class__.__name__, "prefix": None, "exhibit": self.exhibit}
         if self.prefix is not None:
             output["prefix"] = self.prefix.get_definition()
         output["declaration"] = self.declaration.get_definition()

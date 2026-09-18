@@ -6389,6 +6389,92 @@ def _make_state_usage_dict(ctx, prefix=None):
     }
 
 
+def _make_exhibit_state_usage_dict(ctx, prefix=None):
+    """Create a StateUsage dictionary for an ``exhibit state`` usage.
+
+    Grammar:
+      exhibitStateUsage
+        : occurrenceUsagePrefix EXHIBIT
+          ( ownedReferenceSubsetting featureSpecializationPart?
+          | STATE usageDeclaration? ) valuePart? stateUsageBody
+        ;
+
+    Both spellings met in practice carry a usageDeclaration:
+      exhibit state phases : MissionPhases;   (typed reference)
+      exhibit state modes { ... }             (inline body)
+    The dict is a StateUsage with ``exhibit: True`` so the grammar class
+    dumps the ``exhibit`` keyword and every downstream consumer (public
+    tree, boxes collector, sim) sees a plain StateUsage node. Previously
+    ``exhibit state`` was silently dropped by the visitor, which made
+    part-embedded state machines invisible to sim and lossy on dump.
+    """
+    if ctx is None:
+        return None
+
+    occ_prefix = _get_occurrence_usage_prefix(ctx)
+    if prefix is not None:
+        occ_prefix = prefix
+
+    # Declaration: name/shortname from the usageDeclaration, typing from
+    # its featureSpecializationPart (``: MissionPhases``).
+    name, shortname = _get_usage_identification(ctx)
+    specialization = _build_full_specialization_from_ctx(ctx)
+
+    decl_dict = None
+    if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
+        ud = ctx.usageDeclaration()
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
+        if ud is not None:
+            decl_dict = {
+                "name": "ActionUsageDeclaration",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name
+                        },
+                        "specialization": specialization
+                    }
+                },
+                "valuepart": None
+            }
+
+    # Body: a stateUsageBody, exactly like a plain stateUsage.
+    body_dict = {"name": "StateUsageBody", "body": {"name": "StateDefBody", "part": None, "isParallel": None}}
+    if hasattr(ctx, 'stateUsageBody') and ctx.stateUsageBody():
+        sub = ctx.stateUsageBody()
+        if isinstance(sub, list):
+            sub = sub[0]
+        if sub:
+            body_dict = _visit_state_usage_body(sub)
+
+    return {
+        "name": "PackageMember",
+        "prefix": None,
+        "ownedRelatedElement": {
+            "name": "UsageElement",
+            "ownedRelatedElement": {
+                "name": "OccurrenceUsageElement",
+                "ownedRelatedElement": {
+                    "name": "BehaviorUsageElement",
+                    "ownedRelationship": {
+                        "name": "StateUsage",
+                        "prefix": occ_prefix,
+                        "exhibit": True,
+                        "keyword": "state",
+                        "declaration": decl_dict,
+                        "body": body_dict
+                    }
+                }
+            }
+        }
+    }
+
+
 def _make_calculation_usage_dict(ctx, prefix=None):
     """Create a CalculationUsage dictionary.
     
@@ -10650,6 +10736,16 @@ def _visit_nested_occurrence_usage(occ_elem):
                 inner = result.get("ownedRelatedElement", {})
                 return inner
             return result
+        elif hasattr(behav_elem, 'exhibitStateUsage') and behav_elem.exhibitStateUsage():
+            # ``exhibit state`` usages share the BehaviorUsageElement
+            # wrapper; previously silently dropped (part-embedded state
+            # machines vanished from the tree, dump, boxes and sim).
+            ctx = behav_elem.exhibitStateUsage()
+            result = _make_exhibit_state_usage_dict(ctx, None)
+            if result and result.get("name") == "PackageMember":
+                inner = result.get("ownedRelatedElement", {})
+                return inner
+            return result
         elif hasattr(behav_elem, 'allocationUsage') and behav_elem.allocationUsage():
             # Phase 0: allocation usages inside a definition body.
             ctx = behav_elem.allocationUsage()
@@ -13136,6 +13232,11 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
             if hasattr(behav_elem, 'stateUsage') and behav_elem.stateUsage():
                 ctx = behav_elem.stateUsage()
                 return _make_state_usage_dict(ctx, prefix)
+            elif hasattr(behav_elem, 'exhibitStateUsage') and behav_elem.exhibitStateUsage():
+                # ``exhibit state`` — same wrapper, StateUsage with
+                # exhibit=True (previously dropped).
+                ctx = behav_elem.exhibitStateUsage()
+                return _make_exhibit_state_usage_dict(ctx, prefix)
             elif hasattr(behav_elem, 'performActionUsage') and behav_elem.performActionUsage():
                 ctx = behav_elem.performActionUsage()
                 return _make_nested_perform_action_usage_dict(ctx, None)

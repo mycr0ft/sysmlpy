@@ -96,6 +96,28 @@ def _sqrt(x):
     return math.sqrt(x)
 
 
+def _exp(x):
+    if isinstance(x, ureg.Quantity):
+        return math.exp(x.magnitude) * ureg.dimensionless
+    return math.exp(x)
+
+
+def _ln(x):
+    if isinstance(x, ureg.Quantity):
+        return math.log(x.magnitude) * ureg.dimensionless
+    return math.log(x)
+
+
+def _log(x, base=None):
+    if isinstance(x, ureg.Quantity):
+        x = x.magnitude
+    if base is None:
+        return math.log10(x) * ureg.dimensionless
+    if isinstance(base, ureg.Quantity):
+        base = base.magnitude
+    return math.log(x, base) * ureg.dimensionless
+
+
 def _floor(x):
     if isinstance(x, ureg.Quantity):
         return math.floor(x.magnitude) * x.units
@@ -110,6 +132,11 @@ def _ceil(x):
 
 _FUNCTIONS = {
     "sqrt": _sqrt,
+    "exp": _exp,
+    "ln": _ln,
+    "log": _log,
+    "log2": lambda x: _log(x, 2.0),
+    "log10": lambda x: _log(x, 10.0),
     "abs": abs,
     "min": min,
     "max": max,

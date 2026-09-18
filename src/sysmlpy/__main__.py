@@ -34,7 +34,7 @@ from sysmlpy import loads
 # Subcommand table, also used to detect the legacy flat invocation form.
 SUBCOMMANDS = ("parse", "analyze", "view", "trace", "export", "import",
                "reqif-import", "reqif-export",
-               "eval", "xlsx", "sim", "diff", "format", "fmt")
+               "eval", "xlsx", "sim", "diff", "format", "fmt", "repl")
 
 
 # ---------------------------------------------------------------------------
@@ -661,6 +661,16 @@ def cmd_sim(args) -> int:
     return 0
 
 
+def cmd_repl(args) -> int:
+    """Interactive REPL (declarations accumulate; %commands inspect)."""
+    from sysmlpy.repl import main as repl_main
+
+    return repl_main(
+        [*(args.files or []), *(["--no-banner"] if args.no_banner else [])]
+        + (["-l", args.library] if getattr(args, "library", None) else []),
+    )
+
+
 def cmd_xlsx(args) -> int:
     """Export tabular views to an Excel workbook (v0.66.0, Goal 7)."""
     from sysmlpy.spreadsheet import write_xlsx
@@ -1121,6 +1131,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to SysML v2 library files to use for parsing",
     )
     p_xlsx.set_defaults(func=cmd_xlsx)
+
+    # -- repl ----------------------------------------------------------------
+    p_repl = sub.add_parser(
+        "repl",
+        help="Interactive SysML v2 REPL",
+        description="Declarations accumulate into a session model; "
+                    "%commands inspect it (%eval, %sim, %view, ...). "
+                    "See %help inside the REPL for the command list.",
+    )
+    p_repl.add_argument("files", nargs="*", metavar="FILE",
+                        help="model file(s) to load into the session first")
+    p_repl.add_argument(
+        "-l", "--library",
+        help="Path to SysML v2 library files (accepted for parity; "
+             "submissions parse without it)",
+    )
+    p_repl.add_argument(
+        "--no-banner", action="store_true",
+        help="suppress the startup banner",
+    )
+    p_repl.set_defaults(func=cmd_repl)
 
     return parser
 
