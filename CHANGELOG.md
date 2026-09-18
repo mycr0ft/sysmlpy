@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v0.94.0 (2026-09-16)
+
+**Relationship Matrix View: verify cells — the Vee's V side.**
+
+`verify <req>;` relationships now land as V cells, closing the
+requirements loop in the cross-checking grid: satisfy (check) shows
+that a part claims to meet a requirement, verify (V) shows that a
+verification case demonstrates it.
+
+- new `_extract_verifies` recovers verify references from both
+  placements: surfaced VerifyRequirementUsage wrappers (read
+  directly, like satisfy) and members nested anywhere in a
+  VerificationCase/Requirement grammar's definition dict (objectives
+  included), recovered via an iterative `get_definition()` walk;
+  qualified references (`verify P::req;`) resolve to the last
+  segment, so usage-level and definition-level verifications both
+  reach the requirement's axis name
+- vocabulary gains `"verify": "V"`; verify wrappers join satisfy/
+  allocation/connection usages in the cells-not-axes exclusion
+- 2 new tests (verify-in-definition-objective and
+  qualified-ref-in-usage), 13/13 matrix tests, 158/158
+  plantuml_test.py
+
+
 ## v0.93.0 (2026-09-16)
 
 **Relationship Matrix View: satisfy cells for requirements coverage.**

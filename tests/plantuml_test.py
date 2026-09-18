@@ -2285,6 +2285,40 @@ class TestRelationshipMatrixView:
 
         assert "\u2713" in _matrix_cell(md, "myCar", "MaxMass")
 
+    def test_as_relationship_matrix_view_shows_verify(self):
+        """``verify <req>;`` in a verification case lands as a V cell."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            requirement crashWorthiness;
+            verification def CrashTest {
+                objective obj1 { verify crashWorthiness; }
+            }
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "| CrashTest " in md
+        assert "V" in _matrix_cell(md, "CrashTest", "crashWorthiness")
+
+    def test_as_relationship_matrix_view_verify_qualified_ref(self):
+        """Qualified ``verify P::req;`` resolves to the last segment."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            requirement crashWorthiness;
+            verification def CrashTest;
+            verification crashTest1 : CrashTest {
+                objective obj2 { verify P::crashWorthiness; }
+            }
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "V" in _matrix_cell(md, "crashTest1", "crashWorthiness")
+
     def test_as_relationship_matrix_view_shows_connection(self):
         """``connect a to b;`` lands as an N cell between the parts."""
         from sysmlpy.plantuml import as_relationship_matrix_view

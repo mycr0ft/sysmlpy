@@ -2703,6 +2703,78 @@ def _extract_satisfies(model):
     return satisfies
 
 
+def _extract_verifies(model):
+    """Scan the model for verify relationships (``verify <req>;``).
+
+    Returns a list of ``(verifier_name, requirement_name)`` tuples. The
+    verifier is the enclosing named verification case (definition or
+    usage); ``verify`` members may sit anywhere in its body, including
+    inside objectives. Verify members nested in a grammar's definition
+    dict (not surfaced as public-API objects) are recovered by walking
+    ``get_definition()``; surfaced VerifyRequirementUsage wrappers are
+    read directly (v0.94.0).
+    """
+    verifies = []
+    visited = set()
+
+    def _last_segment(ref):
+        for sep in ('::', '.'):
+            if sep in ref:
+                ref = ref.rsplit(sep, 1)[-1]
+        return ref
+
+    def _verify_refs_from_dict(node, out):
+        stack = [node]
+        while stack:
+            n = stack.pop()
+            if isinstance(n, dict):
+                if n.get('name') == 'VerifyRequirementUsage':
+                    rf = (n.get('ors') or {}).get('referencedFeature') or {}
+                    names = rf.get('names')
+                    if names:
+                        out.append('::'.join(str(x) for x in names))
+                stack.extend(n.values())
+            elif isinstance(n, list):
+                stack.extend(n)
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        verifier = getattr(element, 'name', None)
+        g = getattr(element, 'grammar', None)
+        gclass = g.__class__.__name__ if g is not None else ''
+        if g is not None and gclass == 'VerifyRequirementUsage':
+            ors = getattr(g, 'ors', None)
+            if ors is not None and verifier:
+                verifies.append((verifier,
+                                 _last_segment(ors.dump().strip()
+                                               .rstrip(';').strip())))
+        elif g is not None and gclass in ('VerificationCaseDefinition',
+                                          'VerificationCaseUsage',
+                                          'RequirementDefinition',
+                                          'RequirementUsage') and verifier:
+            try:
+                gdef = g.get_definition()
+            except Exception:
+                gdef = None
+            if isinstance(gdef, dict):
+                refs = []
+                _verify_refs_from_dict(gdef, refs)
+                for ref in refs:
+                    verifies.append((verifier, _last_segment(ref)))
+
+        for child in getattr(element, 'children', None) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return verifies
+
+
 def _find_state_in_children(element, state_name):
     """Find a child state element by name within a parent's children tree."""
     if state_name is None:
@@ -4444,6 +4516,7 @@ RELATIONSHIP_LABELS = {
     "succession": "U",
     "allocation": "A",
     "satisfy": "✓",
+    "verify": "V",
     "dependency": "D",
     "import": "I",
 }
@@ -4502,7 +4575,7 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     Presents a matrix/grid showing relationships between model elements.
     Each cell indicates the type of relationship (C=composite, T=typing,
     G=specialization, B=binding, F=flow, A=allocation, N=connector,
-    ✓=satisfy, etc.).
+    ✓=satisfy, V=verify, etc.).
 
     Args:
         model: A sysmlpy Model instance
@@ -4531,6 +4604,8 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
         direct.setdefault((from_names[0], to_names[0]), set()).add("connector")
     for subject_name, req_name in _extract_satisfies(model):
         direct.setdefault((subject_name, req_name), set()).add("satisfy")
+    for verifier_name, req_name in _extract_verifies(model):
+        direct.setdefault((verifier_name, req_name), set()).add("verify")
 
     # Relationship usages are cells, not axis elements (v0.92.0):
     # "elements on both axes, relationships in cells" — allocations,
@@ -4539,8 +4614,8 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
         if getattr(e, 'sysml_type', '') in ('allocation', 'connection'):
             return True
         g = getattr(e, 'grammar', None)
-        return (g is not None
-                and g.__class__.__name__ == 'SatisfyRequirementUsage')
+        gc = g.__class__.__name__ if g is not None else ''
+        return gc in ('SatisfyRequirementUsage', 'VerifyRequirementUsage')
 
     all_elems = [e for e, _, _, _, _ in elements
                  if not _is_relationship_usage(e)]
