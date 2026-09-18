@@ -539,6 +539,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0940-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.94.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0930-2026-09-16" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3371,6 +3382,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0940-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.94.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0930-2026-09-16" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6162,6 +6184,27 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0940-2026-09-16">v0.94.0 (2026-09-16)<a class="headerlink" href="#v0940-2026-09-16" title="Permanent link">&para;</a></h2>
+<p><strong>Relationship Matrix View: verify cells — the Vee's V side.</strong></p>
+<p><code>verify &lt;req&gt;;</code> relationships now land as V cells, closing the
+requirements loop in the cross-checking grid: satisfy (check) shows
+that a part claims to meet a requirement, verify (V) shows that a
+verification case demonstrates it.</p>
+<ul>
+<li>new <code>_extract_verifies</code> recovers verify references from both
+  placements: surfaced VerifyRequirementUsage wrappers (read
+  directly, like satisfy) and members nested anywhere in a
+  VerificationCase/Requirement grammar's definition dict (objectives
+  included), recovered via an iterative <code>get_definition()</code> walk;
+  qualified references (<code>verify P::req;</code>) resolve to the last
+  segment, so usage-level and definition-level verifications both
+  reach the requirement's axis name</li>
+<li>vocabulary gains <code>"verify": "V"</code>; verify wrappers join satisfy/
+  allocation/connection usages in the cells-not-axes exclusion</li>
+<li>2 new tests (verify-in-definition-objective and
+  qualified-ref-in-usage), 13/13 matrix tests, 158/158
+  plantuml_test.py</li>
+</ul>
 <h2 id="v0930-2026-09-16">v0.93.0 (2026-09-16)<a class="headerlink" href="#v0930-2026-09-16" title="Permanent link">&para;</a></h2>
 <p><strong>Relationship Matrix View: satisfy cells for requirements coverage.</strong></p>
 <p>Completes the cross-checking grid story: <code>satisfy &lt;req&gt; [by &lt;part&gt;];</code>
