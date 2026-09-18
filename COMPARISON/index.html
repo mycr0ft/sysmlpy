@@ -11,10 +11,6 @@
       
       
       
-        <link rel="prev" href="../STATUS/">
-      
-      
-        <link rel="next" href="../TODO/">
       
       
         
@@ -25,7 +21,7 @@
     
     
       
-        <title>Changelog - sysmlpy</title>
+        <title>sysmlpy vs OpenSysML vs gosysml — Comparison and Contrast - sysmlpy</title>
       
     
     
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#changelog" class="md-skip">
+        <a href="#sysmlpy-vs-opensysml-vs-gosysml-comparison-and-contrast" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +108,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Changelog
+              sysmlpy vs OpenSysML vs gosysml — Comparison and Contrast
             
           </span>
         </div>
@@ -476,37 +472,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Changelog
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
         
   
   
@@ -522,59 +491,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#v0950-2026-09-18" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        v0.95.0 (2026-09-18)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#v0940-2026-09-16" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        v0.94.0 (2026-09-16)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#v0930-2026-09-16" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        v0.93.0 (2026-09-16)
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -633,10 +549,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0950-2026-09-18" class="md-nav__link">
+  <a href="#1-the-three-projects" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.95.0 (2026-09-18)
+        1. The three projects
       
     </span>
   </a>
@@ -644,10 +560,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v0940-2026-09-16" class="md-nav__link">
+  <a href="#2-the-runtime-showcase-comparison-what-the-fixtures-showed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.94.0 (2026-09-16)
+        2. The runtime-showcase comparison (what the fixtures showed)
       
     </span>
   </a>
@@ -655,10 +571,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#v0930-2026-09-16" class="md-nav__link">
+  <a href="#3-capability-boundary-honest-accounting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.93.0 (2026-09-16)
+        3. Capability boundary (honest accounting)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-what-sysmlpy-does-that-opensysml-does-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. What sysmlpy does that OpenSysML does not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-ranked-inspiration-status-after-this-exercise" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Ranked inspiration (status after this exercise)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-notes-for-gosysml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Notes for gosysml
       
     </span>
   </a>
@@ -685,79 +634,269 @@
   
 
 
-<h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="v0950-2026-09-18">v0.95.0 (2026-09-18)<a class="headerlink" href="#v0950-2026-09-18" title="Permanent link">&para;</a></h2>
-<p><strong>Interactive REPL (<code>sysmlpy repl</code>), runtime-showcase fixtures, and four
-silent-drop fixes found by them.</strong></p>
-<p>Inspired by Open-MBEE's OpenSysML REPL, built on machinery sysmlpy
-already had. See <code>docs/COMPARISON.md</code> for the three-way contrast
-(sysmlpy vs OpenSysML vs gosysml) that motivated the round.</p>
+<h1 id="sysmlpy-vs-opensysml-vs-gosysml-comparison-and-contrast">sysmlpy vs OpenSysML vs gosysml — Comparison and Contrast<a class="headerlink" href="#sysmlpy-vs-opensysml-vs-gosysml-comparison-and-contrast" title="Permanent link">&para;</a></h1>
+<p><em>Written 2026-09-18 after running OpenSysML's runtime-showcase models
+through sysmlpy (see <code>tests/runtime_showcase_test.py</code> and
+<code>tests/fixtures/runtime_showcase/</code>). Version references: sysmlpy 0.95.0,
+OpenSysML v0.8.1, gosysml v0.2.0.</em></p>
+<hr />
+<h2 id="1-the-three-projects">1. The three projects<a class="headerlink" href="#1-the-three-projects" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>sysmlpy</th>
+<th>gosysml</th>
+<th>OpenSysML</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Author</td>
+<td>mycr0ft</td>
+<td>mycr0ft (Go evolution of sysmlpy)</td>
+<td>Open-MBEE (JPL/Boeing-backed org behind MMS/Flexo)</td>
+</tr>
+<tr>
+<td>Language</td>
+<td>Python 3.9+</td>
+<td>Go (ANTLR 4.13)</td>
+<td>Go 1.23 (hand-written parser)</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>~152K lines</td>
+<td>~122K lines</td>
+<td>~681K lines</td>
+</tr>
+<tr>
+<td>License</td>
+<td>MIT</td>
+<td>MIT</td>
+<td>Apache-2.0</td>
+</tr>
+<tr>
+<td>Current release</td>
+<td>0.95.0</td>
+<td>v0.2.0</td>
+<td>v0.8.1 (2026-09-16; nightly prereleases from <code>develop</code> via git-flow)</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>parse → grammar objects → round-trip, semantic analysis, validator, views, evaluator, sim, interchange, stores</td>
+<td>parse → typed grammar structs → round-trip (sysmlpy's architecture in Go)</td>
+<td>parse → resolve → validate → <strong>execute</strong> (instances, actions, state machines), solve (z3), query, document generation, LSP, REPL, gRPC service + 5 language clients</td>
+</tr>
+<tr>
+<td>Conformance story</td>
+<td>OMG XPect 123/123; 165 grammar round-trips</td>
+<td>79 round-trips + 123 spec files bundled; 122/123 conformance gate (1 known issue, pre-existing)</td>
+<td>Pilot differential vs OMG pilot over the pilot's own corpora, golden ASTs/traces, fUML + PSSM referees; refuses to claim certification</td>
+</tr>
+<tr>
+<td>Units</td>
+<td>pint (dimensions checked, units carried)</td>
+<td>none</td>
+<td>own ISO-80000 quantity system enforced at runtime feature writes</td>
+</tr>
+<tr>
+<td>Delivery</td>
+<td>pip / poetry, pure Python</td>
+<td>go install, single binary</td>
+<td>brew/winget/msi/scoop/tarballs, PyPI <code>opensysml</code> (drives the Go engine), nightly prereleases</td>
+</tr>
+</tbody>
+</table>
+<p>The relationship: OpenSysML and sysmlpy/gosysml overlap in scope (SysML v2
+textual implementation) but differ in ambition and center of gravity.
+sysmlpy is a <strong>model library</strong> — you hold a live object tree in your
+process. OpenSysML is a <strong>toolchain</strong> — you hold a REPL/LSP/service that
+answers questions about models, in your process or over the wire. gosysml
+is the first third of sysmlpy in Go — parser + round-trip as an importable
+library, a niche OpenSysML deliberately leaves empty (<code>internal/</code> is not
+importable by Go convention; embedders must use its fat public API or gRPC).</p>
+<h2 id="2-the-runtime-showcase-comparison-what-the-fixtures-showed">2. The runtime-showcase comparison (what the fixtures showed)<a class="headerlink" href="#2-the-runtime-showcase-comparison-what-the-fixtures-showed" title="Permanent link">&para;</a></h2>
+<p>OpenSysML's showcase (five models, <code>examples/runtime-showcase/</code>) makes
+specific claims: validation passes where the runtime finds execution-only
+defects; a delta-v analysis computes with units and rebinds arguments; a
+recursive mass rollup stops at an unvalued leaf; a clocked mission state
+machine advances; a spacecraft-comms model sends 100 kB while a battery
+drains and recharges. We copied those five models into sysmlpy unchanged
+and measured the same interactions. Result, per fixture:</p>
+<table>
+<thead>
+<tr>
+<th>Fixture</th>
+<th>Parse</th>
+<th>Round-trip dump</th>
+<th>Elements surface</th>
+<th>Eval/sim outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>delta-v-budget</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓ (4 calc defs, analysis case, requirement)</td>
+<td><strong>RocketEquation evaluates with pint units to OpenSysML's exact published digits</strong> (3037.6966629706967 / 6432.955324716369 m/s, margin 70.65198768706614) via positional arg binding + <code>ln</code> built-in added this round</td>
+</tr>
+<tr>
+<td>mass-rollup</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓ (recursive defaults, <code>sum</code>)</td>
+<td>evaluator collects declared values; the recursive rollup (feature chains through collections) is not evaluable — documented gap</td>
+</tr>
+<tr>
+<td>mission-sequence</td>
+<td>✓</td>
+<td>✓ (after fixes)</td>
+<td>✓ (<code>perform action</code> + <code>exhibit state</code> now surface)</td>
+<td>MissionPhases machine drives through all six phases via completion/time transitions</td>
+</tr>
+<tr>
+<td>reliability</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓ (2 calcs, requirements with UUID-named satisfies)</td>
+<td>calc bodies parse; typed-parameter invocation needs positional args (documented)</td>
+</tr>
+<tr>
+<td>spacecraft-comms</td>
+<td>✓</td>
+<td>✓ (after fixes; was lossy 1177→5334 chars)</td>
+<td>✓ (<code>exhibit state</code> in part defs now surfaces)</td>
+<td>GroundStation <code>modes</code> machine builds and drives (idle ↔ operation); parallel <code>dataTransit | charging</code> machine builds</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fixes made in sysmlpy to get here</strong> (all previously silent drops):
+1. Visitor: <code>exhibitStateUsage</code> had zero handling — <code>exhibit state</code> usages
+   (both <code>exhibit state m { ... }</code> and <code>exhibit state m : M;</code>) vanished
+   from the visitor dict, the public tree, <code>Model.dump()</code>, boxes, and sim.
+   Now normalized to a StateUsage dict with <code>exhibit: True</code>.
+2. Grammar classes: <code>StateUsage</code> gained the <code>exhibit</code> flag and dumps it.
+3. Public-API: <code>state def</code> inside a part/item def body was dropped (no
+   dispatch arm); <code>perform action m : M { ... }</code> was dropped (no
+   <code>_load_behavior_child</code> branch — and its PerformActionUsageDeclaration
+   keeps name/typing in <code>.children</code>, extracted explicitly).
+4. Evaluator: <code>ln</code>, <code>exp</code>, <code>log</code>, <code>log2</code>, <code>log10</code> built-ins added
+   (pint-aware, dimensionless results), motivated directly by the
+   showcase's rocket equation.</p>
+<h2 id="3-capability-boundary-honest-accounting">3. Capability boundary (honest accounting)<a class="headerlink" href="#3-capability-boundary-honest-accounting" title="Permanent link">&para;</a></h2>
+<p>Where the same showcase question can be asked of both tools:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>OpenSysML</th>
+<th>sysmlpy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Does the model parse and validate?</td>
+<td>yes, plus 4 warnings it justifies</td>
+<td>yes, plus import/expression findings that reflect the stdlib-import story, not model defects</td>
+</tr>
+<tr>
+<td>What is stage1DeltaV?</td>
+<td>runtime computes through the part tree</td>
+<td>evaluator computes the same number given positional bindings (per-calc invocation)</td>
+</tr>
+<tr>
+<td>Can the model's own two-stage part compute its totalDeltaV without help?</td>
+<td>yes — instances materialize, features chain</td>
+<td>no — attribute defaults holding feature references (chains into part structures) are collected but not computed</td>
+</tr>
+<tr>
+<td>Does InjectionDeltaV's wrong-dimension mu fail?</td>
+<td>yes, at write time, with a dimension message</td>
+<td>n/a — the body uses a parenthesized <code>^</code> exponent, which the expression capture falls back to text on (documented limitation of the structured-emit path); pint <em>would</em> catch the dimension if the body were evaluable</td>
+</tr>
+<tr>
+<td>Does the mission state machine advance on <code>after 9000 [s]</code>?</td>
+<td>yes, on a runtime clock</td>
+<td>yes — time triggers drive transition-by-transition (no wall clock; you step the machine)</td>
+</tr>
+<tr>
+<td>Can I ask "solve these constraints for x"?</td>
+<td>yes (<code>%solve</code>, z3)</td>
+<td>no — on the inspiration list</td>
+</tr>
+<tr>
+<td>Can I run the same model 1000× with a parameter swept?</td>
+<td>yes (<code>-sweep</code>)</td>
+<td>partially (what-if bindings; no sweep CLI)</td>
+</tr>
+</tbody>
+</table>
+<p>The structural difference in one line: sysmlpy evaluates <strong>expressions</strong>;
+OpenSysML executes <strong>objects</strong>. The missing layer is instance
+materialization (parts with live feature values) — that, not parser
+coverage, is the real gap the showcase exposes.</p>
+<h2 id="4-what-sysmlpy-does-that-opensysml-does-not">4. What sysmlpy does that OpenSysML does not<a class="headerlink" href="#4-what-sysmlpy-does-that-opensysml-does-not" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>New tool: <code>sysmlpy repl</code></strong> (<code>src/sysmlpy/repl.py</code>, 28 tests in
-  <code>tests/repl_test.py</code>). Declarations accumulate into a session model
-  with member-granularity merge (re-declared member replaces the prior
-  one, other members kept, <code>note:</code> line reports the replacement —
-  the semantics <code>ipython_magic.py</code> has carried since v0.64.0, now
-  shared). Multi-line submissions continue on <code>...&gt;</code> while brackets
-  stay open; a non-declaration line falls back to expression
-  evaluation. 19 <code>%commands</code>: <code>%list/%show/%dump</code>, <code>%eval/%set/
-  %bindings/%calc/%check/%values</code> (evaluator, pint-aware),
-  <code>%sim/%send/%step/%state</code> (simulator session), <code>%view</code> (all 8
-  views), <code>%load/%save/%reset/%quit</code>, <code>%help</code>; readline completion
-  over commands and element names; UUID names filtered from
-  qualified-name display. Session core is I/O-injectable and
-  headless-testable (same pattern as <code>sim.run_tui</code>).</li>
-<li><strong>Visitor: <code>exhibit state</code> no longer silently dropped.</strong> The grammar
-  rule <code>exhibitStateUsage</code> had zero visitor handling — both spellings
-  (<code>exhibit state m { ... }</code> and <code>exhibit state m : M;</code>) vanished from
-  the visitor dict, the public tree, <code>Model.dump()</code>, the boxes view,
-  and the simulator. Now emitted as a StateUsage dict with
-  <code>exhibit: True</code>; <code>StateUsage</code> grammar class carries/dumps the
-  <code>exhibit</code> keyword. Spacecraft-comms' dump went from lossy 1,177
-  chars to faithful 5,334.</li>
-<li><strong>Public-API: <code>state def</code> in part/item def bodies no longer dropped</strong>
-  (no dispatch arm in the Usage body walk) and <strong><code>perform action m : M</code>
-  no longer dropped</strong> (no <code>_load_behavior_child</code> branch;
-  PerformActionUsageDeclaration keeps name/typing in <code>.children</code>,
-  now extracted — <code>perform action mission : LunarMission { in budget =
-  Flight::budget; }</code> round-trips and surfaces as an Action child).</li>
-<li><strong>Evaluator: KerML math built-ins</strong> <code>ln</code>, <code>exp</code>, <code>log</code>, <code>log2</code>,
-  <code>log10</code> added (pint-aware, dimensionless results) — motivated by the
-  showcase's rocket equation; positional calc-arg binding unchanged.</li>
-<li><strong>New fixtures</strong>: the five OpenSysML runtime-showcase models copied
-  to <code>tests/fixtures/runtime_showcase/</code> (Apache-2.0, attribution
-  README; unchanged model text) with <code>tests/runtime_showcase_test.py</code>
-  (18 tests). The evaluator reproduces OpenSysML's published showcase
-  digits exactly (stage delta-v 3037.6966629706967 / 6432.955324716369
-  m/s, margin 70.65198768706614) and both showcase state machines
-  build and drive.</li>
-<li>Docs: <code>README.md</code> command table + REPL example; <code>STATUS.md</code> CLI
-  section + test map; <code>docs/COMPARISON.md</code>.</li>
+<li>pint unit-aware evaluation with user-declared derived units; unit errors
+  raised as evaluator exceptions (theirs is a bespoke ISO-80000 engine).</li>
+<li>ReqIF 1.0 requirement interchange; spreadsheet (CSV/XLSX) export/import.</li>
+<li>Graph storage backends (NetworkX/Kuzu/Cayley) with query parity.</li>
+<li>Official-notation PlantUML rendering (verified against the OMG pilot's
+  generator edge encodings) + terminal/SVG boxes rendering.</li>
+<li>Pure-Python embeddability: no child process, no gRPC hop, no 681K-line
+  binary to ship — <code>loads()</code> returns a mutable tree you can extend.</li>
+<li>Python-native extensibility for LLM/agent workflows (the whole tree is
+  dicts + duck-typed objects; easy to walk, patch, and regenerate).</li>
 </ul>
-<p>Test totals at this release: 1,368 fast + 123 conformance passing
-(8 skipped for optional deps not installed).</p>
-<h2 id="v0940-2026-09-16">v0.94.0 (2026-09-16)<a class="headerlink" href="#v0940-2026-09-16" title="Permanent link">&para;</a></h2>
-<p><strong>Relationship Matrix View: verify cells — the Vee's V side.</strong></p>
-<p><code>verify &lt;req&gt;;</code> relationships now land as V cells, closing the
-requirements loop in the cross-checking grid: satisfy (check) shows
-that a part claims to meet a requirement, verify (V) shows that a
-verification case demonstrates it.</p>
+<h2 id="5-ranked-inspiration-status-after-this-exercise">5. Ranked inspiration (status after this exercise)<a class="headerlink" href="#5-ranked-inspiration-status-after-this-exercise" title="Permanent link">&para;</a></h2>
+<ol>
+<li>
+<p>~~REPL~~ — <strong>done this round</strong> (<code>sysmlpy repl</code>): accumulating session
+   with member-granularity merge (ipython_magic semantics), %eval/%set/
+   %calc/%check/%values, %sim/%send/%step, %view, %load/%save/%reset.
+   OpenSysML's ~60-command surface is the same face over its runtime;
+   sysmlpy's command set grows as its machinery does.</p>
+</li>
+<li>
+<p>~~Math built-ins~~ — <strong>done this round</strong> (<code>ln</code>/<code>exp</code>/<code>log</code>).</p>
+</li>
+<li>Sweep/samples engine (<code>sysmlpy sweep FILE calc param a,b,c</code> → table) —
+   what-if bindings exist; the CLI is the missing piece. High value/effort.</li>
+<li>z3 SMT solving over constraints (<code>sysmlpy solve</code>) — biggest capability
+   jump; evaluator already has the constraint collection side.</li>
+<li>Golden execution traces + scheduling policies + choice points for
+   <code>sysmlpy sim</code> (determinism you can test, not assume).</li>
+<li>doc-counts-style census: regenerate STATUS.md's test table from
+   <code>pytest --collect-only</code> in CI; refuse hand-typed numbers. STATUS.md's
+   header is already stale (v0.90.1 vs 0.93.0) — this exact drift is the
+   failure mode the tool prevents.</li>
+<li>Self-model: sysmlpy's pipeline as a <code>.sysml</code> model, AGENTS.md
+   invariants as requirements checked by sysmlpy itself in CI.</li>
+<li>Neutral Rendering IR (typed view model with mermaid/dot/plantuml/text
+   writers) — refactor that makes the boxes renderer and future forms
+   share one layer.</li>
+<li>Element identity from qualified names (deterministic, stable across
+   round-trips) for diff/interchange/traceability alignment.</li>
+<li>Execution budgets (step/recursion caps) in the evaluator — cheap;
+   the evaluator already has a calc recursion limit, budgets generalize it.</li>
+<li>Pilot-differential discipline for validator rules: for each of the 31
+    rule codes, record what the OMG pilot says on the same input.</li>
+</ol>
+<h2 id="6-notes-for-gosysml">6. Notes for gosysml<a class="headerlink" href="#6-notes-for-gosysml" title="Permanent link">&para;</a></h2>
 <ul>
-<li>new <code>_extract_verifies</code> recovers verify references from both
-  placements: surfaced VerifyRequirementUsage wrappers (read
-  directly, like satisfy) and members nested anywhere in a
-  VerificationCase/Requirement grammar's definition dict (objectives
-  included), recovered via an iterative <code>get_definition()</code> walk;
-  qualified references (<code>verify P::req;</code>) resolve to the last
-  segment, so usage-level and definition-level verifications both
-  reach the requirement's axis name</li>
-<li>vocabulary gains <code>"verify": "V"</code>; verify wrappers join satisfy/
-  allocation/connection usages in the cells-not-axes exclusion</li>
-<li>2 new tests (verify-in-definition-objective and
-  qualified-ref-in-usage), 13/13 matrix tests, 158/158
-  plantuml_test.py</li>
+<li>OpenSysML validates the Go market; gosysml's niche (small importable
+  parser library) is deliberately unoccupied by them. Stay lean.</li>
+<li>The daltskin-derived grammar deltas in sysmlpy (precedence-climbing
+  expression ladder, import visibility tightening) were ported to
+  gosysml's ANTLR grammar — see the v0.2.x change notes in gosysml's repo.</li>
+<li>Their <code>cmd/grammar-coverage</code> tool (which grammar productions does the
+  test corpus actually exercise?) is a one-day port that would rank
+  gosysml's remaining TODO items by risk.</li>
+<li>Their four-layer test contract (parser features → behavioral features →
+  general, each gating the next) is the right shape for gosysml's
+  PORTING_CHECKLIST ordering.</li>
 </ul>
-<h2 id="v0930-2026-09-16">v0.93.0 (2026-09-16)<a class="headerlink" href="#v0930-2026-09-16" title="Permanent link">&para;</a></h2>
 
 
 
