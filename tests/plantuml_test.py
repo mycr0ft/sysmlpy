@@ -2144,6 +2144,21 @@ class TestDataValueTabularView:
         assert "diameter" not in md
 
 
+def _matrix_cell(md, row_name, col_name):
+    """Return a Relationship Matrix View cell from its markdown table.
+
+    Header line lists column names; each data row starts with the row
+    element name, so column j in the header is cell j+1 in a data row.
+    """
+    lines = [l for l in md.splitlines() if l.startswith("|")]
+    header = [c.strip() for c in lines[0].split("|")]
+    for l in lines[2:]:
+        cells = [c.strip() for c in l.split("|")]
+        if cells[1] == row_name:
+            return cells[header.index(col_name) + 1]
+    return ""
+
+
 class TestRelationshipMatrixView:
     """Tests for the Relationship Matrix View (GridView specialization)."""
 
@@ -2200,6 +2215,60 @@ class TestRelationshipMatrixView:
         assert "<table" in html
         assert "</table>" in html
         assert "relationship-matrix-view" in html
+
+    def test_as_relationship_matrix_view_shows_allocation(self):
+        """``allocate from to;`` lands as an A cell (v0.92.0)."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part ecu;
+            action processSignal;
+            allocate processSignal to ecu;
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "| processSignal " in md
+        assert "| ecu " in md
+        # The A sits in the ecu column of the processSignal row.
+        assert "A" in _matrix_cell(md, "processSignal", "ecu")
+
+    def test_as_relationship_matrix_view_nary_allocation(self):
+        """N-ary ``allocate (X, Y, Z);`` marks all written-order pairs."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part x;
+            part y;
+            part z;
+            allocate (x, y, z);
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        for row_name, col_name in (("x", "y"), ("x", "z"), ("y", "z")):
+            assert "A" in _matrix_cell(md, row_name, col_name)
+
+    def test_as_relationship_matrix_view_shows_connection(self):
+        """``connect a to b;`` lands as an N cell between the parts."""
+        from sysmlpy.plantuml import as_relationship_matrix_view
+
+        model = sysmlpy.loads("""
+        package P {
+            part eng {
+                port p1;
+            }
+            part ecu {
+                port p2;
+            }
+            connection c1 connect eng.p1 to ecu.p2;
+        }
+        """)
+        md = as_relationship_matrix_view(model, output_format="markdown")
+
+        assert "N" in _matrix_cell(md, "eng", "ecu")
 
     def test_as_relationship_matrix_view_row_type_filter(self):
         """Row type filter limits row elements."""

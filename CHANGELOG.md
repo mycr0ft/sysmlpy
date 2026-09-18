@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## v0.92.0 (2026-09-16)
+
+**Relationship Matrix View: allocations and connectors as cells.**
+
+The Grid View specialization (SysML v2 graphical notation, Part 9:
+"elements on both axes, relationships in cells") previously marked
+only pairwise predicates — composite containment (C), typing (T),
+specialization (G), shared containment (S). The two relationship
+kinds the standard's grid view exists for — allocation matrices and
+connection matrices — were missing even though the label vocabulary
+already reserved `A` and `N`:
+
+- `as_relationship_matrix_view` now pre-collects direct relationships
+  from grammar endpoints into an edge map: `allocate from to;` (new
+  `_extract_allocations` / `_extract_allocation_endpoints`, walking
+  AllocationUsage -> ConnectorPart -> BinaryConnectorPart ->
+  ConnectorEndMember -> ConnectorEnd -> OwnedReferenceSubsetting ->
+  OwnedFeatureChain; one level shallower than ConnectionUsage, names
+  only via the feature-chain path) and `connect a to b;` (existing
+  `_extract_connections`). N-ary `allocate (X, Y, Z);` expands to all
+  written-order pairs.
+- Relationship usages are cells, not axis elements — allocation and
+  connection usages are excluded from the row/column axes per the
+  standard's definition.
+- 3 new tests in `tests/plantuml_test.py::TestRelationshipMatrixView`
+  (allocation cell placement, n-ary pairwise expansion, connector
+  cell), plus the `_matrix_cell` markdown-table test helper.
+
+
 ## v0.91.0 (2026-09-09)
 
 **`%%sysml` Jupyter cell magic — SysML v2 textual notation in notebooks,

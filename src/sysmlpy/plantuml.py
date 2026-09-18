@@ -2550,6 +2550,108 @@ def _extract_connections(model):
     return connections
 
 
+def _extract_allocation_endpoints(alloc_element):
+    """Extract the allocated (from_names, to_names) from an Allocation.
+
+    Navigates AllocationUsage -> ConnectorPart -> BinaryConnectorPart ->
+    ConnectorEndMember -> ConnectorEnd -> OwnedReferenceSubsetting ->
+    OwnedFeatureChain -> FeatureChain -> OwnedFeatureChaining
+    (v0.92.0). One level shallower than ConnectionUsage: for
+    allocations ``connectorPart.part`` is the BinaryConnectorPart
+    itself, and the endpoint names live only in the feature-chain
+    path (``referencedFeature`` is unset).
+
+    Returns ``(from_names, to_names)`` as lists of name segments, or
+    ``(None, None)`` when the grammar does not carry both ends.
+    """
+    g = getattr(alloc_element, 'grammar', None)
+    if g is None:
+        return None, None
+    binpart = getattr(getattr(g, 'connectorPart', None), 'part', None)
+    if binpart is None or binpart.__class__.__name__ != 'BinaryConnectorPart':
+        return None, None
+    ends = []
+    for member in (getattr(binpart, 'children', None) or []):
+        for end in (getattr(member, 'children', None) or []):
+            for sub in (getattr(end, 'children', None) or []):
+                if sub.__class__.__name__ != 'OwnedReferenceSubsetting':
+                    continue
+                seg = []
+                ref = getattr(sub, 'referencedFeature', None)
+                if ref is not None and getattr(ref, 'names', None):
+                    seg.extend(ref.names)
+                for chain in (getattr(sub, 'elements', None) or []):
+                    fc = getattr(chain, 'feature', None)
+                    for oc in (getattr(fc, 'children', None) or []):
+                        cf = getattr(oc, 'chainingFeature', None)
+                        if cf is not None and getattr(cf, 'names', None):
+                            seg.extend(cf.names)
+                if seg:
+                    ends.append(seg)
+    if len(ends) >= 2 and ends[0] and ends[1]:
+        return ends[0], ends[1]
+    return None, None
+
+
+def _extract_allocations(model):
+    """Scan the model for all allocation usages (``allocate`` elements).
+
+    Returns a list of ``(from_names, to_names, allocation_name)``
+    tuples with the written direction (``allocate from to;``).
+    N-ary forms (``allocate (X, Y, Z);``) expand to all ordered pairs
+    in written order.
+    """
+    allocations = []
+    visited = set()
+
+    def _scan(element):
+        elem_id = id(element)
+        if elem_id in visited:
+            return
+        visited.add(elem_id)
+
+        if getattr(element, 'sysml_type', '') == 'allocation':
+            g = getattr(element, 'grammar', None)
+            binpart = getattr(getattr(g, 'connectorPart', None), 'part', None)
+            if binpart is not None and \
+                    binpart.__class__.__name__ == 'BinaryConnectorPart':
+                from_names, to_names = _extract_allocation_endpoints(element)
+                if from_names and to_names:
+                    allocations.append((from_names, to_names,
+                                        getattr(element, 'name', None)))
+            elif binpart is not None and \
+                    binpart.__class__.__name__ == 'NaryConnectorPart':
+                segs = []
+                for member in (getattr(binpart, 'children', None) or []):
+                    for end in (getattr(member, 'children', None) or []):
+                        for sub in (getattr(end, 'children', None) or []):
+                            if sub.__class__.__name__ != \
+                                    'OwnedReferenceSubsetting':
+                                continue
+                            seg = []
+                            for chain in (getattr(sub, 'elements', None) or []):
+                                fc = getattr(chain, 'feature', None)
+                                for oc in (getattr(fc, 'children', None) or []):
+                                    cf = getattr(oc, 'chainingFeature', None)
+                                    if cf is not None and \
+                                            getattr(cf, 'names', None):
+                                        seg.extend(cf.names)
+                            if seg:
+                                segs.append(seg)
+                for i, a in enumerate(segs):
+                    for b in segs[i + 1:]:
+                        allocations.append((a, b,
+                                            getattr(element, 'name', None)))
+
+        for child in getattr(element, 'children', []) or []:
+            _scan(child)
+
+    for child in getattr(model, 'children', []) or []:
+        _scan(child)
+
+    return allocations
+
+
 def _find_state_in_children(element, state_name):
     """Find a child state element by name within a parent's children tree."""
     if state_name is None:
@@ -4364,7 +4466,23 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     """
     elements = _collect_grid_elements(model, focus=focus)
 
-    all_elems = [e for e, _, _, _, _ in elements]
+    # Direct relationships recovered from grammar endpoints (v0.92.0):
+    # allocations (``allocate from to;``) and connectors (``connect a to
+    # b;``) carry explicit endpoints rather than pairwise predicates, so
+    # they are pre-collected into an edge map keyed by the first segment
+    # of each endpoint name path.
+    direct = {}
+    for from_names, to_names, _n in _extract_allocations(model):
+        direct.setdefault((from_names[0], to_names[0]), set()).add("allocation")
+    for from_names, to_names, _n in _extract_connections(model):
+        direct.setdefault((from_names[0], to_names[0]), set()).add("connector")
+
+    # Relationship usages are cells, not axis elements (v0.92.0):
+    # "elements on both axes, relationships in cells" — allocations and
+    # connectors are the relationships the matrix displays.
+    all_elems = [e for e, _, _, _, _ in elements
+                 if getattr(e, 'sysml_type', '')
+                 not in ('allocation', 'connection')]
     row_elems = all_elems
     col_elems = all_elems if symmetric else all_elems
 
@@ -4383,6 +4501,10 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
         row = [src_name]
         for tgt in col_elems:
             rels = _get_relationship_between(src, tgt, model)
+            tgt_name = getattr(tgt, 'name', None) or "unnamed"
+            direct_kinds = direct.get((src_name, tgt_name))
+            if direct_kinds:
+                rels = list(dict.fromkeys(list(rels) + sorted(direct_kinds)))
             if rels:
                 labels = "".join(RELATIONSHIP_LABELS.get(r, r[0].upper()) for r in rels)
                 row.append(labels)
