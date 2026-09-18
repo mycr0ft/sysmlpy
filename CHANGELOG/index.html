@@ -539,6 +539,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0920-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.92.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0910-2026-09-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3349,6 +3360,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0920-2026-09-16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.92.0 (2026-09-16)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0910-2026-09-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6118,6 +6140,32 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0920-2026-09-16">v0.92.0 (2026-09-16)<a class="headerlink" href="#v0920-2026-09-16" title="Permanent link">&para;</a></h2>
+<p><strong>Relationship Matrix View: allocations and connectors as cells.</strong></p>
+<p>The Grid View specialization (SysML v2 graphical notation, Part 9:
+"elements on both axes, relationships in cells") previously marked
+only pairwise predicates — composite containment (C), typing (T),
+specialization (G), shared containment (S). The two relationship
+kinds the standard's grid view exists for — allocation matrices and
+connection matrices — were missing even though the label vocabulary
+already reserved <code>A</code> and <code>N</code>:</p>
+<ul>
+<li><code>as_relationship_matrix_view</code> now pre-collects direct relationships
+  from grammar endpoints into an edge map: <code>allocate from to;</code> (new
+  <code>_extract_allocations</code> / <code>_extract_allocation_endpoints</code>, walking
+  AllocationUsage -&gt; ConnectorPart -&gt; BinaryConnectorPart -&gt;
+  ConnectorEndMember -&gt; ConnectorEnd -&gt; OwnedReferenceSubsetting -&gt;
+  OwnedFeatureChain; one level shallower than ConnectionUsage, names
+  only via the feature-chain path) and <code>connect a to b;</code> (existing
+  <code>_extract_connections</code>). N-ary <code>allocate (X, Y, Z);</code> expands to all
+  written-order pairs.</li>
+<li>Relationship usages are cells, not axis elements — allocation and
+  connection usages are excluded from the row/column axes per the
+  standard's definition.</li>
+<li>3 new tests in <code>tests/plantuml_test.py::TestRelationshipMatrixView</code>
+  (allocation cell placement, n-ary pairwise expansion, connector
+  cell), plus the <code>_matrix_cell</code> markdown-table test helper.</li>
+</ul>
 <h2 id="v0910-2026-09-09">v0.91.0 (2026-09-09)<a class="headerlink" href="#v0910-2026-09-09" title="Permanent link">&para;</a></h2>
 <p><strong><code>%%sysml</code> Jupyter cell magic — SysML v2 textual notation in notebooks,
 no JVM.</strong></p>
