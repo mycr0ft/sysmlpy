@@ -101,6 +101,40 @@ and the mapping to this implementation — is in the
 [sysml-copier](https://github.com/mycr0ft/sysml-copier) template's
 `docs/sysml-magics.md`.
 
+## Interactive REPL
+
+`sysmlpy repl [FILE ...]` is a terminal session in the same spirit: each
+submission is a SysML declaration, an expression, or a `%command`, and
+declarations accumulate into a session model with the same
+member-granularity merge as the Jupyter magics (a re-declared member
+replaces its prior definition, sibling members are kept, and a
+`note:` line says so). Submissions continue onto a `...>` line while
+brackets stay open; a line that is not a declaration evaluates as an
+expression. Ctrl-D or `%quit` exits; `%reset` discards the session.
+
+| Command | Purpose |
+|---------|---------|
+| `%list [NAME]` | Packages (with member counts), or elements matching NAME with qualified names |
+| `%show NAME` | `repr()` of the first element named NAME |
+| `%dump` | Round-tripped SysML text of the session model |
+| `%eval EXPR` | Evaluate an expression against the session model |
+| `%set NAME=VALUE` | Bind a what-if value (number / bool / string / unit) |
+| `%bindings` | Show current what-if bindings |
+| `%calc NAME a, b` | Invoke a calc def with positional literal arguments |
+| `%check` | Check the model's constraints (pass/fail report) |
+| `%values` | Collected attribute values |
+| `%sim [FOCUS]` | Start a simulator session on a state machine |
+| `%send TRIGGER` / `%step` / `%state` | Drive / advance / inspect that session |
+| `%view NAME [KIND]` | Render a view: `gv` `pkg` `afv` `iv` `stv` `tab` `dvt` `matrix` |
+| `%load PATH` / `%save PATH` | Merge a file into the session / write the session out |
+| `%reset` / `%quit` | Discard everything / leave the REPL |
+| `%help` | Command summary |
+
+Files given on the command line (`sysmlpy repl model.sysml`) are loaded
+into the session before the first prompt. The session core is the same
+Python API surface used throughout the library, so anything you build in
+a REPL session maps one-to-one onto a `ReplSession` scripted from Python.
+
 ## Command-Line Tools
 
 sysmlpy ships a CLI (`sysmlpy`, plus `sysmlpy-lsp` for editor support).
