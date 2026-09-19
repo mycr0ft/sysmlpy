@@ -14,6 +14,7 @@ behavior: exit 1 on file/parse errors.
 """
 
 import json
+import re
 import subprocess
 import sys
 
@@ -215,7 +216,8 @@ class TestViewCommand:
             ["view", str(f), "--view", "tabular", "--format", "markdown"]
         ) == 0
         out = capsys.readouterr().out
-        assert "| Name |" in out
+        # v0.96.0: markdown tables are column-aligned, so pad before the pipe
+        assert re.search(r"\| Name\s+\|", out)
 
     def test_view_tabular_html(self, tmp_path, capsys):
         f = _write(tmp_path, "clean.sysml")

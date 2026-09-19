@@ -96,8 +96,12 @@ class TestCsvExport:
         text = relationship_matrix_to_csv(loads(MODEL))
         rows = list(csv.reader(io.StringIO(text)))
         assert len(rows) >= 2
-        # first column holds row labels (element names)
-        assert rows[0][0] == "Vehicle"
+        # v0.96.0: the header carries the row-label column ("" first), so
+        # header and data rows have the same field count and every row's
+        # first field is the element name
+        assert rows[0][0] == ""
+        assert all(len(r) == len(rows[0]) for r in rows)
+        assert rows[1][0] == "Vehicle"
 
     def test_csv_quoting(self):
         m = loads('package P { part def V { attribute note : String '

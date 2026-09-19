@@ -1985,7 +1985,7 @@ class TestTabularView:
         assert "| Name " in md
         assert "| Engine " in md
         assert "| part def " in md
-        assert "| :--- " in md
+        assert re.search(r"\| :---+\s*\|", md)      # left-align marker
 
     def test_as_tabular_view_html(self):
         """Tabular View produces HTML table."""
@@ -2147,15 +2147,17 @@ class TestDataValueTabularView:
 def _matrix_cell(md, row_name, col_name):
     """Return a Relationship Matrix View cell from its markdown table.
 
-    Header line lists column names; each data row starts with the row
-    element name, so column j in the header is cell j+1 in a data row.
+    The header carries the row-label column ("" first cell) and each
+    data row starts with the element name in that column, so header
+    and row splits line up: column j in the header is cell j in a
+    data row (v0.96.0 matrix structure).
     """
     lines = [l for l in md.splitlines() if l.startswith("|")]
     header = [c.strip() for c in lines[0].split("|")]
     for l in lines[2:]:
         cells = [c.strip() for c in l.split("|")]
         if cells[1] == row_name:
-            return cells[header.index(col_name) + 1]
+            return cells[header.index(col_name)]
     return ""
 
 

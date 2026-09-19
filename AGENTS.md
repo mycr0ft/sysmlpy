@@ -11,7 +11,7 @@ already knows.
 | Field | Value |
 |-------|-------|
 | Name | sysmlpy |
-| Current version | 0.94.0 |
+| Current version | 0.96.0 |
 | Language | Python 3.9+ |
 | Package manager | **Poetry** (use `poetry run` for all commands) |
 | Test runner | pytest via `poetry run pytest` |
@@ -71,6 +71,7 @@ SysML text
 | `src/sysmlpy/definition.py` | `Model`, `Package`, `RootNamespace` |
 | `src/sysmlpy/usage.py` | `Part`, `Item`, `Attribute`, `Port`, `Action`, `State`, etc. |
 | `src/sysmlpy/plantuml.py` | All `as_*_view()` functions and `PlantUMLGenerator` |
+| `src/sysmlpy/mdtables.py` | Markdown table column-alignment (`pretty_markdown_tables`, `format_table`) |
 | `src/sysmlpy/semantic.py` | `analyze()`, `SemanticAnalyzer`, `SymbolTable`, `LibrarySymbolIndex` |
 | `src/sysmlpy/project.py` | `load_files()`, `load_project()`, `load_with_dependencies()` |
 | `src/sysmlpy/store.py` | Storage backends |

@@ -4233,16 +4233,14 @@ def _format_table_rows_csv(header, rows):
 
 
 def _format_table_rows_markdown(header, rows, align=None):
-    """Format a markdown table from header and rows."""
-    if align is None:
-        align = ["---"] * len(header)
-    lines = []
-    lines.append("| " + " | ".join(header) + " |")
-    lines.append("| " + " | ".join(align) + " |")
-    for row in rows:
-        safe_row = [_escape_markdown(c) for c in row]
-        lines.append("| " + " | ".join(safe_row) + " |")
-    return lines
+    """Format a markdown table from header and rows.
+
+    Column-aligned via :mod:`sysmlpy.mdtables` (v0.96.0) so the pipes
+    line up when viewed in a monospace font.
+    """
+    from sysmlpy.mdtables import format_table
+    safe_rows = [[_escape_markdown(c) for c in row] for row in rows]
+    return format_table(header, safe_rows, align)
 
 
 def _format_table_rows_html(header, rows, table_class="grid-view"):
@@ -4629,8 +4627,11 @@ def as_relationship_matrix_view(model, focus=None, style="bw",
     if symmetric:
         col_elems = row_elems
 
-    # Build header + rows
-    header = [getattr(e, 'name', '?') or '?' for e in col_elems]
+    # Build header + rows. The first column is the row-label column
+    # (element names): the header must carry it too, or every data row
+    # has one cell more than the header and GFM renderers silently
+    # drop the last column (fixed v0.96.0).
+    header = [""] + [getattr(e, 'name', '?') or '?' for e in col_elems]
     matrix_rows = []
     for src in row_elems:
         src_name = getattr(src, 'name', None) or "unnamed"

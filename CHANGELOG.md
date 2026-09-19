@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## v0.96.0 (2026-09-16)
+
+**Markdown tables column-align in monospace (`sysmlpy.mdtables`).**
+
+Every markdown table sysmlpy emits now lines up pipe-for-pipe when
+viewed in a monospace font:
+
+- new `src/sysmlpy/mdtables.py`: `pretty_markdown_tables(text)`
+  post-processes arbitrary markdown (re-pads every pipe table that
+  has a GFM separator; everything else passes through untouched) and
+  `format_table(header, rows, align)` builds aligned tables
+  directly. Widths follow the East Asian Width convention (Wide/
+  Fullwidth = 2, combining marks = 0, Ambiguous - including the
+  satisfy check mark - = 1) and count escaped characters (`\|`) as
+  the single character they render as; GFM alignment colons are
+  preserved through re-padding (`:--` left, `--:` right, `:-:`
+  center).
+- wired into every markdown emitter: all PlantUML grid views
+  (tabular, data-value, relationship matrix) via
+  `_format_table_rows_markdown`, the traceability report
+  (`to_markdown`) and `as_traceability_matrix_view`.
+- **fixed a latent matrix-structure bug the alignment work
+  surfaced**: `as_relationship_matrix_view` data rows carried the
+  row-label element name as the first cell but the header lacked
+  the label column, so every row had one cell more than the header
+  and GFM renderers silently dropped the last column. The header
+  now carries the label column; the matrix CSV gains it too (header
+  and rows now have equal field counts).
+
+Honest limits (docstring): alignment cannot hold for cells whose
+*rendered* width differs from the measured one - emoji and other
+beyond-BMP glyphs (ambiguous across terminal fonts) or cells with
+embedded newlines (which GFM tables cannot carry anyway).
+
+Test updates: new `tests/mdtables_test.py` (10 tests); alignment-
+sensitive exact-shape asserts in plantuml/traceability/cli/
+spreadsheet tests updated to width-tolerant regexes; matrix CSV
+test now asserts the label column and equal field counts.
+
+
 ## v0.95.0 (2026-09-18)
 
 **Interactive REPL (`sysmlpy repl`), runtime-showcase fixtures, and four

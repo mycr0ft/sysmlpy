@@ -170,7 +170,8 @@ class TraceabilityReport:
             f"{cov['partial']} partial, {cov['uncovered']} uncovered "
             f"({cov['coverage_ratio']:.0%})"
         )
-        return "\n".join(lines)
+        from sysmlpy.mdtables import pretty_markdown_tables
+        return pretty_markdown_tables("\n".join(lines))
 
     def to_text(self) -> str:
         """Plain-text report (default ``sysmlpy trace`` output)."""
@@ -451,7 +452,8 @@ def as_traceability_matrix_view(
                 text = (t.text or "—").replace("|", "\\|")
                 cells.append(text)
             lines.append("| " + " | ".join(cells) + " |")
-        return "\n".join(lines)
+        from sysmlpy.mdtables import pretty_markdown_tables
+        return pretty_markdown_tables("\n".join(lines))
 
     if output_format == "html":
         rows = []

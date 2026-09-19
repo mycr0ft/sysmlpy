@@ -12,6 +12,7 @@ Covers:
 """
 
 import json
+import re
 import subprocess
 import sys
 
@@ -274,7 +275,7 @@ class TestReportOutput:
 
     def test_to_markdown(self):
         md = extract_traceability(full_model()).to_markdown()
-        assert "| Requirement |" in md
+        assert re.search(r"\| Requirement\s+\|", md)
         assert "VehicleSpec::totalMass" in md
         assert "wheels" in md
         assert "massCheck" in md
@@ -296,7 +297,7 @@ class TestTraceabilityMatrixView:
 
     def test_markdown_default(self):
         out = as_traceability_matrix_view(full_model())
-        assert out.startswith("| Requirement | Status |")
+        assert re.match(r"\| Requirement\s+\| Status\s+\|", out)
         assert "totalMass" in out
 
     def test_html(self):
@@ -330,7 +331,7 @@ class TestTraceabilityMatrixView:
         out = as_traceability_matrix_view(
             full_model(), output_format="markdown", show_text=True
         )
-        assert "Text |" in out
+        assert re.search(r"\| Text\s+\|", out)
         assert "shall not exceed 2000 kg" in out
 
     def test_style_color(self):
@@ -419,7 +420,7 @@ class TestTraceCommand:
         f.write_text(loads(FULL_MODEL).dump())
         from sysmlpy.__main__ import main
         assert main(["trace", str(f), "--format", "markdown"]) == 0
-        assert "| Requirement |" in capsys.readouterr().out
+        assert re.search(r"\| Requirement\s+\|", capsys.readouterr().out)
 
     def test_trace_output_file(self, tmp_path):
         f = tmp_path / "m.sysml"
@@ -430,7 +431,7 @@ class TestTraceCommand:
             ["trace", str(f), "--format", "markdown", "-o", str(out)]
         ) == 0
         content = out.read_text(encoding="utf-8")
-        assert "| Requirement |" in content
+        assert re.search(r"\| Requirement\s+\|", content)
 
     def test_trace_missing_file_exit_2(self, tmp_path):
         from sysmlpy.__main__ import main
