@@ -172,10 +172,22 @@ class LibrarySymbolIndex:
 
     @classmethod
     def _extract_from_file(cls, filepath: Path, symbols: set[str]) -> None:
-        """Extract symbol names from a single library file."""
+        """Extract symbol names from a single library file.
+
+        .kerml files are parsed with the KerML parser
+        (sysmlpy.kerml.parse_to_dict) and symbols harvested from the
+        visitor-dict structure — real parses, not regex scraping.
+        .sysml files keep the line-regex walk (the SysML grammar's
+        notation is line-oriented enough for the same scraper and the
+        full SysML pipeline is heavier than needed here).
+        """
         try:
             content = filepath.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
+            return
+
+        if filepath.suffix == ".kerml":
+            cls._extract_kerml_parsed(filepath, symbols)
             return
 
         # Track package nesting with brace depth
@@ -212,6 +224,83 @@ class LibrarySymbolIndex:
             brace_depth += open_braces - close_braces
 
             # Pop packages that have been closed
+            while package_stack and package_stack[-1][1] >= brace_depth:
+                package_stack.pop()
+
+    @classmethod
+    def _extract_kerml_parsed(cls, filepath: Path, symbols: set[str]) -> None:
+        """Harvest qualified symbol names from a .kerml file by parsing
+        it with sysmlpy.kerml.parse_to_dict (real AST, not regexes).
+
+        Package elements contribute their names as namespace segments;
+        every other named element is registered as
+        ``<ns>::...::<name>``. Parse failures fall back silently to the
+        line-regex walk (never drops the file's symbols without a
+        second chance).
+        """
+        try:
+            content = filepath.read_text(encoding="utf-8")
+            from sysmlpy.kerml import parse_to_dict as _kerml_parse_to_dict
+            tree = _kerml_parse_to_dict(content)
+        except Exception:  # noqa: BLE001 — parse failure: fall back to regex
+            cls._extract_regex(content, symbols)
+            return
+
+        def walk(el: dict, namespace: list[str]) -> None:
+            kind = el.get("name", "")
+            nm = el.get("declaredName") or el.get("declaredShortName")
+            if kind in ("package", "library package",
+                        "standard library package"):
+                if nm:
+                    namespace.append(nm)
+                    symbols.add("::".join(namespace))
+                for c in el.get("children", []):
+                    walk(c, namespace)
+                if nm:
+                    namespace.pop()
+            elif kind == "doc":
+                for c in el.get("children", []):
+                    walk(c, namespace)
+            else:
+                if nm:
+                    # operator-named functions carry quoted names
+                    # ('all', '=='); strip to the bare form to match the
+                    # historical regex-scraped spellings
+                    symbols.add("::".join(
+                        namespace + [nm.strip("'\"")]))
+                for c in el.get("children", []):
+                    walk(c, namespace + ([nm.strip("'\"")] if nm else []))
+
+        namespace: list[str] = []
+        for el in tree.get("children", []):
+            walk(el, namespace)
+
+    @classmethod
+    def _extract_regex(cls, content: str, symbols: set[str]) -> None:
+        """Line-regex symbol walk (the original scraper; used for .sysml
+        files and as a .kerml fallback)."""
+        package_stack: list[tuple[str, int]] = []
+        brace_depth = 0
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("doc") or stripped.startswith("/*") \
+                    or stripped.startswith("*"):
+                continue
+            open_braces = stripped.count("{")
+            close_braces = stripped.count("}")
+            pkg_match = _PACKAGE_RE.search(stripped)
+            if pkg_match:
+                pkg_name = pkg_match.group(1)
+                package_stack.append((pkg_name, brace_depth))
+                if len(package_stack) > 1:
+                    symbols.add("::".join(name for name, _ in package_stack))
+            def_match = _DEFINITION_RE.search(stripped)
+            if def_match and package_stack:
+                def_name = def_match.group(1).strip("'\"")
+                qualified = "::".join(name for name, _ in package_stack) \
+                    + "::" + def_name
+                symbols.add(qualified)
+            brace_depth += open_braces - close_braces
             while package_stack and package_stack[-1][1] >= brace_depth:
                 package_stack.pop()
 

@@ -36,3 +36,9 @@ def test_kerml_init_battery():
     """Package exports + SysML coexistence."""
     r = _run("init_battery.py")
     assert r.returncode == 0, f"init battery failed:\n{r.stdout}\n{r.stderr}"
+
+
+def test_kerml_symbol_index_battery():
+    """Hybrid LibrarySymbolIndex: .kerml parsed + .sysml regex."""
+    r = _run("symbol_index_battery.py")
+    assert r.returncode == 0, f"symbol-index battery failed:\n{r.stdout}\n{r.stderr}"
