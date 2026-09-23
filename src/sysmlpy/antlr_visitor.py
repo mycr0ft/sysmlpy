@@ -7321,6 +7321,20 @@ def _visit_multiplicity(mult_ctx):
     if mult_ctx is None:
         return result
     
+    # OwnedCrossMultiplicityMember carries an OwnedCrossMultiplicity
+    # wrapper (KerML OwnedCrossMultiplicity → OwnedMultiplicity); read
+    # through it when present (interface ends: `connect [1] a to b`)
+    if hasattr(mult_ctx, 'ownedCrossMultiplicity'):
+        ocm = mult_ctx.ownedCrossMultiplicity()
+        if ocm:
+            om = ocm.ownedMultiplicity()
+            if isinstance(om, list):
+                om = om[0] if om else None
+            if om:
+                built = _extract_multiplicity_from_ctx(om)
+                if built:
+                    return built
+    
     if hasattr(mult_ctx, 'ownedRelatedElement') and mult_ctx.ownedRelatedElement():
         related = mult_ctx.ownedRelatedElement()
         if isinstance(related, list):

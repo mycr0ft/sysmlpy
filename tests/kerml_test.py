@@ -42,3 +42,10 @@ def test_kerml_symbol_index_battery():
     """Hybrid LibrarySymbolIndex: .kerml parsed + .sysml regex."""
     r = _run("symbol_index_battery.py")
     assert r.returncode == 0, f"symbol-index battery failed:\n{r.stdout}\n{r.stderr}"
+
+
+def test_kerml_corpus_recovery_battery():
+    """Sweep-failure categories re-verified: .kerml corpus, connect [1],
+    Annex A SimpleVehicleModel."""
+    r = _run("corpus_recovery_battery.py")
+    assert r.returncode == 0, f"corpus-recovery battery failed:\n{r.stdout}\n{r.stderr}"
