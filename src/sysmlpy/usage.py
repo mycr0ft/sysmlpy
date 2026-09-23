@@ -2798,7 +2798,14 @@ class UseCase(Usage):
         self.subject = None  # (name, type_name)
         self.actors = []  # list of (name, type_name)
         self.includes = []  # list of use case names
-        
+        # Re-declaration chains captured from grammar (v0.41.0) —
+        # _extract_specialization_info (usage.py:1174/1255) appends to
+        # these unconditionally, so they must exist before any load
+        self._typed_by_name = None
+        self._specializes_names = []
+        self._redefined_refs = []
+        self._referenced_refs = []
+
         if definition:
             self.keyword = "use case def"
         else:
