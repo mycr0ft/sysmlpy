@@ -1,8 +1,21 @@
 # sysmlpy — Project Status
 
-Current version: **v0.95.0** (2026-09-18)
+Current version: **v0.96.0** (2026-09-23)
 
 ---
+
+## Recent Highlights (v0.96.0)
+
+- **KerML parser**: OMG-KEBNF-generated ANTLR4 grammar + visitor-dict
+  layer (`sysmlpy.kerml`); 130/130 `.kerml` corpus files parse.
+- **LibrarySymbolIndex** now parses `.kerml` library files (2,986
+  symbols, was 1,604 regex-scraped).
+- **Zero correctness failures** on the OMG release-repo corpus sweep
+  (404 files); Annex A SimpleVehicleModel and all interface-connect
+  forms parse.
+- **Community PRs merged**: port-def rendering fix (#10), boundary
+  ports (#13), interface-usage connection edges (#12), binding
+  connector rendering (#11) in the Interconnection View.
 
 ## Completed
 

@@ -1,6 +1,54 @@
 # CHANGELOG
 
-## v0.96.0 (2026-09-16)
+## v0.96.0 (2026-09-23)
+
+**KerML parsing, OMG-corpus hardening, and community contributions
+(external PRs #10/#11/#12/#13).**
+
+- **New: KerML parser** (`src/sysmlpy/kerml/`) - ANTLR4 grammar
+  generated from the OMG KerML textual-notation KEBNF
+  (Systems-Modeling/SysML-v2-Release, 2026-08 checkout) via the
+  daltskin generator in KerML-only mode, plus `parse`/`parse_file`/
+  `parse_to_dict` and a SysML-shaped visitor-dict layer. 7 documented
+  corpus corrections (generator dead-rule reverts, KEBNF-vs-example
+  fixes) in `src/sysmlpy/kerml/README.md`. Corpus: **130/130 .kerml
+  files parse and extract non-empty structure** (OMG examples 58, OMG
+  kernel libraries 36, bundled kernel 36). KerML imports carry no
+  visibility keyword (unlike SysML). Tests: `tests/kerml_test.py` (3
+  pytest tests over standalone batteries).
+- **LibrarySymbolIndex parses .kerml files** (was regex-scraping):
+  `.kerml` files now go through `parse_to_dict`; `.sysml` files keep
+  the line-regex walk (shared as the parse-failure fallback). Library
+  symbols 1,604 to 2,986; all 94 OMG `.kerml` files yield symbols.
+  3 regex-only names were false positives (keyword-collision in
+  `feature all ...` and a doc-expression line).
+- **fix: `connect [N]` with leading multiplicity through interface
+  ends** - `_visit_multiplicity` reads through
+  `ownedCrossMultiplicity().ownedMultiplicity()`. Found by
+  categorizing the OMG corpus-sweep failures; the Annex A
+  SimpleVehicleModel now parses fully (241 elements).
+- **fix: Port definitions lost `is_definition`** (external PR #10) -
+  `Usage.load_from_grammar`'s `__init__()` reset cleared the flag;
+  port defs rendered as `<<port>>` instead of `<<port def>>`.
+- **IV: boundary ports** (external PR #13) - ports render as PlantUML
+  native `port` syntax on the hosting part's boundary, declared and
+  inherited.
+- **IV: interface-usage connections** (external PR #12) - interface
+  usages render as connection edges; top-level `connect`-form and
+  body-declared `end ... ::> part.port` ends, nested interfaces scoped
+  to their containing part.
+- **IV: binding connectors** (external PR #11) - `bind p = A.p;` is
+  preserved in the public tree (was silently dropped) and renders as
+  a thick binding edge between the referenced features.
+- **fix: UseCase missing re-declaration chain fields** - loading any
+  model with a use case crashed with `AttributeError`
+  (`_specializes_names` uninitialized).
+
+Corpus status: the OMG release-repo sweep (404 files) now has zero
+correctness failures; what remains is 5 slow-but-finite large library
+files (42-94 s, perf tuning candidate) and 3 package-less snippet
+examples rejected by the loader's intentional package-wrapper guard.
+
 
 **Markdown tables column-align in monospace (`sysmlpy.mdtables`).**
 

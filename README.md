@@ -457,7 +457,8 @@ result = analyze(model, strict=True)
 - **Undefined symbol detection** — catches references to non-existent types, features, and packages
 - **Qualified name resolution** — `P::A` and `Outer::Inner::DeepPart` resolve through scope chains
 - **Inheritance resolution** — subsetting/redefinition references resolve through supertype chains
-- **Library symbol index** — scans 88 `.kerml`/`.sysml` files (~1,417 symbols) from the bundled standard library
+- **KerML parser** — OMG-KEBNF-generated ANTLR4 grammar for the Kernel Modeling Language (`sysmlpy.kerml`): `parse` / `parse_file` / `parse_to_dict`; all 130 `.kerml` corpus files (OMG examples + standard libraries) parse, and the library symbol index is backed by real parses (2,986 symbols)
+- **Library symbol index** — scans 94 files (36 parsed `.kerml` + 58 `.sysml`) from the bundled standard library (~2,986 symbols)
 
 ### Import Resolution
 
