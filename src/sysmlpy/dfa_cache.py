@@ -50,6 +50,7 @@ _state: Dict[str, Any] = {
     "directory": None,      # None = default (env/XDG/~/.cache/sysmlpy)
     "load_attempted": False,
     "loaded": False,
+    "file_states": 0,       # DFA states in the cache file at load time
     "save_attempted": False,
     "saved": False,
     "saved_states": 0,
@@ -290,9 +291,12 @@ def load_dfa_cache(path: Optional[str] = None) -> bool:
             payload = pickle.load(f)
         if not isinstance(payload, tuple) or len(payload) != 5:
             raise ValueError("unexpected cache payload shape")
+        file_states = sum(len(dfa.states) for dfa in payload[1])
+        file_states += sum(len(dfa.states) for dfa in payload[4])
         with _lock:
             _install(payload)
             _state["loaded"] = True
+            _state["file_states"] = file_states
         return True
     except Exception as exc:
         warnings.warn(
@@ -315,10 +319,18 @@ def save_dfa_cache(path: Optional[str] = None) -> bool:
         return False
     path = path or cache_file()
     try:
-        if os.path.isfile(path):
+        warm_states = sum(len(dfa.states) for dfa in _payload()[1])
+        warm_states += sum(len(dfa.states) for dfa in _payload()[4])
+        with _lock:
+            file_states = _state["file_states"]
+        if os.path.isfile(path) and warm_states <= file_states:
+            # Nothing learned beyond what the file already holds.
             with _lock:
                 _state["saved"] = False
             return False
+        # Fresh write, or a strictly warmer in-process cache: supersede
+        # the file so DFA states learned since its last write (e.g. new
+        # grammar paths like the short-name `<...>` forms) persist.
         P, L = _classes()
         payload = _payload()
         blob = pickle.dumps(payload, protocol=_CACHE_PROTOCOL)
@@ -355,6 +367,7 @@ def reset_for_tests() -> None:
         for key in ("load_attempted", "loaded", "save_attempted",
                     "saved", "saved_states"):
             _state[key] = False if key != "saved_states" else 0
+        _state["file_states"] = 0
 
 
 def stats() -> Dict[str, Any]:

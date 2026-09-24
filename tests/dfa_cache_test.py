@@ -274,3 +274,52 @@ print(json.dumps({{"ok": ok, "saved": saved, "loaded": loaded,
         # start of this grammar (~8.4 s for the big benchmark model;
         # this small model is well under a second warm)
         assert (t1 - t0) < 60
+
+class TestSupersede:
+    """A strictly-warmer in-process cache replaces the cache file
+    (v0.96.1): DFA states learned after the file was last written (new
+    grammar paths — e.g. short-name `<...>` forms) must persist, or
+    every fresh process pays the adaptive-prediction cost again."""
+
+    def _run_model(self, tmp_path, model):
+        import json as _json
+        env = dict(os.environ)
+        script = TestSubprocessFlow.SCRIPT.format(src=os.path.abspath("src"),
+                                                  cache_dir=str(tmp_path),
+                                                  model=model)
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True, text=True, timeout=600, env=env)
+        assert proc.returncode == 0, proc.stderr[-800:]
+        line = proc.stdout.strip().splitlines()[-1]
+        return _json.loads(line)
+
+    def test_warmer_cache_supersedes_existing_file(self, tmp_path):
+        # 1st process: file born from the base MODEL.
+        first = self._run_model(tmp_path, "package P { part def E { attribute rpm : Real; } }")
+        assert first["saved"] is True
+        files = [f for f in os.listdir(str(tmp_path)) if f.startswith("dfa-")]
+        file_a = os.path.join(str(tmp_path), files[0])
+        size_a = os.path.getsize(file_a)
+
+        # 2nd process: loads the file, then parses constructs with NEW
+        # decision paths (short-name `<X>`) — strictly more DFA states.
+        second = self._run_model(
+            tmp_path,
+            "package Q { attribute <sn> s : T; port p :> q; }")
+        assert second["loaded"] is True
+        # The warm cache now exceeds the file's states: supersede.
+        assert second["saved"] is True
+        assert os.path.getsize(file_a) > size_a
+
+    def test_equal_cache_does_not_rewrite(self, tmp_path):
+        # Same model twice: no growth -> no rewrite (original behavior).
+        model = "package P { part def E { attribute rpm : Real; } }"
+        first = self._run_model(tmp_path, model)
+        assert first["saved"] is True
+        files = [f for f in os.listdir(str(tmp_path)) if f.startswith("dfa-")]
+        file_a = os.path.join(str(tmp_path), files[0])
+        size_a = os.path.getsize(file_a)
+        second = self._run_model(tmp_path, model)
+        assert second["saved"] is False
+        assert os.path.getsize(file_a) == size_a
