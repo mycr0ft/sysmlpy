@@ -8,7 +8,7 @@ Uses the ANTLR4 parser for full SysML v2 grammar support.
 """
 
 __all__ = [
-    "load", "loads", "parse", "load_grammar", "load_antlr", "load_grammar_antlr",
+    "load", "loads", "load_wrapped", "loads_wrapped", "parse", "load_grammar", "load_antlr", "load_grammar_antlr",
     "load_files", "load_project", "load_with_dependencies",
     "Searchable",
     "Store", "InMemoryStore", "NetworkXStore", "KuzuStore", "CayleyStore", "create_store", "new_id",
@@ -309,6 +309,93 @@ def loads(s: str, library=None, rescue_language="English") -> Model:
     """
     return Model().load(s, library=library,
                         rescue_language=rescue_language)
+
+
+def _is_bare_top_level(s: str) -> bool:
+    """True when *s* starts with a top-level definition/usage keyword
+    rather than a (library) package — the same textual probe
+    :meth:`sysmlpy.definition.Model.load` uses for its strict guard."""
+    s_stripped = s.strip() if isinstance(s, str) else s
+    if not isinstance(s_stripped, str) or not s_stripped.split():
+        return False
+    invalid_starts = ['item', 'part', 'port', 'attribute', 'action', 'state',
+                      'connection', 'interface', 'requirement', 'case', 'use',
+                      'calc', 'constraint', 'concern', 'ref', 'flow', 'allocation',
+                      'view', 'viewpoint', 'rendering', 'metadata', 'individual']
+    return s_stripped.split(None, 1)[0] in invalid_starts
+
+
+def loads_wrapped(s: str, package_name="Snippets", library=None,
+                  rescue_language="English") -> Model:
+    """Load bare top-level SysML (no enclosing package) into a Model by
+    wrapping it in a synthetic package.
+
+    OMG example and training snippets frequently open directly with
+    ``part def Camera { ... }`` or ``action def DecisionTest { ... }``.
+    :func:`loads` / ``Model.load`` deliberately reject that form ("Base
+    Model must be encapsulated by a package"). This loader accepts it:
+    the source is wrapped as ``package <package_name> { ... }`` and then
+    parsed exactly like :func:`loads`. Content already carrying a
+    top-level package (or ``standard library package``) passes through
+    untouched, so the function is safe to call unconditionally on file
+    text.
+
+    Parameters
+    ----------
+    s : str
+        The SysML v2 source code to parse.
+    package_name : str, optional
+        Name of the synthetic package. Defaults to ``"Snippets"``.
+    library : str or Path, optional
+        Path to SysML v2 library files for resolving imports.
+
+    Returns
+    -------
+    Model
+        Model instance with one child: the synthetic package.
+
+    .. versionadded:: 0.96.1
+    """
+    if _is_bare_top_level(s):
+        s = "package %s {\n%s\n}\n" % (package_name, s.rstrip("\n"))
+    return loads(s, library=library, rescue_language=rescue_language)
+
+
+def load_wrapped(fp, package_name="Snippets", library=None) -> Model:
+    """File-pointer twin of :func:`loads_wrapped`.
+
+    Deserialize ``fp`` (a ``.read()``-supporting file-like object) —
+    wrapping bare top-level definitions in a synthetic package when
+    needed — to a Model object. Content with a top-level package passes
+    through untouched.
+
+    Parameters
+    ----------
+    fp : _io.TextIOWrapper
+        File pointer to a SysML v2.0 document.
+    package_name : str, optional
+        Name of the synthetic package. Defaults to ``"Snippets"``.
+    library : str or Path, optional
+        Path to SysML v2 library files for resolving imports.
+
+    Returns
+    -------
+    Model
+        Model instance structured utilizing SysML v2.0 grammar.
+
+    Raises
+    ------
+    TypeError
+        Input was not a ``.read()``-supporting file-like object.
+
+    .. versionadded:: 0.96.1
+    """
+    if not hasattr(fp, "read"):
+        raise TypeError(
+            f"the SysML object must be a file-like object, "
+            f"not {fp.__class__.__name__}"
+        )
+    return loads_wrapped(fp.read(), package_name=package_name, library=library)
 
 
 def parse(s: str, library=None):

@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v0.96.1 (unreleased)
+
+- **New loaders for package-less snippets**: `loads_wrapped()` /
+  `load_wrapped()` wrap bare top-level SysML (OMG `Simple Tests` /
+  training-snippet style, e.g. `part def Camera { ... }` with no
+  enclosing package) in a synthetic package and load normally.
+  Content already carrying a top-level `package` /
+  `standard library package` passes through untouched. `Model.load`'s
+  documented strictness ("Base Model must be encapsulated by a
+  package") is unchanged. The corpus sweep helper (`parse_one.py`)
+  now uses the wrapped loader, eliminating the 3 package-less
+  rejections from the OMG release-repo sweep (DecisionTest,
+  ControlNodeTest, Camera).
+
 ## v0.96.0 (2026-09-23)
 
 **KerML parsing, OMG-corpus hardening, and community contributions

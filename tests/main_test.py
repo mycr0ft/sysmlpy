@@ -58,3 +58,75 @@ def test_load_fromstr_error(single_package):
 def test_invalid_sysml():
     with pytest.raises(SysMLSyntaxError):
         loads("error")
+
+
+def test_loads_wrapped_bare_definition():
+    """loads_wrapped accepts bare top-level definitions (OMG snippet
+    style, e.g. Simple Tests/DecisionTest.sysml) by synthesizing a
+    package wrapper."""
+    from sysmlpy import loads_wrapped
+    m = loads_wrapped("part def Camera;\n")
+    assert len(m.children) == 1
+    assert type(m.children[0]).__name__ == "Package"
+    pk = m.children[0]
+    assert [type(c).__name__ for c in pk.children] == ["Part"]
+
+
+def test_loads_wrapped_passthrough_packaged():
+    """Content already in a package passes through untouched (no
+    double wrap)."""
+    from sysmlpy import loads_wrapped
+    text = "package P {\n    part def C;\n}\n"
+    m = loads_wrapped(text)
+    assert len(m.children) == 1
+    assert m.children[0].name == "P"
+
+
+def test_loads_wrapped_standard_library_package():
+    """`standard library package` headers also pass through."""
+    from sysmlpy import loads_wrapped
+    text = "standard library package Foo {\n    part def Bar;\n}\n"
+    m = loads_wrapped(text)
+    assert len(m.children) == 1
+
+
+def test_loads_wrapped_custom_package_name():
+    from sysmlpy import loads_wrapped
+    m = loads_wrapped("part def Camera;\n", package_name="OMG")
+    assert m.children[0].name == "OMG"
+
+
+def test_load_wrapped_file_pointer_and_typecheck():
+    import io
+    from sysmlpy import load_wrapped
+    m = load_wrapped(io.StringIO("port def C;\n"))
+    assert type(m.children[0]).__name__ == "Package"
+    with pytest.raises(TypeError):
+        load_wrapped("port def C;\n")   # str is not file-like
+
+
+def test_loads_wrapped_omg_corpus_snippets():
+    """The three package-less OMG corpus files now parse via
+    loads_wrapped (regression for the corpus sweep 'package-less
+    rejects')."""
+    import os
+    base = os.environ.get("OMG_CORPUS_ROOT")
+    if not base or not os.path.isdir(base):
+        pytest.skip("OMG corpus not available")
+    from sysmlpy import loads_wrapped
+    for rel in ("examples/Simple Tests/DecisionTest.sysml",
+                "examples/Simple Tests/ControlNodeTest.sysml",
+                "examples/Camera Example/Camera.sysml"):
+        with open(os.path.join(base, rel), encoding="utf-8") as fh:
+            m = loads_wrapped(fh.read())
+        assert len(m.children) == 1
+
+
+def test_loads_wrapped_roundtrip():
+    """Wrapped snippets round-trip through classtree().dump()."""
+    from sysmlpy import loads_wrapped
+    text = "action def DecisionTest {\n    action A1;\n}\n"
+    m = loads_wrapped(text)
+    dumped = classtree(m).dump()
+    m2 = loads(dumped)
+    assert len(m2.children) == 1
