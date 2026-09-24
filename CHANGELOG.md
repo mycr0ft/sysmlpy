@@ -2,6 +2,16 @@
 
 ## v0.96.1 (unreleased)
 
+- **perf: DFA cache supersede** - `save_dfa_cache()` refused to update
+  an existing cache file, so DFA states learned after the file was
+  written (short-name `<K>` forms, `[1..*] nonunique` multiplicity
+  chains, STRING short-names) were re-built by every fresh process:
+  the OMG library files SI / ISQSpaceTime / MeasurementReferences /
+  ShapeItems and Annex A SimpleVehicleModel took 60-200 s per parse.
+  A strictly-warmer in-process cache now atomically replaces the file;
+  after one absorbing run per construct family, all six slowest OMG
+  files parse in 0.2-8 s per fresh CLI process. 2 new supersede tests
+  (dfa_cache 16/16).
 - **New loaders for package-less snippets**: `loads_wrapped()` /
   `load_wrapped()` wrap bare top-level SysML (OMG `Simple Tests` /
   training-snippet style, e.g. `part def Camera { ... }` with no
