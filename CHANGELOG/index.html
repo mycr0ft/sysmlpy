@@ -539,10 +539,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0960-2026-09-16" class="md-nav__link">
+  <a href="#v0960-2026-09-23" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.96.0 (2026-09-16)
+        v0.96.0 (2026-09-23)
       
     </span>
   </a>
@@ -644,10 +644,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0960-2026-09-16" class="md-nav__link">
+  <a href="#v0960-2026-09-23" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.96.0 (2026-09-16)
+        v0.96.0 (2026-09-23)
       
     </span>
   </a>
@@ -708,7 +708,53 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="v0960-2026-09-16">v0.96.0 (2026-09-16)<a class="headerlink" href="#v0960-2026-09-16" title="Permanent link">&para;</a></h2>
+<h2 id="v0960-2026-09-23">v0.96.0 (2026-09-23)<a class="headerlink" href="#v0960-2026-09-23" title="Permanent link">&para;</a></h2>
+<p><strong>KerML parsing, OMG-corpus hardening, and community contributions
+(external PRs #10/#11/#12/#13).</strong></p>
+<ul>
+<li><strong>New: KerML parser</strong> (<code>src/sysmlpy/kerml/</code>) - ANTLR4 grammar
+  generated from the OMG KerML textual-notation KEBNF
+  (Systems-Modeling/SysML-v2-Release, 2026-08 checkout) via the
+  daltskin generator in KerML-only mode, plus <code>parse</code>/<code>parse_file</code>/
+  <code>parse_to_dict</code> and a SysML-shaped visitor-dict layer. 7 documented
+  corpus corrections (generator dead-rule reverts, KEBNF-vs-example
+  fixes) in <code>src/sysmlpy/kerml/README.md</code>. Corpus: <strong>130/130 .kerml
+  files parse and extract non-empty structure</strong> (OMG examples 58, OMG
+  kernel libraries 36, bundled kernel 36). KerML imports carry no
+  visibility keyword (unlike SysML). Tests: <code>tests/kerml_test.py</code> (3
+  pytest tests over standalone batteries).</li>
+<li><strong>LibrarySymbolIndex parses .kerml files</strong> (was regex-scraping):
+  <code>.kerml</code> files now go through <code>parse_to_dict</code>; <code>.sysml</code> files keep
+  the line-regex walk (shared as the parse-failure fallback). Library
+  symbols 1,604 to 2,986; all 94 OMG <code>.kerml</code> files yield symbols.
+  3 regex-only names were false positives (keyword-collision in
+  <code>feature all ...</code> and a doc-expression line).</li>
+<li><strong>fix: <code>connect [N]</code> with leading multiplicity through interface
+  ends</strong> - <code>_visit_multiplicity</code> reads through
+  <code>ownedCrossMultiplicity().ownedMultiplicity()</code>. Found by
+  categorizing the OMG corpus-sweep failures; the Annex A
+  SimpleVehicleModel now parses fully (241 elements).</li>
+<li><strong>fix: Port definitions lost <code>is_definition</code></strong> (external PR #10) -
+  <code>Usage.load_from_grammar</code>'s <code>__init__()</code> reset cleared the flag;
+  port defs rendered as <code>&lt;&lt;port&gt;&gt;</code> instead of <code>&lt;&lt;port def&gt;&gt;</code>.</li>
+<li><strong>IV: boundary ports</strong> (external PR #13) - ports render as PlantUML
+  native <code>port</code> syntax on the hosting part's boundary, declared and
+  inherited.</li>
+<li><strong>IV: interface-usage connections</strong> (external PR #12) - interface
+  usages render as connection edges; top-level <code>connect</code>-form and
+  body-declared <code>end ... ::&gt; part.port</code> ends, nested interfaces scoped
+  to their containing part.</li>
+<li><strong>IV: binding connectors</strong> (external PR #11) - <code>bind p = A.p;</code> is
+  preserved in the public tree (was silently dropped) and renders as
+  a thick binding edge between the referenced features.</li>
+<li><strong>fix: UseCase missing re-declaration chain fields</strong> - loading any
+  model with a use case crashed with <code>AttributeError</code>
+  (<code>_specializes_names</code> uninitialized).</li>
+</ul>
+<p>Corpus status: the OMG release-repo sweep (404 files) now has zero
+correctness failures; what remains is 5 slow-but-finite large library
+files (42-94 s, perf tuning candidate) and 3 package-less snippet
+examples rejected by the loader's intentional package-wrapper guard.</p>
 <p><strong>Markdown tables column-align in monospace (<code>sysmlpy.mdtables</code>).</strong></p>
 <p>Every markdown table sysmlpy emits now lines up pipe-for-pipe when
 viewed in a monospace font:</p>
