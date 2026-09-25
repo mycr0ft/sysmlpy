@@ -1,6 +1,34 @@
 # CHANGELOG
 
-## v0.96.1 (unreleased)
+## v0.96.1 (2026-09-25)
+
+- **doc comments survive everywhere** — `doc /* ... */` on a package,
+  on any part/item/port/action/... usage or definition, and inside
+  interface bodies is captured as `.doc` on the API object (previously
+  silently dropped whenever the comment shared its body with
+  siblings; only Requirement carried doc). `dump()`/`classtree()` re-emits
+  the doc alongside the other body items, and re-parsing the dumped
+  text keeps `.doc` intact. New example `examples/doc_ends_flows.py`
+  + 11 tests (doc_ends_flows 5/5).
+- **interface ends captured** — `end <name>;` and
+  `end <name> ::> part.port;` members of an interface body now parse
+  into `Interface.ends` (name/type/multiplicity) and
+  `Interface.iface_connections` (the `::>` targets as feature-path
+  strings); previously the ends stayed in the grammar layer only and
+  `.ends` was always empty. `end ::>` targets are re-emitted through
+  the References/OwnedReferenceSubsetting/OwnedFeatureChain
+  specialization chain, so they survive a dump round-trip (and
+  re-parsing rebuilds `iface_connections`).
+- **fix: round-trip of interface usages emitted a spurious `connect`
+  keyword** — `InterfaceUsageDeclaration` marked ANY `part1` as the
+  CONNECT form, but the visitor also emits an empty `part1` for plain
+  ``interface x : T { ... }``; the resulting
+  ``interface x: T connect {...}`` dump re-parsed with a syntax error.
+  The `connect` keyword is now only set when the binary part actually
+  carries the CONNECT-form ends (grammar tests 165/165).
+- **flows** — verified end-to-end (already working): `flow a to b;`
+  parses into a `Flow` child of the owning part, `dump()` re-emits it,
+  and the Interconnection View renders the flow edge.
 
 - **perf: DFA cache supersede** - `save_dfa_cache()` refused to update
   an existing cache file, so DFA states learned after the file was

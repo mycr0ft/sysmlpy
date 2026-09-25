@@ -403,7 +403,79 @@ tree = classtree(model)
 print(tree.dump())
 ```
 
-**All 143 grammar round-trip tests pass** (100%). Covered categories: packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, control flow (if/else, while, loop, fork, join, decision, send, accept, terminate), trade studies, views, viewpoints, render states, portion usages, and annotations.
+**All 168 grammar round-trip tests pass** (100%). Covered categories: packages, parts, items, ports, interfaces, binding connectors, flow connections, all action forms (definition, shorthand, succession, decomposition), expressions, calculations, constraints, state definitions, requirements, analysis cases, control flow (if/else, while, loop, fork, join, decision, send, accept, terminate), trade studies, views, viewpoints, render states, portion usages, and annotations.
+
+### Doc comments, interface ends, and flows (v0.96.1)
+
+These constructs are easy to lose between the parser and the API — v0.96.1 makes them first-class and round-trip-safe:
+
+- **`doc /* ... */` comments** — on a package, on any part/item/port/action/... usage or definition, and inside interface bodies — are captured as a `.doc` attribute (a plain string) and re-emitted by `dump()`/`classtree()`, even when the comment shares its body with ports, attributes, or other members.
+- **Interface ends** — `end <name>;` and `end <name> ::> part.port;` members of an interface body — are captured as `Interface.ends` (name, type, multiplicity tuples) and `Interface.iface_connections` (`::>` target paths), and survive a dump round-trip.
+- **`flow <source> to <target>;`** — parses into a `Flow` child of the owning part, re-emits in the dump, and renders as a flow edge in the Interconnection View.
+
+```python
+from sysmlpy import loads, as_interconnection_view
+from sysmlpy.formatting import classtree
+
+text = """package WaterSystem {
+    doc /* package doc: the coffee water loop */
+
+    part def WaterTank {
+        doc /* stores the water */
+        port waterOut;
+    }
+
+    part def Brewer {
+        doc /* heats and brews */
+        port waterInlet;
+    }
+
+    interface def WaterSupply {
+        doc /* the supply contract */
+        end supplierPort;
+        end consumerPort;
+    }
+
+    part def CoffeeMachine {
+        doc /* makes coffee */
+        part waterTank : WaterTank;
+        part brewer : Brewer;
+
+        interface waterLine : WaterSupply {
+            doc /* internal plumbing */
+            end supplierPort ::> waterTank.waterOut;
+            end consumerPort ::> brewer.waterInlet;
+        }
+
+        flow waterTank.waterOut to brewer.waterInlet;
+    }
+}"""
+
+model = loads(text)
+package = model.children[0]
+
+# doc text on every element
+assert package.doc == "package doc: the coffee water loop"
+tank = package.find("WaterTank")[0]
+assert tank.doc == "stores the water"
+
+# interface ends: names and ::> targets
+machine = package.find("CoffeeMachine")[0]
+water_line = next(c for c in machine.children if type(c).__name__ == "Interface")
+assert [e[0] for e in water_line.ends] == ["supplierPort", "consumerPort"]
+assert water_line.iface_connections == [
+    ("supplierPort", "waterTank.waterOut"),
+    ("consumerPort", "brewer.waterInlet"),
+]
+
+# flows show up in the Interconnection View
+assert "flow" in as_interconnection_view(model)
+
+# and everything survives the dump round-trip (docs included)
+assert "stores the water" in classtree(model).dump()
+```
+
+See `examples/doc_ends_flows.py` for the full walk through the parse → grammar → API layers.
 
 ## Semantic Analysis
 

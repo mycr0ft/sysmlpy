@@ -26,6 +26,7 @@ from sysmlpy.usage import (
     Allocation, Metadata, Rendering, Individual, FlowDef,
     View, Viewpoint, Concern, Reference,
 )
+from sysmlpy.usage import _comment_body_to_text as _comment_body_to_text_package
 
 ModelType = TypeVar("Model", bound="Model")
 
@@ -565,6 +566,8 @@ class Package(Searchable):
         self.typedby = None
         self.grammar = PackageGrammar()
         self.parent = None
+        # v0.96.1: doc text from a package-level ``doc /* ... */`` comment.
+        self.doc = None
 
         if name is not None:
             self._set_name(name)
@@ -707,6 +710,33 @@ class Package(Searchable):
                     child_defs.append(PackageMember(subchild).get_definition())
             else:
                 child_defs.append(PackageMember(v).get_definition())
+
+        # v0.96.1: keep the package-level doc comment in the rebuilt
+        # body — captured as ``self.doc`` at load time (the doc member
+        # has no public-API child to re-serialize, so emit it directly).
+        if getattr(self, 'doc', None):
+            doc_dict = {
+                "name": "Documentation",
+                "body": "/* %s */" % self.doc,
+                "identification": None,
+                "ownedRelationship": [],
+            }
+            child_defs.append({
+                "name": "PackageMember",
+                "prefix": None,
+                "ownedRelatedElement": {
+                    "name": "DefinitionElement",
+                    "ownedRelatedElement": {
+                        "name": "AnnotatingElement",
+                        "ownedRelatedElement": {
+                            "name": "Documentation",
+                            "body": "/* %s */" % self.doc,
+                            "identification": None,
+                            "ownedRelationship": [],
+                        },
+                    },
+                },
+            })
 
         body_children = getattr(
             getattr(getattr(self, 'grammar', None), 'body', None), 'children', None
@@ -1311,6 +1341,15 @@ class Package(Searchable):
                 mf = getattr(inner_element, 'children', None)
                 if mf is not None and mf.__class__.__name__ == "MetadataFeature":
                     self._add_metadata_child(mf)
+                elif mf is not None and mf.__class__.__name__ in (
+                        "Documentation", "CommentSysML"):
+                    # v0.96.1: package-level ``doc /* ... */`` — capture
+                    # the text as ``self.doc`` (previously silently
+                    # dropped).
+                    text = _comment_body_to_text_package(
+                        getattr(mf, 'body', ''))
+                    if text:
+                        self.doc = text
                 else:
                     print(f"[Package.load_from_grammar] Unknown class: {inner_class} - skipping")  # pragma: no cover
             elif inner_class == "NonOccurrenceUsageElement":

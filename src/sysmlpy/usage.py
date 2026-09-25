@@ -195,6 +195,10 @@ class Usage(Searchable):
         self._specializes_names = []
         self._redefined_refs = []
         self._referenced_refs = []
+        # Doc text from a ``doc /* ... */`` comment on this element
+        # (v0.96.1: populated by _extract_doc_from_body_item for every
+        # usage/definition kind, previously only Requirement).
+        self.doc = None
 
     @property
     def is_definition(self):
@@ -224,6 +228,125 @@ class Usage(Searchable):
                 ).get_definition()
             )
 
+        # v0.96.1: keep the element's doc comment in the rebuilt body —
+        # the doc is captured as ``self.doc`` at load time and must
+        # survive re-serialization (previously dropped whenever the doc
+        # shared its body with siblings).
+        if getattr(self, 'doc', None):
+            doc_dict = {
+                "name": "Documentation",
+                "body": "/* %s */" % self.doc,
+                "identification": None,
+                "ownedRelationship": [],
+            }
+            body_item_name = ("InterfaceBodyItem"
+                              if type(getattr(self.grammar, 'body', None)).__name__ == "InterfaceBody"
+                              else "DefinitionBodyItem")
+            body.insert(0, {
+                "name": body_item_name,
+                "ownedRelationship": [{
+                    "name": "DefinitionMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [{
+                        "name": "DefinitionElement",
+                        "ownedRelatedElement": {
+                            "name": "AnnotatingElement",
+                            "ownedRelatedElement": doc_dict,
+                        },
+                    }],
+                }],
+            })
+
+        # v0.96.1: keep interface ends (parsed into self.ends +
+        # self.iface_connections) in the rebuilt body — they have no
+        # public-API child to re-serialize, so emit them directly.
+        # Targets from ``end p ::> part.port;`` are re-emitted through
+        # the References/OwnedReferenceSubsetting/OwnedFeatureChain
+        # specialization chain (the same shape the visitor produces),
+        # so ``iface_connections`` survives a dump round-trip.
+        end_targets = {
+            conn[0]: conn[1]
+            for conn in (getattr(self, 'iface_connections', None) or [])
+            if len(conn) >= 2 and conn[1]
+        }
+        for end_name, end_type, end_mult in (
+                getattr(self, 'ends', None) or []):
+            target = end_targets.get(end_name)
+            end_specialization = None
+            if target:
+                segments = [s for s in target.split(".") if s]
+                if segments:
+                    chainings = [{
+                        "name": "OwnedFeatureChaining",
+                        "chainingFeature": {
+                            "name": "QualifiedName",
+                            "names": [seg],
+                        },
+                    } for seg in segments[1:]]
+                    end_specialization = {
+                        "name": "FeatureSpecializationPart",
+                        "specialization": [{
+                            "name": "FeatureSpecialization",
+                            "ownedRelationship": {
+                                "name": "References",
+                                "ownedRelationship": [{
+                                    "name": "OwnedReferenceSubsetting",
+                                    "referencedFeature": {
+                                        "name": "QualifiedName",
+                                        "names": [segments[0]],
+                                    },
+                                    "ownedRelatedElement": [{
+                                        "name": "OwnedFeatureChain",
+                                        "feature": {
+                                            "name": "FeatureChain",
+                                            "ownedRelationship": chainings,
+                                        },
+                                    }],
+                                }],
+                            },
+                        }],
+                        "specialization2": None,
+                        "multiplicity": None,
+                        "multiplicity2": None,
+                    }
+            end_usage = {
+                "name": "Usage",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": None,
+                            "declaredName": end_name,
+                        },
+                        "specialization": end_specialization,
+                    },
+                },
+                "completion": None,
+            }
+            body.append({
+                "name": ("InterfaceBodyItem"
+                         if type(body_owner := getattr(self.grammar, 'body', None)).__name__ == "InterfaceBody"
+                         else "DefinitionBodyItem"),
+                "ownedRelationship": [{
+                    "name": "InterfaceOccurrenceUsageMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [{
+                        "name": "InterfaceOccurrenceUsageElement",
+                        "element": {
+                            "name": "DefaultInterfaceEnd",
+                            "direction": None,
+                            "isAbstract": None,
+                            "isVariation": None,
+                            "isEnd": "end",
+                            "keyword": None,
+                            "usage": end_usage,
+                        },
+                    }],
+                }],
+            })
+
         if len(body) > 0:
             # Most usages (Part, Item, Attribute, ...) nest their body under
             # ``grammar.usage.completion.body.body`` (a DefinitionBody).  Prefixed
@@ -239,6 +362,22 @@ class Usage(Searchable):
                 target.body = DefinitionBody(
                     {"name": "DefinitionBody", "ownedRelatedElement": body}
                 )
+            elif hasattr(self.grammar, 'body') and hasattr(
+                    self.grammar.body, 'items'):
+                # InterfaceBody: items are InterfaceBodyItem objects
+                # (v0.96.1: dispatch on the item's own name instead of
+                # try/except-ing DefinitionBodyItem — the failed probe
+                # printed the name mismatch for every interface-body
+                # item on each dump).
+                from sysmlpy.grammar.classes import InterfaceBodyItem
+                self.grammar.body.items = []
+                for item in body:
+                    if item.get("name") == "InterfaceBodyItem":
+                        self.grammar.body.items.append(
+                            InterfaceBodyItem(item))
+                    else:
+                        self.grammar.body.items.append(
+                            DefinitionBodyItem(item))
             elif hasattr(self.grammar, 'body') and hasattr(self.grammar.body, 'children'):
                 self.grammar.body.children = [
                     DefinitionBodyItem(item) for item in body
@@ -1038,8 +1177,18 @@ class Usage(Searchable):
 
             # Process the child
             class_name = sc.__class__.__name__ if not hasattr(sc, '__class__') else sc.__class__.__name__
-
-            if class_name == "PartDefinition":
+            if class_name in ("Documentation", "CommentSysML"):
+                # v0.96.1: ``doc /* ... */`` on a usage/definition body
+                # item — capture the comment text as ``self.doc``
+                # (previously silently dropped whenever the doc comment
+                # shared its body with attributes/ports, or appeared at
+                # package level).  The body-item unwrap goes
+                # DefinitionElement -> AnnotatingElement -> Documentation,
+                # so the dispatch sees the Documentation object directly.
+                text = _comment_body_to_text(getattr(sc, 'body', ''))
+                if text:
+                    self.doc = text
+            elif class_name == "PartDefinition":
                 c = Part(definition=True).load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
@@ -1185,6 +1334,31 @@ class Usage(Searchable):
                                 c = Item(definition=True).load_from_grammar(inner)
                             c.parent = self
                             self.children.append(c)
+
+        # v0.96.1: doc comments on every usage/definition kind — walk
+        # the grammar body items (definition / usage / declaration
+        # paths) and pick up Documentation / CommentSysML nodes.  The
+        # Requirement path already called this; the shared walk here
+        # covers part/item/port/action/... uniformly.
+        grammar_body = None
+        defn = getattr(grammar, 'definition', None)
+        if defn is not None and hasattr(defn, 'body'):
+            grammar_body = defn.body
+        if grammar_body is None:
+            usage = getattr(grammar, 'usage', None)
+            if usage is not None:
+                completion = getattr(usage, 'completion', None)
+                if completion is not None:
+                    body = getattr(completion, 'body', None)
+                    grammar_body = getattr(body, 'body', None) if body else None
+        if grammar_body is None:
+            grammar_body = getattr(grammar, 'body', None)
+        if grammar_body is not None and hasattr(grammar_body, 'children'):
+            for body_item in grammar_body.children:
+                try:
+                    self._extract_doc_from_body_item(body_item)
+                except Exception:  # pragma: no cover
+                    pass
 
         self._extract_specialization_info(grammar)
 
@@ -2228,6 +2402,14 @@ class Interface(Usage):
 
         body_items = []
 
+        if getattr(self, 'doc', None):
+            if '\n' in self.doc:
+                lines = self.doc.split('\n')
+                doc_block = ['doc /*'] + [f' * {l}' for l in lines] + [' */']
+                body_items.append('\n'.join(doc_block))
+            else:
+                body_items.append(f"doc /* {self.doc} */")
+
         for end_name, end_type, end_mult in self.ends:
             mult_str = f"[{end_mult}]" if end_mult else ""
             if end_type:
@@ -2235,8 +2417,8 @@ class Interface(Usage):
             else:
                 body_items.append(f"end {end_name}{mult_str};")
 
-        for from_path, to_path in self.iface_connections:
-            body_items.append(f"connect {from_path} to {to_path};")
+        # v0.96.1: iface_connections is synthetic capture of the ends'
+        # ::> targets — not connect statements; don't re-emit them.
 
         if body_items:
             body = " {\n   " + "\n   ".join(body_items) + "\n}"
@@ -2278,6 +2460,74 @@ class Interface(Usage):
                         feat_decl = inner_decl.declaration
                         if hasattr(feat_decl, 'identification') and feat_decl.identification:
                             self.name = feat_decl.identification.declaredName
+
+        # v0.96.1: parse the interface body's ends —
+        #   InterfaceUsage.body (InterfaceBody)
+        #     -> items [InterfaceBodyItem]
+        #       -> children [InterfaceOccurrenceUsageMember]
+        #         -> elements [InterfaceOccurrenceUsageElement]
+        #           -> element [DefaultInterfaceEnd]
+        #             -> usage (name; ::> target as a feature chain)
+        # previously the ends stayed in the grammar only and
+        # ``self.ends`` was always empty.
+        body = getattr(grammar, 'body', None)
+        for body_item in (getattr(body, 'items', None) or []):
+            # v0.96.1: doc comments on the interface body —
+            #   DefinitionMember -> DefinitionElement -> AnnotatingElement
+            #     -> Documentation / CommentSysML (single object in
+            #        .children)
+            for member in (getattr(body_item, 'children', None) or []):
+                if member.__class__.__name__ == "DefinitionMember":
+                    for element in (getattr(member, 'children', None) or []):
+                        for annotating in (getattr(element, 'children', None) or []):
+                            if annotating.__class__.__name__ != "AnnotatingElement":
+                                continue
+                            doc_obj = getattr(annotating, 'children', None)
+                            if doc_obj is not None and doc_obj.__class__.__name__ in (
+                                    "Documentation", "CommentSysML"):
+                                text = _comment_body_to_text(
+                                    getattr(doc_obj, 'body', ''))
+                                if text:
+                                    self.doc = text
+                    continue
+                for element in (getattr(member, 'elements', None) or []):
+                    de = getattr(element, 'element', None)
+                    if de is None or de.__class__.__name__ != "DefaultInterfaceEnd":
+                        continue
+                    usage_g = getattr(de, 'usage', None)
+                    if usage_g is None:
+                        continue
+                    end_name = None
+                    decl = getattr(usage_g, 'declaration', None)
+                    fd = getattr(decl, 'declaration', None)
+                    ident = getattr(fd, 'identification', None)
+                    if ident is not None:
+                        end_name = getattr(ident, 'declaredName', None)
+                    # ::> target: FeatureSpecializationPart ->
+                    # specializations -> relationship children ->
+                    # OwnedReferenceSubsetting (+ OwnedFeatureChain)
+                    target = None
+                    spec_part = getattr(fd, 'specialization', None)
+                    for fs in (getattr(spec_part, 'specializations', None) or []):
+                        rel = getattr(fs, 'relationship', None)
+                        for child in (getattr(rel, 'children', None) or []):
+                            qn = (getattr(child, 'referencedFeature', None)
+                                  or getattr(child, 'redefinedFeature', None))
+                            segments = []
+                            if qn is not None and getattr(qn, 'names', None):
+                                segments.extend(qn.names)
+                            for el2 in (getattr(child, 'elements', None) or []):
+                                feat = getattr(el2, 'feature', None)
+                                for seg2 in (getattr(feat, 'children', None) or []):
+                                    cf = getattr(seg2, 'chainingFeature', None)
+                                    if cf is not None and getattr(cf, 'names', None):
+                                        segments.extend(cf.names)
+                            if segments:
+                                target = ".".join(segments)
+                    if end_name is not None:
+                        self.add_end(end_name)
+                    if target:
+                        self.iface_connections.append((end_name, target))
 
         self._extract_specialization_info(grammar)
 

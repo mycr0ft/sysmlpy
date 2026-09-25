@@ -125,9 +125,9 @@ def section_2_doc(model, package):
     # element; it lives in the grammar's Documentation objects and is
     # recovered by dump() (and by re-parsing the dumped text).
     print("  API element exposes .doc attribute:", hasattr(package, "doc"))
-    print("  -> doc text is parsed into the visitor dict; dump() keeps it")
-    print("     only when doc is the sole body item (requirement bodies")
-    print("     excepted). Package-level + nested-usage doc are visitor gaps.")
+    print("  -> doc text is parsed into the visitor dict AND captured as")
+    print("     .doc on the API object; dump() keeps it (with siblings too)")
+    print("     and the dumped text re-parses with .doc intact.")
 
 
 def section_3_interface_ends(package, model):

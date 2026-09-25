@@ -10222,6 +10222,19 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
             inner_element = _visit_nested_non_occurrence_usage(non_occ)
             wrapper = "NonOccurrenceUsageMember"
     
+    # v0.96.1: a bare ``doc /* ... */`` member parses as
+    # DefinitionMemberContext (MemberPrefix + DefinitionElement ->
+    # AnnotatingElement -> Documentation) with NO
+    # definitionBodyItemContent — handle it directly (previously the
+    # doc member was dropped when it shared its body with siblings).
+    if not inner_element and hasattr(item_ctx, 'definitionMember') and item_ctx.definitionMember():
+        member_ctx = item_ctx.definitionMember()
+        element_ctx = member_ctx.definitionElement()
+        if element_ctx is not None:
+            ann_dict = _visit_nested_definition_element(element_ctx)
+            if ann_dict is not None and ann_dict.get("name") == "PackageMember":
+                inner_element = ann_dict.get("ownedRelatedElement", {})
+                wrapper = "DefinitionMember"
     # Check for definitionBodyItemContent
     if not inner_element and hasattr(item_ctx, 'definitionBodyItemContent') and item_ctx.definitionBodyItemContent():
         content = item_ctx.definitionBodyItemContent()

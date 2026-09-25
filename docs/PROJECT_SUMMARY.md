@@ -1,8 +1,8 @@
 # sysmlpy — Project Work Summary
 
 > **For:** Future agents and team members
-> **Last Updated:** September 23, 2026
-> **Current Version:** v0.96.0
+> **Last Updated:** September 25, 2026
+> **Current Version:** v0.96.1
 > **Repository:** https://github.com/mycr0ft/sysmlpy
 > **Roadmap:** the 10-goal Adoption Roadmap (docs/archive/DEVELOPMENT_PLAN.md,
 > now archived) is **complete** as of v0.77.0 — see CHANGELOG.md
@@ -76,13 +76,18 @@ SysML text → ANTLR4 Lexer/Parser → Parse Tree
 
 ### Grammar Round-Trip
 
-- **143/143 grammar round-trip tests pass** (100%)
+- **168/168 grammar round-trip tests pass** (100%)
 - Every grammar class has `dump()` and `get_definition()` for serialization —
   v0.53.1 added `get_definition()` to the final 36 missing classes and
   verified 358/358 via reflection audit
 - All 68+ `raise NotImplementedError` stubs replaced with graceful handling (v0.27.0)
 - Missing classes added: `DefinitionBody`, `DefinitionBodyItem`, `FeatureSpecializationPart`, `SubclassificationPart`
 - `classtree()` converts Model tree back to text
+- v0.96.1: `doc /* ... */` comments on packages and all usage/definition
+  kinds (`.doc` attribute) and interface ends (`end p;`,
+  `end p ::> part.port;` → `Interface.ends` / `Interface.iface_connections`)
+  survive the round-trip; interface usages no longer dump a spurious
+  `connect` keyword
 
 ### Semantic Analysis (v0.17.0 → v0.54.0)
 

@@ -4067,7 +4067,14 @@ class InterfaceDefinition:
                 if isinstance(def_dict, dict) and def_dict.get("body") is not None:
                     body_dict = def_dict["body"]
                     if isinstance(body_dict, dict) and body_dict.get("name") in ("DefinitionBody", "InterfaceBody"):
-                        self.body = InterfaceBody({"name": "InterfaceBody", "item": body_dict.get("ownedRelatedElement", [])})
+                        # v0.96.1: a rebuilt DefinitionBody dict carries
+                        # its items in "ownedRelatedElement" (the
+                        # standard relationship name); a native
+                        # InterfaceBody dict carries them in "item".
+                        items = body_dict.get("item",
+                                              body_dict.get("ownedRelatedElement", []))
+                        self.body = InterfaceBody(
+                            {"name": "InterfaceBody", "item": items})
                     else:
                         self.body = InterfaceBody(body_dict)
             else:
@@ -5105,6 +5112,13 @@ class DefinitionBodyItem:
                         self.children.append(NonOccurrenceUsageMember(item))
                     elif item["name"] == "DefinitionMember":
                         self.children.append(DefinitionMember(item))
+                    elif item["name"] == "InterfaceOccurrenceUsageMember":
+                        # v0.96.1: interface ends inside a rebuilt
+                        # definition body (the ends have no public-API
+                        # child to re-serialize).
+                        self.children.append(
+                            InterfaceOccurrenceUsageMember(item)
+                        )
                     elif item["name"] == "Import":
                         # Imports are legal in usage bodies too
                         # (``part p1 { private import Q::*; }``) —
@@ -7551,7 +7565,18 @@ class InterfaceUsageDeclaration:
             if definition["part1"] is not None:
                 self.part = InterfacePart(definition["part1"])
                 # The connect usage was optional and it was used here.
-                self.keyword = "connect\n"
+                # v0.96.1: only when the binary part actually carries the
+                # CONNECT-form ends — the visitor also emits an EMPTY
+                # part1 for plain ``interface x : T { ... }`` (body-form
+                # ends), and marking those "connect" produced a
+                # reparse-breaking ``interface x: T connect ...`` dump.
+                binpart = getattr(self.part, 'children', None)
+                has_end_members = False
+                if binpart is not None and binpart.__class__.__name__ == "BinaryInterfacePart":
+                    has_end_members = bool(
+                        getattr(binpart, 'children', []) or [])
+                if has_end_members:
+                    self.keyword = "connect\n"
             elif definition["part2"] is not None:
                 self.part = InterfacePart(definition["part2"])
 

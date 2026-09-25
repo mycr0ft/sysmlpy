@@ -1,8 +1,23 @@
 # sysmlpy — Project Status
 
-Current version: **v0.96.0** (2026-09-23)
+Current version: **v0.96.1** (2026-09-25)
 
 ---
+
+## Recent Highlights (v0.96.1)
+
+- **doc comments survive everywhere**: `doc /* ... */` on packages and
+  on any usage/definition kind (previously dropped when shared with
+  sibling body items; only Requirement kept it) is captured as `.doc`
+  on the API object and re-emitted by `dump()`/`classtree()`.
+- **interface ends captured**: `end <name>;` and
+  `end <name> ::> part.port;` in interface bodies parse into
+  `Interface.ends` / `Interface.iface_connections` (previously
+  grammar-layer only), and `::>` targets survive the dump round-trip.
+- **Round-trip fix**: interface usages no longer dump a spurious
+  `connect` keyword (syntax error on re-parse).
+- Flows verified end-to-end: `flow a to b;` → `Flow` child → dump →
+  Interconnection View edge.
 
 ## Recent Highlights (v0.96.0)
 
