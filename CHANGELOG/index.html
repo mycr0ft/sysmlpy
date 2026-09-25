@@ -539,10 +539,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0961-unreleased" class="md-nav__link">
+  <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.96.1 (unreleased)
+        v0.96.1 (2026-09-25)
       
     </span>
   </a>
@@ -655,10 +655,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#v0961-unreleased" class="md-nav__link">
+  <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
-        v0.96.1 (unreleased)
+        v0.96.1 (2026-09-25)
       
     </span>
   </a>
@@ -730,9 +730,39 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="v0961-unreleased">v0.96.1 (unreleased)<a class="headerlink" href="#v0961-unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="v0961-2026-09-25">v0.96.1 (2026-09-25)<a class="headerlink" href="#v0961-2026-09-25" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>perf: DFA cache supersede</strong> - <code>save_dfa_cache()</code> refused to update
+<li><strong>doc comments survive everywhere</strong> — <code>doc /* ... */</code> on a package,
+  on any part/item/port/action/... usage or definition, and inside
+  interface bodies is captured as <code>.doc</code> on the API object (previously
+  silently dropped whenever the comment shared its body with
+  siblings; only Requirement carried doc). <code>dump()</code>/<code>classtree()</code> re-emits
+  the doc alongside the other body items, and re-parsing the dumped
+  text keeps <code>.doc</code> intact. New example <code>examples/doc_ends_flows.py</code></li>
+<li>11 tests (doc_ends_flows 5/5).</li>
+<li><strong>interface ends captured</strong> — <code>end &lt;name&gt;;</code> and
+  <code>end &lt;name&gt; ::&gt; part.port;</code> members of an interface body now parse
+  into <code>Interface.ends</code> (name/type/multiplicity) and
+  <code>Interface.iface_connections</code> (the <code>::&gt;</code> targets as feature-path
+  strings); previously the ends stayed in the grammar layer only and
+  <code>.ends</code> was always empty. <code>end ::&gt;</code> targets are re-emitted through
+  the References/OwnedReferenceSubsetting/OwnedFeatureChain
+  specialization chain, so they survive a dump round-trip (and
+  re-parsing rebuilds <code>iface_connections</code>).</li>
+<li><strong>fix: round-trip of interface usages emitted a spurious <code>connect</code>
+  keyword</strong> — <code>InterfaceUsageDeclaration</code> marked ANY <code>part1</code> as the
+  CONNECT form, but the visitor also emits an empty <code>part1</code> for plain
+  <code>interface x : T { ... }</code>; the resulting
+  <code>interface x: T connect {...}</code> dump re-parsed with a syntax error.
+  The <code>connect</code> keyword is now only set when the binary part actually
+  carries the CONNECT-form ends (grammar tests 165/165).</li>
+<li>
+<p><strong>flows</strong> — verified end-to-end (already working): <code>flow a to b;</code>
+  parses into a <code>Flow</code> child of the owning part, <code>dump()</code> re-emits it,
+  and the Interconnection View renders the flow edge.</p>
+</li>
+<li>
+<p><strong>perf: DFA cache supersede</strong> - <code>save_dfa_cache()</code> refused to update
   an existing cache file, so DFA states learned after the file was
   written (short-name <code>&lt;K&gt;</code> forms, <code>[1..*] nonunique</code> multiplicity
   chains, STRING short-names) were re-built by every fresh process:
@@ -741,7 +771,8 @@
   A strictly-warmer in-process cache now atomically replaces the file;
   after one absorbing run per construct family, all six slowest OMG
   files parse in 0.2-8 s per fresh CLI process. 2 new supersede tests
-  (dfa_cache 16/16).</li>
+  (dfa_cache 16/16).</p>
+</li>
 <li><strong>New loaders for package-less snippets</strong>: <code>loads_wrapped()</code> /
   <code>load_wrapped()</code> wrap bare top-level SysML (OMG <code>Simple Tests</code> /
   training-snippet style, e.g. <code>part def Camera { ... }</code> with no

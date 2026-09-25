@@ -1235,8 +1235,8 @@
 <h1 id="sysmlpy-project-work-summary">sysmlpy — Project Work Summary<a class="headerlink" href="#sysmlpy-project-work-summary" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>For:</strong> Future agents and team members
-<strong>Last Updated:</strong> September 23, 2026
-<strong>Current Version:</strong> v0.96.0
+<strong>Last Updated:</strong> September 25, 2026
+<strong>Current Version:</strong> v0.96.1
 <strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy
 <strong>Roadmap:</strong> the 10-goal Adoption Roadmap (docs/archive/DEVELOPMENT_PLAN.md,
 now archived) is <strong>complete</strong> as of v0.77.0 — see CHANGELOG.md</p>
@@ -1299,13 +1299,18 @@ now archived) is <strong>complete</strong> as of v0.77.0 — see CHANGELOG.md</p
 </ul>
 <h3 id="grammar-round-trip">Grammar Round-Trip<a class="headerlink" href="#grammar-round-trip" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>143/143 grammar round-trip tests pass</strong> (100%)</li>
+<li><strong>168/168 grammar round-trip tests pass</strong> (100%)</li>
 <li>Every grammar class has <code>dump()</code> and <code>get_definition()</code> for serialization —
   v0.53.1 added <code>get_definition()</code> to the final 36 missing classes and
   verified 358/358 via reflection audit</li>
 <li>All 68+ <code>raise NotImplementedError</code> stubs replaced with graceful handling (v0.27.0)</li>
 <li>Missing classes added: <code>DefinitionBody</code>, <code>DefinitionBodyItem</code>, <code>FeatureSpecializationPart</code>, <code>SubclassificationPart</code></li>
 <li><code>classtree()</code> converts Model tree back to text</li>
+<li>v0.96.1: <code>doc /* ... */</code> comments on packages and all usage/definition
+  kinds (<code>.doc</code> attribute) and interface ends (<code>end p;</code>,
+  <code>end p ::&gt; part.port;</code> → <code>Interface.ends</code> / <code>Interface.iface_connections</code>)
+  survive the round-trip; interface usages no longer dump a spurious
+  <code>connect</code> keyword</li>
 </ul>
 <h3 id="semantic-analysis-v0170-v0540">Semantic Analysis (v0.17.0 → v0.54.0)<a class="headerlink" href="#semantic-analysis-v0170-v0540" title="Permanent link">&para;</a></h3>
 <p>The semantic analysis engine (<code>semantic.py</code>) provides comprehensive validation:</p>
