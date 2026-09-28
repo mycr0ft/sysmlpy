@@ -1598,7 +1598,13 @@ parses or tools:</p>
   the same element inside a different parent (or reordered package)
   hashes differently.  For a given source text the ids are stable, which
   is what diff-friendly interchange needs; for cross-document matching,
-  match on declared names / resolved qualified names.</li>
+  match on declared names / resolved qualified names.
+  <strong><code>stable_ids=True</code></strong> (v0.96.3) switches the exporter to
+  content-addressed ids: named elements hash their qualified-name path
+  and type, so inserting/reordering unrelated elements elsewhere leaves
+  untouched ids unchanged (L2 idempotency — CLI: <code>--stable-ids</code>).  See
+  <a href="../stable-identities/">Stable Element Identities</a> for the guarantees
+  and limitations.</li>
 <li>Full walkthrough: <code>examples/element_identity.py</code> — parses twice,
   shows the fresh uuid4 vs the stable <code>@id</code>s, and proves the round trip
   preserves identity. For projects needing ids that also survive

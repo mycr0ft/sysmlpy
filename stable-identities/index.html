@@ -640,6 +640,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="4. Recommended scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#design-decision-recorded-declared-path-not-resolved-qn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design decision recorded: declared-path, not resolved-QN
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -799,21 +816,45 @@ convention the other project must adopt and preserve.</p>
 resolves across imports). No id stability needed if consumers can key
 on <code>P::Sub::Engine</code>. Often sufficient; cheapest.</p>
 <h2 id="4-recommended-scope">4. Recommended scope<a class="headerlink" href="#4-recommended-scope" title="Permanent link">&para;</a></h2>
-<p>Phase 1 (L2, ~1-2 sessions):
-1. <code>interchange.py</code>: <code>to_interchange(..., stable_ids=False)</code> — when
-   True, id = uuid5(NAMESPACE, resolved-QN + "|" + @type +
-   optional "|#" + occurrence); resolver run via <code>semantic</code> (errors
-   fall back to position ids for anonymous/unresolved elements).
-2. Anonymous elements keep uuid4-style content keys (they <em>have</em> no
-   QN) — document that anonymous identity is per-parse by nature.
-3. Tests: L1 byte-identity still holds; L2 scenario table from §1 as
-   parametrized cases; collision group behaves per A.
-4. <code>store.py</code> consumers get id-preserving upsert: <code>put</code> with the same
-   stable id updates in place (already keyed this way — verify with
-   kuzu/networkx backends).</p>
+<p>Phase 1 (L2) — <strong>IMPLEMENTED (v0.96.3)</strong>:</p>
+<ol>
+<li>✅ <code>interchange.py</code>: <code>to_interchange(..., stable_ids=False)</code> — when
+   True, ids are uuid5 over the <strong>declared</strong> qualified-name path
+   (syntax-derived, no resolver: <code>P.Engine.power</code> style chains of
+   <code>Identification.declaredName</code> from root) + <code>@type</code>; anonymous /
+   unresolved elements hash the nearest named anchor plus the
+   structural path from it (option-A resolved-QN variant deliberately
+   deferred — declared path keeps export resolver-free and
+   machine-independent).</li>
+<li>✅ Anonymous elements keep anchor-relative keys — documented that
+   anonymous identity follows the nearest declared ancestor.</li>
+<li>✅ Tests (<code>tests/interchange_test.py::TestStableIds</code>): L1
+   byte-identity, the §1 edit matrix as parametrized cases
+   (sibling before/after, inner-feature insertion), ancestor-rename
+   and re-nesting identity-follows-content semantics, collision-group
+   uniqueness, graph-wide uniqueness on the rich model, round trip,
+   and default-path invariance (<code>stable_ids=False</code> byte-identical to
+   the v0.63.0 behaviour).</li>
+<li>✅ <code>store.py</code> upsert verified on the memory backend: same stable id
+   updates the stored element in place (stores are UUID-keyed by
+   design).  networkx/kuzu/cayley backends are optional-dependency
+   gated in this environment (their test failures are pre-existing,
+   unrelated to ids).</li>
+<li>✅ CLI: <code>sysmlpy export --stable-ids</code>.</li>
+</ol>
 <p>Phase 2 (L3, opt-in): doc-comment <code>@id:</code> convention (option C) layered
 on Phase 1; exporter/importer round-trip the explicit id and never
 re-mint over it.</p>
+<h3 id="design-decision-recorded-declared-path-not-resolved-qn">Design decision recorded: declared-path, not resolved-QN<a class="headerlink" href="#design-decision-recorded-declared-path-not-resolved-qn" title="Permanent link">&para;</a></h3>
+<p>Option A as scoped mentioned hashing the <em>resolved</em> qualified name via
+<code>semantic.py</code>.  Implementation uses the <strong>declared</strong> path instead
+(chain of <code>Identification.declaredName</code> from root): resolution depends
+on library availability and import resolution, which would make ids
+machine-dependent — defeating idempotency.  Consequence: ids follow
+declared identity, so renaming an ancestor re-mints descendant ids
+(verified in <code>test_qn_follows_declared_identity</code>).  The position scheme
+accidentally survived ancestor renames; the content scheme intentionally
+does not.  Trade-off documented here rather than hidden.</p>
 <h2 id="5-risks-open-questions">5. Risks / open questions<a class="headerlink" href="#5-risks-open-questions" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Resolved-QN depends on import resolution settings; a model whose
