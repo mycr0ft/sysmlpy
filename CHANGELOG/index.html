@@ -539,6 +539,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0962-2026-09-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.96.2 (2026-09-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -655,6 +666,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0962-2026-09-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.96.2 (2026-09-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -730,6 +752,31 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0962-2026-09-28">v0.96.2 (2026-09-28)<a class="headerlink" href="#v0962-2026-09-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Grammar upgraded to OMG release 2026-08</strong> — the vendored ANTLR4
+  grammar is now daltskin/sysml-v2-grammar <strong>v2026.08.1</strong> (upstream
+  <code>14b0d7a</code>), replacing the 2026.05.0 base + local patches. Includes
+  upstream #11's flat precedence-correct <code>ownedExpression</code> cascade and
+  upstream #16's required import visibility (bare <code>import X;</code> is now a
+  <code>SysMLSyntaxError</code>; use <code>private</code>/<code>public</code>/<code>protected</code>).</li>
+<li><strong>Non-normative forms removed</strong> (resolved against the OMG KEBNF and
+  the pilot KerMLExpressions.xtext with daltskin): bare qualified
+  identification (<code>subject SystemGateway::System_Driver;</code> — use the
+  typed form <code>subject : SystemGateway::System_Driver;</code>) and
+  connector-end trailing multiplicity (<code>connect a[1] to b;</code> — use the
+  normative leading form <code>connect [1] a to b;</code>).</li>
+<li>Visitor: structured expression chains re-emitted from the flat
+  left-recursive parse tree (revived v0.52.0 splice machinery);
+  symbol-form <code>&amp;</code>/<code>|</code> operators structured; multi-segment
+  <code>FeatureChainMember</code> (one context, many name segments) fully
+  captured so feature-chain type resolution reports the whole chain.</li>
+<li><code>ConnectorEnd</code> preserves the normative leading cross-multiplicity
+  and dumps it before the declared name.</li>
+<li>All gates green: grammar 168/168, fast suite 595 passed/1 skipped,
+  OMG XPect conformance 123 passed/3 skipped (optional-dep skips),
+  KerML batteries 5/5.</li>
+</ul>
 <h2 id="v0961-2026-09-25">v0.96.1 (2026-09-25)<a class="headerlink" href="#v0961-2026-09-25" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>doc comments survive everywhere</strong> — <code>doc /* ... */</code> on a package,
