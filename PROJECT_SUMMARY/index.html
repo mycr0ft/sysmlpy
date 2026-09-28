@@ -718,6 +718,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="JSON Interchange (v0.63.0 — Adoption Roadmap Goal 3)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#element-identity-parse-uuid4-vs-interchange-uuid5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Element identity: parse uuid4 vs interchange uuid5
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -1542,6 +1559,50 @@ properties as <code>{"@id": ...}</code> references:</p>
 <p>Export is lossless: the rebuilt model's <code>dump()</code> text, grammar-object
 tree, and traceability report are identical to the original, and
 re-exporting a rebuilt model reproduces byte-identical JSON.</p>
+<h4 id="element-identity-parse-uuid4-vs-interchange-uuid5">Element identity: parse uuid4 vs interchange uuid5<a class="headerlink" href="#element-identity-parse-uuid4-vs-interchange-uuid5" title="Permanent link">&para;</a></h4>
+<p>Element identity behaves differently per layer — knowing which is which
+matters whenever something downstream must reference an element across
+parses or tools:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Identifier</th>
+<th>Stable across parses?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Parse (<code>loads()</code>)</td>
+<td>Model root and <em>anonymous</em> elements get a fresh <strong>uuid4</strong> as their <code>name</code>; named elements carry no generated identifier</td>
+<td>❌ new uuid4 every parse</td>
+</tr>
+<tr>
+<td>Interchange (<code>to_interchange</code>)</td>
+<td>every element gets <code>@id</code>: deterministic <strong>uuid5</strong> from tree position under a fixed namespace</td>
+<td>✅ byte-identical JSON on every export</td>
+</tr>
+<tr>
+<td>Round trip (<code>from_interchange</code>)</td>
+<td>rebuild via the <code>@graph</code>; re-export reproduces the identical <code>@graph</code></td>
+<td>✅ identity preserved</td>
+</tr>
+</tbody>
+</table>
+<p>Notes for downstream tooling:</p>
+<ul>
+<li>No parsed element has a <code>.uuid</code> attribute — the only uuid4 names are
+  the Model root and anonymous declarations (<code>part : Engine;</code>).
+  Normalize both in round-trip comparisons.</li>
+<li>The interchange <code>@id</code> is <strong>position-derived</strong>, not content-derived:
+  the same element inside a different parent (or reordered package)
+  hashes differently.  For a given source text the ids are stable, which
+  is what diff-friendly interchange needs; for cross-document matching,
+  match on declared names / resolved qualified names.</li>
+<li>Full walkthrough: <code>examples/element_identity.py</code> — parses twice,
+  shows the fresh uuid4 vs the stable <code>@id</code>s, and proves the round trip
+  preserves identity.</li>
+</ul>
 <h3 id="requirement-traceability-v0620-adoption-roadmap-goal-2">Requirement Traceability (v0.62.0 — Adoption Roadmap Goal 2)<a class="headerlink" href="#requirement-traceability-v0620-adoption-roadmap-goal-2" title="Permanent link">&para;</a></h3>
 <p>The satisfy / verify / verification relationships parse, round-trip, and
 feed a traceability reporting module:</p>
