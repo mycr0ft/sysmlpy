@@ -644,6 +644,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#phase-2b-l3-source-carried-explicit-ids-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2b (L3, source-carried explicit ids) — IMPLEMENTED
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#design-decision-recorded-declared-path-not-resolved-qn" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -872,6 +883,46 @@ on <code>P::Sub::Engine</code>. Often sufficient; cheapest.</p>
 declared name matches stay unmatched (fresh derived ids; they become
 registry entries on the next write).  The doc-comment <code>@id:</code>
 convention (option C below) removes even that.</p>
+<h3 id="phase-2b-l3-source-carried-explicit-ids-implemented">Phase 2b (L3, source-carried explicit ids) — IMPLEMENTED<a class="headerlink" href="#phase-2b-l3-source-carried-explicit-ids-implemented" title="Permanent link">&para;</a></h3>
+<p>(unreleased; on main)</p>
+<ul>
+<li><strong>Carrier (verified safe-shape):</strong> a <code>doc /* @id: … */</code> comment
+  INSIDE the element's own braces attaches to that element (<code>.doc</code>
+  on the public tree); doc text survives <code>dump()</code> → re-parse
+  idempotently.  <strong>Pitfall pinned by tests:</strong> a doc statement at
+  <em>sibling</em> level (outside the element's braces) bubbles to the
+  enclosing package — placement decides the owner
+  (<code>test_explicit_id_attach_point_semantics</code>).</li>
+<li><strong>Harvest:</strong> <code>_harvest_doc_ids(model)</code> walks the public tree
+  (<code>.doc</code> populated on every kind), mapping declared QN path → the
+  <code>@id:</code> token in the comment; the Model root's per-parse uuid
+  name is skipped.  Returns <code>None</code> on plain models so
+  <code>doc_ids=True</code> stays inert (byte-identical to <code>stable_ids</code>
+  output — pinned by <code>test_plain_models_unaffected</code>).</li>
+<li><strong>Precedence:</strong> explicit &gt; registry &gt; derive; never re-minted over
+  an explicit id (<code>_StableIdAssigner(explicit_ids=...)</code>).</li>
+<li><strong>Qn-path bridge:</strong> the assigner receives repeat-tail paths
+  (<code>('P','P','P')</code> — one segment per declaration/identification
+  nesting level); <code>_dedupe_repeat_tail</code> collapses them so the
+  harvest key (<code>'P.Engine'</code>) matches.  Adoption gates on the node
+  being the Identification whose deduped path == the key (Package
+  and PackageDeclaration keep derived ids — probe2j).</li>
+<li><strong>Duplicate-id export error:</strong> two elements claiming the same
+  explicit id (same QN key twice, or different keys → same id
+  value) raise <code>ValueError</code> — enforced on the id VALUE
+  (probe2l).</li>
+<li><strong>Verified end to end:</strong> export → dump → re-parse → export keeps
+  the explicit id; full interchange round trip
+  (<code>from_interchange</code>) keeps it; graph-wide uniqueness; 12 new
+  tests (<code>tests/interchange_test.py::TestDocIds</code>).</li>
+<li>API: <code>to_interchange(..., doc_ids=True)</code> (implies
+  <code>stable_ids</code>).</li>
+</ul>
+<p>Deferred (see §5): import-side re-embedding of explicit ids into
+<code>dump()</code> text (<code>--embed-ids</code>) — dump shapes are pinned by the
+168 round-trip tests; the doc carrier survives dumps as-is for
+elements whose bodies start with their doc comment, so full
+re-embedding is a tightening, not a correctness gap.</p>
 <h3 id="design-decision-recorded-declared-path-not-resolved-qn">Design decision recorded: declared-path, not resolved-QN<a class="headerlink" href="#design-decision-recorded-declared-path-not-resolved-qn" title="Permanent link">&para;</a></h3>
 <p>Option A as scoped mentioned hashing the <em>resolved</em> qualified name via
 <code>semantic.py</code>.  Implementation uses the <strong>declared</strong> path instead
