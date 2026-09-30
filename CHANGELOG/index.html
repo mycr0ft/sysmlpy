@@ -550,6 +550,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unreleased-on-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased (on main)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -677,6 +688,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unreleased-on-main" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased (on main)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0961-2026-09-25" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -776,6 +798,20 @@
 <li>All gates green: grammar 168/168, fast suite 595 passed/1 skipped,
   OMG XPect conformance 123 passed/3 skipped (optional-dep skips),
   KerML batteries 5/5.</li>
+</ul>
+<h2 id="unreleased-on-main">Unreleased (on main)<a class="headerlink" href="#unreleased-on-main" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>reconcile_ids</code> / <code>to_interchange(reconcile_with=...)</code> (Phase 2,
+  L3 identity)</strong> — adopt element <code>@id</code>s from a previous export (the
+  registry; dict, JSON text, or filesystem path).  Name-matched
+  elements keep their ids across edits that re-mint derived ids
+  (ancestor renames, re-nesting).  Injective (declaredName, @type)
+  matching keeps documents collision-free; nested <code>{"@id"}</code> refs are
+  remapped so reconciled documents import cleanly.  CLI:
+  <code>sysmlpy export --reconcile-with model.json -o model.json</code>
+  (idempotent after the first export).  Scope + Phase 1 context:
+  <code>docs/stable-identities.md</code>; walkthrough:
+  <code>examples/element_identity.py</code> (sections 4-5).</li>
 </ul>
 <h2 id="v0961-2026-09-25">v0.96.1 (2026-09-25)<a class="headerlink" href="#v0961-2026-09-25" title="Permanent link">&para;</a></h2>
 <ul>

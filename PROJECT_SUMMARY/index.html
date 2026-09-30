@@ -1608,9 +1608,13 @@ parses or tools:</p>
   and limitations.</li>
 <li>Full walkthrough: <code>examples/element_identity.py</code> — parses twice,
   shows the fresh uuid4 vs the stable <code>@id</code>s, and proves the round trip
-  preserves identity. For projects needing ids that also survive
-  edits and cross-document matching, see
-  <a href="../stable-identities/">Stable Element Identities</a> (scope + options).</li>
+  preserves identity.  <strong><code>reconcile_ids</code></strong> (registry sidecar, new):
+  re-exports adopt ids from the previous export file — name-matched
+  elements keep ids even when ancestor renames re-mint derived ids
+  (L3 identity).  <code>to_interchange(reconcile_with="model.json")</code>,
+  <code>reconcile_ids(doc, registry)</code>, CLI <code>sysmlpy export
+  --reconcile-with model.json -o model.json</code> (idempotent fixed point).
+  See <a href="../stable-identities/">Stable Element Identities</a>.</li>
 </ul>
 <h3 id="requirement-traceability-v0620-adoption-roadmap-goal-2">Requirement Traceability (v0.62.0 — Adoption Roadmap Goal 2)<a class="headerlink" href="#requirement-traceability-v0620-adoption-roadmap-goal-2" title="Permanent link">&para;</a></h3>
 <p>The satisfy / verify / verification relationships parse, round-trip, and

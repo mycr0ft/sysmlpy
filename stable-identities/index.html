@@ -842,9 +842,36 @@ on <code>P::Sub::Engine</code>. Often sufficient; cheapest.</p>
    unrelated to ids).</li>
 <li>✅ CLI: <code>sysmlpy export --stable-ids</code>.</li>
 </ol>
-<p>Phase 2 (L3, opt-in): doc-comment <code>@id:</code> convention (option C) layered
-on Phase 1; exporter/importer round-trip the explicit id and never
-re-mint over it.</p>
+<p>Phase 2 (L3) — <strong>IMPLEMENTED (unreleased; on main, registry variant)</strong>:</p>
+<ul>
+<li><code>reconcile_ids(document, registry)</code> — adopt ids from a previous
+  export (dict, JSON text, or a filesystem <code>Path</code>/path str).
+  Injective matching: (declaredName, @type) must be unique on BOTH
+  sides, each registry id adopted at most once; ambiguous keys keep
+  derived ids.</li>
+<li><code>to_interchange(..., reconcile_with=...)</code> convenience — implies
+  <code>stable_ids=True</code>.</li>
+<li><strong>Nested-ref remap:</strong> adoption rewrites not just the element's
+  top-level <code>@id</code> but every nested <code>{"@id": &lt;derived&gt;}</code> reference
+  pointing at it (typed-by references, member chains) — without the
+  remap, documents whose <em>identity</em> was reconciled dangle on import
+  (found by <code>test_reconcile_result_round_trips</code> during this build).</li>
+<li>CLI: <code>sysmlpy export --reconcile-with model.json -o model.json</code> —
+  idempotent fixed point after the first export.</li>
+<li>Tests (10): rename+insert motivating case, JSON-text registry,
+  graph-wide uniqueness after reconcile (the spike's dupes pitfall),
+  no-adoption for renamed/ambiguous elements, three-round file
+  workflow, injectivity on same-name groups, error guards,
+  <code>reconcile_with=</code> convenience flag, reconciled round trip.</li>
+<li>Registry-file str/Path disambiguation: a str is treated as a path
+  only when it is &lt; 4097 chars, single-line, and exists — otherwise
+  it parses as JSON text (a JSON <em>body</em> pasted inline must not be
+  <code>open()</code>ed as a filename).</li>
+</ul>
+<p>Remaining gap to full L3: elements renamed so thoroughly that no
+declared name matches stay unmatched (fresh derived ids; they become
+registry entries on the next write).  The doc-comment <code>@id:</code>
+convention (option C below) removes even that.</p>
 <h3 id="design-decision-recorded-declared-path-not-resolved-qn">Design decision recorded: declared-path, not resolved-QN<a class="headerlink" href="#design-decision-recorded-declared-path-not-resolved-qn" title="Permanent link">&para;</a></h3>
 <p>Option A as scoped mentioned hashing the <em>resolved</em> qualified name via
 <code>semantic.py</code>.  Implementation uses the <strong>declared</strong> path instead
