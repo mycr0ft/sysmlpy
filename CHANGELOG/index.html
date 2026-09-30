@@ -814,7 +814,9 @@
     documents collision-free; nested <code>{"@id"}</code> refs are remapped so
     reconciled documents import cleanly; the CLI one-liner is an
     idempotent fixed point after the first export).</li>
-<li>New public exports: <code>reconcile_ids</code>, <code>STABLE_NAMESPACE</code>.</li>
+<li>New public exports: <code>reconcile_ids</code>,
+  <code>STABLE_NAMESPACE</code>, <code>doc_ids=True</code> (v0.96.4: explicit
+  <code>doc /* @id: … */</code> ids honored at export).</li>
 <li>New demo: <code>examples/element_identity.py</code> — all identity layers
   (parse uuid4, position uuid5, content uuid5, registry reconciliation)
   runnable end to end.</li>
@@ -854,7 +856,19 @@
 </ul>
 <h2 id="unreleased-on-main">Unreleased (on main)<a class="headerlink" href="#unreleased-on-main" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>reconcile_ids</code> / <code>to_interchange(reconcile_with=...)</code> (Phase 2,
+<li>
+<p><strong><code>doc_ids=True</code> on <code>to_interchange</code> (Phase 2b, L3 explicit
+  identity)</strong> — <code>doc /* @id: … */</code> comments inside an element's own
+  braces fix its interchange <code>@id</code> (implies <code>stable_ids</code>): never
+  re-minted over, surviving any edit (ancestor renames, re-nesting,
+  cross-file moves) because the carrier rides the source text.
+  Duplicate claims of one id raise at export.  Placement contract
+  (inside braces vs sibling-level bubbling) pinned by tests; end-to-end
+  verified export → dump → re-parse → export.  Scope record:
+  <code>docs/stable-identities.md</code> §4 Phase 2b.</p>
+</li>
+<li>
+<p><strong><code>reconcile_ids</code> / <code>to_interchange(reconcile_with=...)</code> (Phase 2,
   L3 identity)</strong> — adopt element <code>@id</code>s from a previous export (the
   registry; dict, JSON text, or filesystem path).  Name-matched
   elements keep their ids across edits that re-mint derived ids
@@ -864,7 +878,8 @@
   <code>sysmlpy export --reconcile-with model.json -o model.json</code>
   (idempotent after the first export).  Scope + Phase 1 context:
   <code>docs/stable-identities.md</code>; walkthrough:
-  <code>examples/element_identity.py</code> (sections 4-5).</li>
+  <code>examples/element_identity.py</code> (sections 4-5).</p>
+</li>
 </ul>
 <h2 id="v0961-2026-09-25">v0.96.1 (2026-09-25)<a class="headerlink" href="#v0961-2026-09-25" title="Permanent link">&para;</a></h2>
 <ul>
