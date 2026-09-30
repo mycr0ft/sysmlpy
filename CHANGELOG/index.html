@@ -539,6 +539,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0963-2026-09-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.96.3 (2026-09-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0962-2026-09-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -677,6 +688,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#v0963-2026-09-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v0.96.3 (2026-09-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0962-2026-09-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -774,6 +796,37 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="v0963-2026-09-28">v0.96.3 (2026-09-28)<a class="headerlink" href="#v0963-2026-09-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Stable element identities across edits (L2 + L3 idempotency).</strong></li>
+<li><code>to_interchange(stable_ids=True)</code> / CLI <code>sysmlpy export
+    --stable-ids</code>: content-addressed <code>@id</code>s — named elements hash
+    their declared qualified-name path + metaclass type, unnamed
+    elements hash the nearest named anchor + structural path.
+    Inserting/reordering unrelated elements elsewhere leaves
+    untouched ids unchanged.  Default (<code>stable_ids=False</code>) stays
+    byte-identical to the v0.63.0 position scheme.</li>
+<li><strong><code>reconcile_ids(document, registry)</code></strong> / CLI
+    <code>sysmlpy export --reconcile-with model.json -o model.json</code>: the
+    previous export doubles as an id registry — name-matched
+    elements adopt registry ids, so ids survive ancestor renames and
+    re-nesting (injective (declaredName, @type) matching keeps
+    documents collision-free; nested <code>{"@id"}</code> refs are remapped so
+    reconciled documents import cleanly; the CLI one-liner is an
+    idempotent fixed point after the first export).</li>
+<li>New public exports: <code>reconcile_ids</code>, <code>STABLE_NAMESPACE</code>.</li>
+<li>New demo: <code>examples/element_identity.py</code> — all identity layers
+  (parse uuid4, position uuid5, content uuid5, registry reconciliation)
+  runnable end to end.</li>
+<li>New docs: <code>docs/stable-identities.md</code> (idempotency levels L0-L3,
+  options analysis, design decision: declared-path not resolved-QN,
+  Phase 1 + Phase 2 implementation records); README section
+  "Element Identity: Stable Interchange IDs".</li>
+<li>All gates green: interchange 59/59 (11 stable-id + 10 reconcile
+  tests), fast suite 654 passed/1 skipped.  (Grammar 168/168, XPect
+  conformance 123/3 optional-dep skips, KerML 5/5 — unchanged from
+  v0.96.2, untouched by this release.)</li>
+</ul>
 <h2 id="v0962-2026-09-28">v0.96.2 (2026-09-28)<a class="headerlink" href="#v0962-2026-09-28" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Grammar upgraded to OMG release 2026-08</strong> — the vendored ANTLR4

@@ -816,7 +816,7 @@ convention the other project must adopt and preserve.</p>
 resolves across imports). No id stability needed if consumers can key
 on <code>P::Sub::Engine</code>. Often sufficient; cheapest.</p>
 <h2 id="4-recommended-scope">4. Recommended scope<a class="headerlink" href="#4-recommended-scope" title="Permanent link">&para;</a></h2>
-<p>Phase 1 (L2) — <strong>IMPLEMENTED (unreleased; on main)</strong>:</p>
+<p>Phase 1 (L2) — <strong>IMPLEMENTED (v0.96.3)</strong>:</p>
 <ol>
 <li>✅ <code>interchange.py</code>: <code>to_interchange(..., stable_ids=False)</code> — when
    True, ids are uuid5 over the <strong>declared</strong> qualified-name path
@@ -842,7 +842,7 @@ on <code>P::Sub::Engine</code>. Often sufficient; cheapest.</p>
    unrelated to ids).</li>
 <li>✅ CLI: <code>sysmlpy export --stable-ids</code>.</li>
 </ol>
-<p>Phase 2 (L3) — <strong>IMPLEMENTED (unreleased; on main, registry variant)</strong>:</p>
+<p>Phase 2 (L3) — <strong>IMPLEMENTED (v0.96.3, registry variant)</strong>:</p>
 <ul>
 <li><code>reconcile_ids(document, registry)</code> — adopt ids from a previous
   export (dict, JSON text, or a filesystem <code>Path</code>/path str).

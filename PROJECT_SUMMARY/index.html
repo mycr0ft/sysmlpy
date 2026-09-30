@@ -1253,7 +1253,7 @@
 <blockquote>
 <p><strong>For:</strong> Future agents and team members
 <strong>Last Updated:</strong> September 28, 2026
-<strong>Current Version:</strong> v0.96.2
+<strong>Current Version:</strong> v0.96.3
 <strong>Repository:</strong> https://github.com/mycr0ft/sysmlpy
 <strong>Roadmap:</strong> the 10-goal Adoption Roadmap (docs/archive/DEVELOPMENT_PLAN.md,
 now archived) is <strong>complete</strong> as of v0.77.0 — see CHANGELOG.md</p>
@@ -1599,8 +1599,7 @@ parses or tools:</p>
   hashes differently.  For a given source text the ids are stable, which
   is what diff-friendly interchange needs; for cross-document matching,
   match on declared names / resolved qualified names.
-  <strong><code>stable_ids=True</code></strong> (unreleased; ships in the next version) switches
-  the exporter to
+  <strong><code>stable_ids=True</code></strong> (v0.96.3) switches the exporter to
   content-addressed ids: named elements hash their qualified-name path
   and type, so inserting/reordering unrelated elements elsewhere leaves
   untouched ids unchanged (L2 idempotency — CLI: <code>--stable-ids</code>).  See
