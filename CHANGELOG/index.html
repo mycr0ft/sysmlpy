@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unreleased-on-main_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased (on main)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0964-2026-09-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -610,7 +621,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#unreleased-on-main_1" class="md-nav__link">
+  <a href="#unreleased-on-main_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Unreleased (on main)
@@ -748,6 +759,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#unreleased-on-main_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unreleased (on main)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#v0964-2026-09-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -781,7 +803,7 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#unreleased-on-main_1" class="md-nav__link">
+  <a href="#unreleased-on-main_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Unreleased (on main)
@@ -903,6 +925,19 @@
   bundled library: <code>CausationConnections.sysml</code> and
   <code>ShapeItems.sysml</code> now parse (previously crashed at load).</li>
 </ul>
+<h2 id="unreleased-on-main_1">Unreleased (on main)<a class="headerlink" href="#unreleased-on-main_1" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>qn_registry()</code> (P3 Vee-join side table).</strong> Every
+  <code>to_interchange(stable_ids=True)</code> document now carries
+  <code>"#qn_registry"</code>: deduped declared-QN path → stable <code>@id</code>
+  (Identification nodes; doc-carried explicit ids included), readable
+  with the new public helper of the same name — downstream consumers
+  (pyoslc STEP domain) join SysML elements by qualified name without
+  re-deriving hash chains. Empty for position-id exports. The
+  registry is stable across export→import→export, survives JSON
+  round-trips, and reconcile_ids adoption remaps it alongside the
+  graph refs. Pinned by <code>tests/qn_registry_test.py</code> (11).</li>
+</ul>
 <h2 id="v0964-2026-09-30">v0.96.4 (2026-09-30)<a class="headerlink" href="#v0964-2026-09-30" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>doc_ids=True</code> on <code>to_interchange</code> (Phase 2b, L3 explicit
@@ -976,7 +1011,7 @@
   OMG XPect conformance 123 passed/3 skipped (optional-dep skips),
   KerML batteries 5/5.</li>
 </ul>
-<h2 id="unreleased-on-main_1">Unreleased (on main)<a class="headerlink" href="#unreleased-on-main_1" title="Permanent link">&para;</a></h2>
+<h2 id="unreleased-on-main_2">Unreleased (on main)<a class="headerlink" href="#unreleased-on-main_2" title="Permanent link">&para;</a></h2>
 <ul>
 <li>(empty — Phase 2b released in v0.96.4, registry reconciliation in
   v0.96.3)</li>
