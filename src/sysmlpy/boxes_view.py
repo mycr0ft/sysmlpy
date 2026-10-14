@@ -1072,6 +1072,94 @@ __all__ = [
 ]
 
 
+def _iv_find_direction(grammar_obj):
+    """Recover ``'in' / 'out' / 'inout'`` from a grammar object tree.
+
+    Ports carry their direction in a nested ``FeatureDirection`` object
+    (``in port p ...`` → ``PortUsage.prefix → RefPrefix.direction``;
+    typed ports get it from the port definition's directed item prefix).
+    The visitor classifies every tree as ``children`` (a list, a single
+    child, or None — see ``_afv_kids``) *and* direct attribute values, so
+    both are walked, guarded against self/iterable surprises.
+    """
+    if grammar_obj is None:
+        return None
+    try:
+        cname = grammar_obj.__class__.__name__
+    except AttributeError:
+        return None
+    if cname == "FeatureDirection":
+        if getattr(grammar_obj, "isIn", False):
+            return "in"
+        if getattr(grammar_obj, "isOut", False):
+            return "out"
+        if getattr(grammar_obj, "isInOut", False):
+            return "inout"
+        return None
+
+    def _values(node):
+        try:
+            result = list(getattr(node, "children", None) or [])
+        except TypeError:
+            result = []
+        try:
+            result.extend(vars(node).values())
+        except TypeError:
+            pass
+        return result
+
+    def _walk(node, depth, seen):
+        if depth > 16 or node is None:
+            return None
+        nid = id(node)
+        if nid in seen:
+            return None
+        seen.add(nid)
+        try:
+            if node.__class__.__name__ == "FeatureDirection":
+                return _iv_find_direction(node)
+        except AttributeError:
+            return None
+        for v in _values(node):
+            if v is None or isinstance(v, (str, int, float, bool, dict)):
+                continue
+            for item in (v if isinstance(v, list) else [v]):
+                if hasattr(item, "__class__"):
+                    inner = seen  # share: an object classified once is walked once
+                    found = _walk(item, depth + 1, inner)
+                    if found:
+                        return found
+        return None
+
+    return _walk(grammar_obj, 0, set())
+
+
+def _iv_def_of(model, typed_by: Optional[str]):
+    """Resolve a ``typed_by`` name to its definition element (or None)."""
+    if not typed_by:
+        return None
+    from sysmlpy.plantuml import _resolve_typed_def
+
+    d_el = _resolve_typed_def(model, typed_by)
+    return d_el if getattr(d_el, "is_definition", False) else None
+
+
+def _iv_definition_chain(model, typed_by: Optional[str]):
+    """Yield the definition element per link of the specializes chain."""
+    seen = set()
+    cur = typed_by
+    while cur:
+        base = cur.split("::")[-1]
+        if base in seen:
+            return
+        seen.add(base)
+        d_el = _iv_def_of(model, cur)
+        if d_el is None:
+            return
+        yield d_el
+        cur = (getattr(d_el, "specializes_names", None) or [None])[0]
+
+
 def as_interconnection_view_boxes(
     model: Union[str, "sysmlpy.Model", dict],
     focus: Optional[str] = None,
@@ -1079,12 +1167,24 @@ def as_interconnection_view_boxes(
 ) -> "Diagram":
     """Build a boxes (diagramboxes) interconnection diagram from a model.
 
-    Renders part usages as boxes, their boundary ports as small port
-    markers (``node.add_port``), and ``connection`` usages as port-to-port
-    edges (Z-routed by the layout engine).  Endpoints chained through
-    ports (``connection clutch connect engine.powerOut to
-    drivetrain.powerIn``) create the ports; plain connections
-    (``connect engine to drivetrain``) become direct node-to-node edges.
+    Renders a SysML v2 interconnection view:
+
+    - ``part`` usages as solid boxes typed by their definition (``«part»
+      Engine``); usages nested inside other part usages are nested as
+      composite children (``Node.add_child``).
+    - ``ref`` (reference) usages as dashed boxes.
+    - ``attribute`` usages (own or inherited through the typed
+      definition chain) in the box's attribute compartment
+      (``+ name : Type``).
+    - ``port`` usages as boundary ports (``node.add_port``) with the
+      direction recovered from the port's grammar (`in port`/`out port`
+      prefix or a directed item of its port definition) — ``in`` ports
+      draw on the left, ``out`` ports on the right; directionless ports
+      keep the classic source-right / target-left side choice.
+    - ``connection`` usages as edges: chained endpoints
+      (``connect a.p to b.q``) connect port-to-port, plain endpoints
+      connect box-to-box; the connector's type shows in the edge label
+      (``clutch : ClutchType``).
 
     Parameters
     ----------
@@ -1107,18 +1207,39 @@ def as_interconnection_view_boxes(
         model = _sysmlpy.loads(model)
     elif isinstance(model, dict):
         model = _sysmlpy.loads(_sysmlpy.dump(model))
+    if not hasattr(model, "all"):
+        raise TypeError(f"Unsupported model type: {type(model).__name__}")
 
-    def _parts_from(model):
-        if hasattr(model, "all") and callable(model.all):
-            try:
-                return [p for p in model.all("part") if not p.is_definition]
-            except Exception:
-                return []
-        return []
+    # ---- 1. catalog part / reference usages with their part parent ------
+    catalog: dict = {}     # name -> [element, parent_name | None]
 
-    parts = _parts_from(model)
-    by_name = {getattr(p, "name", None): p for p in parts if getattr(p, "name", None)}
+    def _scan(el, pkey):
+        st = getattr(el, "sysml_type", None)
+        nm = getattr(el, "name", None)
+        is_def = getattr(el, "is_definition", False)
+        if st in ("part", "reference") and not is_def:
+            if nm and nm not in catalog:
+                catalog[nm] = [el, pkey]
+            if st == "part":
+                pkey = nm
+            for c in (getattr(el, "children", None) or []):
+                _scan(c, pkey)
+            return
+        if is_def:
+            # Members of a definition are not usages of a rendered box;
+            # ports/attributes surface through the typed-by chain instead.
+            return
+        for c in (getattr(el, "children", None) or []):
+            _scan(c, pkey)
 
+    top = getattr(model, "children", None) or []
+    if (len(top) == 1 and getattr(top[0], "sysml_type", None) == "package"
+            and getattr(top[0], "name", None) == "Model"):
+        top = top[0].children or []
+    for c in top:
+        _scan(c, None)
+
+    # ---- 2. connections + their typed labels ----------------------------
     conns = []
     for from_names, to_names, cname in _extract_connections(model):
         if not from_names or not to_names:
@@ -1136,61 +1257,209 @@ def as_interconnection_view_boxes(
             + (f" touching {focus!r}" if focus else "")
         )
 
+    conn_type: dict = {}
+    for ce in model.all("connection"):
+        if getattr(ce, "is_definition", False):
+            continue
+        nm = getattr(ce, "name", None)
+        if nm and nm not in conn_type:
+            tb = getattr(ce, "typed_by_name", None)
+            conn_type[nm] = tb.split("::")[-1] if tb else None
+
+    # ---- 3. inclusion: participants + their part-usage ancestors --------
+    # Every participant is drawn; so is each ancestor part usage so the
+    # v2 nesting shows as composite structure (Node.add_child).
     included: set = set()
-    for from_names, to_names, _ in conns:
-        included.add(from_names[0])
-        included.add(to_names[0])
+    for from_names, to_names, _n in conns:
+        for names in (from_names, to_names):
+            included.add(names[0])
+            # A chained endpoint naming a reference usage (``connect
+            # vehicle.sensor to ...``) draws that reference's dashed box.
+            if len(names) > 1 and names[1] in catalog and \
+                    getattr(catalog[names[1]][0], "sysml_type", "") == "reference":
+                included.add(names[1])
+    for nm in list(included):
+        cur = nm
+        while cur in catalog:
+            parent_name = catalog[cur][1]
+            if not parent_name or parent_name not in catalog:
+                break
+            included.add(parent_name)
+            cur = parent_name
 
+    # ---- 4. nodes (parents created before children) ----------------------
     d = Diagram()
-    nodes: dict[str, Node] = {}
+    nodes: dict = {}
 
-    for name in sorted(included):
-        part = by_name.get(name)
-        stereotypes = ["part"]
-        attributes = []
-        if part is not None:
-            typed = getattr(part, "typed_by_name", None)
-            if typed:
-                stereotypes.append(typed.split("::")[-1])
-            for att in (getattr(part, "attributes", None) or []):
-                aname = getattr(att, "name", None)
-                if aname:
-                    attributes.append(f"+ {aname}")
-        nodes[name] = d.add_node(name, stereotypes=stereotypes,
-                                 attributes=attributes, rounded=True)
+    def _depth(nm):
+        depth = 0
+        cur = nm
+        while cur in catalog and catalog[cur][1]:
+            depth += 1
+            cur = catalog[cur][1]
+        return depth
 
-    # Assign each chained endpoint port to a side: source-side ports sit
-    # on the right of the source box, target-side ports on the left of
-    # the target box.  A port used in both roles defaults to the right.
-    port_of: dict[tuple, object] = {}
+    def _typed_label_part(nm, el):
+        tb = getattr(el, "typed_by_name", None)
+        return tb.split("::")[-1] if tb else None
 
-    def _port(node: Node, label: str, is_source: bool):
+    def _attr_labels(el):
+        """``+ name : Type`` for own + inherited attribute usages."""
+        labels = []
+        seen = set()
+
+        def add(a):
+            aname = getattr(a, "name", None)
+            if not aname or aname in seen:
+                return
+            seen.add(aname)
+            atb = getattr(a, "typed_by_name", None)
+            labels.append(
+                f"+ {aname} : {atb.split('::')[-1]}" if atb else f"+ {aname}")
+
+        if el is None:
+            return []
+        for c in (getattr(el, "children", None) or []):
+            if (getattr(c, "sysml_type", "") == "attribute"
+                    and not getattr(c, "is_definition", False)):
+                add(c)
+        tb = getattr(el, "typed_by_name", None)
+        for d_el in _iv_definition_chain(model, tb):
+            for c in (getattr(d_el, "children", None) or []):
+                if (getattr(c, "sysml_type", "") == "attribute"
+                        and not getattr(c, "is_definition", False)):
+                    add(c)
+        return labels
+
+    def _port_dir(el):
+        """``in/out/inout`` from the port usage grammar or its def chain."""
+        direction = _iv_find_direction(getattr(el, "grammar", None))
+        if direction:
+            return direction
+        tb = getattr(el, "typed_by_name", None)
+        for d_el in _iv_definition_chain(model, tb):
+            direction = _iv_find_direction(getattr(d_el, "grammar", None))
+            if direction:
+                return direction
+        return None
+
+    def _ports_of(el):
+        """Own port usages + ports inherited through the typed-by chain."""
+        result = []
+        if el is None or getattr(el, "sysml_type", "") != "part":
+            return result
+        for c in (getattr(el, "children", None) or []):
+            if (getattr(c, "sysml_type", "") == "port"
+                    and not getattr(c, "is_definition", False)):
+                result.append(c)
+        tb = getattr(el, "typed_by_name", None)
+        for d_el in _iv_definition_chain(model, tb):
+            for c in (getattr(d_el, "children", None) or []):
+                if (getattr(c, "sysml_type", "") == "port"
+                        and not getattr(c, "is_definition", False)):
+                    result.append(c)
+        return result
+
+    port_of: dict = {}     # (node id, label) -> Port
+
+    def _add_port(node, label, direction, is_source):
         if not label:
             return None
-        key = (node.name, label)
+        key = (id(node), label)
         if key in port_of:
             return port_of[key]
-        side = "right" if is_source else "left"
+        existing = next((p for p in node.ports if p.label == label), None)
+        if existing is not None:
+            port_of[key] = existing
+            return existing
+        if direction is not None:
+            side = "left" if direction == "in" else "right"
+        else:
+            side = "right" if is_source else "left"
         same = [p for p in node.ports if p.side == side]
         offset = (len(same) + 1) / 4.0 if same else None
         if offset is not None and offset > 1.0:
             offset = 0.5
         p = node.add_port(label, side=side,
                           offset=None if len(same) == 0 else offset,
-                          label_inside=True)
+                          direction=direction, label_inside=True)
         port_of[key] = p
         return p
 
+    for nm in sorted(included, key=lambda n: (_depth(n), n)):
+        entry = catalog.get(nm)
+        el = entry[0] if entry else None
+        parent_name = entry[1] if entry else None
+        parent_node = nodes.get(parent_name) if parent_name else None
+        is_ref = (el is not None
+                  and getattr(el, "sysml_type", "") == "reference")
+        if is_ref:
+            stereotypes = ["ref"]
+            ref_type = _typed_label_part(nm, el)
+            if ref_type:
+                stereotypes.append(ref_type)
+            nodes[nm] = d.add_node(nm, stereotypes=stereotypes,
+                                   attributes=[], rounded=False,
+                                   dashed=True, parent=parent_node)
+        else:
+            stereotypes = ["part"]
+            typed = _typed_label_part(nm, el)
+            if typed:
+                stereotypes.append(typed)
+            nodes[nm] = d.add_node(nm, stereotypes=stereotypes,
+                                   attributes=_attr_labels(el),
+                                   rounded=True, parent=parent_node)
+        # Boundary ports with a known direction are created here; ports
+        # without one take their side from the connection role below.
+        for p_el in _ports_of(el):
+            label = getattr(p_el, "name", None)
+            if label in {"in", "out", "inout"}:
+                continue  # never confuse a direction keyword for a label
+            direction = _port_dir(p_el)
+            if direction:
+                _add_port(nodes[nm], label, direction, is_source=None)
+
+    # ---- 5. connector edges ------------------------------------------------
+    def _port(node, label, is_source):
+        # Ports with a known direction were pre-created in step 4 and are
+        # found (and reused) by label here; directionless ports join now
+        # and take their side from the connection role.
+        if node is None or not label:
+            return None
+        return _add_port(node, label, None, is_source)
+
     for from_names, to_names, cname in conns:
-        src = nodes[from_names[0]]
-        dst = nodes[to_names[0]]
-        sp = _port(src, from_names[1] if len(from_names) > 1 else "", True)
-        tp = _port(dst, to_names[1] if len(to_names) > 1 else "", False)
+        # A chained segment naming a reference usage connects to the
+        # reference's dashed box (no synthesized boundary port).
+        def _endpoint(names):
+            root = nodes.get(names[0])
+            if root is None:
+                return None, ""
+            if len(names) > 1 and names[1] in catalog and \
+                    getattr(catalog[names[1]][0], "sysml_type", "") == "reference":
+                ref_node = nodes.get(names[1])
+                if ref_node is not None and ref_node.parent is root:
+                    return ref_node, ""
+                if ref_node is not None:
+                    return ref_node, ""
+            return root, names[1] if len(names) > 1 else ""
+
+        src, sp_label = _endpoint(from_names)
+        dst, tp_label = _endpoint(to_names)
+        if src is None or dst is None:
+            print(f"[boxes_view] connection {cname!r}: unresolved endpoint")
+            continue
+        sp = _port(src, sp_label, True)
+        tp = _port(dst, tp_label, False)
+        label = None
+        if cname and not _afv_uuid_like(cname):
+            ctype = conn_type.get(cname)
+            label = f"{cname} : {ctype}" if ctype else cname
         if sp is not None and tp is not None:
             d.add_edge(src, dst, source_port=sp, target_port=tp,
-                       label=cname, target_style=OPEN)
+                       label=label, target_style=OPEN)
         else:
-            d.add_edge(src, dst, label=cname, target_style=OPEN)
+            d.add_edge(src, dst, label=label, target_style=OPEN)
 
     return d
 

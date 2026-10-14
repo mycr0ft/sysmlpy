@@ -467,6 +467,114 @@ class TestInterconnectionBoxes:
             assert t in out
 
 
+IV2_MODEL = """
+package V {
+    item def Fuel;
+    port def FuelSupply { out item fuel : Fuel; }
+    port def FuelDemand { in item fuel : Fuel; }
+    part def FuelTank { port supply : FuelSupply; attribute capacity : Real; }
+    part def Engine { in port demand : FuelDemand; attribute power : Real; }
+    part vehicle {
+        part tank : FuelTank;
+        part engine : Engine;
+        ref fuelLevel;
+        attribute ratio : Real;
+        connection feed : FuelLine connect tank.supply to engine.demand;
+    }
+    ref telematicsUnit;
+    part dash;
+    connection levelSignal connect vehicle.fuelLevel to telematicsUnit;
+}
+"""
+
+
+class TestInterconnectionBoxesV2:
+    """v2-style IBD: typed parts, dashed refs, directed ports, nesting."""
+
+    def test_part_typed_by_definition(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        tank = next(n for n in d.nodes if n.name == "tank")
+        assert tank.stereotypes == ["part", "FuelTank"]
+        assert not tank.dashed
+
+    def test_reference_usages_dashed(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        for name in ("fuelLevel", "telematicsUnit"):
+            n = next(x for x in d.nodes if x.name == name)
+            assert n.dashed
+            assert "ref" in n.stereotypes
+            assert not n.ports
+
+    def test_typed_port_direction_and_side(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        tank = next(n for n in d.nodes if n.name == "tank")
+        engine = next(n for n in d.nodes if n.name == "engine")
+        supply = tank.ports[0]
+        demand = engine.ports[0]
+        # supply typed by FuelSupply { out item fuel; } -> out, right
+        assert (supply.label, supply.direction, supply.side) == \
+            ("supply", "out", "right")
+        # demand carries its own ``in port`` direction -> in, left
+        assert (demand.label, demand.direction, demand.side) == \
+            ("demand", "in", "left")
+
+    def test_attributes_in_compartment(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        vehicle = next(n for n in d.nodes if n.name == "vehicle")
+        engine = next(n for n in d.nodes if n.name == "engine")
+        assert vehicle.attributes == ["+ ratio : Real"]
+        # engine's attribute is inherited from the typed part def
+        assert engine.attributes == ["+ power : Real"]
+
+    def test_typed_connection_label(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        feed = next(e for e in d.edges if e.label and e.label.startswith("feed"))
+        assert feed.label == "feed : FuelLine"
+
+    def test_nested_parts_parented(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        vehicle = next(n for n in d.nodes if n.name == "vehicle")
+        tank = next(n for n in d.nodes if n.name == "tank")
+        engine = next(n for n in d.nodes if n.name == "engine")
+        assert tank.parent is vehicle
+        assert engine.parent is vehicle
+        assert vehicle.parent is None
+        # containment geometry after layout
+        d.layout(routing="orthogonal")
+        for child in (tank, engine):
+            assert (vehicle.x <= child.x
+                    and child.x + child.w <= vehicle.x + vehicle.w
+                    and vehicle.y <= child.y
+                    and child.y + child.h <= vehicle.y + vehicle.h)
+
+    def test_reference_endpoint_connects_to_ref_box(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        level = next(e for e in d.edges
+                     if e.label == "levelSignal")
+        assert level.source.name == "fuelLevel"
+        assert level.target.name == "telematicsUnit"
+        # no boundary port was synthesized for the reference member
+        vehicle = next(n for n in d.nodes if n.name == "vehicle")
+        assert vehicle.ports == []
+
+    def test_ancestor_boxes_rendered_without_focus(self):
+        d = as_interconnection_view_boxes(IV2_MODEL)
+        names = {n.name for n in d.nodes}
+        assert "vehicle" in names  # parent of connected children
+
+    def test_braille_render(self):
+        out = render_interconnection_view_boxes(IV2_MODEL)
+        for t in ("vehicle", "tank", "engine", "fuelLevel",
+                  "telematicsUnit", "supply", "demand", "feed : FuelLine"):
+            assert t in out
+
+    def test_svg_render(self):
+        svg = render_interconnection_view_boxes_svg(IV2_MODEL)
+        for t in ("vehicle", "tank", "supply", "demand", "feed : FuelLine"):
+            assert t in svg
+        assert "<rect" in svg and "<polyline" in svg
+
+
 AFV_TYPED = """
 package V {
     action def Torque { in fuelCommand; out torque; }
