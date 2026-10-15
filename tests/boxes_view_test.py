@@ -827,3 +827,38 @@ class TestActionFlowSuccessions:
                        for e in d.edges)
         assert ("i", "w", "solid") in kinds
         assert ("t", "i", "dashed") in kinds
+
+
+class TestInterconnectionNestedEndpoint:
+    """A connection from a NESTED part usage to an external sibling binds
+    the nested part's own element (v2 connection semantics): the line must
+    reach the nested part's port, not the owning composite's boundary
+    (composite re-anchoring is v1-IBD behavior, off for these views)."""
+
+    NESTED_V2 = """
+    package V {
+        part def Engine { in port demand : FuelDemand; }
+        part def FuelTank { port supply : FuelSupply; }
+        part vehicle {
+            part engine : Engine;
+        }
+        part tank : FuelTank;
+        part telematics;
+        connection feed connect vehicle.engine to tank;
+        connection signal connect vehicle.engine to telematics;
+    }
+    """
+
+    def test_connection_reaches_nested_part_not_composite(self):
+        d = as_interconnection_view_boxes(self.NESTED_V2)
+        e = next(e for e in d.edges if e.label == "feed")
+        assert e.source.name == "engine", (
+            "the connector must bind the nested part itself")
+        assert e.target.name == "tank"
+
+    def test_reanchor_disabled_and_external_partner_reached(self):
+        d = as_interconnection_view_boxes(self.NESTED_V2)
+        assert d.reanchor_nested is False
+        e = next(e for e in d.edges if e.label == "signal")
+        assert e.source.name == "engine" and e.target.name == "telematics"
+        assert e.target.parent is None

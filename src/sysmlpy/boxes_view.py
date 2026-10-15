@@ -1267,17 +1267,16 @@ def as_interconnection_view_boxes(
             conn_type[nm] = tb.split("::")[-1] if tb else None
 
     # ---- 3. inclusion: participants + their part-usage ancestors --------
-    # Every participant is drawn; so is each ancestor part usage so the
-    # v2 nesting shows as composite structure (Node.add_child).
+    # Every participant is drawn; so is each ancestor part usage AND each
+    # chained segment naming a nested part/ref usage — a v2 connector
+    # binds that nested element, so it must be visible (Node.add_child).
     included: set = set()
     for from_names, to_names, _n in conns:
         for names in (from_names, to_names):
             included.add(names[0])
-            # A chained endpoint naming a reference usage (``connect
-            # vehicle.sensor to ...``) draws that reference's dashed box.
-            if len(names) > 1 and names[1] in catalog and \
-                    getattr(catalog[names[1]][0], "sysml_type", "") == "reference":
-                included.add(names[1])
+            for nm in names[1:]:
+                if nm in catalog:
+                    included.add(nm)
     for nm in list(included):
         cur = nm
         while cur in catalog:
@@ -1288,7 +1287,12 @@ def as_interconnection_view_boxes(
             cur = parent_name
 
     # ---- 4. nodes (parents created before children) ----------------------
+    # Composite re-anchoring stays OFF: a v2 connection binding a nested
+    # part usage reaches the nested part itself (the IBD convention of
+    # retargeting cross-boundary connectors to the owning composite is
+    # v1 behavior and hides the bound element).
     d = Diagram()
+    d.reanchor_nested = False
     nodes: dict = {}
 
     def _depth(nm):
@@ -1429,20 +1433,25 @@ def as_interconnection_view_boxes(
         return _add_port(node, label, None, is_source)
 
     for from_names, to_names, cname in conns:
-        # A chained segment naming a reference usage connects to the
-        # reference's dashed box (no synthesized boundary port).
+        # A qualified connect endpoint descends through catalog members:
+        # intermediate segments naming part/ref usages bind the NESTED
+        # element itself (v2 connection semantics — the connector ties
+        # the nested usage, not a synthesized port on the composite);
+        # the final segment is the port label unless it also names a
+        # catalog member.
         def _endpoint(names):
-            root = nodes.get(names[0])
-            if root is None:
+            node = nodes.get(names[0])
+            if node is None:
                 return None, ""
-            if len(names) > 1 and names[1] in catalog and \
-                    getattr(catalog[names[1]][0], "sysml_type", "") == "reference":
-                ref_node = nodes.get(names[1])
-                if ref_node is not None and ref_node.parent is root:
-                    return ref_node, ""
-                if ref_node is not None:
-                    return ref_node, ""
-            return root, names[1] if len(names) > 1 else ""
+            for seg in names[1:-1]:
+                node = nodes.get(seg) or node
+            leaf = names[-1] if len(names) > 1 else ""
+            if leaf:
+                leaf_node = nodes.get(leaf)
+                if leaf_node is not None and leaf in catalog:
+                    return leaf_node, ""
+                return node, leaf
+            return node, ""
 
         src, sp_label = _endpoint(from_names)
         dst, tp_label = _endpoint(to_names)
