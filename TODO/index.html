@@ -848,13 +848,13 @@ are complete.  Follow-up work is organized under the
     nested) shipped in v0.89.0 — co-active regions with per-region
     transition dispatch, cross-region moves, and composite exits
     (<code>sim.state</code> becomes a tuple of active leaves).</li>
-<li>[x] <strong>Phase 2d (unreleased)</strong> — package view namespace enclosure
+<li>[x] <strong>Phase 2d (shipped in 0.97.1)</strong> — package view namespace enclosure
     (pilot <code>VStructure.casePackage</code>): packages render as
     <code>package "Name" { members }</code> with owned members nested inside;
     definitions as leaf boxes (no feature explosion); containment by
     enclosure only; typing/specialization arrows kept between members
     (unlabeled — typing sits in <code>name : Type</code> labels).</li>
-<li>[x] <strong>Phase 2c (unreleased)</strong> — iv notation fidelity: enclosure
+<li>[x] <strong>Phase 2c (shipped in 0.97.1)</strong> — iv notation fidelity: enclosure
     nesting (no <code>*--</code> composition edges), typed usage labels
     (<code>s : Sensor</code>, no <code>--:|&gt;</code> arrows), consumed definitions dropped
     with ports inherited onto usages as boundary boxes, flows and
@@ -862,7 +862,7 @@ are complete.  Follow-up work is organized under the
     chains recovered from FlowRedefinition; declared flow names
     restored from <code>Identification.declaredName</code>), <code>_extract_connections</code>
     wired in (thick plain connector lines). Afv verified unchanged.</li>
-<li>[x] <strong>Phase 2b (unreleased)</strong> — afv control nodes in both renderers:
+<li>[x] <strong>Phase 2b (shipped in 0.97.1)</strong> — afv control nodes in both renderers:
     PlantUML afv uses hexagons for decide/merge/fork/join (PlantUML
     deployment syntax has no diamond element; state-diagram <code>&lt;&lt;choice&gt;&gt;</code>
     pseudo-states cannot coexist with <code>*--</code>/<code>--:|&gt;</code> arrows); boxes afv
