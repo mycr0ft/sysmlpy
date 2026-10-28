@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0990-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.0 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0981-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -797,6 +808,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0990-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.0 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0981-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -960,6 +982,34 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0990-2026-10-28">0.99.0 (2026-10-28)<a class="headerlink" href="#0990-2026-10-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Variation / variant / abstract round-tripping</strong> (the
+  SysML-v2-Release Vehicle Example, "SysML v2 Spec Annex A
+  SimpleVehicleModel.sysml"): the usage-level <code>abstract</code>/
+  <code>variation</code> ref-prefixes were parsed but dropped (a bare
+  <code>abstract part family</code> produced NO prefix dict at all) and every
+  <code>variant part/attribute x</code> member inside a variation body was
+  silently dropped — the same silent-loss shape as the earlier
+  message-in-body bug. Fixed end to end: the ref-prefix extractors
+  now carry <code>isAbstract</code>/<code>isVariation</code> for both the occurrence
+  and usage dict paths; the definition/usage body walkers dispatch
+  the <code>VARIANT variantUsageElement</code> alternative through a new
+  <code>VariantUsageMember</code> wrapper (grammar class + dump emits
+  <code>variant</code>); the semantic model carries <code>is_variant</code> /
+  <code>is_variation</code> / <code>is_abstract</code> on Usage elements, and the
+  dumps re-emit the keywords so parse -&gt; dump -&gt; reparse is stable.</li>
+<li><strong>Helper functions</strong>: <code>Usage.variants()</code> — the variant members
+  of a variation; <code>Usage.variant_types()</code> — the types referenced
+  by <code>variant part x : T</code> members, resolved against the model tree
+  (mirrors the corpus' <code>variant part
+  transmissionAutomatic:TransmissionAutomatic</code>).</li>
+<li>Known pre-existing (unchanged): the Annex A full-dump reparse
+  still fails at 0.98.0 — value parts concatenate
+  (<code>massActualdefault 0[kg]</code>) and bind connectors serialize as
+  <code>[1] to ... [1]</code> — tracked separately from this change.</li>
+<li>tests/variation_variant_test.py: 9 tests incl. the corpus file.</li>
+</ul>
 <h2 id="0981-2026-10-28">0.98.1 (2026-10-28)<a class="headerlink" href="#0981-2026-10-28" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Interchange export keeps <code>:&gt;&gt;</code> redefinitions/typing on unnamed
