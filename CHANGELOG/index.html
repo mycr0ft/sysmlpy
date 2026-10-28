@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0981-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.98.1 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0980-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -786,6 +797,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0981-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.98.1 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0980-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -938,6 +960,21 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0981-2026-10-28">0.98.1 (2026-10-28)<a class="headerlink" href="#0981-2026-10-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Interchange export keeps <code>:&gt;&gt;</code> redefinitions/typing on unnamed
+  end features</strong> (PR #18): an <code>allocation def</code> re-exported through
+  <code>to_interchange</code>/<code>dump()</code> dropped the end redefinition/typing and
+  the dump reparse failed; the ANTLR dict builder
+  (<code>_make_end_feature_usage_dict</code>) now extracts specialization from
+  the direct featureDeclaration too (via
+  <code>_build_full_specialization_from_fsp</code>, the typings/redefinitions/
+  subsettings/references builder) and merges in textual order.
+  Regression: <code>tests/interchange_test.py</code> <code>TestAllocationEndExport</code>
+  (round-trip, dump content, dump reparse, CLI exit code).</li>
+<li>Includes 0.98.0 (the interaction def/usage grammar fix + the
+  message ends/payload carrying).</li>
+</ul>
 <h2 id="0980-2026-10-28">0.98.0 (2026-10-28)<a class="headerlink" href="#0980-2026-10-28" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Interaction definitions/usages parse (the <code>interaction def</code> rule).</strong>
