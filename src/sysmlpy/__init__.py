@@ -36,7 +36,7 @@ __all__ = [
     "render_state_transition_view_svg", "boxes_view",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.97.1"
+__version__ = "0.97.2"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
