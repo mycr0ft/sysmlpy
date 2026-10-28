@@ -6163,7 +6163,7 @@ def _make_end_feature_usage_dict(ctx):
                                 name = n.getText()
     
     # Get specialization from endUsagePrefix -> ownedCrossFeatureMember -> ownedCrossFeature -> featureDeclaration
-    specialization = None
+    prefix_specialization = None
     if hasattr(ctx, 'endUsagePrefix') and ctx.endUsagePrefix():
         eup = ctx.endUsagePrefix()
         if hasattr(eup, 'ownedCrossFeatureMember') and eup.ownedCrossFeatureMember():
@@ -6180,18 +6180,39 @@ def _make_end_feature_usage_dict(ctx):
                         fd = fd[0]
                     if hasattr(fd, 'featureSpecializationPart') and fd.featureSpecializationPart():
                         fsp = fd.featureSpecializationPart()
-                        specialization = _build_specialization_from_fsp(fsp)
-    
-    # Get multiplicity from featureDeclaration (direct child of EndFeatureUsage)
+                        prefix_specialization = _build_full_specialization_from_fsp(fsp)
+
+    # Get specialization AND multiplicity from the direct featureDeclaration.
+    # For unnamed ends the grammar places the redefinition/typing in the
+    # direct declaration (``end :>> source : Wheel;``); previously only
+    # multiplicity was read here, so the redefinition and typing were
+    # dropped and dump emitted bare ``end ;`` (which then failed the
+    # export path's reparse).
+    direct_specialization = None
     multiplicity_dict = None
     if hasattr(ctx, 'featureDeclaration') and ctx.featureDeclaration():
         fd = ctx.featureDeclaration()
         if hasattr(fd, 'featureSpecializationPart') and fd.featureSpecializationPart():
             fsp = fd.featureSpecializationPart()
+            direct_specialization = _build_full_specialization_from_fsp(fsp)
             if hasattr(fsp, 'multiplicityPart') and fsp.multiplicityPart():
                 mp = fsp.multiplicityPart()
                 multiplicity_dict = _extract_multiplicity_from_mp(mp)
-    
+
+    # Merge both specialization sources — prefix cross-feature first, then
+    # the direct declaration, preserving textual order.
+    specialization = None
+    if prefix_specialization or direct_specialization:
+        specs = [s for part in (prefix_specialization, direct_specialization)
+                 if part for s in part["specialization"]]
+        specialization = {
+            "name": "FeatureSpecializationPart",
+            "specialization": specs,
+            "specialization2": None,
+            "multiplicity": None,
+            "multiplicity2": None,
+        }
+
     # Merge multiplicity into specialization if both exist
     if specialization and multiplicity_dict:
         specialization["multiplicity"] = multiplicity_dict

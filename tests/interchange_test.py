@@ -720,3 +720,43 @@ class TestDocIds:
         d1 = to_interchange(loads(_V1), doc_ids=True)
         d2 = to_interchange(loads(text), doc_ids=True)
         assert _id_of(d2, "Engine") == _id_of(d1, "Engine")
+
+
+ALLOCATION_MODEL = """package AllocationBug {
+  part def Wheel;
+  part def Vehicle {
+    part wheels : Wheel;
+    ref part spareWheel : Wheel;
+  }
+  allocation def {
+    end :>> source : Wheel;
+    end :>> target : Wheel;
+    allocate source.wheels to target.spareWheel;
+  }
+}"""
+
+
+class TestAllocationEndExport:
+    """Regression: an ``allocation def`` whose unnamed ends carry
+    redefinitions (``end :>> source : Wheel;``) parsed fine, but the
+    export path (Model.dump -> reparse inside to_interchange) dropped the
+    redefinition and typing, emitted bare ``end ;``, and failed the
+    reparse with "no viable alternative at input 'end;'".
+    """
+
+    def test_export_round_trips_redefined_allocation_ends(self):
+        model = loads(ALLOCATION_MODEL)
+        doc = to_interchange(model)  # raised SyntaxError before the fix
+        assert doc["@graph"]
+        text = model.dump()
+        assert ":>> source" in text
+        assert ":>> target" in text
+        assert ": Wheel" in text
+        loads(text)  # the reparse to_interchange performs must succeed
+
+    def test_cli_export_redefined_allocation_ends(self, tmp_path):
+        p = tmp_path / "min-allocation.sysml"
+        p.write_text(ALLOCATION_MODEL + "\n", encoding="utf-8")
+        r = run_cli("export", str(p))
+        assert r.returncode == 0, r.stderr
+
