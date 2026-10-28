@@ -106,6 +106,7 @@ class TestParseBenchmark:
     """Informative benchmark used by the v0.56.0 release notes."""
 
     def test_sll_not_slower_than_ll(self):
+        import gc
         import time
         parts = [
             f"    part def Component{i} {{ attribute m : Integer; }}"
@@ -116,13 +117,26 @@ class TestParseBenchmark:
         parse(text, prediction_mode="ll")
         parse(text, prediction_mode="sll")
 
-        t0 = time.perf_counter()
-        parse(text, prediction_mode="sll")
-        sll = time.perf_counter() - t0
-        t0 = time.perf_counter()
-        parse(text, prediction_mode="ll")
-        ll = time.perf_counter() - t0
-        # SLL should not be a regression (allow 20% slack for CI noise)
+        # A sub-second wall-clock benchmark swings ~2x with interpreter
+        # noise (GC, the per-parse DFA-cache save, runner steal) — the
+        # min of several runs is the meaningful figure (v0.98.1: the
+        # single-run form failed CI twice with a ~2x outlier while the
+        # real distribution showed SLL <= LL locally every time).
+        def best(mode, runs=3):
+            times = []
+            for _ in range(runs):
+                gc.collect()
+                gc.disable()
+                t0 = time.perf_counter()
+                parse(text, prediction_mode=mode)
+                times.append(time.perf_counter() - t0)
+                gc.enable()
+            return min(times)
+
+        sll = best("sll")
+        ll = best("ll")
+        # SLL should not be a regression (allow 20% slack over the
+        # best-of runs)
         assert sll <= ll * 1.2, f"SLL {sll:.2f}s vs LL {ll:.2f}s"
 
 class TestSLLOnlyMode:
