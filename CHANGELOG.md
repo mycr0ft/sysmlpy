@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 0.99.0 (2026-10-28)
+
+- **Variation / variant / abstract round-tripping** (the
+  SysML-v2-Release Vehicle Example, "SysML v2 Spec Annex A
+  SimpleVehicleModel.sysml"): the usage-level ``abstract``/
+  ``variation`` ref-prefixes were parsed but dropped (a bare
+  ``abstract part family`` produced NO prefix dict at all) and every
+  ``variant part/attribute x`` member inside a variation body was
+  silently dropped — the same silent-loss shape as the earlier
+  message-in-body bug. Fixed end to end: the ref-prefix extractors
+  now carry ``isAbstract``/``isVariation`` for both the occurrence
+  and usage dict paths; the definition/usage body walkers dispatch
+  the ``VARIANT variantUsageElement`` alternative through a new
+  ``VariantUsageMember`` wrapper (grammar class + dump emits
+  ``variant ``); the semantic model carries ``is_variant`` /
+  ``is_variation`` / ``is_abstract`` on Usage elements, and the
+  dumps re-emit the keywords so parse -> dump -> reparse is stable.
+- **Helper functions**: ``Usage.variants()`` — the variant members
+  of a variation; ``Usage.variant_types()`` — the types referenced
+  by ``variant part x : T`` members, resolved against the model tree
+  (mirrors the corpus' ``variant part
+  transmissionAutomatic:TransmissionAutomatic``).
+- Known pre-existing (unchanged): the Annex A full-dump reparse
+  still fails at 0.98.0 — value parts concatenate
+  (``massActualdefault 0[kg]``) and bind connectors serialize as
+  ``[1] to ... [1]`` — tracked separately from this change.
+- tests/variation_variant_test.py: 9 tests incl. the corpus file.
+
 ## 0.98.1 (2026-10-28)
 
 - **Interchange export keeps `:>>` redefinitions/typing on unnamed

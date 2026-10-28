@@ -201,6 +201,43 @@ class Usage(Searchable):
         # (v0.96.1: populated by _extract_doc_from_body_item for every
         # usage/definition kind, previously only Requirement).
         self.doc = None
+        # v0.99.0: variation/variant/abstract markers (the
+        # Vehicle-Example corpus: ``variation part def ...``,
+        # ``variant part x``, ``abstract part family``).
+        self.is_variant = False
+        self.is_variation = False
+        self.is_abstract = False
+
+    def variants(self):
+        """The variant members of this variation (0.99.0).
+
+        Returns the children built from ``variant part/attribute/...``
+        members — empty for a non-variation element.
+        """
+        return [c for c in (self.children or [])
+                if getattr(c, "is_variant", False)]
+
+    def variant_types(self):
+        """The types referenced by this variation's variants (0.99.0).
+
+        Resolves each variant's ``: Type`` / ``:> Type`` reference
+        against the model tree, mirroring the Vehicle-Example
+        ``variant part transmissionAutomatic:TransmissionAutomatic``
+        pattern.  Unresolved references are skipped.
+        """
+        out = []
+        root = self
+        while getattr(root, "parent", None) is not None:
+            root = root.parent
+        for v in self.variants():
+            for name in ([getattr(v, "_typed_by_name", None)]
+                         + list(getattr(v, "_specializes_names", []) or [])):
+                if not name:
+                    continue
+                if hasattr(root, "find"):
+                    out.extend(n for n in root.find(name=name)
+                               if n is not v)
+        return out
 
     @property
     def is_definition(self):
@@ -415,7 +452,8 @@ class Usage(Searchable):
 
         if child == "DefinitionBody":
             package = {
-                "name": "OccurrenceUsageMember",
+                "name": "VariantUsageMember" if getattr(
+                    self, "is_variant", False) else "OccurrenceUsageMember",
                 "prefix": None,
                 "ownedRelatedElement": [package],
             }
@@ -1056,6 +1094,13 @@ class Usage(Searchable):
                 for body_item in body.children:
                     if hasattr(body_item, 'children') and body_item.children:
                         member = body_item.children[0]
+                        if member.__class__.__name__ == 'VariantUsageMember':
+                            # v0.99.0: mark the variant chain so the
+                            # child loader sets is_variant (see the
+                            # usage path below)
+                            for inner0 in (member.children or []):
+                                if inner0 is not None:
+                                    _mark_variant_chain(inner0)
                         if hasattr(member, 'children') and member.children:
                             inner = member.children[0]
                             # Handle DefinitionElement wrapping
@@ -1093,6 +1138,12 @@ class Usage(Searchable):
                         if hasattr(body_item, 'children') and body_item.children:
                             member = body_item.children[0]
                             mc = member.children if isinstance(member.children, list) else [member.children]
+                            if member.__class__.__name__ == 'VariantUsageMember':
+                                # v0.99.0: mark the flattened variant
+                                # chain so the dispatch sets is_variant
+                                for inner2 in mc:
+                                    if inner2 is not None:
+                                        _mark_variant_chain(inner2)
                             for inner in mc:
                                 if inner is None:
                                     continue
@@ -1137,6 +1188,13 @@ class Usage(Searchable):
                         # and have no model children of their own — treat a
                         # missing/payload member gracefully instead of
                         # raising AttributeError.
+                        if member.__class__.__name__ == 'VariantUsageMember':
+                            # v0.99.0: variant members (see the usage
+                            # path above)
+                            for inner2 in (getattr(member, 'children', None)
+                                           or []):
+                                if inner2 is not None:
+                                    _mark_variant_chain(inner2)
                         mc = getattr(member, 'children', None)
                         if not isinstance(mc, list):
                             mc = [mc] if mc is not None else []
@@ -1371,6 +1429,21 @@ class Usage(Searchable):
                     pass
 
         self._extract_specialization_info(grammar)
+
+        # v0.99.0: variation/variant/abstract markers.  The variant
+        # flag rides the tagged source-class object (set by the body
+        # flatten when the member was a VariantUsageMember); the
+        # variation/abstract flags come from the grammar prefixes.
+        if getattr(grammar, '_sysml_variant_member', False):
+            self.is_variant = True
+        _p = getattr(grammar, 'prefix', None)
+        _bp = getattr(_p, 'prefix', None)
+        _rp = getattr(_bp, 'prefix', None) if _bp is not None else None
+        for _holder in (_rp, _bp):
+            if getattr(_holder, 'isVariation', None) in ('variation', True):
+                self.is_variation = True
+            if getattr(_holder, 'isAbstract', None) in ('abstract', True):
+                self.is_abstract = True
 
         return self
 
@@ -1731,7 +1804,8 @@ class Attribute(Usage):
 
         if child == "DefinitionBody":
             package = {
-                "name": "NonOccurrenceUsageMember",
+                "name": "VariantUsageMember" if getattr(
+                    self, "is_variant", False) else "NonOccurrenceUsageMember",
                 "prefix": None,
                 "ownedRelatedElement": [package],
             }
@@ -2163,7 +2237,8 @@ class Binding:
         return {
             "name": "DefinitionBodyItem",
             "ownedRelationship": [{
-                "name": "NonOccurrenceUsageMember",
+                "name": "VariantUsageMember" if getattr(
+                    self, "is_variant", False) else "NonOccurrenceUsageMember",
                 "prefix": None,
                 "ownedRelatedElement": [{
                     "name": "NonOccurrenceUsageElement",
@@ -3717,6 +3792,36 @@ class Requirement(Usage):
                             self.doc = text
 
 
+def _mark_variant_chain(obj):
+    """Depth-mark an object chain as belonging to a variant member (v0.99.0).
+
+    The body flatten tags the flattened class object AND every single-child
+    descendant so the semantic loader (which receives an inner object of
+    that chain) can set ``is_variant``.
+    """
+    seen = 0
+    cur = obj
+    while cur is not None and seen < 12:
+        try:
+            setattr(cur, "_sysml_variant_member", True)
+        except Exception:  # pragma: no cover
+            pass
+        seen += 1
+        nxt = getattr(cur, "children", None)
+        if isinstance(nxt, list) and len(nxt) == 1:
+            cur = nxt[0]
+        elif isinstance(nxt, list) and nxt:
+            # multiple children: mark each subtree head too
+            for x in nxt:
+                try:
+                    setattr(x, "_sysml_variant_member", True)
+                except Exception:  # pragma: no cover
+                    pass
+            cur = None
+        else:
+            cur = nxt
+
+
 def _comment_body_to_text(body):
     """Extract plain text from a SysML comment body like '/* ... */'.
 
@@ -3960,7 +4065,8 @@ class _NonOccurrenceUsage(Usage):
 
         if child == "DefinitionBody":
             package = {
-                "name": "NonOccurrenceUsageMember",
+                "name": "VariantUsageMember" if getattr(
+                    self, "is_variant", False) else "NonOccurrenceUsageMember",
                 "prefix": None,
                 "ownedRelatedElement": [package],
             }

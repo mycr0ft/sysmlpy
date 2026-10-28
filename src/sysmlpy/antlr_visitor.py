@@ -1150,7 +1150,9 @@ def _get_occurrence_usage_prefix(ctx):
     is_end = False
     is_individual = False
     portion_kind = None
-    
+    is_abstract = False
+    is_variation = False
+
     if hasattr(ctx, 'occurrenceUsagePrefix') and ctx.occurrenceUsagePrefix():
         oup = ctx.occurrenceUsagePrefix()
         if hasattr(oup, 'basicUsagePrefix') and oup.basicUsagePrefix():
@@ -1159,6 +1161,13 @@ def _get_occurrence_usage_prefix(ctx):
             # Extract direction and end from refPrefix
             if hasattr(bup, 'refPrefix') and bup.refPrefix():
                 rp = bup.refPrefix()
+                # v0.99.0: usage-level 'abstract'/'variation' — the
+                # Vehicle-Example corpus puts them on plain usages
+                # (``variation part engine``); previously dropped.
+                is_abstract = (hasattr(rp, 'ABSTRACT')
+                               and rp.ABSTRACT() is not None)
+                is_variation = (hasattr(rp, 'VARIATION')
+                                and rp.VARIATION() is not None)
                 if hasattr(rp, 'featureDirection') and rp.featureDirection():
                     fd = rp.featureDirection()
                     direction_in = "in " if fd.IN() is not None else ""
@@ -1181,12 +1190,14 @@ def _get_occurrence_usage_prefix(ctx):
                 portion_kind = "timeslice"
     
     has_direction = any([direction_in, direction_out, direction_inout])
-    
-    if not is_reference and not has_direction and not is_end and not is_individual and portion_kind is None:
+
+    if (not is_reference and not has_direction and not is_end
+            and not is_individual and portion_kind is None
+            and not is_abstract and not is_variation):
         return None
-    
+
     ref_prefix = None
-    if has_direction or is_end:
+    if has_direction or is_end or is_abstract or is_variation:
         ref_prefix = {
             "name": "RefPrefix",
             "direction": {
@@ -1195,8 +1206,8 @@ def _get_occurrence_usage_prefix(ctx):
                 "out": direction_out,
                 "inout": direction_inout
             },
-            "isAbstract": None,
-            "isVariation": None,
+            "isAbstract": "abstract" if is_abstract else None,
+            "isVariation": "variation" if is_variation else None,
             "isReadOnly": None,
             "isDerived": None,
             "isEnd": "end" if is_end else None
@@ -10194,6 +10205,97 @@ def _make_constraint_usage_declaration_dict(cud_ctx):
     }
 
 
+def _visit_variant_usage_element(variant_usage):
+    """Visit a variantUsageElement context (v0.99.0).
+
+    Grammar: variantUsageElement : variantReference | referenceUsage
+    | attributeUsage | ... | partUsage | ... | behaviorUsageElement ;
+    Returns the member dict shaped like the nested-usage visitors'
+    output (UsageElement for part/item/port variants,
+    NonOccurrenceUsageElement for attribute/ref variants) with
+    ``isVariant`` riding the innermost ref prefix so the dump emits
+    the ``variant`` keyword.
+    """
+    attr_name = None
+    for attr in ("partUsage", "attributeUsage", "itemUsage", "portUsage"):
+        if getattr(variant_usage, attr, None) and getattr(variant_usage, attr)():
+            attr_name = attr
+            break
+    if attr_name is None:
+        for child in variant_usage.getChildren():
+            cls = child.__class__.__name__
+            if cls in ("PartUsageContext", "AttributeUsageContext",
+                       "ItemUsageContext", "PortUsageContext",
+                       "ReferenceUsageContext"):
+                attr_name = ("partUsage" if cls == "PartUsageContext"
+                             else "attributeUsage"
+                             if cls == "AttributeUsageContext"
+                             else "itemUsage" if cls == "ItemUsageContext"
+                             else "portUsage" if cls == "PortUsageContext"
+                             else "referenceUsage")
+                break
+    if attr_name is None:
+        return None
+    ctx = getattr(variant_usage, attr_name)()
+    if attr_name == "attributeUsage":
+        name, shortname = _get_usage_identification(ctx)
+        specialization = _build_full_specialization_from_ctx(ctx)
+        valuepart = _get_usage_value_part(ctx)
+        usage_prefix = _get_usage_prefix_dict(ctx)
+        body_elements = _extract_body_from_usage_ctx(ctx)
+        elem = {
+            "name": "NonOccurrenceUsageElement",
+            "ownedRelatedElement": {
+                "name": "AttributeUsage",
+                "prefix": usage_prefix,
+                "usage": {
+                    "name": "Usage",
+                    "declaration": {
+                        "name": "UsageDeclaration",
+                        "declaration": {
+                            "name": "FeatureDeclaration",
+                            "identification": {
+                                "name": "Identification",
+                                "declaredShortName": shortname,
+                                "declaredName": name
+                            },
+                            "specialization": specialization
+                        }
+                    },
+                    "completion": {
+                        "name": "UsageCompletion",
+                        "valuepart": valuepart,
+                        "body": {
+                            "name": "UsageBody",
+                            "body": {
+                                "name": "DefinitionBody",
+                                "ownedRelatedElement": body_elements
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    elif attr_name == "referenceUsage":
+        elem = _make_reference_usage_dict(ctx)
+    else:
+        name, shortname = _get_usage_identification(ctx)
+        body_items = _get_usage_body_items(ctx)
+        occ_prefix = _get_occurrence_usage_prefix(ctx)
+        specialization = _build_full_specialization_from_ctx(ctx)
+        valuepart = _get_usage_value_part(ctx)
+        usage_type = {"partUsage": "PartUsage", "itemUsage": "ItemUsage",
+                      "portUsage": "PortUsage"}.get(attr_name, "PartUsage")
+        elem = _make_usage_dict(usage_type, name, shortname, occ_prefix,
+                                structure=True, wrapped=False,
+                                body_items=body_items,
+                                specialization=specialization)
+        if valuepart is not None and elem.get("name") == "UsageElement":
+            usage_dict = elem["ownedRelatedElement"]
+            usage_dict["usage"]["completion"]["valuepart"] = valuepart
+    return elem
+
+
 def _visit_definition_body_item_dict(item_ctx, is_interface=False):
     """Visit a definition body item and return a dictionary.
     
@@ -10342,6 +10444,21 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
             # print(f"DEBUG: Found nonOccurrenceUsageElement: {non_occ}")
             inner_element = _visit_nested_non_occurrence_usage(non_occ)
             wrapper = "NonOccurrenceUsageMember"
+        # v0.99.0: VARIANT members — ``variant part x : T;`` /
+        # ``variant attribute a : T;`` inside a variation body.
+        # Previously silently dropped (no dispatch, like the
+        # message-in-body bug).  The VARIANT token's generated
+        # accessor is capitalized.
+        elif ((hasattr(content, 'VARIANT') and content.VARIANT() is not None)
+              or (hasattr(content, 'variantUsageElement')
+                  and content.variantUsageElement() is not None)):
+            variant_usage = content.variantUsageElement() \
+                if hasattr(content, 'variantUsageElement') \
+                and content.variantUsageElement() is not None else None
+            if variant_usage is not None:
+                inner_element = _visit_variant_usage_element(variant_usage)
+                if inner_element is not None:
+                    wrapper = "VariantUsageMember"
     
     # print(f"DEBUG: inner_element={inner_element}, wrapper={wrapper}")
     if not inner_element or not wrapper:
@@ -10456,6 +10573,26 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
         # NonOccurrenceUsageMember expects ownedRelatedElement to be a list
         if inner_element.get("name") == "NonOccurrenceUsageElement":
             owned = [inner_element]
+        else:
+            owned = [inner_element]
+    elif wrapper == "VariantUsageMember":
+        # VariantUsageMember expects ownedRelatedElement as a list of
+        # OccurrenceUsageElement/NonOccurrenceUsageElement dicts.
+        # _make_usage_dict(wrapped=False) returns
+        # UsageElement -> <PartUsage>; rebuild the canonical envelope
+        # (the OccurrenceUsageMember convention, v0.99.0).
+        if inner_element.get("name") == "UsageElement":
+            inner_usage = inner_element.get("ownedRelatedElement", {})
+            if isinstance(inner_usage, dict) and inner_usage.get("name"):
+                owned = [{
+                    "name": "OccurrenceUsageElement",
+                    "ownedRelatedElement": {
+                        "name": "StructureUsageElement",
+                        "ownedRelatedElement": inner_usage,
+                    },
+                }]
+            else:
+                owned = [inner_element]
         else:
             owned = [inner_element]
     else:
@@ -11054,7 +11191,9 @@ def _get_usage_prefix_dict(ctx):
     direction_in = ""
     direction_out = ""
     direction_inout = ""
-    
+    is_abstract = False
+    is_variation = False
+
     # Navigate: usagePrefix -> unextendedUsagePrefix -> basicUsagePrefix -> refPrefix
     bup = None
     if hasattr(up, 'unextendedUsagePrefix') and up.unextendedUsagePrefix():
@@ -11063,23 +11202,30 @@ def _get_usage_prefix_dict(ctx):
             bup = uep.basicUsagePrefix()
     elif hasattr(up, 'basicUsagePrefix') and up.basicUsagePrefix():
         bup = up.basicUsagePrefix()
-    
+
     if bup:
         is_reference = hasattr(bup, 'REF') and bup.REF() is not None
         if hasattr(bup, 'refPrefix') and bup.refPrefix():
             rp = bup.refPrefix()
+            # v0.99.0: usage-level 'abstract'/'variation' — previously
+            # dropped entirely (and a bare ``abstract part x`` produced
+            # NO prefix dict at all).
+            is_abstract = (hasattr(rp, 'ABSTRACT')
+                           and rp.ABSTRACT() is not None)
+            is_variation = (hasattr(rp, 'VARIATION')
+                            and rp.VARIATION() is not None)
             if hasattr(rp, 'featureDirection') and rp.featureDirection():
                 fd = rp.featureDirection()
                 direction_in = "in " if (hasattr(fd, 'IN') and fd.IN() is not None) else ""
                 direction_out = "out" if (hasattr(fd, 'OUT') and fd.OUT() is not None) else ""
                 direction_inout = "inout" if (hasattr(fd, 'INOUT') and fd.INOUT() is not None) else ""
-    
+
     has_direction = any([direction_in, direction_out, direction_inout])
-    if not is_reference and not has_direction:
+    if not is_reference and not has_direction and not is_abstract and not is_variation:
         return None
-    
+
     ref_prefix = None
-    if has_direction:
+    if has_direction or is_abstract or is_variation:
         ref_prefix = {
             "name": "RefPrefix",
             "direction": {
@@ -11088,8 +11234,8 @@ def _get_usage_prefix_dict(ctx):
                 "out": direction_out,
                 "inout": direction_inout
             },
-            "isAbstract": None,
-            "isVariation": None,
+            "isAbstract": "abstract" if is_abstract else None,
+            "isVariation": "variation" if is_variation else None,
             "isReadOnly": None,
             "isDerived": None,
             "isEnd": None

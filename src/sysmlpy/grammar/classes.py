@@ -5127,6 +5127,11 @@ class DefinitionBodyItem:
                         self.children.append(
                             InterfaceOccurrenceUsageMember(item)
                         )
+                    elif item["name"] == "VariantUsageMember":
+                        # v0.99.0: ``variant part x : T;`` /
+                        # ``variant attribute a : T;`` members of a
+                        # variation body — previously silently dropped.
+                        self.children.append(VariantUsageMember(item))
                     elif item["name"] == "Import":
                         # Imports are legal in usage bodies too
                         # (``part p1 { private import Q::*; }``) —
@@ -5193,6 +5198,54 @@ class OccurrenceUsageMember:
         output = []
         for child in self.children:
             output.append(child.dump())
+        return "\n".join(output)
+
+    def get_definition(self):
+        output = {
+            "name": self.__class__.__name__,
+            "prefix": None,
+            "ownedRelatedElement": [],
+        }
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+
+        for child in self.children:
+            output["ownedRelatedElement"].append(child.get_definition())
+
+        return output
+
+
+class VariantUsageMember:
+    """A ``variant`` member of a variation body (v0.99.0).
+
+    Grammar: definitionBodyItemContent : VARIANT variantUsageElement;
+    usageBody items: variantUsageMember : memberPrefix VARIANT
+    variantUsageElement.  Same ownedRelatedElement convention as
+    OccurrenceUsageMember, but the dump emits the ``variant`` keyword.
+    """
+
+    def __init__(self, definition):
+        if valid_definition(definition, "VariantUsageMember"):
+            if definition["prefix"] is not None:
+                self.prefix = MemberPrefix(definition["prefix"])
+            else:
+                self.prefix = None
+
+            self.children = []
+            for element in definition["ownedRelatedElement"]:
+                # Variant members wrap either an OccurrenceUsageElement
+                # (part/item/port) or a NonOccurrenceUsageElement
+                # (attribute/ref).
+                if element.get("name") == "NonOccurrenceUsageElement":
+                    self.children.append(
+                        NonOccurrenceUsageElement(element))
+                else:
+                    self.children.append(OccurrenceUsageElement(element))
+
+    def dump(self):
+        output = []
+        for child in self.children:
+            output.append("variant " + child.dump())
         return "\n".join(output)
 
     def get_definition(self):
