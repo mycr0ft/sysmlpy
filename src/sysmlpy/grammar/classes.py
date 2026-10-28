@@ -240,6 +240,14 @@ class DefinitionElement:
                 # because no visitor dispatch produced a Dependency dict and
                 # no DefinitionElement branch constructed it.
                 self.children.append(Dependency(definition["ownedRelatedElement"]))
+            elif de == "InteractionDefinition":
+                self.children.append(
+                    InteractionDefinition(definition["ownedRelatedElement"])
+                )
+            elif de == "InteractionUsage":
+                self.children.append(
+                    InteractionUsage(definition["ownedRelatedElement"])
+                )
             elif de == "LibraryPackage":
                 # `standard library package Foo { ... }` shares the same
                 # {identification, body} shape as `package Foo { ... }` plus
@@ -6840,6 +6848,8 @@ class StructureUsageElement:
                 self.children = ItemUsage(definition["ownedRelatedElement"])
             elif name == "PartUsage":
                 self.children = PartUsage(definition["ownedRelatedElement"])
+            elif name == "InteractionUsage":
+                self.children = InteractionUsage(definition["ownedRelatedElement"])
             elif name == "ConnectionUsage":
                 self.children = ConnectionUsage(definition["ownedRelatedElement"])
             elif name == "PortUsage":
@@ -7049,6 +7059,10 @@ class MessageDeclaration:
             if definition.get("valuepart") is not None:
                 self.valuepart = ValuePart(definition["valuepart"])
 
+            if definition.get("ownedRelationship_of") is not None:
+                # the 'of <type>' payload member carries its name
+                self.of_item = definition["ownedRelationship_of"].get(
+                    "declaredName")
             # Parse from/to from ownedRelationship list
             relationships = definition.get("ownedRelationship", [])
             if len(relationships) >= 2:
@@ -10260,6 +10274,72 @@ class Function(_TypeDefinitionBase):
 
 class Predicate(_TypeDefinitionBase):
     keyword = "predicate"
+
+
+class InteractionDefinition:
+    def __init__(self, definition=None):
+        if definition is not None:
+            if valid_definition(definition, "InteractionDefinition"):
+                if definition["prefix"] is not None:
+                    self.prefix = OccurrenceDefinitionPrefix(definition["prefix"])
+                else:
+                    self.prefix = None
+                self.keyword = "interaction def"
+                self.definition = Definition(definition["definition"])
+        else:
+            self.prefix = None
+            self.keyword = "interaction def"
+            self.definition = Definition()
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        output.append(self.keyword)
+        output.append(self.definition.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {"name": "InteractionDefinition", "prefix": None}
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        output["definition"] = self.definition.get_definition()
+        return output
+
+
+class InteractionUsage:
+    def __init__(self, definition=None):
+        if definition is not None:
+            if valid_definition(definition, "InteractionUsage"):
+                if definition["prefix"] is not None:
+                    prefix_name = definition["prefix"].get(
+                        "name", "OccurrenceUsagePrefix")
+                    self.prefix = globals()[prefix_name](definition["prefix"])
+                else:
+                    self.prefix = None
+                self.keyword = "interaction"
+                self.usage = Usage(definition["usage"])
+        else:
+            self.prefix = None
+            self.keyword = "interaction"
+            self.usage = Usage()
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            output.append(self.prefix.dump())
+        output.append(self.keyword)
+        output.append(self.usage.dump())
+        return " ".join(output)
+
+    def get_definition(self):
+        output = {"name": "InteractionUsage"}
+        if self.prefix is not None:
+            output["prefix"] = self.prefix.get_definition()
+        else:
+            output["prefix"] = None
+        output["usage"] = self.usage.get_definition()
+        return output
 
 
 class Interaction(_TypeDefinitionBase):

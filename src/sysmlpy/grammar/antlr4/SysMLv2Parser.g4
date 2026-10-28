@@ -749,6 +749,14 @@ featureChainMember
     : qualifiedName ( DOT qualifiedName )*
     ;
 
+interactionDefinition
+    : occurrenceDefinitionPrefix INTERACTION DEF definition
+    ;
+
+interactionUsage
+    : occurrenceUsagePrefix INTERACTION usage
+    ;
+
 interaction
     : typePrefix INTERACTION classifierDeclaration typeBody
     ;
@@ -947,6 +955,7 @@ definitionElement
     | metadataDefinition
     | allocationDefinition
     | extendedDefinition
+    | interactionDefinition
     ;
 
 usageElement
@@ -1117,6 +1126,7 @@ structureUsageElement
     | message
     | flowUsage
     | successionFlowUsage
+    | interactionUsage
     ;
 
 behaviorUsageElement

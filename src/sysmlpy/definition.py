@@ -24,7 +24,7 @@ from sysmlpy import Part, Item, Port, Requirement, UseCase, Attribute, Action, C
 from sysmlpy.usage import (
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
-    View, Viewpoint, Concern, Reference,
+    View, Viewpoint, Concern, Reference, Interaction,
 )
 from sysmlpy.usage import _comment_body_to_text as _comment_body_to_text_package
 
@@ -1141,6 +1141,15 @@ class Package(Searchable):
                 self.children.append(child)
             elif inner_class == "ActionDefinition":
                 child = Action(definition=True).load_from_grammar(inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "InteractionDefinition":
+                child = Interaction(definition=True).load_from_grammar(
+                    inner_element)
+                child.parent = self
+                self.children.append(child)
+            elif inner_class == "InteractionUsage":
+                child = Interaction().load_from_grammar(inner_element)
                 child.parent = self
                 self.children.append(child)
             elif inner_class == "RequirementDefinition":

@@ -1367,6 +1367,24 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by SysMLv2Parser#interactionDefinition.
+    def enterInteractionDefinition(self, ctx:SysMLv2Parser.InteractionDefinitionContext):
+        pass
+
+    # Exit a parse tree produced by SysMLv2Parser#interactionDefinition.
+    def exitInteractionDefinition(self, ctx:SysMLv2Parser.InteractionDefinitionContext):
+        pass
+
+
+    # Enter a parse tree produced by SysMLv2Parser#interactionUsage.
+    def enterInteractionUsage(self, ctx:SysMLv2Parser.InteractionUsageContext):
+        pass
+
+    # Exit a parse tree produced by SysMLv2Parser#interactionUsage.
+    def exitInteractionUsage(self, ctx:SysMLv2Parser.InteractionUsageContext):
+        pass
+
+
     # Enter a parse tree produced by SysMLv2Parser#interaction.
     def enterInteraction(self, ctx:SysMLv2Parser.InteractionContext):
         pass

@@ -764,6 +764,16 @@ class SysMLv2ParserVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by SysMLv2Parser#interactionDefinition.
+    def visitInteractionDefinition(self, ctx:SysMLv2Parser.InteractionDefinitionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by SysMLv2Parser#interactionUsage.
+    def visitInteractionUsage(self, ctx:SysMLv2Parser.InteractionUsageContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by SysMLv2Parser#interaction.
     def visitInteraction(self, ctx:SysMLv2Parser.InteractionContext):
         return self.visitChildren(ctx)
