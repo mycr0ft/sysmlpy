@@ -947,6 +947,13 @@ def _visit_definition_element_dict(def_elem_ctx, prefix=None):
     elif hasattr(def_elem_ctx, 'itemDefinition') and def_elem_ctx.itemDefinition():
         ctx = def_elem_ctx.itemDefinition()
         return _make_item_definition_dict(ctx, prefix)
+    if hasattr(def_elem_ctx, 'interactionDefinition') and def_elem_ctx.interactionDefinition():
+        ctx = def_elem_ctx.interactionDefinition()
+        d3 = _make_part_definition_dict(ctx, prefix)
+        if d3 is not None:
+            inner = d3["ownedRelatedElement"]["ownedRelatedElement"]
+            inner["name"] = "InteractionDefinition"
+        return d3
     elif hasattr(def_elem_ctx, 'partDefinition') and def_elem_ctx.partDefinition():
         ctx = def_elem_ctx.partDefinition()
         return _make_part_definition_dict(ctx, prefix)
@@ -1694,22 +1701,51 @@ def _make_message_dict(ctx, prefix=None):
             }
         }
     
-    # Build from/to events
+    # the 'of <type>' payload (the FlowPayloadFeatureMember)
+    if of_item is not None:
+        ptext = None
+        try:
+            ptext = (of_item.flowPayloadFeature().getText() or "").strip()
+        except AttributeError:
+            ptext = None
+        if ptext is None:
+            try:
+                ptext = of_item.getText()
+                if ptext and ptext.startswith("of"):
+                    ptext = ptext[2:].strip()
+            except AttributeError:
+                ptext = None
+        if ptext:
+            msg_decl_dict["ownedRelationship_of"] = {
+                "name": "FlowPayloadFeatureMember",
+                "declaredName": ptext.split(".")[0].strip()
+            }
+
+    # Build from/to events (each carries its ownedReferenceSubsetting
+    # - the member/feature the message connects)
+    def _msg_event_dict(event_ctx):
+        ev = {"name": "MessageEvent", "ownedRelationship": []}
+        if event_ctx is None:
+            return ev
+        me = (event_ctx.messageEvent() if hasattr(event_ctx, 'messageEvent')
+              and callable(getattr(event_ctx, 'messageEvent')) else None)
+        if me is not None and hasattr(me, 'ownedReferenceSubsetting') \
+                and me.ownedReferenceSubsetting():
+            ors = _build_owned_reference_subsetting_dict(
+                me.ownedReferenceSubsetting())
+            if ors:
+                ev["ownedRelationship"].append(ors)
+        return ev
+
     if from_event:
         msg_decl_dict["ownedRelationship"].append({
             "name": "MessageEventMember",
-            "ownedRelatedElement": [{
-                "name": "MessageEvent",
-                "ownedRelationship": []
-            }]
+            "ownedRelatedElement": [_msg_event_dict(from_event)]
         })
     if to_event:
         msg_decl_dict["ownedRelationship"].append({
             "name": "MessageEventMember",
-            "ownedRelatedElement": [{
-                "name": "MessageEvent",
-                "ownedRelationship": []
-            }]
+            "ownedRelatedElement": [_msg_event_dict(to_event)]
         })
     
     return {
@@ -10538,6 +10574,30 @@ def _visit_nested_occurrence_usage(occ_elem):
             specialization = _build_full_specialization_from_ctx(ctx)
             valuepart = _get_usage_value_part(ctx)
             return _make_nested_usage_element("PortUsage", name, shortname, occ_prefix, body_items, specialization, valuepart)
+        elif hasattr(struct_elem, 'message') and struct_elem.message():
+            ctx = struct_elem.message()
+            msg = _make_message_dict(ctx, None)
+            if msg is None:
+                return None
+            # the maker returns the 5-layer wrapper
+            # (PackageMember/UsageElement/OccurrenceUsageElement/
+            # StructureUsageElement/Message); unwrap to the
+            # StructureUsageElement/Message pair
+            m0 = msg.get("ownedRelatedElement", {})
+            m0 = m0.get("ownedRelatedElement", m0)
+            m0 = m0.get("ownedRelatedElement", m0)
+            m0 = m0.get("ownedRelatedElement", m0)
+            if m0.get("name") != "Message":
+                return msg
+            return {"name": "OccurrenceUsageElement",
+                    "ownedRelatedElement": {"name": "StructureUsageElement",
+                                            "ownedRelatedElement": m0}}
+        elif hasattr(struct_elem, 'flowUsage') and struct_elem.flowUsage():
+            ctx = struct_elem.flowUsage()
+            return _make_nested_flow_connection_usage_dict(ctx, None)
+        elif hasattr(struct_elem, 'successionFlowUsage') and struct_elem.successionFlowUsage():
+            ctx = struct_elem.successionFlowUsage()
+            return _make_nested_succession_flow_usage_dict(ctx, None)
         elif hasattr(struct_elem, 'interfaceUsage') and struct_elem.interfaceUsage():
             ctx = struct_elem.interfaceUsage()
             result = _make_interface_usage_dict(ctx, None)
@@ -13339,6 +13399,13 @@ def _visit_usage_element_dict(usage_elem_ctx, prefix=None):
         if hasattr(occ_elem, 'structureUsageElement') and occ_elem.structureUsageElement():
             struct_elem = occ_elem.structureUsageElement()
             
+            if hasattr(struct_elem, 'interactionUsage') and struct_elem.interactionUsage():
+                ctx = struct_elem.interactionUsage()
+                name, shortname = _get_usage_identification(ctx)
+                body_items = _get_usage_body_items(ctx)
+                occ_prefix = _get_occurrence_usage_prefix(ctx)
+                specialization = _build_full_specialization_from_ctx(ctx)
+                return _make_usage_dict("InteractionUsage", name, shortname, occ_prefix or prefix, structure=True, wrapped=True, body_items=body_items, specialization=specialization)
             if hasattr(struct_elem, 'partUsage') and struct_elem.partUsage():
                 ctx = struct_elem.partUsage()
                 name, shortname = _get_usage_identification(ctx)

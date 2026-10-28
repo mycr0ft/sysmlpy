@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 0.98.0 (2026-10-28)
+
+- **Interaction definitions/usages parse (the `interaction def` rule).**
+  The generated grammar's `interaction` rule
+  (`typePrefix INTERACTION classifierDeclaration typeBody`) rejected
+  every `interaction def X { ... }` form (and even a bare
+  `interaction T;`) - the rule now follows the part/occurrence shape:
+  `interactionDefinition : occurrenceDefinitionPrefix INTERACTION DEF
+  definition` + `interactionUsage : occurrenceUsagePrefix INTERACTION
+  usage`, dispatched in `definitionElement`/`structureUsageElement`;
+  the parser regenerated with the bundled 4.13.2 jar.
+
+## 0.97.1 (2026-10-16)
 ## 0.97.1 (2026-10-16)
 
 - **Boxes action-flow view: v2-native glyphs** (with diagramboxes

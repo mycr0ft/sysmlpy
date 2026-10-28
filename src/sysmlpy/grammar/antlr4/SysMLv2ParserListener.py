@@ -1,4 +1,4 @@
-# Generated from /storage16/home/jfox/sysmlpy/src/sysmlpy/grammar/antlr4/SysMLv2Parser.g4 by ANTLR 4.13.2
+# Generated from src/sysmlpy/grammar/antlr4/SysMLv2Parser.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .SysMLv2Parser import SysMLv2Parser
@@ -14,6 +14,15 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#ownedExpression.
     def exitOwnedExpression(self, ctx:SysMLv2Parser.OwnedExpressionContext):
+        pass
+
+
+    # Enter a parse tree produced by SysMLv2Parser#primaryExpression.
+    def enterPrimaryExpression(self, ctx:SysMLv2Parser.PrimaryExpressionContext):
+        pass
+
+    # Exit a parse tree produced by SysMLv2Parser#primaryExpression.
+    def exitPrimaryExpression(self, ctx:SysMLv2Parser.PrimaryExpressionContext):
         pass
 
 
@@ -59,24 +68,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#featureReferenceExpression.
     def exitFeatureReferenceExpression(self, ctx:SysMLv2Parser.FeatureReferenceExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#metadataAccessExpression.
-    def enterMetadataAccessExpression(self, ctx:SysMLv2Parser.MetadataAccessExpressionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#metadataAccessExpression.
-    def exitMetadataAccessExpression(self, ctx:SysMLv2Parser.MetadataAccessExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#invocationExpression.
-    def enterInvocationExpression(self, ctx:SysMLv2Parser.InvocationExpressionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#invocationExpression.
-    def exitInvocationExpression(self, ctx:SysMLv2Parser.InvocationExpressionContext):
         pass
 
 
@@ -230,15 +221,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#identification.
     def exitIdentification(self, ctx:SysMLv2Parser.IdentificationContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#qualifiedIdentification.
-    def enterQualifiedIdentification(self, ctx:SysMLv2Parser.QualifiedIdentificationContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#qualifiedIdentification.
-    def exitQualifiedIdentification(self, ctx:SysMLv2Parser.QualifiedIdentificationContext):
         pass
 
 
@@ -1088,33 +1070,6 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#ownedFeatureChain.
-    def enterOwnedFeatureChain(self, ctx:SysMLv2Parser.OwnedFeatureChainContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#ownedFeatureChain.
-    def exitOwnedFeatureChain(self, ctx:SysMLv2Parser.OwnedFeatureChainContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#featureChain.
-    def enterFeatureChain(self, ctx:SysMLv2Parser.FeatureChainContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#featureChain.
-    def exitFeatureChain(self, ctx:SysMLv2Parser.FeatureChainContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#ownedFeatureChaining.
-    def enterOwnedFeatureChaining(self, ctx:SysMLv2Parser.OwnedFeatureChainingContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#ownedFeatureChaining.
-    def exitOwnedFeatureChaining(self, ctx:SysMLv2Parser.OwnedFeatureChainingContext):
-        pass
-
-
     # Enter a parse tree produced by SysMLv2Parser#featureInverting.
     def enterFeatureInverting(self, ctx:SysMLv2Parser.FeatureInvertingContext):
         pass
@@ -1403,159 +1358,6 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#ownedExpressionMember.
-    def enterOwnedExpressionMember(self, ctx:SysMLv2Parser.OwnedExpressionMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#ownedExpressionMember.
-    def exitOwnedExpressionMember(self, ctx:SysMLv2Parser.OwnedExpressionMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#metadataReference.
-    def enterMetadataReference(self, ctx:SysMLv2Parser.MetadataReferenceContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#metadataReference.
-    def exitMetadataReference(self, ctx:SysMLv2Parser.MetadataReferenceContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#typeReferenceMember.
-    def enterTypeReferenceMember(self, ctx:SysMLv2Parser.TypeReferenceMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#typeReferenceMember.
-    def exitTypeReferenceMember(self, ctx:SysMLv2Parser.TypeReferenceMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#typeResultMember.
-    def enterTypeResultMember(self, ctx:SysMLv2Parser.TypeResultMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#typeResultMember.
-    def exitTypeResultMember(self, ctx:SysMLv2Parser.TypeResultMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#referenceTyping.
-    def enterReferenceTyping(self, ctx:SysMLv2Parser.ReferenceTypingContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#referenceTyping.
-    def exitReferenceTyping(self, ctx:SysMLv2Parser.ReferenceTypingContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#emptyResultMember.
-    def enterEmptyResultMember(self, ctx:SysMLv2Parser.EmptyResultMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#emptyResultMember.
-    def exitEmptyResultMember(self, ctx:SysMLv2Parser.EmptyResultMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#sequenceOperatorExpression.
-    def enterSequenceOperatorExpression(self, ctx:SysMLv2Parser.SequenceOperatorExpressionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#sequenceOperatorExpression.
-    def exitSequenceOperatorExpression(self, ctx:SysMLv2Parser.SequenceOperatorExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#sequenceExpressionListMember.
-    def enterSequenceExpressionListMember(self, ctx:SysMLv2Parser.SequenceExpressionListMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#sequenceExpressionListMember.
-    def exitSequenceExpressionListMember(self, ctx:SysMLv2Parser.SequenceExpressionListMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#bodyArgumentMember.
-    def enterBodyArgumentMember(self, ctx:SysMLv2Parser.BodyArgumentMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#bodyArgumentMember.
-    def exitBodyArgumentMember(self, ctx:SysMLv2Parser.BodyArgumentMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#bodyArgument.
-    def enterBodyArgument(self, ctx:SysMLv2Parser.BodyArgumentContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#bodyArgument.
-    def exitBodyArgument(self, ctx:SysMLv2Parser.BodyArgumentContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#bodyArgumentValue.
-    def enterBodyArgumentValue(self, ctx:SysMLv2Parser.BodyArgumentValueContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#bodyArgumentValue.
-    def exitBodyArgumentValue(self, ctx:SysMLv2Parser.BodyArgumentValueContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReferenceArgumentMember.
-    def enterFunctionReferenceArgumentMember(self, ctx:SysMLv2Parser.FunctionReferenceArgumentMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReferenceArgumentMember.
-    def exitFunctionReferenceArgumentMember(self, ctx:SysMLv2Parser.FunctionReferenceArgumentMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReferenceArgument.
-    def enterFunctionReferenceArgument(self, ctx:SysMLv2Parser.FunctionReferenceArgumentContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReferenceArgument.
-    def exitFunctionReferenceArgument(self, ctx:SysMLv2Parser.FunctionReferenceArgumentContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReferenceArgumentValue.
-    def enterFunctionReferenceArgumentValue(self, ctx:SysMLv2Parser.FunctionReferenceArgumentValueContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReferenceArgumentValue.
-    def exitFunctionReferenceArgumentValue(self, ctx:SysMLv2Parser.FunctionReferenceArgumentValueContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReferenceExpression.
-    def enterFunctionReferenceExpression(self, ctx:SysMLv2Parser.FunctionReferenceExpressionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReferenceExpression.
-    def exitFunctionReferenceExpression(self, ctx:SysMLv2Parser.FunctionReferenceExpressionContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReferenceMember.
-    def enterFunctionReferenceMember(self, ctx:SysMLv2Parser.FunctionReferenceMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReferenceMember.
-    def exitFunctionReferenceMember(self, ctx:SysMLv2Parser.FunctionReferenceMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#functionReference.
-    def enterFunctionReference(self, ctx:SysMLv2Parser.FunctionReferenceContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#functionReference.
-    def exitFunctionReference(self, ctx:SysMLv2Parser.FunctionReferenceContext):
-        pass
-
-
     # Enter a parse tree produced by SysMLv2Parser#featureChainMember.
     def enterFeatureChainMember(self, ctx:SysMLv2Parser.FeatureChainMemberContext):
         pass
@@ -1565,129 +1367,21 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#ownedFeatureChainMember.
-    def enterOwnedFeatureChainMember(self, ctx:SysMLv2Parser.OwnedFeatureChainMemberContext):
+    # Enter a parse tree produced by SysMLv2Parser#interactionDefinition.
+    def enterInteractionDefinition(self, ctx:SysMLv2Parser.InteractionDefinitionContext):
         pass
 
-    # Exit a parse tree produced by SysMLv2Parser#ownedFeatureChainMember.
-    def exitOwnedFeatureChainMember(self, ctx:SysMLv2Parser.OwnedFeatureChainMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#featureReferenceMember.
-    def enterFeatureReferenceMember(self, ctx:SysMLv2Parser.FeatureReferenceMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#featureReferenceMember.
-    def exitFeatureReferenceMember(self, ctx:SysMLv2Parser.FeatureReferenceMemberContext):
+    # Exit a parse tree produced by SysMLv2Parser#interactionDefinition.
+    def exitInteractionDefinition(self, ctx:SysMLv2Parser.InteractionDefinitionContext):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#featureReference.
-    def enterFeatureReference(self, ctx:SysMLv2Parser.FeatureReferenceContext):
+    # Enter a parse tree produced by SysMLv2Parser#interactionUsage.
+    def enterInteractionUsage(self, ctx:SysMLv2Parser.InteractionUsageContext):
         pass
 
-    # Exit a parse tree produced by SysMLv2Parser#featureReference.
-    def exitFeatureReference(self, ctx:SysMLv2Parser.FeatureReferenceContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#elementReferenceMember.
-    def enterElementReferenceMember(self, ctx:SysMLv2Parser.ElementReferenceMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#elementReferenceMember.
-    def exitElementReferenceMember(self, ctx:SysMLv2Parser.ElementReferenceMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#constructorResultMember.
-    def enterConstructorResultMember(self, ctx:SysMLv2Parser.ConstructorResultMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#constructorResultMember.
-    def exitConstructorResultMember(self, ctx:SysMLv2Parser.ConstructorResultMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#constructorResult.
-    def enterConstructorResult(self, ctx:SysMLv2Parser.ConstructorResultContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#constructorResult.
-    def exitConstructorResult(self, ctx:SysMLv2Parser.ConstructorResultContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#instantiatedTypeMember.
-    def enterInstantiatedTypeMember(self, ctx:SysMLv2Parser.InstantiatedTypeMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#instantiatedTypeMember.
-    def exitInstantiatedTypeMember(self, ctx:SysMLv2Parser.InstantiatedTypeMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#instantiatedTypeReference.
-    def enterInstantiatedTypeReference(self, ctx:SysMLv2Parser.InstantiatedTypeReferenceContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#instantiatedTypeReference.
-    def exitInstantiatedTypeReference(self, ctx:SysMLv2Parser.InstantiatedTypeReferenceContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#namedArgumentMember.
-    def enterNamedArgumentMember(self, ctx:SysMLv2Parser.NamedArgumentMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#namedArgumentMember.
-    def exitNamedArgumentMember(self, ctx:SysMLv2Parser.NamedArgumentMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#parameterRedefinition.
-    def enterParameterRedefinition(self, ctx:SysMLv2Parser.ParameterRedefinitionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#parameterRedefinition.
-    def exitParameterRedefinition(self, ctx:SysMLv2Parser.ParameterRedefinitionContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#expressionBodyMember.
-    def enterExpressionBodyMember(self, ctx:SysMLv2Parser.ExpressionBodyMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#expressionBodyMember.
-    def exitExpressionBodyMember(self, ctx:SysMLv2Parser.ExpressionBodyMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#expressionBody.
-    def enterExpressionBody(self, ctx:SysMLv2Parser.ExpressionBodyContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#expressionBody.
-    def exitExpressionBody(self, ctx:SysMLv2Parser.ExpressionBodyContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#booleanValue.
-    def enterBooleanValue(self, ctx:SysMLv2Parser.BooleanValueContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#booleanValue.
-    def exitBooleanValue(self, ctx:SysMLv2Parser.BooleanValueContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#realValue.
-    def enterRealValue(self, ctx:SysMLv2Parser.RealValueContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#realValue.
-    def exitRealValue(self, ctx:SysMLv2Parser.RealValueContext):
+    # Exit a parse tree produced by SysMLv2Parser#interactionUsage.
+    def exitInteractionUsage(self, ctx:SysMLv2Parser.InteractionUsageContext):
         pass
 
 
@@ -1769,33 +1463,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#flowEnd.
     def exitFlowEnd(self, ctx:SysMLv2Parser.FlowEndContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#flowFeatureMember.
-    def enterFlowFeatureMember(self, ctx:SysMLv2Parser.FlowFeatureMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#flowFeatureMember.
-    def exitFlowFeatureMember(self, ctx:SysMLv2Parser.FlowFeatureMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#flowFeature.
-    def enterFlowFeature(self, ctx:SysMLv2Parser.FlowFeatureContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#flowFeature.
-    def exitFlowFeature(self, ctx:SysMLv2Parser.FlowFeatureContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#flowFeatureRedefinition.
-    def enterFlowFeatureRedefinition(self, ctx:SysMLv2Parser.FlowFeatureRedefinitionContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#flowFeatureRedefinition.
-    def exitFlowFeatureRedefinition(self, ctx:SysMLv2Parser.FlowFeatureRedefinitionContext):
         pass
 
 
@@ -2165,15 +1832,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#nonOccurrenceUsageMember.
     def exitNonOccurrenceUsageMember(self, ctx:SysMLv2Parser.NonOccurrenceUsageMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#occurrenceUsageMember.
-    def enterOccurrenceUsageMember(self, ctx:SysMLv2Parser.OccurrenceUsageMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#occurrenceUsageMember.
-    def exitOccurrenceUsageMember(self, ctx:SysMLv2Parser.OccurrenceUsageMemberContext):
         pass
 
 
@@ -2960,24 +2618,6 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#flowEndSubsetting.
-    def enterFlowEndSubsetting(self, ctx:SysMLv2Parser.FlowEndSubsettingContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#flowEndSubsetting.
-    def exitFlowEndSubsetting(self, ctx:SysMLv2Parser.FlowEndSubsettingContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#featureChainPrefix.
-    def enterFeatureChainPrefix(self, ctx:SysMLv2Parser.FeatureChainPrefixContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#featureChainPrefix.
-    def exitFeatureChainPrefix(self, ctx:SysMLv2Parser.FeatureChainPrefixContext):
-        pass
-
-
     # Enter a parse tree produced by SysMLv2Parser#actionDefinition.
     def enterActionDefinition(self, ctx:SysMLv2Parser.ActionDefinitionContext):
         pass
@@ -3434,15 +3074,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#forVariableDeclarationMember.
     def exitForVariableDeclarationMember(self, ctx:SysMLv2Parser.ForVariableDeclarationMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#forVariableDeclaration.
-    def enterForVariableDeclaration(self, ctx:SysMLv2Parser.ForVariableDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#forVariableDeclaration.
-    def exitForVariableDeclaration(self, ctx:SysMLv2Parser.ForVariableDeclarationContext):
         pass
 
 
@@ -4265,78 +3896,6 @@ class SysMLv2ParserListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by SysMLv2Parser#renderStateMember.
-    def enterRenderStateMember(self, ctx:SysMLv2Parser.RenderStateMemberContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#renderStateMember.
-    def exitRenderStateMember(self, ctx:SysMLv2Parser.RenderStateMemberContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#renderStateBody.
-    def enterRenderStateBody(self, ctx:SysMLv2Parser.RenderStateBodyContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#renderStateBody.
-    def exitRenderStateBody(self, ctx:SysMLv2Parser.RenderStateBodyContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#renderStateBodyItem.
-    def enterRenderStateBodyItem(self, ctx:SysMLv2Parser.RenderStateBodyItemContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#renderStateBodyItem.
-    def exitRenderStateBodyItem(self, ctx:SysMLv2Parser.RenderStateBodyItemContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#shapeDirective.
-    def enterShapeDirective(self, ctx:SysMLv2Parser.ShapeDirectiveContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#shapeDirective.
-    def exitShapeDirective(self, ctx:SysMLv2Parser.ShapeDirectiveContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#colorDirective.
-    def enterColorDirective(self, ctx:SysMLv2Parser.ColorDirectiveContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#colorDirective.
-    def exitColorDirective(self, ctx:SysMLv2Parser.ColorDirectiveContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#showDirective.
-    def enterShowDirective(self, ctx:SysMLv2Parser.ShowDirectiveContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#showDirective.
-    def exitShowDirective(self, ctx:SysMLv2Parser.ShowDirectiveContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#showTarget.
-    def enterShowTarget(self, ctx:SysMLv2Parser.ShowTargetContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#showTarget.
-    def exitShowTarget(self, ctx:SysMLv2Parser.ShowTargetContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#annotationDirective.
-    def enterAnnotationDirective(self, ctx:SysMLv2Parser.AnnotationDirectiveContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#annotationDirective.
-    def exitAnnotationDirective(self, ctx:SysMLv2Parser.AnnotationDirectiveContext):
-        pass
-
-
     # Enter a parse tree produced by SysMLv2Parser#expose.
     def enterExpose(self, ctx:SysMLv2Parser.ExposeContext):
         pass
@@ -4415,24 +3974,6 @@ class SysMLv2ParserListener(ParseTreeListener):
 
     # Exit a parse tree produced by SysMLv2Parser#prefixMetadataUsage.
     def exitPrefixMetadataUsage(self, ctx:SysMLv2Parser.PrefixMetadataUsageContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#metadataUsage.
-    def enterMetadataUsage(self, ctx:SysMLv2Parser.MetadataUsageContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#metadataUsage.
-    def exitMetadataUsage(self, ctx:SysMLv2Parser.MetadataUsageContext):
-        pass
-
-
-    # Enter a parse tree produced by SysMLv2Parser#metadataUsageDeclaration.
-    def enterMetadataUsageDeclaration(self, ctx:SysMLv2Parser.MetadataUsageDeclarationContext):
-        pass
-
-    # Exit a parse tree produced by SysMLv2Parser#metadataUsageDeclaration.
-    def exitMetadataUsageDeclaration(self, ctx:SysMLv2Parser.MetadataUsageDeclarationContext):
         pass
 
 

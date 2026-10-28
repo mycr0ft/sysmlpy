@@ -126,6 +126,8 @@ from sysmlpy.grammar.classes import (
     ValuePart,
     PartUsage,
     PartDefinition,
+    InteractionDefinition,
+    InteractionUsage,
     ItemUsage,
     ItemDefinition,
     PortUsage,
@@ -1254,6 +1256,14 @@ class Usage(Searchable):
                         c = Item().load_from_grammar(inner)
                         c.parent = self
                         self.children.append(c)
+                    elif inner.__class__.__name__ == "Message":
+                        c = Message().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
+                    elif inner.__class__.__name__ == "InteractionUsage":
+                        c = Interaction().load_from_grammar(inner)
+                        c.parent = self
+                        self.children.append(c)
                     elif inner.__class__.__name__ == "PortUsage":
                         c = Port().load_from_grammar(inner)
                         c.parent = self
@@ -2106,6 +2116,27 @@ class Part(Usage):
         if shortname is not None:
             self._set_name(shortname, short=True)
 
+
+class Interaction(Usage):
+    """SysML v2 Interaction usage/definition.
+
+    Represents a scenario of parts exchanging messages and flows
+    (the KerML Interaction type). The children carry the interaction's
+    parts and messages.
+    """
+
+    sysml_type = 'interaction'
+
+    def __init__(self, definition=False, name=None, shortname=None):
+        Usage.__init__(self)
+        if definition:
+            self.grammar = InteractionDefinition()
+        else:
+            self.grammar = InteractionUsage()
+        if name is not None:
+            self._set_name(name)
+        if shortname is not None:
+            self._set_name(shortname, short=True)
 
 class Binding:
     """SysML binding connector usage (``bind feature = feature``)."""
@@ -3802,6 +3833,27 @@ class Message(Usage):
                     feat_decl = inner_decl.declaration
                     if hasattr(feat_decl, 'identification') and feat_decl.identification:
                         self.name = feat_decl.identification.declaredName
+            # v0.97: the from/to refs + the 'of' payload - classes
+            # MessageDeclaration carries from_event/to_event (each a
+            # MessageEventMember of OwnedReferenceSubsetting children)
+            # and of_item (the payload name string)
+            for attr, target in (("from_event", self.set_from),
+                                 ("to_event", self.set_to)):
+                ev = getattr(decl, attr, None)
+                if ev is None:
+                    continue
+                names = []
+                for me_child in (getattr(ev, 'children', None) or []):
+                    for c in (getattr(me_child, 'children', None) or []):
+                        rf = getattr(c, "referencedFeature", None)
+                        if rf is not None:
+                            names.append(rf.dump())
+                if names:
+                    target(".".join(names))
+            of = getattr(decl, "of_item", None)
+            if of:
+                self.of_type = of if isinstance(of, str) else (getattr(of, "declaredName", None))
+        
         return self
 
 
