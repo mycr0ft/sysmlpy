@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## 0.99.1 (2026-10-28)
+
+- **boxes_view: an actionable error for stale diagramboxes
+  environments** (issue #17). The v2 action-flow glyphs
+  (``chamfer=`` octagons, ``action_start()`` solid diamonds) need
+  diagramboxes >= 0.15.1; the ``boxes`` extra used to be
+  unconstrained, so stale environments surfaced 23 raw
+  ``TypeError: Diagram.add_node() got an unexpected keyword
+  argument 'chamfer'`` failures. ``as_action_flow_view_boxes`` now
+  capability-checks ``Diagram.add_node`` and raises an ImportError
+  with the upgrade line; the extra is pinned
+  ``diagramboxes (>=0.15.1)``. Tests:
+  ``boxes_view_test.py::TestDiagramboxesVersionGuard`` (2; the file
+  is 71 green with diagramboxes 0.18.5).
+
 ## 0.99.0 (2026-10-28)
 
 - **Variation / variant / abstract round-tripping** (the

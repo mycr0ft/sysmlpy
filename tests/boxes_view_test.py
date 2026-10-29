@@ -897,3 +897,29 @@ class TestActionFlowV2Shapes:
         payload = __import__("diagramboxes").to_di(d)
         d2 = __import__("diagramboxes").from_di(payload)
         assert any(getattr(n, "chamfer", 0) > 0 for n in d2.nodes)
+
+
+class TestDiagramboxesVersionGuard:
+    """Issue #17: a stale diagramboxes raised raw TypeErrors from
+    add_node(chamfer=...) — the guard must produce an actionable
+    ImportError instead."""
+
+    def test_guard_raises_with_guidance_on_stale_diagramboxes(self):
+        import pytest
+
+        from sysmlpy.boxes_view import _assert_diagramboxes_capable
+
+        class StaleDiagram:
+            def add_node(self, **kwargs):
+                return None
+
+            def add_edge(self, **kwargs):
+                return None
+
+        with pytest.raises(ImportError, match="diagramboxes >= 0.15.1"):
+            _assert_diagramboxes_capable(StaleDiagram)
+
+    def test_guard_passes_on_capable_diagramboxes(self):
+        from sysmlpy.boxes_view import _assert_diagramboxes_capable
+
+        _assert_diagramboxes_capable()  # the real Diagram must pass

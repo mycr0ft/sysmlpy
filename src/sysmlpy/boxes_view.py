@@ -50,6 +50,29 @@ except ImportError as _exc:  # pragma: no cover
     ) from _exc
 
 
+def _assert_diagramboxes_capable(diagram_cls=Diagram) -> None:
+    """Raise a clear error when the installed diagramboxes is too old (issue #17).
+
+    The v2 action-flow shapes (``chamfer=`` octagons, ``action_start()``
+    solid diamonds) landed in diagramboxes 0.15.1; the ``boxes`` extra
+    used to be unconstrained, so stale environments surfaced raw
+    ``TypeError: Diagram.add_node() got an unexpected keyword argument
+    'chamfer'`` instead of actionable guidance.
+    """
+    import inspect
+
+    add_node = getattr(diagram_cls, "add_node", None)
+    if add_node is not None and "chamfer" in inspect.signature(
+            add_node).parameters:
+        return
+    raise ImportError(
+        "boxes_view's v2 action-flow shapes need diagramboxes >= 0.15.1\n"
+        "(the 'chamfer=' octagons and 'action_start()' solid diamonds).\n"
+        "The installed diagramboxes is older than that. Upgrade with:\n"
+        "  pip install -U 'diagramboxes>=0.15.1'"
+    )
+
+
 def _iter_dict(node: Any):
     """Yield ``(name, dict)`` tuples for every dict with a ``name`` field."""
     if isinstance(node, dict):
@@ -1678,6 +1701,11 @@ def as_action_flow_view_boxes(
     -------
     diagramboxes.Diagram
     """
+    # The v2 glyphs (chamfer= octagons / action_start() diamonds)
+    # require diagramboxes >= 0.15.1 — fail with guidance, not a raw
+    # TypeError from add_node (issue #17).
+    _assert_diagramboxes_capable()
+
     import sysmlpy as _sysmlpy
 
     if isinstance(model, str):
