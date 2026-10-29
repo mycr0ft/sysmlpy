@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0991-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.1 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0990-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -808,6 +819,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0991-2026-10-28" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.1 (2026-10-28)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0990-2026-10-28" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -982,6 +1004,21 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0991-2026-10-28">0.99.1 (2026-10-28)<a class="headerlink" href="#0991-2026-10-28" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>boxes_view: an actionable error for stale diagramboxes
+  environments</strong> (issue #17). The v2 action-flow glyphs
+  (<code>chamfer=</code> octagons, <code>action_start()</code> solid diamonds) need
+  diagramboxes &gt;= 0.15.1; the <code>boxes</code> extra used to be
+  unconstrained, so stale environments surfaced 23 raw
+  <code>TypeError: Diagram.add_node() got an unexpected keyword
+  argument 'chamfer'</code> failures. <code>as_action_flow_view_boxes</code> now
+  capability-checks <code>Diagram.add_node</code> and raises an ImportError
+  with the upgrade line; the extra is pinned
+  <code>diagramboxes (&gt;=0.15.1)</code>. Tests:
+  <code>boxes_view_test.py::TestDiagramboxesVersionGuard</code> (2; the file
+  is 71 green with diagramboxes 0.18.5).</li>
+</ul>
 <h2 id="0990-2026-10-28">0.99.0 (2026-10-28)<a class="headerlink" href="#0990-2026-10-28" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Variation / variant / abstract round-tripping</strong> (the
