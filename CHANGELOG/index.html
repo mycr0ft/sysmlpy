@@ -593,10 +593,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0991-2026-10-28" class="md-nav__link">
+  <a href="#0992-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
-        0.99.1 (2026-10-28)
+        0.99.2 (2026-10-29)
       
     </span>
   </a>
@@ -819,10 +819,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#0991-2026-10-28" class="md-nav__link">
+  <a href="#0992-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
-        0.99.1 (2026-10-28)
+        0.99.2 (2026-10-29)
       
     </span>
   </a>
@@ -1004,8 +1004,15 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h2 id="0991-2026-10-28">0.99.1 (2026-10-28)<a class="headerlink" href="#0991-2026-10-28" title="Permanent link">&para;</a></h2>
+<h2 id="0992-2026-10-29">0.99.2 (2026-10-29)<a class="headerlink" href="#0992-2026-10-29" title="Permanent link">&para;</a></h2>
 <ul>
+<li><strong>pyproject: the <code>boxes</code> extra's constraint broke Poetry/pip
+  metadata</strong> — <code>boxes = ["diagramboxes (&gt;=0.15.1)"]</code> violates
+  Poetry's extras pattern (must be a bare name); it also referenced
+  a dependency never declared. Fixed:
+  <code>diagramboxes = { version = "&gt;=0.15.1", optional = true }</code> plus
+  <code>boxes = ["diagramboxes"]</code> — the first <code>sysmlpy[boxes]</code>
+  install that actually pulls diagramboxes.</li>
 <li><strong>boxes_view: an actionable error for stale diagramboxes
   environments</strong> (issue #17). The v2 action-flow glyphs
   (<code>chamfer=</code> octagons, <code>action_start()</code> solid diamonds) need
