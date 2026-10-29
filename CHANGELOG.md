@@ -1,7 +1,14 @@
 # CHANGELOG
 
-## 0.99.1 (2026-10-28)
+## 0.99.2 (2026-10-29)
 
+- **pyproject: the ``boxes`` extra's constraint broke Poetry/pip
+  metadata** — ``boxes = ["diagramboxes (>=0.15.1)"]`` violates
+  Poetry's extras pattern (must be a bare name); it also referenced
+  a dependency never declared. Fixed:
+  ``diagramboxes = { version = ">=0.15.1", optional = true }`` plus
+  ``boxes = ["diagramboxes"]`` — the first ``sysmlpy[boxes]``
+  install that actually pulls diagramboxes.
 - **boxes_view: an actionable error for stale diagramboxes
   environments** (issue #17). The v2 action-flow glyphs
   (``chamfer=`` octagons, ``action_start()`` solid diamonds) need
