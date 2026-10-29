@@ -15,6 +15,10 @@ import pytest
 # the private diagramboxes package (pip install -e ~/boxes). Skip the
 # module when it is absent — same convention as boxes_view_test.py.
 pytest.importorskip("diagramboxes")
+# sysmlpy.sim imports the `transitions` package (the `sim` extra) —
+# skip the module when it is absent too; a bare import error aborted
+# the whole collection whenever only boxes was installed.
+pytest.importorskip("transitions")
 
 import sys
 from pathlib import Path

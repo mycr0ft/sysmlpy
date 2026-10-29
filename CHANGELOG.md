@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 0.99.3 (2026-10-29)
+
+- **Annex A dump round-trip (Vehicle Example, issues reported by
+  Luciano Kruk — SYSMLPY_099_ANNEX_A_UPSTREAM_ISSUES.md)**: the dump
+  of a model whose source parses emitted unparseable text in four
+  shapes. Fixed in the grammar-class serializers:
+  1. `Usage.dump` / `UsageCompletion.dump` joined the declaration,
+     `default` valuepart, and body with no separator —
+     `attribute :>> cargoMassdefault 0[kg];` (also the
+     expression-valued and the `subject ... default` forms) — joins
+     are space-separated now.
+  2. `FeatureDeclaration.dump` glued the identification onto the
+     specialization (`shankPort:>>`, `I: WheelHubInterface`) — space
+     separated.
+  3. `InterfaceUsage.dump` dropped the statement terminator for
+     body-less usages (`interface I : X` unparseable on reparse).
+  4. `InterfaceEnd.dump` emitted connector-end cross multiplicities
+     AFTER the feature chain; the grammar
+     (`connectorEnd : (ownedCrossMultiplicityMember)? (name (::>)?
+     ownedReferenceSubsetting)`) requires them FIRST — now
+     `[1] lugNutCompositePort ::> wheel1.lugNutCompositePort`.
+  Result: the complete Annex A model parses (no recovery warnings),
+  its dump reparses cleanly, and 7 regression tests pin every form
+  (`tests/annex_a_roundtrip_test.py`, incl. the withdrawn
+  trailing-multiplicity form being rejected deterministically).
+  Note: the report's issue 4 misquotes the source — the Annex A
+  connect lines (640/642) already use the normative LEADING
+  multiplicity form; the trailing form is upstream-withdrawn.
+  Residual (cosmetic, not in scope): doc-comment text re-wraps
+  whitespace on round trip.
+
 ## 0.99.2 (2026-10-29)
 
 - **pyproject: the ``boxes`` extra's constraint broke Poetry/pip

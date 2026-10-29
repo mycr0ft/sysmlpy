@@ -100,7 +100,7 @@ def test_dump_still_emits_redefined_form():
     model = loads(USAGE)
     view = model.get_child("DummyUsageModel.ViewUsage")
     attr = view.attributes[0]
-    assert "attribute :>> exampleAttribute=" in attr.dump()
+    assert "attribute :>> exampleAttribute = \"Example Value\";" in attr.dump()
     assert '"Example Value"' in attr.dump()
 
 # References (v0.40.0+): ``ref attribute ::> X`` / ``ref attribute references X``

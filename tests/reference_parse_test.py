@@ -34,7 +34,7 @@ class TestPackageLevelRef:
     def test_ref_round_trip(self):
         model = loads("package P { part def Engine; ref r : Engine; }")
         assert model.dump() == (
-            "package P {\n   part def Engine;\n    ref r: Engine;\n}"
+            "package P {\n   part def Engine;\n    ref r : Engine;\n}"
         )
 
     def test_ref_resolve_types_links(self):
@@ -48,7 +48,7 @@ class TestPackageLevelRef:
     def test_visibility_prefixed_ref(self):
         model = loads("package P { part def E; private ref r : E; }")
         assert model.find_one("r") is not None
-        assert "ref r: E;" in model.dump()
+        assert "ref r : E;" in model.dump()
 
 
 class TestNestedRef:
@@ -69,7 +69,7 @@ class TestNestedRef:
         )
         assert model.dump() == (
             "package P {\n   part def Person;\n"
-            "   part car {\n       ref driver: Person;\n   }\n}"
+            "   part car {\n       ref driver : Person;\n   }\n}"
         )
 
 

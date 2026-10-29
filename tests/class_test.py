@@ -936,7 +936,7 @@ def test_classtree_accepts_model_object():
     tree = classtree(loads(text))
     out = tree.dump()
     assert "part def E" in out
-    assert "part e1: E" in out
+    assert "part e1 : E" in out
 
 
 def test_reference_set_type_renders():

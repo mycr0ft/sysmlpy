@@ -300,7 +300,11 @@ class AnalysisCaseDefinition:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -339,7 +343,11 @@ class UseCaseDefinition:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -380,7 +388,11 @@ class UseCaseUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -531,7 +543,11 @@ class ObjectiveRequirementUsage:
         for keyword in self.keyword:
             output.append(keyword.dump())
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -573,7 +589,11 @@ class RequirementDefinition:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -872,7 +892,11 @@ class ConstraintDefinition:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -905,7 +929,11 @@ class StateDefinition:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -1089,7 +1117,11 @@ class StateUsage:
             output.append("exhibit")
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -1294,7 +1326,11 @@ class StateAcceptActionUsage:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -1324,7 +1360,11 @@ class StateSendActionUsage:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -1354,7 +1394,11 @@ class StateAssignmentActionUsage:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -2059,7 +2103,11 @@ class TargetTransitionUsage:
             if child.__class__.__name__ == "TransitionSuccessionMember":
                 output.append("\n   then")
             output.append(child.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -2133,7 +2181,11 @@ class TransitionUsage:
                 output.append("\n   then")
             output.append(child.dump())
 
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -2656,7 +2708,11 @@ class CalculationDefinition:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -2993,7 +3049,11 @@ class SendNode:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3035,7 +3095,11 @@ class AcceptNode:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3190,7 +3254,11 @@ class ForLoopNode:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3235,7 +3303,11 @@ class ControlNode:
         if self.declared_name:
             output.append(self.declared_name)
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3284,7 +3356,11 @@ class TerminateNode:
         if self.target is not None:
             output.append(self.target.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3494,7 +3570,11 @@ class ConstraintUsage:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3662,8 +3742,8 @@ class ReturnParameterMember:
         output.append(self.keyword)
         for child in self.children:
             output.append(child.dump())
-        return " ".join(output)
-
+        text = " ".join(x for x in output if x.strip())
+        return text.replace(" ;", ";")
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
@@ -3722,7 +3802,11 @@ class AnalysisCaseUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3757,7 +3841,11 @@ class CaseUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3792,7 +3880,11 @@ class VerificationCaseUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3841,7 +3933,11 @@ class RequirementUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3873,7 +3969,11 @@ class PerformActionUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3915,7 +4015,11 @@ class CalculationUsage:
                 output.append(":>> " + rel.dump())
         else:
             output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -3982,7 +4086,11 @@ class ActionUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -4099,7 +4207,11 @@ class InterfaceDefinition:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -4756,7 +4868,8 @@ class MetadataFeature:
             output.append(", ".join([a.dump() for a in self.annotations]))
         if self.body:
             output.append(self.body)
-        return " ".join(output)
+        # the ';' terminator glues to the last token (@ : m;)
+        return (" ".join(x for x in output if x.strip()) + ";").replace(" ;", ";")
 
     def get_definition(self):
         output = {
@@ -5053,7 +5166,7 @@ class SubclassificationPart:
                 self.children.append(OwnedSubclassification(relationship))
 
     def dump(self):
-        return self.keyword + ", ".join([child.dump() for child in self.children])
+        return self.keyword + " " + ", ".join([child.dump() for child in self.children])
 
     def get_definition(self):
         output = {
@@ -5411,10 +5524,15 @@ class EndFeatureUsage:
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
-        output.append(self.declaration.dump())
-        output.append(self.completion.dump())
-        return " ".join(output)
-
+        if self.declaration is not None:
+            output.append(self.declaration.dump())
+        if self.completion is not None:
+            completion = self.completion.dump()
+            if completion.strip() == ";":
+                return " ".join(output) + ";"
+            if completion.strip():
+                output.append(completion)
+        return " ".join(x for x in output if x.strip())
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
@@ -6971,7 +7089,11 @@ class SuccessionFlowConnectionUsage:
             output.append(self.declaration.dump())
 
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -7071,7 +7193,11 @@ class Message:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -7218,7 +7344,11 @@ class FlowConnectionUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.declaration.dump())
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -7602,11 +7732,14 @@ class InterfaceUsage:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        if self.body is not None:
-            output.append(self.body.dump())
-
-        return " ".join(output)
-
+        # A body-less usage still needs the grammar's terminator; a
+        # brace body terminates on its own '}' and must NOT get a
+        # trailing ';' (it made nested interface dumps unparseable).
+        body_text = self.body.dump() if self.body is not None else ""
+        if body_text.strip() and body_text.strip() != ";":
+            output.append(body_text)
+            return " ".join(x.strip() for x in output if x.strip())
+        return " ".join(x.strip() for x in output if x.strip()) + ";"
     def get_definition(self):
         output = {"name": self.__class__.__name__, "prefix": None}
         if self.prefix is not None:
@@ -7756,16 +7889,24 @@ class InterfaceEnd:
                     print(f"InterfaceEnd: Unknown relationship type {relationship['name']}")
 
     def dump(self):
+        # Grammar: connectorEnd : (ownedCrossMultiplicityMember)?
+        #   (name (::> | references))? ownedReferenceSubsetting
+        # — the multiplicity comes FIRST, then the named `::>`, then
+        # the feature chain (Annex A round trip, issue 4).
+        mults = []
+        others = []
+        for relationship in self.relationships:
+            if relationship.__class__.__name__ == "OwnedMultiplicity":
+                mults.append(relationship.dump())
+            else:
+                others.append(relationship.dump())
         output = []
+        output.extend(mults)
         if self.name is not None:
             output.append(self.name)
             output.append(self.keyword)
-
-        for relationship in self.relationships:
-            output.append(relationship.dump())
-
-        return " ".join(output)
-
+        output.extend(others)
+        return " ".join(x.strip() for x in output if x.strip())
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
@@ -7865,9 +8006,12 @@ class ConnectionUsage:
             output.append(self.keyword2)
             output.append(self.part.dump())
 
-        output.append(self.body.dump())
+        body_text = self.body.dump()
+        if body_text.strip() == ";":
+            return " ".join(x.strip() for x in output if x.strip()) + ";"
+        output.append(body_text)
 
-        return " ".join(output)
+        return " ".join(x.strip() for x in output if x.strip())
 
     def get_definition(self):
         output = {"name": self.__class__.__name__, "prefix": None, "declaration": None, "part": None}
@@ -8359,11 +8503,15 @@ class Usage:
             self.completion = UsageCompletion()
 
     def dump(self):
-        output = []
-        if self.completion is not None:
-            output.append(self.completion.dump())
-        return self.declaration.dump() + "".join(output)
-
+        # The completion (valuepart/body) is a separate syntax node —
+        # join with a space (Annex A round trip: `attribute :>> cargoMass
+        # default 0 [kg];` used to dump as `cargoMassdefault 0[kg]`);
+        # a bare ';' terminator glues onto the declaration.
+        completion = self.completion.dump() if self.completion is not None else ""
+        if completion.strip() == ";":
+            return self.declaration.dump() + ";"
+        parts = [x.strip() for x in (self.declaration.dump(), completion.strip()) if x.strip()]
+        return " ".join(parts)
     def get_definition(self):
         output = {}
         output["name"] = self.__class__.__name__
@@ -8414,12 +8562,11 @@ class FeatureDeclaration:
         output = []
         if self.identification is not None:
             output.append(self.identification.dump())
-
         if self.specialization is not None:
-            output.append(self.specialization.dump())
-
-        return "".join(output)
-
+            spec = self.specialization.dump()
+            if spec.strip():
+                output.append(spec)
+        return " ".join(x for x in output if x.strip())
     def get_definition(self):
         iden = None
         spec = None
@@ -9093,13 +9240,12 @@ class UsageCompletion:
             self.body = UsageBody()
 
     def dump(self):
-        output = []
-        if self.valuepart is not None:
-            output.append(self.valuepart.dump())
-
-        output.append(self.body.dump())
-        return "".join(output)
-
+        vp = self.valuepart.dump() if self.valuepart is not None else ""
+        body = self.body.dump() if self.body is not None else ""
+        if body.strip() == ";":
+            return vp.strip() + ";" if vp.strip() else ";"
+        parts = [x.strip() for x in (vp.strip(), body.strip()) if x.strip()]
+        return " ".join(parts)
     def get_definition(self):
         vp = None
         if self.valuepart is not None:
@@ -9465,7 +9611,10 @@ class ImportedMembership:
         if not self.isRecursive:
             return self.name.dump()
         else:
-            return self.name.dump() + "::**"
+            # recursive import: X::* (X::** is not parseable — the
+            # doubled star derailed the enclosing parse at the import
+            # tail, surfacing as 'extraneous }' far below)
+            return self.name.dump() + "::*"
 
     def get_definition(self):
         return {
@@ -9755,7 +9904,11 @@ class LibraryPackage:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -9801,7 +9954,11 @@ class _DeclaredDefinitionBase:
         if self.declaration is not None:
             output.append(self.declaration.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -10500,7 +10657,11 @@ class _RelationshipDefinitionBase:
         if self.target is not None:
             output.append(self.target.dump())
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -10588,7 +10749,11 @@ class Dependency:
         output.append("to")
         output.append(", ".join([s.dump() for s in self.suppliers]))
         if self.body is not None:
-            output.append(self.body.dump())
+            body_text = self.body.dump()
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x for x in output if x.strip()) + ";"
+        output.append(body_text)
         return " ".join(output)
 
     def get_definition(self):
@@ -10636,10 +10801,13 @@ class _PrefixedUsageBase:
         output.append(self.keyword)
         if self.declaration is not None:
             output.append(self.declaration.dump())
-        if self.body is not None:
-            output.append(self.body.dump())
-        return " ".join(output)
-
+        body_text = self.body.dump() if self.body is not None else ""
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x.strip() for x in output if x.strip()) + ";"
+        if body_text.strip():
+            output.append(body_text)
+        return " ".join(x.strip() for x in output if x.strip())
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
@@ -10683,8 +10851,12 @@ class AllocationUsage(_PrefixedUsageBase):
         if self.connectorPart is not None:
             parts.append("allocate")
             parts.append(self.connectorPart.dump())
-        if self.body is not None:
-            parts.append(self.body.dump())
+        body_text = self.body.dump() if self.body is not None else ""
+        # an empty body's ';' terminator glues to the statement
+        if body_text.strip() == ";":
+            return " ".join(x.strip() for x in parts if x.strip()) + ";"
+        if body_text.strip():
+            parts.append(body_text)
         return " ".join(parts)
 
     def get_definition(self):

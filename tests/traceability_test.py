@@ -97,7 +97,7 @@ class TestVerificationRoundTrip:
             "verification massCheck : MassCheck; }"
         )
         d1 = m.dump()
-        assert "verification massCheck: MassCheck" in d1
+        assert "verification massCheck : MassCheck" in d1
         assert loads(d1).dump() == d1
         vc = [
             c for c in m.children[0].children
