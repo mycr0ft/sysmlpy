@@ -1,12 +1,37 @@
 # sysmlpy — Project Status
 
-Current version: **v0.97.1** (2026-10-16)
+Current version: **v0.99.5** (2026-10-30)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.99.5)
+
+- **Connection-usage bodies, subsets and multiplicities survive** (issues
+  #20/#21, Shamal Faily): nested connection builders lost specialization
+  and multiplicity, both connection builders hardcoded an empty body, and
+  `ref x = value;` members lost their value; the semantic tree now carries
+  the body members too.
+- **Private imports are visible inside the importing namespace** (KerML
+  7.2.5.4) while staying invisible to siblings; semantic feature harvesting
+  walks the member wrapper chain and understands declaration-carrying
+  usages.
+
+## Recent Highlights (0.99.4)
+
+- **`part def`-body feature-value members kept** (issue #19): a
+  `:>> feature = value;` member sharing its body with a sibling no longer
+  drops from the model (shared body flatten gained the
+  `DefaultReferenceUsage` dispatch).
+
+## Recent Highlights (0.98.x)
+
+- **Interaction/message semantics fixed in-repo** (0.98.0): `interaction def`
+  bodies, messages with `from`/`to`/`of`; interchange keeps `:>>`
+  redefinitions on unnamed end features (0.98.1).
 
 ## Recent Highlights (0.97.1)
 

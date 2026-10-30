@@ -5160,7 +5160,7 @@ class DefinitionDeclaration:
 class SubclassificationPart:
     def __init__(self, definition):
         if valid_definition(definition, "SubclassificationPart"):
-            self.keyword = ":> "
+            self.keyword = ":>"
             self.children = []
             for relationship in definition["ownedRelationship"]:
                 self.children.append(OwnedSubclassification(relationship))
@@ -5497,7 +5497,10 @@ class ReferenceUsage:
             output.append(self.prefix.dump())
         output.append(self.keyword)
         output.append(self.child.dump())
-        return " ".join(output)
+        # A bare ``refPrefix`` (every flag/direction null) dumps as an empty
+        # string; joining it unconditionally left a leading space on every
+        # ``ref x = y;`` line in the dump.
+        return " ".join(x for x in output if x and x.strip())
 
     def get_definition(self):
         output = {
@@ -5842,7 +5845,13 @@ class DefaultReferenceUsage:
         output.append(self.declaration.dump())
         if self.valuepart is not None:
             output.append(self.valuepart.dump())
-        output.append(self.body.dump())
+        # A body-less member ends at its own terminator: join ";" directly
+        # instead of emitting ``= "RT" ;`` (the space-before-terminator glue
+        # the 0.99.3 serializer sweep left in this class).
+        body_text = self.body.dump()
+        if body_text.strip() == ";":
+            return " ".join(x.strip() for x in output if x.strip()) + ";"
+        output.append(body_text)
 
         return " ".join(output)
 
@@ -8989,7 +8998,7 @@ class Subsettings:
                 self.children.append(OwnedSubsetting(relationship))
 
     def dump(self):
-        return self.keyword + ", ".join([child.dump() for child in self.children])
+        return self.keyword + " " + ", ".join([child.dump() for child in self.children])
 
     def get_definition(self):
         output = {

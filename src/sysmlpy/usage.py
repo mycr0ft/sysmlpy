@@ -1178,6 +1178,12 @@ class Usage(Searchable):
             # (RequirementBody, CaseBody) are left untouched here.
             children = []
             body = getattr(grammar, 'body', None)
+            # ``UsageBody`` nests its item list one level down (``body.body``
+            # is the DefinitionBody that owns ``children``); reading
+            # ``body.children`` alone left every connectionUsage body empty in
+            # the public tree even when the grammar carried the members.
+            if body is not None and not hasattr(body, 'children'):
+                body = getattr(body, 'body', None)
             if body is not None and hasattr(body, 'children') and body.children:
                 children_list = []
                 for body_item in body.children:
@@ -1232,6 +1238,12 @@ class Usage(Searchable):
             elif hasattr(child, 'children'):
                 # It's a StructureUsageElement or similar
                 sc = child.children if hasattr(child, 'children') else child
+            elif hasattr(child, 'declaration') or hasattr(child, 'usage'):
+                # A usage-shaped body member that owns no ``children`` of its
+                # own (DefaultReferenceUsage, ReferenceUsage, ConnectionUsage,
+                # …) — without this branch the member was ``continue``d away
+                # and never reached its dispatch below.
+                sc = child
             else:
                 continue
 

@@ -2653,7 +2653,7 @@ def test_attribute_ref_references_operator_roundtrip():
     dump = classtree(a).dump()
     assert "::> RefTypeOne;" in dump
     assert "::> RefTypeTwo;" in dump  # keyword form canonicalizes to operator
-    assert "attribute :>SubsetType;" in dump
+    assert "attribute :> SubsetType;" in dump
     assert "attribute :>> RedefType;" in dump
 
 

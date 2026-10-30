@@ -1,5 +1,60 @@
 # CHANGELOG
 
+## 0.99.5 (2026-10-30)
+
+- **Connection-usage members no longer drop from the model** (issue #21,
+  Shamal Faily). `connection aConnection subsets connectors : Connection {
+  :>> description = "…"; ref template = sharedTemplate; }` dumped as bare
+  `connection aConnection : Connection;`, and `connection connectors :
+  Connector [1..*]` lost its multiplicity. Three independent visitor gaps:
+  1. `_make_nested_connection_usage_dict` used `_build_specialization_from_fsp`,
+     a duplicate partial builder that understood typings only and hardcoded
+     `multiplicity: None`. Both connection builders now use the shared
+     `_build_full_specialization_from_fsp` (typings / redefinitions /
+     subsettings / references / multiplicity) and the duplicate helper is
+     gone — the corpus reaches only one copy, so a second copy is latent
+     divergence.
+  2. Both connection builders hardcoded an empty `DefinitionBody`. A
+     `connectionUsage` hangs its body off `ctx.usageBody()` directly, which
+     `_get_usage_body_items` never reaches; `_connection_usage_body_items`
+     now flattens it.
+  3. `_make_reference_usage_dict` read `usage.valuePart()` although the value
+     part rides on `usage.usageCompletion()` — `ref template =
+     sharedTemplate;` lost its value everywhere, not just in connections.
+  Semantic layer: a connection usage's body items were also dropped from the
+  public tree (`UsageBody` nests its items one level down in `body.body`, and
+  a usage-shaped member with no `children` was skipped by the body dispatch).
+  `Connection` children now carry the body members.
+- **Imports are visible inside the importing namespace** (issue #20, same
+  reporter). `private import LIB::*;` in package ARCH resolved at package
+  level but reported `UNDEFINED_SYMBOL` for a type used inside
+  `part def ArchObjt` — `SymbolTable.lookup` hid privately-imported members
+  from every child scope. KerML 1.0 (7.2.5.4) restricts a private import's
+  visibility *outside* the namespace, not inside its own body
+  (`import`-re-export still propagates only public/protected imports, so a
+  sibling package still sees nothing). Consequences: the explicit
+  `private import ScalarValues::*;` also stops producing bogus
+  `IMPLICIT_LIBRARY_IMPORT` warnings.
+- **Semantic feature harvesting walks the wrapper chain** instead of a fixed
+  three-level descent, and understands usage-shaped members that carry their
+  own `declaration` (`ConnectionUsage`, `InterfaceUsage`, …) — `connection
+  connectors : Connector;` never entered `Composite`'s feature set, so a
+  legitimate `subsets connectors` reference reported UNDEFINED_SYMBOL once
+  the visitor stopped hiding it.
+- **A context-type member beats the library simple-name fallback**: a user
+  feature whose name also exists somewhere in the bundled library (e.g.
+  `VectorFunctions::VectorOf::components`) is a model symbol, not an implicit
+  standard-library reference. The `IMPLICIT_LIBRARY_IMPORT` message now names
+  the real library package (`Connections::Connection`, not
+  `ScalarValues::Connection`).
+- Dump glue (same family as the 0.99.3 serializer sweep): `Subsettings.dump`
+  emits `:> X` (was `:>X`), `SubclassificationPart` no longer doubles the
+  space after `:>`, `DefaultReferenceUsage` joins its terminator
+  (`= "x";` not `= "x" ;`), and `ReferenceUsage` no longer prefixes every
+  `ref …` line with a space from an empty ref prefix.
+- Regression: `tests/issue20_test.py` (5) and `tests/issue21_test.py` (6,
+  incl. the reporter's full reproducer and a re-parse idempotency check).
+
 ## 0.99.4 (2026-10-29)
 
 - **`part def`-body feature-value members no longer drop from the

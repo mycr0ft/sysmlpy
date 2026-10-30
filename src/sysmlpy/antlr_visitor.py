@@ -6367,8 +6367,16 @@ def _make_reference_usage_dict(ctx):
                             name = name_list.getText()
             # Get specialization using full specialization builder
             specialization = _build_full_specialization_from_ctx(ctx)
-        # Get value part
-        if hasattr(usage, 'valuePart') and usage.valuePart():
+        # Get value part — it rides on usageCompletion
+        # (``usage : usageDeclaration? usageCompletion``), not directly on
+        # the usage: a direct ``usage.valuePart()`` read always returned
+        # None, so ``ref template = sharedTemplate;`` dropped its value.
+        uc = None
+        if hasattr(usage, 'usageCompletion') and usage.usageCompletion():
+            uc = usage.usageCompletion()
+        if uc is not None and hasattr(uc, 'valuePart') and uc.valuePart():
+            valuepart = _visit_value_part(uc.valuePart())
+        elif hasattr(usage, 'valuePart') and usage.valuePart():
             valuepart = _visit_value_part(usage.valuePart())
     
     return {
@@ -6858,6 +6866,34 @@ def _make_requirement_usage_dict(ctx, prefix=None):
     }
 
 
+def _connection_usage_body_items(ctx):
+    """Body items of a ``connectionUsage`` context.
+
+    Grammar: ``connectionUsage : occurrenceUsagePrefix ( CONNECTION
+    usageDeclaration? valuePart? ( CONNECT connectorPart )? | CONNECT
+    connectorPart ) usageBody`` — unlike other usages, the body hangs
+    directly off the connectionUsage context (``ctx.usageBody()``) rather
+    than through ``ctx.usage().usageCompletion()``, so
+    ``_get_usage_body_items`` never reaches it.  Both connection builders
+    used to hardcode an empty DefinitionBody, so every member of a
+    connection body (``:>> description = "...";``, ``ref template = ...;``)
+    vanished from the model and the dump.
+    """
+    if ctx is None:
+        return []
+    ub = ctx.usageBody() if hasattr(ctx, 'usageBody') else None
+    if isinstance(ub, list):
+        ub = ub[0] if ub else None
+    if ub is None or not hasattr(ub, 'definitionBody'):
+        return []
+    db = ub.definitionBody()
+    if isinstance(db, list):
+        db = db[0] if db else None
+    if db is None:
+        return []
+    return _visit_definition_body_dict(db)
+
+
 def _make_connection_usage_dict(ctx, prefix=None):
     """Create a ConnectionUsage dictionary."""
     name, shortname = _get_usage_identification(ctx)
@@ -6865,6 +6901,8 @@ def _make_connection_usage_dict(ctx, prefix=None):
     # Typed-by etc. on the connection declaration (e.g.
     # ``connection cn1 : CD``) — previously hardcoded to None.
     specialization = _build_full_specialization_from_ctx(ctx)
+
+    body_items = _connection_usage_body_items(ctx)
 
     # Parse the connector part (``connect X to Y``) so endpoints survive
     # into the grammar object tree (v0.67.0 — fixes the "part": None stub)
@@ -6944,7 +6982,7 @@ def _make_connection_usage_dict(ctx, prefix=None):
                             "name": "UsageBody",
                             "body": {
                                 "name": "DefinitionBody",
-                                "ownedRelatedElement": []
+                                "ownedRelatedElement": body_items
                             }
                         }
                     }
@@ -7738,7 +7776,7 @@ def _make_nested_flow_connection_usage_dict(ctx, prefix=None):
             featd = fd.featureDeclaration()
             if hasattr(featd, 'featureSpecializationPart') and featd.featureSpecializationPart():
                 fsp = featd.featureSpecializationPart()
-                specialization = _build_specialization_from_fsp(fsp)
+                specialization = _build_full_specialization_from_fsp(fsp)
     
     # Build declaration - omit declaration if no name/shortname (e.g. anonymous flow)
     inner_declaration = None
@@ -7935,7 +7973,8 @@ def _make_nested_connection_usage_dict(ctx, prefix=None):
     shortname = None
     connector_part = None
     specialization = None
-    
+    body_items = _connection_usage_body_items(ctx)
+
     if ctx is not None:
         # Try to get name and specialization from usageDeclaration
         if hasattr(ctx, 'usageDeclaration') and ctx.usageDeclaration():
@@ -7954,7 +7993,7 @@ def _make_nested_connection_usage_dict(ctx, prefix=None):
             # Check for featureSpecializationPart (typing like : PressureSeat)
             if hasattr(ud, 'featureSpecializationPart') and ud.featureSpecializationPart():
                 fsp = ud.featureSpecializationPart()
-                specialization = _build_specialization_from_fsp(fsp)
+                specialization = _build_full_specialization_from_fsp(fsp)
         
         # Get connectorPart (e.g., "suppliedBy.hot to deliveredTo.hot")
         if hasattr(ctx, 'connectorPart') and ctx.connectorPart():
@@ -7992,7 +8031,7 @@ def _make_nested_connection_usage_dict(ctx, prefix=None):
                         "name": "UsageBody",
                         "body": {
                             "name": "DefinitionBody",
-                            "ownedRelatedElement": []
+                            "ownedRelatedElement": body_items
                         }
                     }
                 }
@@ -14715,237 +14754,41 @@ def _get_usage_subsetted_by(ctx):
     return None
 
 
-def _build_specialization_from_fsp(fsp):
-    """Build specialization dict from a FeatureSpecializationPartContext directly."""
-    if fsp is None:
-        return None
-    
-    specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
-    if not specs:
-        return None
-    
-    if not isinstance(specs, list):
-        specs = [specs]
-    
-    specialization_list = []
-    
-    for spec in specs:
-        # Typings: ': TypeName'
-        if hasattr(spec, 'typings') and spec.typings():
-            typings = spec.typings()
-            typed_by = None
-            if hasattr(typings, 'typedBy') and typings.typedBy():
-                tb = typings.typedBy()
-                if hasattr(tb, 'featureTyping') and tb.featureTyping():
-                    ft = tb.featureTyping()
-                    if hasattr(ft, 'ownedFeatureTyping') and ft.ownedFeatureTyping():
-                        oft = ft.ownedFeatureTyping()
-                        qns = oft.qualifiedName()
-                        if isinstance(qns, list):
-                            qns = [qn for qn in qns if qn]
-                        if qns:
-                            if isinstance(qns, list):
-                                typed_by = qns[0].getText()
-                            else:
-                                typed_by = qns.getText()
-                    elif hasattr(ft, 'qualifiedName') and ft.qualifiedName():
-                        typed_by = ft.qualifiedName().getText()
-            if typed_by is None:
-                t_text = typings.getText()
-                if t_text.startswith(':'):
-                    typed_by = t_text[1:].strip()
-            if typed_by:
-                qn_names = typed_by.split("::")
-                specialization_list.append({
-                    "name": "FeatureSpecialization",
-                    "ownedRelationship": {
-                        "name": "Typings",
-                        "ownedRelationship": [],
-                        "typedby": {
-                            "name": "TypedBy",
-                            "ownedRelationship": [
-                                {
-                                    "name": "FeatureTyping",
-                                    "ownedRelationship": {
-                                        "name": "OwnedFeatureTyping",
-                                        "type": {
-                                            "name": "FeatureType",
-                                            "type": {"name": "QualifiedName", "names": qn_names},
-                                            "ownedRelatedElement": []
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "conjugated": None
-                    }
-                })
-    
-    if not specialization_list:
-        return None
-    
-    return {
-        "name": "FeatureSpecializationPart",
-        "specialization": specialization_list,
-        "specialization2": None,
-        "multiplicity": None,
-        "multiplicity2": None
-    }
-
-
 def _build_full_specialization_from_fsp(fsp):
-    """Build a full FeatureSpecializationPart dict from a FeatureSpecializationPartContext.
-    
-    Handles typings, redefinitions, and subsettings.
-    Returns None if there are no specializations.
+    """Build a full FeatureSpecializationPart dict from a
+    FeatureSpecializationPartContext.
+
+    Handles typings, redefinitions, subsettings, references and the
+    multiplicity part, delegating the per-specialization shaping to
+    ``_feature_specialization_dicts`` so this builder cannot drift from
+    the usageDeclaration-based one.  Returns None only when the part
+    carries neither a specialization nor a multiplicity.
+
+    (Previously a hand-rolled copy that understood typings/redefinitions/
+    subsettings/references but hardcoded ``multiplicity: None`` — so a
+    nested usage such as ``connection connectors : Connector [1..*];``
+    lost its multiplicity while the same statement at package level kept
+    it.)
     """
     if fsp is None:
         return None
-    
+
     specs = fsp.featureSpecialization() if hasattr(fsp, 'featureSpecialization') else []
     if not specs:
-        return None
-    
+        specs = []
     if not isinstance(specs, list):
         specs = [specs]
-    
-    specialization_list = []
-    
-    for spec in specs:
-        # Typings: ': TypeName'
-        if hasattr(spec, 'typings') and spec.typings():
-            typings = spec.typings()
-            typed_by = None
-            if hasattr(typings, 'typedBy') and typings.typedBy():
-                tb = typings.typedBy()
-                if hasattr(tb, 'featureTyping') and tb.featureTyping():
-                    ft = tb.featureTyping()
-                    if hasattr(ft, 'ownedFeatureTyping') and ft.ownedFeatureTyping():
-                        oft = ft.ownedFeatureTyping()
-                        qns = oft.qualifiedName()
-                        if isinstance(qns, list):
-                            qns = [qn for qn in qns if qn]
-                        if qns:
-                            typed_by = qns[0].getText() if isinstance(qns, list) else qns.getText()
-                    elif hasattr(ft, 'qualifiedName') and ft.qualifiedName():
-                        typed_by = ft.qualifiedName().getText()
-            if typed_by is None:
-                t_text = typings.getText()
-                if t_text.startswith(':'):
-                    typed_by = t_text[1:].strip()
-            if typed_by:
-                qn_names = typed_by.split("::")
-                specialization_list.append({
-                    "name": "FeatureSpecialization",
-                    "ownedRelationship": {
-                        "name": "Typings",
-                        "ownedRelationship": [],
-                        "typedby": {
-                            "name": "TypedBy",
-                            "ownedRelationship": [
-                                {
-                                    "name": "FeatureTyping",
-                                    "ownedRelationship": {
-                                        "name": "OwnedFeatureTyping",
-                                        "type": {
-                                            "name": "FeatureType",
-                                            "type": {"name": "QualifiedName", "names": qn_names},
-                                            "ownedRelatedElement": []
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        "conjugated": None
-                    }
-                })
-        
-        # Redefinitions: ':>> name' or 'redefines name'
-        elif hasattr(spec, 'redefinitions') and spec.redefinitions():
-            redef_ctx = spec.redefinitions()
-            if not isinstance(redef_ctx, list):
-                redef_ctx = [redef_ctx]
-            owned = []
-            for rc in redef_ctx:
-                # OwnedRedefinitionContext may be a dotted chain
-                # (qualifiedName (DOT qualifiedName)*).
-                for or_ctx in _collect_owned_contexts(
-                    rc.children, 'OwnedRedefinitionContext',
-                    ('RedefinesContext',),
-                ):
-                    segs = _dotted_segments(or_ctx)
-                    if segs:
-                        owned.append(_emit_owned_chain(
-                            'OwnedRedefinition', 'redefinedFeature', segs))
-            if owned:
-                specialization_list.append({
-                    "name": "FeatureSpecialization",
-                    "ownedRelationship": {
-                        "name": "Redefinitions",
-                        "ownedRelationship": owned
-                    }
-                })
-        
-        # Subsettings: ':> name' or 'subsets name'
-        elif hasattr(spec, 'subsettings') and spec.subsettings():
-            sub_ctx = spec.subsettings()
-            if not isinstance(sub_ctx, list):
-                sub_ctx = [sub_ctx]
-            owned = []
-            for sc in sub_ctx:
-                # Each Owned*Context may be a dotted chain
-                # (qualifiedName (DOT qualifiedName)*).
-                for os_ctx in _collect_owned_contexts(
-                    sc.children, 'OwnedSubsettingContext',
-                    ('SubsetsContext', 'SpecializesContext'),
-                ):
-                    segs = _dotted_segments(os_ctx)
-                    if segs:
-                        owned.append(_emit_owned_chain(
-                            'OwnedSubsetting', 'subsettedFeature', segs))
-            if owned:
-                specialization_list.append({
-                    "name": "FeatureSpecialization",
-                    "ownedRelationship": {
-                        "name": "Subsettings",
-                        "ownedRelationship": owned
-                    }
-                })
 
-        # References: '::> name' or 'references name'
-        elif hasattr(spec, 'references') and spec.references():
-            ref_ctx = spec.references()
-            if not isinstance(ref_ctx, list):
-                ref_ctx = [ref_ctx]
-            owned = []
-            for rc in ref_ctx:
-                # OwnedReferenceSubsettingContext may be a dotted chain.
-                for ors_ctx in _collect_owned_contexts(
-                    rc.children, 'OwnedReferenceSubsettingContext',
-                    ('ReferencesContext',),
-                ):
-                    segs = _dotted_segments(ors_ctx)
-                    if segs:
-                        owned.append(_emit_owned_chain(
-                            'OwnedReferenceSubsetting', 'referencedFeature', segs))
-            if owned:
-                specialization_list.append({
-                    "name": "FeatureSpecialization",
-                    "ownedRelationship": {
-                        "name": "References",
-                        "ownedRelationship": owned
-                    }
-                })
-
-    if not specialization_list:
+    multiplicity = _get_multiplicity_part(fsp)
+    if not specs and multiplicity is None:
         return None
 
     return {
         "name": "FeatureSpecializationPart",
-        "specialization": specialization_list,
+        "specialization": _feature_specialization_dicts(specs),
         "specialization2": None,
-        "multiplicity": None,
-        "multiplicity2": None
+        "multiplicity": multiplicity,
+        "multiplicity2": None,
     }
 
 

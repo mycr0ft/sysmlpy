@@ -423,16 +423,22 @@ class SymbolTable:
         name : str
             The symbol name to look up.
         from_child : bool
-            If True, the lookup is coming from a child scope. This affects
-            visibility: private imports are not visible to children.
+            If True, the lookup is coming from a child scope.  This does NOT
+            hide privately-imported members: walking up the parent chain
+            means the lookup originates INSIDE the importing namespace, and
+            KerML 1.0 (7.2.5.4) says a private import's members are
+            "visible to and within all the top-level elements of the root
+            namespace ... none of the imported memberships become globally
+            visible outside of the root namespace" — i.e. private restricts
+            visibility OUTSIDE the namespace, not inside its own body.
+            Cross-namespace visibility is governed by
+            ``_resolve_single_import`` / ``_propagate_public_imports``
+            (only public/protected imports are re-exported), so a sibling
+            namespace still cannot see another namespace's private imports.
         """
         if name in self._symbols:
             return self._symbols[name]
         if name in self._imported_symbols:
-            visibility = self._import_visibility.get(name, "private")
-            # Private imports are not visible from child scopes
-            if visibility == "private" and from_child:
-                return None
             return self._imported_symbols[name]
         if self._parent is not None:
             return self._parent.lookup(name, from_child=True)
@@ -800,7 +806,15 @@ class SymbolTable:
         return supertypes
 
     def _extract_features(self, grammar: Any) -> set[str]:
-        """Extract feature names defined directly in a definition's grammar."""
+        """Extract feature names defined directly in a definition's grammar.
+
+        Walks each body member through its wrapper chain
+        (DefinitionBodyItem → *Member → *UsageElement → Usage) rather than a
+        fixed three-level descent: the level count differs per member kind
+        and a member one level deeper than expected was silently invisible
+        to the inheritance/context resolvers (``connection connectors :
+        Connector;`` never entered ``Composite``'s feature set).
+        """
         features = set()
 
         definition = getattr(grammar, "definition", None)
@@ -812,24 +826,49 @@ class SymbolTable:
             return features
 
         for body_item in getattr(body, "children", []):
-            for member in getattr(body_item, "children", []):
-                for usage_elem in getattr(member, "children", []):
-                    struct_elem = getattr(usage_elem, "children", None)
-                    if struct_elem is None:
-                        continue
-                    # struct_elem can be either:
-                    # 1. A Usage subclass directly (e.g., AttributeUsage)
-                    # 2. A StructureUsageElement wrapper containing a Usage
-                    feat_name = self._get_feature_name(struct_elem)
-                    if feat_name:
-                        features.add(feat_name)
+            features.update(self._member_feature_names(body_item))
 
         return features
+
+    _FEATURE_UNWRAP_MAX_DEPTH = 6
+
+    def _member_feature_names(self, node: Any, depth: int = 0) -> set[str]:
+        """Collect declared feature names under one body member."""
+        names: set[str] = set()
+        if node is None or depth > self._FEATURE_UNWRAP_MAX_DEPTH:
+            return names
+
+        nodes = node if isinstance(node, (list, tuple)) else [node]
+        for item in nodes:
+            if item is None:
+                continue
+            if self._is_usage_shaped(item):
+                name = self._get_feature_name(item)
+                if name:
+                    names.add(name)
+                # A usage's own body members are features of its type, not of
+                # the enclosing definition — never descend into them.
+                continue
+            children = getattr(item, "children", None)
+            if children is not None:
+                names.update(self._member_feature_names(children, depth + 1))
+            # ReferenceUsage carries its payload as ``child``, not ``children``
+            child = getattr(item, "child", None)
+            if child is not None:
+                names.update(self._member_feature_names(child, depth + 1))
+        return names
+
+    @staticmethod
+    def _is_usage_shaped(item: Any) -> bool:
+        """True when *item* is a usage (has ``usage`` or ``declaration``)."""
+        return getattr(item, "usage", None) is not None or getattr(
+            item, "declaration", None
+        ) is not None
 
     def _get_feature_name(self, usage: Any) -> Optional[str]:
         """Extract the declared name from a Usage object or wrapper."""
         try:
-            # Case 1: Direct Usage subclass (e.g., AttributeUsage, PartUsage)
+            # Case 1: Direct Usage subclass (e.g. AttributeUsage, PartUsage)
             # These have a 'usage' attribute
             usage_attr = getattr(usage, "usage", None)
             if usage_attr is not None:
@@ -844,7 +883,22 @@ class SymbolTable:
                     return None
                 return getattr(ident, "declaredName", None)
 
-            # Case 2: Wrapper with children containing Usage
+            # Case 2: Usage-shaped element carrying its own declaration
+            # (ConnectionUsage, InterfaceUsage, AllocationUsage, …) — no
+            # ``usage`` attribute and no ``children``, so the old branches
+            # returned None and the member never entered the type's feature
+            # set.
+            decl = getattr(usage, "declaration", None)
+            if decl is not None:
+                inner_decl = getattr(decl, "declaration", None)
+                if inner_decl is None:
+                    return getattr(usage, "name", None)
+                ident = getattr(inner_decl, "identification", None)
+                if ident is None:
+                    return getattr(usage, "name", None)
+                return getattr(ident, "declaredName", None)
+
+            # Case 3: Wrapper with children containing Usage
             children = getattr(usage, "children", None)
             if children is not None:
                 return self._get_feature_name(children)
@@ -2827,14 +2881,17 @@ class SemanticAnalyzer:
 
         # Step 4: Cross-reference using scope-aware lookup
         for ref_str, element, scope_path, _kind in references:
-            if self._is_resolved(ref_str, symtab, scope_path, lib_roots):
-                if self._is_implicit_library_reference(ref_str, symtab, scope_path, lib_roots):
+            if self._is_resolved(ref_str, symtab, scope_path, lib_roots, element):
+                if self._is_implicit_library_reference(
+                    ref_str, symtab, scope_path, lib_roots, element
+                ):
                     issues.append(SemanticIssue(
                         severity="warning",
                         code="IMPLICIT_LIBRARY_IMPORT",
                         message=f"Standard library type '{ref_str}' used without "
-                                f"explicit import; add 'import ScalarValues::{ref_str};' "
-                                f"or 'import ScalarValues::*;' to suppress this warning",
+                                f"explicit import; "
+                                f"{self._library_import_suggestion(ref_str, lib_roots)} "
+                                f"to suppress this warning",
                         element=element,
                         reference=ref_str,
                     ))
@@ -3039,6 +3096,7 @@ class SemanticAnalyzer:
         symtab: SymbolTable,
         scope_path: list[str],
         lib_roots: list[Path] | None = None,
+        element: Any = None,
     ) -> bool:
         """Check if a qualified name reference can be resolved from the given scope."""
         # Check known library symbols (loaded from .kerml/.sysml files)
@@ -3096,6 +3154,18 @@ class SemanticAnalyzer:
             # Fall back to simple name lookup for the last part
             return current.lookup(parts[-1]) is not None
 
+        # A name that resolves through the element's context types (a member
+        # of an enclosing usage's declared type) is a MODEL symbol: try it
+        # before the library simple-name fallback.  Otherwise any user
+        # feature whose name also appears somewhere in the bundled library
+        # (e.g. VectorFunctions::VectorOf::components) is reported as an
+        # implicit standard-library reference instead of resolving to the
+        # model's own element.
+        if element is not None and self._resolve_through_context(
+            ref_str, symtab, element
+        ):
+            return True
+
         if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
             return True
         if ref_str in _KNOWN_LIBRARY_SIMPLE_NAMES:
@@ -3103,12 +3173,40 @@ class SemanticAnalyzer:
 
         return False
 
+    def _library_import_suggestion(
+        self,
+        ref_str: str,
+        lib_roots: list[Path] | None = None,
+    ) -> str:
+        """Name the real library import that would satisfy *ref_str*.
+
+        The old message always suggested ``ScalarValues::{name}``, which is
+        wrong for every non-ScalarValues symbol (``Connection`` lives in
+        ``Connections``, ``Part`` in ``Parts``).
+        """
+        qualified = sorted(
+            s for s in LibrarySymbolIndex.get_symbols(lib_roots)
+            if s.endswith("::" + ref_str)
+        )
+        if not qualified:
+            qualified = sorted(
+                s for s in _KNOWN_LIBRARY_SYMBOLS if s.endswith("::" + ref_str)
+            )
+        if qualified:
+            package = qualified[0].rsplit("::", 1)[0]
+            return (
+                f"add 'import {package}::{ref_str};' or "
+                f"'import {package}::*;'"
+            )
+        return "add an explicit import of that symbol from the standard library"
+
     def _is_implicit_library_reference(
         self,
         ref_str: str,
         symtab: SymbolTable,
         scope_path: list[str],
         lib_roots: list[Path] | None = None,
+        element: Any = None,
     ) -> bool:
         """Check if *ref_str* resolves ONLY via the library simple-name fallback.
 
@@ -3130,6 +3228,11 @@ class SemanticAnalyzer:
         if current.lookup(ref_str) is not None:
             return False
         if self._resolve_inherited(ref_str, symtab, scope_path):
+            return False
+        # Context-type members are model symbols, never library fallbacks.
+        if element is not None and self._resolve_through_context(
+            ref_str, symtab, element
+        ):
             return False
 
         if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
