@@ -292,7 +292,27 @@ def _walk(obj):
         yield from _walk(child)
 
 
-def _extract_satisfy_edges(obj, traces_by_name, report_reqs):
+def _unique_qualified_names(model) -> dict:
+    """Map simple name -> qualified name for unambiguous names only.
+
+    ``satisfied_by`` used to carry the reference exactly as written (usually a
+    short name), so two elements with the same short name in different packages
+    collided in a downstream identity map while ``qualified_name`` was
+    qualified.  A name that resolves to exactly one qualified name is recorded
+    here; ambiguous names are left out and stay as written.
+    """
+    seen: dict = {}
+    for obj in _walk(model):
+        name = getattr(obj, "name", None)
+        if not name:
+            continue
+        qn = _qualified_name(obj)
+        if qn:
+            seen.setdefault(name, set()).add(qn)
+    return {name: next(iter(qns)) for name, qns in seen.items() if len(qns) == 1}
+
+
+def _extract_satisfy_edges(obj, traces_by_name, report_reqs, qnames=None):
     """Attach satisfy edges (grammar SatisfyRequirementUsage) to traces."""
     grammar = getattr(obj, "grammar", None)
     if grammar is None or grammar.__class__.__name__ != "SatisfyRequirementUsage":
@@ -313,8 +333,13 @@ def _extract_satisfy_edges(obj, traces_by_name, report_reqs):
         trace = RequirementTrace(name=target_name, qualified_name=req_ref)
         traces_by_name[target_name] = trace
         report_reqs.append(trace)
-    if subject and subject not in trace.satisfied_by:
-        trace.satisfied_by.append(subject)
+    if subject:
+        # Prefer the qualified name when the reference is unambiguous, so
+        # `satisfied_by` and `qualified_name` speak the same language.
+        if qnames and "." not in subject and "::" not in subject:
+            subject = qnames.get(subject, subject)
+        if subject not in trace.satisfied_by:
+            trace.satisfied_by.append(subject)
 
 
 def extract_traceability(model) -> TraceabilityReport:
@@ -384,8 +409,9 @@ def extract_traceability(model) -> TraceabilityReport:
 
     # Pass 2: satisfy relationships (SatisfyRequirementUsage grammar
     # wrappers live inside parts/definitions).
+    qnames = _unique_qualified_names(model)
     for obj in _walk(model):
-        _extract_satisfy_edges(obj, traces_by_name, traces)
+        _extract_satisfy_edges(obj, traces_by_name, traces, qnames)
 
     return TraceabilityReport(requirements=traces)
 
@@ -428,9 +454,15 @@ def as_traceability_matrix_view(
             e if isinstance(e, str) else getattr(e, "name", str(e))
             for e in elements
         }
+
+        def _matches(subject: str) -> bool:
+            # `satisfied_by` carries qualified names; callers still filter by
+            # the short name they see in the model.
+            return subject in element_names or _last_segment(subject) in element_names
+
         reqs = [
             t for t in reqs
-            if any(s in element_names for s in t.satisfied_by)
+            if any(_matches(s) for s in t.satisfied_by)
         ]
 
     def _sat(t):

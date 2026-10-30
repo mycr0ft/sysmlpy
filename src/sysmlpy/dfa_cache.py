@@ -28,7 +28,8 @@ Design notes
   (``XDG_CACHE_HOME``/``~/.cache/sysmlpy`` or an explicit override) —
   like any Python pickle it must only contain locally generated data;
   point the directory at a trusted location or disable with
-  ``SYSSMLPY_DFA_CACHE=off``.
+  ``SYSMLPY_DFA_CACHE=off`` (the old misspelling ``SYSSMLPY_DFA_CACHE`` is
+  still read as an alias).
 """
 
 from __future__ import annotations
@@ -62,13 +63,30 @@ _state: Dict[str, Any] = {
 # ---------------------------------------------------------------------------
 
 
+_ENV_VARS = ("SYSMLPY_DFA_CACHE", "SYSSMLPY_DFA_CACHE")
+"""Cache env var, canonical first.
+
+``SYSSMLPY_DFA_CACHE`` (three S) is the historic misspelling that shipped
+in earlier releases; it never matched the package name.  Both spellings are
+read — canonical first — so existing scripts keep working.
+"""
+
+
+def _env_value() -> str:
+    for name in _ENV_VARS:
+        val = os.environ.get(name)
+        if val is not None and val.strip():
+            return val.strip()
+    return ""
+
+
 def _env_disabled() -> bool:
-    return os.environ.get("SYSSMLPY_DFA_CACHE", "").strip().lower() in (
+    return _env_value().lower() in (
         "0", "off", "false", "no", "disable", "disabled")
 
 
 def _env_directory() -> Optional[str]:
-    val = os.environ.get("SYSSMLPY_DFA_CACHE", "").strip()
+    val = _env_value()
     if val and val.lower() not in (
             "0", "off", "false", "no", "disable", "disabled", "on", "1",
             "true", "yes", "enable", "enabled"):
@@ -92,7 +110,7 @@ def set_dfa_cache(enabled: Optional[bool] = None,
     ----------
     enabled : bool, optional
         ``True``/``False`` force the cache on/off for this process;
-        ``None`` (default) keeps the ``SYSSMLPY_DFA_CACHE`` env default.
+        ``None`` (default) keeps the ``SYSMLPY_DFA_CACHE`` env default.
     directory : str, optional
         Override the cache directory for this process; ``None`` keeps
         the env/default location.

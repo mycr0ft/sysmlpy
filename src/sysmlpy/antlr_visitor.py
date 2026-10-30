@@ -7693,6 +7693,25 @@ def _build_item_feature_member_from_payload(pfm_ctx):
     }
 
 
+def _flow_usage_body_items(ctx):
+    """Body items of a ``flowUsage`` / ``successionFlowUsage`` context.
+
+    Grammar: ``flowUsage : occurrenceUsagePrefix FLOW flowDeclaration
+    definitionBody`` — the body hangs off the flow context itself, so both flow
+    builders hardcoding an empty DefinitionBody dropped every member of
+    ``flow x from p to q { attribute note : String; }`` (issue #26).  Same shape
+    as ``_connection_usage_body_items`` but for ``definitionBody``.
+    """
+    if ctx is None or not hasattr(ctx, 'definitionBody'):
+        return []
+    db = ctx.definitionBody()
+    if isinstance(db, list):
+        db = db[0] if db else None
+    if db is None:
+        return []
+    return _visit_definition_body_dict(db)
+
+
 def _make_nested_flow_connection_usage_dict(ctx, prefix=None):
     """Create a nested FlowConnectionUsage dictionary (for use inside action bodies)."""
     name = None
@@ -7700,7 +7719,8 @@ def _make_nested_flow_connection_usage_dict(ctx, prefix=None):
     from_end = None
     to_end = None
     of_payload = None
-    
+    body_items = _flow_usage_body_items(ctx)
+
     if ctx is not None:
         fd = None
         if hasattr(ctx, 'flowDeclaration') and ctx.flowDeclaration():
@@ -7813,7 +7833,7 @@ def _make_nested_flow_connection_usage_dict(ctx, prefix=None):
                     },
                     "body": {
                         "name": "DefinitionBody",
-                        "ownedRelatedElement": []
+                        "ownedRelatedElement": body_items
                     }
                 }
             }

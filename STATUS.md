@@ -1,12 +1,19 @@
 # sysmlpy — Project Status
 
-Current version: **v0.99.6** (2026-10-30)
+Current version: **v0.99.7** (2026-10-30)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.99.7)
+
+- **Flows reach the model** (issue #26): package-level `flow` usages are built,
+  named, carry their ends and body members, dump un-glued and round-trip
+  through interchange; `SYSMLPY_DFA_CACHE` is accepted (the old three-S
+  spelling stays as an alias); `traceability.satisfied_by` is qualified.
 
 ## Recent Highlights (0.99.6)
 

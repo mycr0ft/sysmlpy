@@ -191,7 +191,7 @@ class TestExtractTraceability:
     def test_satisfy_edge(self):
         report = extract_traceability(full_model())
         t = report.by_name("totalMass")
-        assert t.satisfied_by == ["wheels"]
+        assert t.satisfied_by == ["VehicleSpec::Vehicle::wheels"]
 
     def test_verify_edge(self):
         report = extract_traceability(full_model())
@@ -238,14 +238,14 @@ class TestExtractTraceability:
         report = extract_traceability(m)
         t = report.by_name("futureReq")
         assert t is not None
-        assert t.satisfied_by == ["w"]
+        assert t.satisfied_by == ["P::V::w"]
 
     def test_qualified_satisfy_reference_resolves(self):
         m = loads("package P { requirement totalMass; "
                   "part def V { part w; satisfy P::totalMass by w; } }")
         report = extract_traceability(m)
         t = report.by_name("totalMass")
-        assert t.satisfied_by == ["w"]
+        assert t.satisfied_by == ["P::V::w"]
 
     def test_partial_status(self):
         m = loads("package P { requirement def R; requirement r1 : R "
@@ -269,7 +269,7 @@ class TestReportOutput:
         assert {"summary", "requirements"} <= set(data)
         assert data["summary"]["total"] == 3
         tm = next(r for r in data["requirements"] if r["name"] == "totalMass")
-        assert tm["satisfied_by"] == ["wheels"]
+        assert tm["satisfied_by"] == ["VehicleSpec::Vehicle::wheels"]
         assert tm["verified_by"] == ["massCheck"]
         assert tm["status"] == "covered"
 
@@ -372,7 +372,7 @@ class TestPublicApi:
         report = extract_traceability(model)
         t = report.by_name("r1")
         assert t is not None
-        assert t.satisfied_by == ["w"]
+        assert t.satisfied_by == ["P::V::w"]
 
 
 # ---------------------------------------------------------------------------

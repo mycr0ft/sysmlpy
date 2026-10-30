@@ -1071,25 +1071,36 @@ class Package(Searchable):
                 else:
                     continue
             # Handle UsageElement (for usages like item Hydrogen : Fuel, action Act1)
-            elif first_child.__class__.__name__ == 'UsageElement':
-                if hasattr(first_child, 'children') and first_child.children:
+            # and the bare-element case: the visitor emits a `flow`/`allocation`
+            # member as UsageElement -> OccurrenceUsageElement ->
+            # StructureUsageElement *without* the PackageMember wrapper every
+            # other member carries, so the body item IS the UsageElement and nav
+            # has to start at the element one level down.  Without this branch
+            # `flow x from p to q;` at package level fell through to `continue`
+            # and never reached its dispatch (issue #26).
+            elif first_child.__class__.__name__ in (
+                'UsageElement', 'OccurrenceUsageElement', 'NonOccurrenceUsageElement'
+            ):
+                if first_child.__class__.__name__ == 'UsageElement':
+                    if not (hasattr(first_child, 'children') and first_child.children):
+                        continue
                     # Navigate: UsageElement -> OccurrenceUsageElement/NonOccurrenceUsageElement -> Usage
                     # first_child.children can be an object (not a list)
                     occ = first_child.children
-                    
-                    # Check if it's OccurrenceUsageElement (has children containing Structure/Behavior element)
-                    if hasattr(occ, 'children') and occ.children:
-                        inner = occ.children
-                        # Check if it's StructureUsageElement or BehaviorUsageElement
-                        if hasattr(inner, 'children'):
-                            inner_element = inner.children
-                        else:
-                            inner_element = inner
-                    # Check if it's NonOccurrenceUsageElement
-                    elif hasattr(occ, 'ownedRelationship') or hasattr(occ, 'declaration'):
-                        inner_element = occ
+                else:
+                    occ = first_child
+
+                # Check if it's OccurrenceUsageElement (has children containing Structure/Behavior element)
+                if hasattr(occ, 'children') and occ.children:
+                    inner = occ.children
+                    # Check if it's StructureUsageElement or BehaviorUsageElement
+                    if hasattr(inner, 'children'):
+                        inner_element = inner.children
                     else:
-                        continue
+                        inner_element = inner
+                # Check if it's NonOccurrenceUsageElement
+                elif hasattr(occ, 'ownedRelationship') or hasattr(occ, 'declaration'):
+                    inner_element = occ
                 else:
                     continue
             else:
@@ -1278,14 +1289,25 @@ class Package(Searchable):
                 f.parent = self
                 self.children.append(f)
             elif inner_class == "FlowConnectionUsage":
-                f = Flow()
-                f.grammar = inner_element
-                if hasattr(inner_element, 'declaration') and inner_element.declaration:
-                    decl = inner_element.declaration
-                    if hasattr(decl, 'declaration') and decl.declaration:
-                        feat_decl = decl.declaration
-                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
-                            f.name = feat_decl.identification.declaredName
+                # Go through load_from_grammar (not a bare grammar assignment):
+                # the loader is what populates the flow's body members
+                # (`flow x from p to q { attribute note : String; }`), and it
+                # already digs through FlowConnectionDeclaration to the
+                # declaration's identification for the name (issue #26).
+                f = Flow().load_from_grammar(inner_element)
+                # FlowConnectionUsage.declaration is a FlowConnectionDeclaration,
+                # one level deeper than the plain UsageDeclaration the loader
+                # expects, so dig through ``.declaration`` for the
+                # FeatureDeclaration's identification; without this the element
+                # keeps its uuid name.
+                if not getattr(f, "name", None) or len(str(f.name)) == 36:
+                    decl = getattr(inner_element, 'declaration', None)
+                    while decl is not None:
+                        ident = getattr(decl, 'identification', None)
+                        if ident is not None and getattr(ident, 'declaredName', None):
+                            f.name = ident.declaredName
+                            break
+                        decl = getattr(decl, 'declaration', None)
                 f.parent = self
                 self.children.append(f)
             elif inner_class == "EnumerationDefinition":

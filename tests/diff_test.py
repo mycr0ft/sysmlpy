@@ -347,7 +347,8 @@ class TestTraceEdges:
         assert len(changed) == 1
         fields = {fc.field: fc for fc in changed[0].fields}
         assert fields["traces"].old is None
-        assert "satisfy:v" in fields["traces"].new
+        # satisfied_by now carries the qualified name (issue #27)
+        assert "satisfy:T::v" in fields["traces"].new
 
     def test_traces_none_without_edges(self):
         m = sysmlpy.loads(TRACE_OLD)
@@ -362,7 +363,7 @@ class TestTraceEdges:
                   for t in extract_traceability(m).requirements}
         top = m.find_one("top")
         sig = _signature(top, traces)
-        assert sig["traces"] == "satisfy:v"
+        assert sig["traces"] == "satisfy:T::v"
 
 
 MACHINE_OLD = """

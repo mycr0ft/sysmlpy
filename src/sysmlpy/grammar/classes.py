@@ -7354,11 +7354,13 @@ class FlowConnectionUsage:
         output.append(self.keyword)
         output.append(self.declaration.dump())
         body_text = self.body.dump()
-        # an empty body's ';' terminator glues to the statement
+        # an empty body's ';' terminator glues to the statement; a non-empty
+        # body dump already starts with a space (" {\n...") so it must not be
+        # joined with another one
         if body_text.strip() == ";":
             return " ".join(x for x in output if x.strip()) + ";"
-        output.append(body_text)
-        return " ".join(output)
+        output.append(body_text.strip())
+        return " ".join(x for x in output if x.strip())
 
     def get_definition(self):
         output = {"name": self.__class__.__name__, "prefix": None}
@@ -7618,8 +7620,12 @@ class FlowEnd:
                 output.append(child.dump())
             else:
                 ffm_parts.append(child.dump())
+        # The "." separates the end's feature from a following feature chain,
+        # so it belongs to the separator, not to the end: emitting it inside
+        # FlowEndSubsetting.dump turned `flow x from p to q;` into
+        # `flow x from p. to q.;`, which does not re-parse (issue #26).
         if ffm_parts:
-            output.append(".".join(ffm_parts))
+            output.append("." + ".".join(ffm_parts))
         return "".join(output)
 
     def get_definition(self):
@@ -7637,10 +7643,8 @@ class FlowEndSubsetting:
                 self.children = FeatureChainPrefix(definition["ownedRelatedElement"])
 
     def dump(self):
-        if self.children.__class__.__name__ == "QualifiedName":
-            return self.children.dump() + "."
-        else:
-            return self.children.dump()
+        # No trailing "." here — see FlowEnd.dump (the separator owns it).
+        return self.children.dump()
 
     def get_definition(self):
         if self.children.__class__.__name__ == "QualifiedName":

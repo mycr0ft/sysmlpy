@@ -1,5 +1,44 @@
 # CHANGELOG
 
+## 0.99.7 (2026-10-30)
+
+- **`flow` usages reach the model** (issue #26, downstream report from the
+  CARTA team). A package-level `flow x from p to q;` never became an element:
+  `Package.load_from_grammar`'s body navigation only unwrapped a *wrapped*
+  usage member (`PackageMember → UsageElement → …`), while a flow member
+  arrives bare (`UsageElement → OccurrenceUsageElement → StructureUsageElement
+  → FlowConnectionUsage`), so it fell through to `continue`. Three more
+  defects came out with it:
+  1. `FlowEndSubsetting.dump` appended a literal `.` to the end's qualified
+     name, gluing `flow x from p. to q.;` (unparseable); the separator now
+     lives in `FlowEnd.dump` and only before a feature-chain part.
+  2. Both flow builders hardcoded an empty `DefinitionBody`, so
+     `flow x from p to q { attribute note : String; }` lost its members; the
+     body is flattened from `ctx.definitionBody()`.
+  3. The flow element was built by assigning `grammar` instead of calling
+     `load_from_grammar`, which is what loads body members; the identifier is
+     now read through `FlowConnectionDeclaration` (one level deeper than a
+     plain `UsageDeclaration`), so the element carries its declared name
+     instead of a uuid.
+  `to_interchange` on a model with a flow now round-trips.
+- **`dfa_cache` env var spelling** (issue #27): read `SYSSMLPY_DFA_CACHE`
+  (three S) only — a misspelling that never matched the package name.
+  `SYSMLPY_DFA_CACHE` is canonical now; the old spelling stays as an alias.
+- **`traceability.satisfied_by` carries qualified names** (issue #27): it held
+  the reference exactly as written (`['S']`) while `qualified_name` was
+  qualified (`P::R`), so equal short names in different packages collided
+  downstream. Unambiguous references are recorded qualified; ambiguous ones
+  stay as written. `as_traceability_matrix_view(elements=[...])` still accepts
+  short names.
+- `verified_by` stays empty for `verify` inside an objective — there is no
+  Verify element to read yet (issue #23).
+- `diff` signatures follow: a trace edge now reads `satisfy:P::T::v`
+  (qualified) instead of `satisfy:v`, which makes the signature stable across
+  packages with colliding short names.
+- Regression: `tests/issue26_test.py` (6), `tests/issue27_test.py` (6); two
+  `diff_test` and four `traceability_test` pins updated to the qualified form
+  (they documented the old behaviour).
+
 ## 0.99.6 (2026-10-30)
 
 - **`DUPLICATE_NAME` no longer fires across namespaces** (issue #22, Shamal
