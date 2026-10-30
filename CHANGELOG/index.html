@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0994-2026-10-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.4 (2026-10-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0993-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -830,6 +841,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0994-2026-10-29" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.4 (2026-10-29)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0993-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1026,6 +1048,25 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0994-2026-10-29">0.99.4 (2026-10-29)<a class="headerlink" href="#0994-2026-10-29" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>part def</code>-body feature-value members no longer drop from the
+  model</strong> (issue #19, Shamal Faily). A <code>:&gt;&gt; feature = value;</code> member
+  sharing its body with a sibling (the ARCH reproducer's
+  <code>:&gt;&gt; description = "ArchObjt";</code> next to
+  <code>part aTemplate subsets templates : RefinedTemplate;</code>) parsed but
+  vanished from <code>model.dump()</code> — the shared body flatten had no
+  <code>DefaultReferenceUsage</code> dispatch, so the member was not rebuilt
+  (bare members survived only by luck of an untouched rebuild). The
+  shared body walker now builds a <code>Reference</code> child, and
+  <code>Reference.load_from_grammar</code> handles the <code>DefaultReferenceUsage</code>
+  shape (name/type from the <code>:&gt;&gt;</code> chain, value kept in the grammar
+  for byte-faithful re-serialization).</li>
+<li><code>Reference._typed_by_name</code> for a bare redefinition member resolves
+  to the redefined feature (<code>find()</code> navigation works).</li>
+<li>Regression: <code>tests/issue19_test.py</code> (3, incl. the full ARCH
+  reproducer and body-order permutations). Full suite 0 failed.</li>
+</ul>
 <h2 id="0993-2026-10-29">0.99.3 (2026-10-29)<a class="headerlink" href="#0993-2026-10-29" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Annex A dump round-trip (Vehicle Example, issues reported by
