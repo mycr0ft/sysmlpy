@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0997-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.7 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0996-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -863,6 +874,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0997-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.7 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0996-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1092,6 +1114,45 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0997-2026-10-30">0.99.7 (2026-10-30)<a class="headerlink" href="#0997-2026-10-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>flow</code> usages reach the model</strong> (issue #26, downstream report from the
+  CARTA team). A package-level <code>flow x from p to q;</code> never became an element:
+  <code>Package.load_from_grammar</code>'s body navigation only unwrapped a <em>wrapped</em>
+  usage member (<code>PackageMember → UsageElement → …</code>), while a flow member
+  arrives bare (<code>UsageElement → OccurrenceUsageElement → StructureUsageElement
+  → FlowConnectionUsage</code>), so it fell through to <code>continue</code>. Three more
+  defects came out with it:</li>
+<li><code>FlowEndSubsetting.dump</code> appended a literal <code>.</code> to the end's qualified
+     name, gluing <code>flow x from p. to q.;</code> (unparseable); the separator now
+     lives in <code>FlowEnd.dump</code> and only before a feature-chain part.</li>
+<li>Both flow builders hardcoded an empty <code>DefinitionBody</code>, so
+     <code>flow x from p to q { attribute note : String; }</code> lost its members; the
+     body is flattened from <code>ctx.definitionBody()</code>.</li>
+<li>The flow element was built by assigning <code>grammar</code> instead of calling
+     <code>load_from_grammar</code>, which is what loads body members; the identifier is
+     now read through <code>FlowConnectionDeclaration</code> (one level deeper than a
+     plain <code>UsageDeclaration</code>), so the element carries its declared name
+     instead of a uuid.
+  <code>to_interchange</code> on a model with a flow now round-trips.</li>
+<li><strong><code>dfa_cache</code> env var spelling</strong> (issue #27): read <code>SYSSMLPY_DFA_CACHE</code>
+  (three S) only — a misspelling that never matched the package name.
+  <code>SYSMLPY_DFA_CACHE</code> is canonical now; the old spelling stays as an alias.</li>
+<li><strong><code>traceability.satisfied_by</code> carries qualified names</strong> (issue #27): it held
+  the reference exactly as written (<code>['S']</code>) while <code>qualified_name</code> was
+  qualified (<code>P::R</code>), so equal short names in different packages collided
+  downstream. Unambiguous references are recorded qualified; ambiguous ones
+  stay as written. <code>as_traceability_matrix_view(elements=[...])</code> still accepts
+  short names.</li>
+<li><code>verified_by</code> stays empty for <code>verify</code> inside an objective — there is no
+  Verify element to read yet (issue #23).</li>
+<li><code>diff</code> signatures follow: a trace edge now reads <code>satisfy:P::T::v</code>
+  (qualified) instead of <code>satisfy:v</code>, which makes the signature stable across
+  packages with colliding short names.</li>
+<li>Regression: <code>tests/issue26_test.py</code> (6), <code>tests/issue27_test.py</code> (6); two
+  <code>diff_test</code> and four <code>traceability_test</code> pins updated to the qualified form
+  (they documented the old behaviour).</li>
+</ul>
 <h2 id="0996-2026-10-30">0.99.6 (2026-10-30)<a class="headerlink" href="#0996-2026-10-30" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>DUPLICATE_NAME</code> no longer fires across namespaces</strong> (issue #22, Shamal
