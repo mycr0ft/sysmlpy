@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0995-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.5 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0994-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -841,6 +852,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0995-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.5 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0994-2026-10-29" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1048,6 +1070,61 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0995-2026-10-30">0.99.5 (2026-10-30)<a class="headerlink" href="#0995-2026-10-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Connection-usage members no longer drop from the model</strong> (issue #21,
+  Shamal Faily). <code>connection aConnection subsets connectors : Connection {
+  :&gt;&gt; description = "…"; ref template = sharedTemplate; }</code> dumped as bare
+  <code>connection aConnection : Connection;</code>, and <code>connection connectors :
+  Connector [1..*]</code> lost its multiplicity. Three independent visitor gaps:</li>
+<li><code>_make_nested_connection_usage_dict</code> used <code>_build_specialization_from_fsp</code>,
+     a duplicate partial builder that understood typings only and hardcoded
+     <code>multiplicity: None</code>. Both connection builders now use the shared
+     <code>_build_full_specialization_from_fsp</code> (typings / redefinitions /
+     subsettings / references / multiplicity) and the duplicate helper is
+     gone — the corpus reaches only one copy, so a second copy is latent
+     divergence.</li>
+<li>Both connection builders hardcoded an empty <code>DefinitionBody</code>. A
+     <code>connectionUsage</code> hangs its body off <code>ctx.usageBody()</code> directly, which
+     <code>_get_usage_body_items</code> never reaches; <code>_connection_usage_body_items</code>
+     now flattens it.</li>
+<li><code>_make_reference_usage_dict</code> read <code>usage.valuePart()</code> although the value
+     part rides on <code>usage.usageCompletion()</code> — <code>ref template =
+     sharedTemplate;</code> lost its value everywhere, not just in connections.
+  Semantic layer: a connection usage's body items were also dropped from the
+  public tree (<code>UsageBody</code> nests its items one level down in <code>body.body</code>, and
+  a usage-shaped member with no <code>children</code> was skipped by the body dispatch).
+  <code>Connection</code> children now carry the body members.</li>
+<li><strong>Imports are visible inside the importing namespace</strong> (issue #20, same
+  reporter). <code>private import LIB::*;</code> in package ARCH resolved at package
+  level but reported <code>UNDEFINED_SYMBOL</code> for a type used inside
+  <code>part def ArchObjt</code> — <code>SymbolTable.lookup</code> hid privately-imported members
+  from every child scope. KerML 1.0 (7.2.5.4) restricts a private import's
+  visibility <em>outside</em> the namespace, not inside its own body
+  (<code>import</code>-re-export still propagates only public/protected imports, so a
+  sibling package still sees nothing). Consequences: the explicit
+  <code>private import ScalarValues::*;</code> also stops producing bogus
+  <code>IMPLICIT_LIBRARY_IMPORT</code> warnings.</li>
+<li><strong>Semantic feature harvesting walks the wrapper chain</strong> instead of a fixed
+  three-level descent, and understands usage-shaped members that carry their
+  own <code>declaration</code> (<code>ConnectionUsage</code>, <code>InterfaceUsage</code>, …) — <code>connection
+  connectors : Connector;</code> never entered <code>Composite</code>'s feature set, so a
+  legitimate <code>subsets connectors</code> reference reported UNDEFINED_SYMBOL once
+  the visitor stopped hiding it.</li>
+<li><strong>A context-type member beats the library simple-name fallback</strong>: a user
+  feature whose name also exists somewhere in the bundled library (e.g.
+  <code>VectorFunctions::VectorOf::components</code>) is a model symbol, not an implicit
+  standard-library reference. The <code>IMPLICIT_LIBRARY_IMPORT</code> message now names
+  the real library package (<code>Connections::Connection</code>, not
+  <code>ScalarValues::Connection</code>).</li>
+<li>Dump glue (same family as the 0.99.3 serializer sweep): <code>Subsettings.dump</code>
+  emits <code>:&gt; X</code> (was <code>:&gt;X</code>), <code>SubclassificationPart</code> no longer doubles the
+  space after <code>:&gt;</code>, <code>DefaultReferenceUsage</code> joins its terminator
+  (<code>= "x";</code> not <code>= "x" ;</code>), and <code>ReferenceUsage</code> no longer prefixes every
+  <code>ref …</code> line with a space from an empty ref prefix.</li>
+<li>Regression: <code>tests/issue20_test.py</code> (5) and <code>tests/issue21_test.py</code> (6,
+  incl. the reporter's full reproducer and a re-parse idempotency check).</li>
+</ul>
 <h2 id="0994-2026-10-29">0.99.4 (2026-10-29)<a class="headerlink" href="#0994-2026-10-29" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>part def</code>-body feature-value members no longer drop from the
