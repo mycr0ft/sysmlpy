@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0996-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.6 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0995-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -852,6 +863,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#0996-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.99.6 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0995-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1070,6 +1092,41 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="0996-2026-10-30">0.99.6 (2026-10-30)<a class="headerlink" href="#0996-2026-10-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>DUPLICATE_NAME</code> no longer fires across namespaces</strong> (issue #22, Shamal
+  Faily). A usage's body members were registered in the <em>enclosing package's</em>
+  scope, so <code>part aComposite : Composite { :&gt;&gt; description = …; }</code> next to
+  <code>connection aConnection … { :&gt;&gt; description = …; }</code> looked like two
+  same-named members of ARCH. KerML's <code>Type</code> specializes <code>Namespace</code>: every
+  typing element, usage included, is the namespace of the members it owns.
+  A single predicate (<code>owns_namespace</code>) now decides this for all six walkers
+  (symbol table, reference collector, expression-identifier and
+  expression-type collectors, and the duplicate check), so table scopes and
+  scope paths cannot drift apart. The finding also names the scope
+  (<code>Duplicate name 'x' in namespace 'P::A'</code>, previously a bare "in
+  namespace").</li>
+<li>The same leak was the single biggest source of analyzer noise on the
+  bundled standard library: <code>sysmlpy ci src/sysmlpy/library tests/fixtures</code>
+  goes from <strong>1018 DUPLICATE_NAME findings to 0</strong>, and
+  <code>UNRESOLVED_EXPRESSION_IDENTIFIER</code> from 5736 to 5643 (body-local names now
+  resolve in their owner's scope instead of by accident). One new
+  <code>UNDEFINED_SYMBOL</code> appears — <code>unitConversion</code> in
+  <code>domain/Quantities and Units/SI.sysml</code> — which previously resolved to
+  <em>itself</em> through the leak; it is a member of the library's <code>Unit</code> type,
+  which the name-indexed library fallback cannot resolve (the known
+  model-loading gap, unchanged).</li>
+<li>Cross-checked against Open-MBEE's <strong>OpenSysML</strong> (Go, built from
+  <code>~/proj/third_party/OpenSysML</code>): <code>sysml -validate</code> on the reporter's file
+  reports no duplicate-name diagnostic. It does report two genuine issues
+  this analyzer does not check yet — a connection usage needs its own two
+  ends (<code>connection c : CD;</code> is rejected even when <code>CD</code> declares ends), and
+  a member redeclaring an inherited feature name needs <code>:&gt;&gt;</code> — logged for a
+  follow-up increment.</li>
+<li>Regression: <code>tests/issue22_test.py</code> (5: the reporter's model, same name in
+  two usages, duplicate inside one usage body, duplicate in one definition,
+  duplicate at package level).</li>
+</ul>
 <h2 id="0995-2026-10-30">0.99.5 (2026-10-30)<a class="headerlink" href="#0995-2026-10-30" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Connection-usage members no longer drop from the model</strong> (issue #21,
