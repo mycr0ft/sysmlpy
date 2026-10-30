@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## 0.99.4 (2026-10-29)
+
+- **`part def`-body feature-value members no longer drop from the
+  model** (issue #19, Shamal Faily). A `:>> feature = value;` member
+  sharing its body with a sibling (the ARCH reproducer's
+  `:>> description = "ArchObjt";` next to
+  `part aTemplate subsets templates : RefinedTemplate;`) parsed but
+  vanished from `model.dump()` — the shared body flatten had no
+  `DefaultReferenceUsage` dispatch, so the member was not rebuilt
+  (bare members survived only by luck of an untouched rebuild). The
+  shared body walker now builds a `Reference` child, and
+  `Reference.load_from_grammar` handles the `DefaultReferenceUsage`
+  shape (name/type from the `:>>` chain, value kept in the grammar
+  for byte-faithful re-serialization).
+- `Reference._typed_by_name` for a bare redefinition member resolves
+  to the redefined feature (`find()` navigation works).
+- Regression: `tests/issue19_test.py` (3, incl. the full ARCH
+  reproducer and body-order permutations). Full suite 0 failed.
+
 ## 0.99.3 (2026-10-29)
 
 - **Annex A dump round-trip (Vehicle Example, issues reported by

@@ -1286,6 +1286,13 @@ class Usage(Searchable):
                 c = Attribute().load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
+            elif class_name == "DefaultReferenceUsage":
+                # v0.99.4: `:>> feature = value;` members ride
+                # DefaultReferenceUsage — dropped from the model (issue
+                # #19) whenever they shared a body with siblings.
+                c = Reference().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "ReferenceUsage":
                 # v0.79.1: nested `ref driver : Person;` inside part/item
                 # bodies was dropped from the object tree.
@@ -5137,6 +5144,35 @@ class Reference(Usage):
         """
         self.__init__()
         self.grammar = grammar
+
+        # v0.99.4: `:>> feature = value;` members parse as
+        # DefaultReferenceUsage (RefPrefix + declaration + valuepart).
+        # They used to drop from the semantic model whenever they
+        # shared a body with siblings (issue #19).
+        if grammar.__class__.__name__ in ("DefaultReferenceUsage",
+                                          "EndFeatureUsage"):
+            decl = getattr(grammar, "declaration", None)
+            decl_decl = getattr(decl, "declaration", None) if decl else None
+            ident = getattr(decl_decl, "identification", None) if decl_decl else None
+            if ident is not None and getattr(ident, "declaredName", None):
+                self.name = ident.declaredName
+            # The redefined feature chain rides the declaration's
+            # FeatureSpecializationPart (`:>> description`); the bare
+            # redefinition form has no identification, so the chain's
+            # first name becomes the member name (same convention as
+            # the ReferenceUsage path above).
+            _spec = getattr(decl_decl, "specialization", None) if decl_decl else None
+            if _spec is not None:
+                import re as _re
+                spec_text = _spec.dump()
+                _names = _re.findall(r"(?:::>|:>>|:)\s*([A-Za-z_][\w:]*(?:::[\w:]+)?)",
+                                     spec_text)
+                self._typed_by_name = _names[0] if _names else None
+                if not getattr(ident, "declaredName", None):
+                    self.name = _names[0] if _names else self.name
+            self.is_definition = False
+            return self
+
         usage = getattr(grammar, "child", None)  # grammar classes.Usage
         if usage is None:
             return self
