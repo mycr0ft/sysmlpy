@@ -1,12 +1,20 @@
 # sysmlpy — Project Status
 
-Current version: **v0.99.5** (2026-10-30)
+Current version: **v0.99.6** (2026-10-30)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.99.6)
+
+- **Namespaces are namespaces** (issue #22): usage-body members are scoped to
+  their owning usage, not the enclosing package — `DUPLICATE_NAME` false
+  positives gone from the reporter's model and 1018 findings on the bundled
+  standard library drop to zero. Cross-checked against Open-MBEE's OpenSysML
+  validator.
 
 ## Recent Highlights (0.99.5)
 

@@ -377,6 +377,36 @@ _KNOWN_LIBRARY_SYMBOLS: frozenset[str] = frozenset({
 
 
 # ---------------------------------------------------------------------------
+# Namespace membership
+# ---------------------------------------------------------------------------
+
+def owns_namespace(element: Any) -> bool:
+    """True when *element* is a namespace for the members it owns.
+
+    Every typing element is a namespace: in KerML ``Type`` specializes
+    ``Namespace``, so the members declared in a *usage's* body belong to
+    that usage, not to the package that contains the usage.  Registering
+    them in the enclosing package made two usages with a same-named member
+    look like siblings — ``part def Composite { attribute description :
+    String; }`` next to ``connection def Connector { attribute description
+    : String; }`` reported ``DUPLICATE_NAME`` (issue #22), and the same
+    pattern inflated the analyzer's library baseline.
+
+    Model roots are excluded (their uuid name is not a real symbol) and so
+    is any element that owns no members — a body-less usage has no members
+    to scope, and every walker here agrees on that rule so scope paths and
+    symbol-table scopes stay in step.
+    """
+    if element is None:
+        return False
+    if type(element).__name__ == "Model":
+        return False
+    if getattr(element, "is_definition", False) or type(element).__name__ == "Package":
+        return True
+    return bool(getattr(element, "children", None))
+
+
+# ---------------------------------------------------------------------------
 # Symbol Table
 # ---------------------------------------------------------------------------
 
@@ -466,10 +496,11 @@ class SymbolTable:
         if getattr(element, "is_definition", False) and name is not None:
             self._index_definition(element, name, table)
 
-        # Create child scope for packages and definitions
-        # Skip Model (it's just a root container, not a SysML namespace)
+        # Create a child scope for anything that owns members — packages,
+        # definitions, and usages with a body (owns_namespace).  Skip Model
+        # (it's just a root container, not a SysML namespace)
         child_table = table
-        is_container = getattr(element, "is_definition", False) or elem_type == "Package"
+        is_container = owns_namespace(element)
         if is_container and name is not None and elem_type != "Model":
             child_table = table._children.setdefault(name, SymbolTable())
             child_table._parent = table
@@ -985,14 +1016,19 @@ class ReferenceCollector:
         # Compute child scope path
         name = getattr(element, "name", None)
         elem_type = type(element).__name__
-        is_container = getattr(element, "is_definition", False) or elem_type == "Package"
+        is_container = owns_namespace(element)
         child_scope = scope_path
         if is_container and name is not None and elem_type != "Model":
             child_scope = scope_path + [name]
 
         grammar = getattr(element, "grammar", None)
         if grammar is not None:
-            self._extract_from_grammar(grammar, element, results, scope_path)
+            # The element's own grammar carries its body as well as its
+            # declaration, and a body member is a member of THIS element's
+            # namespace when it owns one (owns_namespace) — resolve from
+            # there.  Parent-visible names still resolve: SymbolTable.lookup
+            # walks up the parent chain.
+            self._extract_from_grammar(grammar, element, results, child_scope)
 
         for child in getattr(element, "children", []):
             self._walk(child, results, child_scope)
@@ -1359,7 +1395,7 @@ class ExpressionIdentifierCollector:
 
         name = getattr(element, "name", None)
         elem_type = type(element).__name__
-        is_container = getattr(element, "is_definition", False) or elem_type == "Package"
+        is_container = owns_namespace(element)
         child_scope = scope_path
         if is_container and name is not None and elem_type != "Model":
             child_scope = scope_path + [name]
@@ -1373,7 +1409,11 @@ class ExpressionIdentifierCollector:
             if grammar_def is not None:
                 for expr in _find_owned_expressions(grammar_def):
                     for ref in _walk_expression_identifiers(expr):
-                        results.append((ref, element, scope_path))
+                        # A default value declared in this element's body is
+                        # evaluated in this element's namespace (e.g. the SI
+                        # library's `attribute ... = temperatureOfWaterAtTriplePointInK`
+                        # next to that attribute's declaration).
+                        results.append((ref, element, child_scope))
 
         for child in getattr(element, "children", []):
             self._walk(child, results, child_scope)
@@ -1848,7 +1888,7 @@ class ExpressionTypeChecker:
             return
         name = getattr(element, "name", None)
         elem_type = type(element).__name__
-        is_container = getattr(element, "is_definition", False) or elem_type == "Package"
+        is_container = owns_namespace(element)
         child_scope = scope_path
         if is_container and name is not None and elem_type != "Model":
             child_scope = scope_path + [name]
@@ -2301,7 +2341,7 @@ class ExpressionTypeChecker:
             return
         name = getattr(element, "name", None)
         elem_type = type(element).__name__
-        is_container = getattr(element, "is_definition", False) or elem_type == "Package"
+        is_container = owns_namespace(element)
         child_scope = scope_path
         if is_container and name is not None and elem_type != "Model":
             child_scope = scope_path + [name]
@@ -3656,7 +3696,7 @@ class SemanticAnalyzer:
         def walk(element, scope_path):
             name = getattr(element, "name", None)
             elem_type = type(element).__name__
-            is_container = getattr(element, "is_definition", False)                 or elem_type == "Package"
+            is_container = owns_namespace(element)
             child_scope = scope_path
             if is_container and name is not None and elem_type != "Model":
                 child_scope = scope_path + [name]
@@ -4404,24 +4444,30 @@ class SemanticAnalyzer:
     def _check_duplicate_names(self, symtab: SymbolTable) -> list[SemanticIssue]:
         """Namespace.duplicate_names: No two members may have the same name in a scope."""
         issues: list[SemanticIssue] = []
-        self._check_duplicates_in_table(symtab, issues)
+        self._check_duplicates_in_table(symtab, issues, ())
         return issues
 
     def _check_duplicates_in_table(
-        self, table: SymbolTable, issues: list[SemanticIssue]
+        self, table: SymbolTable, issues: list[SemanticIssue], path: tuple[str, ...] = ()
     ) -> None:
-        """Check for duplicate names in a single symbol table scope."""
+        """Check for duplicate names in a single symbol table scope.
+
+        *path* is the namespace chain (package / definition / usage names)
+        so a finding names the scope that actually holds the clash instead
+        of saying only "in namespace".
+        """
+        where = "::".join(path) if path else "<root>"
         for name, element in table._duplicate_names:
             issues.append(SemanticIssue(
                 severity="error",
                 code="DUPLICATE_NAME",
-                message=f"Duplicate name '{name}' in namespace",
+                message=f"Duplicate name '{name}' in namespace '{where}'",
                 element=element,
                 reference=name,
             ))
 
-        for child_table in table._children.values():
-            self._check_duplicates_in_table(child_table, issues)
+        for child_name, child_table in table._children.items():
+            self._check_duplicates_in_table(child_table, issues, path + (child_name,))
 
     def _check_cyclic_specialization(self, symtab: SymbolTable) -> list[SemanticIssue]:
         """Type.no_cyclic_specialization: A type cannot specialize itself cyclically."""

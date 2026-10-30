@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## 0.99.6 (2026-10-30)
+
+- **`DUPLICATE_NAME` no longer fires across namespaces** (issue #22, Shamal
+  Faily). A usage's body members were registered in the *enclosing package's*
+  scope, so `part aComposite : Composite { :>> description = …; }` next to
+  `connection aConnection … { :>> description = …; }` looked like two
+  same-named members of ARCH. KerML's `Type` specializes `Namespace`: every
+  typing element, usage included, is the namespace of the members it owns.
+  A single predicate (`owns_namespace`) now decides this for all six walkers
+  (symbol table, reference collector, expression-identifier and
+  expression-type collectors, and the duplicate check), so table scopes and
+  scope paths cannot drift apart. The finding also names the scope
+  (`Duplicate name 'x' in namespace 'P::A'`, previously a bare "in
+  namespace").
+- The same leak was the single biggest source of analyzer noise on the
+  bundled standard library: `sysmlpy ci src/sysmlpy/library tests/fixtures`
+  goes from **1018 DUPLICATE_NAME findings to 0**, and
+  `UNRESOLVED_EXPRESSION_IDENTIFIER` from 5736 to 5643 (body-local names now
+  resolve in their owner's scope instead of by accident). One new
+  `UNDEFINED_SYMBOL` appears — `unitConversion` in
+  `domain/Quantities and Units/SI.sysml` — which previously resolved to
+  *itself* through the leak; it is a member of the library's `Unit` type,
+  which the name-indexed library fallback cannot resolve (the known
+  model-loading gap, unchanged).
+- Cross-checked against Open-MBEE's **OpenSysML** (Go, built from
+  `~/proj/third_party/OpenSysML`): `sysml -validate` on the reporter's file
+  reports no duplicate-name diagnostic. It does report two genuine issues
+  this analyzer does not check yet — a connection usage needs its own two
+  ends (`connection c : CD;` is rejected even when `CD` declares ends), and
+  a member redeclaring an inherited feature name needs `:>>` — logged for a
+  follow-up increment.
+- Regression: `tests/issue22_test.py` (5: the reporter's model, same name in
+  two usages, duplicate inside one usage body, duplicate in one definition,
+  duplicate at package level).
+
 ## 0.99.5 (2026-10-30)
 
 - **Connection-usage members no longer drop from the model** (issue #21,
