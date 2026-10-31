@@ -1,0 +1,1229 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="SysML v2.0 Parser for Python">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Endpoints and metadata applications — implementation plan (issues #23, #24) - sysmlpy</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#endpoints-and-metadata-applications-implementation-plan-issues-23-24" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="sysmlpy" class="md-header__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            sysmlpy
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Endpoints and metadata applications — implementation plan (issues #23, #24)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="sysmlpy" class="md-nav__button md-logo" aria-label="sysmlpy" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    sysmlpy
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mycr0ft/sysmlpy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    mycr0ft/sysmlpy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TUTORIAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vee-link/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vee Link (SysML-STEP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../jupyter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jupyter %%sysml How-to
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sysml-magics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jupyter %%sysml magic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LSP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LSP Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LSP_EDITORS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LSP in Neovim & VS Code
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../STATUS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TODO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TODO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-exists-today-probed-not-assumed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What exists today (probed, not assumed)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. What exists today (probed, not assumed)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-the-dump-does-with-these-forms-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the dump does with these forms today
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-api-to-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. API to add
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. API to add">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#23-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #23 — endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-metadata-applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        #24 — metadata applications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-script-this-becomes-examplesmetadata_and_endpointspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target script (this becomes examples/metadata_and_endpoints.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-work-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Work breakdown
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Work breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-a-23-endpoints-release-01000" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase A — #23 endpoints (release 0.100.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-b-24-metadata-applications-release-01010" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase B — #24 metadata applications (release 0.101.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sequencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sequencing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-risks-and-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Risks and decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Acceptance criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-what-is-explicitly-not-in-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. What is explicitly NOT in scope
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="endpoints-and-metadata-applications-implementation-plan-issues-23-24">Endpoints and metadata applications — implementation plan (issues #23, #24)<a class="headerlink" href="#endpoints-and-metadata-applications-implementation-plan-issues-23-24" title="Permanent link">&para;</a></h1>
+<p>Status: plan only, nothing implemented. Written 2026-10-30 against 0.99.7.</p>
+<p>Source of the requirement: the CARTA team (SysML v2 → program-roadmap tool) uses
+<code>sysmlpy.parse()</code> and the element object model as their parser. Two of their
+eight findings need API work rather than a patch:</p>
+<ul>
+<li><strong>#23</strong> relationships lose their endpoints (<code>dependency</code>, <code>allocate</code>,
+  <code>satisfy</code>, <code>verify</code>)</li>
+<li><strong>#24</strong> metadata applications are not exposed (<code>@M { … }</code>, <code>#M</code> prefix,
+  <code>metadata … about</code>)</li>
+</ul>
+<p>Their workarounds today are a ~300-line source-text scanner for traceability
+and a separate scanner for metadata forms. The goal of this work is to delete
+both.</p>
+<hr />
+<h2 id="1-what-exists-today-probed-not-assumed">1. What exists today (probed, not assumed)<a class="headerlink" href="#1-what-exists-today-probed-not-assumed" title="Permanent link">&para;</a></h2>
+<p>Probes run against 0.99.7 with <code>load_grammar</code> (visitor dict), the grammar
+classes, and <code>loads</code> (public model). "Visitor" = the dict <code>load_grammar</code>
+returns; "grammar" = the <code>sysmlpy.grammar.classes</code> object stored on
+<code>element.grammar</code>; "public" = the element object model.</p>
+<table>
+<thead>
+<tr>
+<th>Construct</th>
+<th>Visitor dict</th>
+<th>Grammar object</th>
+<th>Public model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dependency d from A to B;</code></td>
+<td><code>clients: [QualifiedName A]</code>, <code>suppliers: [QualifiedName B]</code></td>
+<td><code>Dependency.clients/.suppliers</code> populated</td>
+<td><code>Dependency</code> element exists, <code>clients == []</code>, <code>suppliers == []</code></td>
+</tr>
+<tr>
+<td><code>allocate a to b;</code> / <code>allocation al allocate a to b;</code></td>
+<td><code>part</code> = ConnectorPart with both ends</td>
+<td><code>AllocationUsage.connectorPart</code> populated</td>
+<td><code>Allocation</code> element exists, no source/target</td>
+</tr>
+<tr>
+<td><code>satisfy R by S;</code></td>
+<td><code>SatisfyRequirementUsage</code> with <code>ors</code>, <code>ssm</code></td>
+<td><code>SatisfyRequirementUsage.ors/.ssm</code> populated</td>
+<td><code>Requirement</code> element with <code>keyword='requirement'</code>, <code>name=None</code>, <code>subject=None</code> — no requirement, no subject</td>
+</tr>
+<tr>
+<td><code>verification def V { objective { verify R; } }</code></td>
+<td><code>VerifyRequirementUsage</code> (with <code>ors</code> → <code>R</code>) nested under <code>ObjectiveMember → ObjectiveRequirementUsage → RequirementBodyItem → RequirementVerificationMember</code></td>
+<td>not built</td>
+<td><strong>no element at all</strong></td>
+</tr>
+<tr>
+<td><code>metadata m : M about X;</code></td>
+<td><code>MetadataFeature</code> with <code>ownedRelationship_about: [Annotation(annotatedElement X)]</code>, <code>bodyFeatures: []</code></td>
+<td><code>MetadataFeature.about/.bodyFeatures</code></td>
+<td><code>Metadata</code> with <code>typed_by_name == 'M'</code>; no annotated element, no values</td>
+</tr>
+<tr>
+<td><code>part def X { @M { w = 1; } }</code></td>
+<td><code>AnnotatingElement → MetadataFeature{type M, bodyFeatures[{name 'w', value '=1'}]}</code> at depth 18</td>
+<td>reachable via the body item</td>
+<td>dropped for definition bodies; <code>X</code> carries nothing</td>
+</tr>
+<tr>
+<td><code>#M part def Y;</code></td>
+<td><strong>nothing emitted</strong> (parse tree: <code>PartDefinition → OccurrenceDefinitionPrefix → DefinitionExtensionKeyword → PrefixMetadataMember</code>)</td>
+<td>n/a</td>
+<td>dropped at the visitor</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-the-dump-does-with-these-forms-today">What the dump does with these forms today<a class="headerlink" href="#what-the-dump-does-with-these-forms-today" title="Permanent link">&para;</a></h3>
+<p>Also probed, because #24 cannot be "read-only": an annotation that does not
+survive <code>dump()</code> is lost on the next save.</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th><code>dump()</code> output</th>
+<th>Re-parses?</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>part def X { @M { a = 1; } @M { b = 2; } }</code></td>
+<td><code>@ : M {a=1;};</code> ×2</td>
+<td><strong>no</strong> — second parse yields <code>;</code> bodies</td>
+<td>name slot printed as <code>:</code>, body unparseable; not idempotent</td>
+</tr>
+<tr>
+<td><code>@M { w = 1; }</code> at package level</td>
+<td><code>@ : M {w=1;};</code></td>
+<td>yes</td>
+<td>stable but notation mangled (<code>@ : M</code>, no <code>@M</code>)</td>
+</tr>
+<tr>
+<td><code>metadata m : M about X;</code></td>
+<td><code>@ m : M about X;;</code></td>
+<td>yes</td>
+<td>keyword form lost, double terminator</td>
+</tr>
+<tr>
+<td><code>#M part def Y;</code></td>
+<td><code>part def Y;</code></td>
+<td>yes</td>
+<td><strong>prefix annotation lost entirely</strong></td>
+</tr>
+</tbody>
+</table>
+<p>So B2/B3 include serializer work, not just model API work, and every test needs
+a dump → parse → dump fixed-point assertion.</p>
+<p>Also probed and fine: <code>dependency d from A, B to C;</code>, <code>allocate (a, b, c);</code>,
+<code>satisfy R;</code> (no <code>by</code>), <code>#M part y;</code> (usage form), <code>metadata m : M;</code> (no
+<code>about</code>) all parse today, so the plan does not depend on grammar changes.</p>
+<p>So: <strong>only one construct needs visitor work</strong> (<code>#M</code> prefix). Everything else has
+the data already and loses it in the public model — that is the encouraging
+part of this plan.</p>
+<p>Relevant code anchors:</p>
+<ul>
+<li><code>definition.py:1599</code> — <code>Dependency</code> branch builds <code>Dependency()</code> and never
+  reads <code>inner_element.clients/.suppliers</code>.</li>
+<li><code>usage.py:5395</code> — <code>Dependency</code> already has <code>clients</code> / <code>suppliers</code> fields.</li>
+<li><code>usage.py:4719</code> — <code>Allocation</code> (no endpoint fields).</li>
+<li><code>grammar/classes.py:10833</code> — <code>AllocationUsage.connectorPart</code> (present since
+  issue #5 / PR #6).</li>
+<li><code>grammar/classes.py:5569</code> — <code>SatisfyRequirementUsage.ors/.ssm</code> (traceability
+  already reads them, which proves they survive).</li>
+<li><code>antlr_visitor.py:9896-9977</code> — <code>VerifyRequirementUsage</code> dict builder (used
+  for verification bodies, never reaches the public model).</li>
+<li><code>definition.py:971</code> — <code>_add_metadata_child(mf)</code>: the single place a
+  <code>MetadataFeature</code> becomes a <code>Metadata</code> element today; sets name and type only.</li>
+<li><code>definition.py:1360-1390</code> — package-level <code>AnnotatingElement</code> /
+  <code>NonOccurrenceUsageElement</code> branches (the <code>@</code>-form works at package level,
+  not in definition bodies).</li>
+</ul>
+<hr />
+<h2 id="2-api-to-add">2. API to add<a class="headerlink" href="#2-api-to-add" title="Permanent link">&para;</a></h2>
+<p>Design rules: names first, resolution opt-in (same philosophy as
+<code>typed_by_name</code> / <code>model.resolve_types()</code>); no new required imports; every new
+attribute is additive so 0.99.7 consumers keep working.</p>
+<h3 id="23-endpoints">#23 — endpoints<a class="headerlink" href="#23-endpoints" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">dep</span><span class="o">.</span><span class="n">clients</span>            <span class="c1"># ['A']            names as written</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">dep</span><span class="o">.</span><span class="n">suppliers</span>          <span class="c1"># ['B']</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">dep</span><span class="o">.</span><span class="n">client_elements</span>    <span class="c1"># []  until model.resolve_references() (opt-in)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">alloc</span><span class="o">.</span><span class="n">source</span> <span class="o">/</span> <span class="o">.</span><span class="n">target</span> <span class="c1"># ['a'] / ['b']   (lists: n-ary allocate is legal)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">alloc</span><span class="o">.</span><span class="n">source_elements</span> <span class="o">/</span> <span class="o">.</span><span class="n">target_elements</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">sat</span><span class="o">.</span><span class="n">requirement</span>        <span class="c1"># 'R'       (name as written; None if anonymous form)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">sat</span><span class="o">.</span><span class="n">satisfying</span>         <span class="c1"># ['S']     (the `by` subject; list — n-ary is legal)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">sat</span><span class="o">.</span><span class="n">requirement_element</span> <span class="o">/</span> <span class="o">.</span><span class="n">satisfying_elements</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">verify</span><span class="o">.</span><span class="n">requirement</span>     <span class="c1"># 'R'</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">verify</span><span class="o">.</span><span class="n">requirement_element</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">case</span><span class="o">.</span><span class="n">verified_requirements</span>        <span class="c1"># on VerificationCase/VerificationDef: ['R']</span>
+</code></pre></div>
+<p><code>Dependency</code> also gains <code>dependency_elements</code> on the owner? No — keep it flat.</p>
+<h3 id="24-metadata-applications">#24 — metadata applications<a class="headerlink" href="#24-metadata-applications" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">m</span><span class="o">.</span><span class="n">type_name</span>            <span class="c1"># 'M'        (alias of typed_by_name; exists)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">m</span><span class="o">.</span><span class="n">annotated</span>            <span class="c1"># ['X']      `about` targets, names as written</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">m</span><span class="o">.</span><span class="n">annotated_elements</span>   <span class="c1"># [] until resolution</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">m</span><span class="o">.</span><span class="n">values</span>               <span class="c1"># {'w': 1}   bodyFeatures, typed where the syntax is a literal</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">m</span><span class="o">.</span><span class="n">value_text</span>           <span class="c1"># {'w': '=1'} raw text, for non-literals</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">x</span><span class="o">.</span><span class="n">annotations</span>          <span class="c1"># [Metadata, ...] every metadata applied to `x`</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">x</span><span class="o">.</span><span class="n">annotations_of</span><span class="p">(</span><span class="s1">'M'</span><span class="p">)</span>  <span class="c1"># filter by type name</span>
+</code></pre></div>
+<p><code>x.annotations</code> is the piece that makes <code>@M { … }</code> and <code>#M</code> useful: an element
+must be able to name what is attached to it, whichever notation applied it.</p>
+<h3 id="target-script-this-becomes-examplesmetadata_and_endpointspy">Target script (this becomes <code>examples/metadata_and_endpoints.py</code>)<a class="headerlink" href="#target-script-this-becomes-examplesmetadata_and_endpointspy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">m</span> <span class="o">=</span> <span class="n">loads</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"reproducer.sysml"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>                       <span class="c1"># find/find_one/all exist today; no walk()</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">for</span> <span class="n">md</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">el</span><span class="p">,</span> <span class="s2">"annotations"</span><span class="p">,</span> <span class="p">[]):</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="nb">print</span><span class="p">(</span><span class="n">el</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s2">"annotated by"</span><span class="p">,</span> <span class="n">md</span><span class="o">.</span><span class="n">type_name</span><span class="p">,</span> <span class="n">md</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">dep</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">find_one</span><span class="p">(</span><span class="s2">"d"</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">dep</span><span class="o">.</span><span class="n">clients</span><span class="p">,</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="n">dep</span><span class="o">.</span><span class="n">suppliers</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="3-work-breakdown">3. Work breakdown<a class="headerlink" href="#3-work-breakdown" title="Permanent link">&para;</a></h2>
+<h3 id="phase-a-23-endpoints-release-01000">Phase A — #23 endpoints (release 0.100.0)<a class="headerlink" href="#phase-a-23-endpoints-release-01000" title="Permanent link">&para;</a></h3>
+<p><strong>A1. Dependency (S, ~2 h).</strong> In <code>definition.py</code>'s <code>Dependency</code> branch, read
+<code>inner_element.clients</code> / <code>.suppliers</code> (lists of <code>QualifiedName</code>) and pass the
+joined names to <code>Dependency(clients=…, suppliers=…)</code>. Add <code>client_elements</code> /
+<code>supplier_elements</code> resolving through the symbol table only when asked.
+<em>Tests:</em> named + unnamed forms, multi-client (<code>dependency d from A, B to C;</code>),
+round-trip unchanged.</p>
+<p><strong>A2. Allocation (S, ~2 h).</strong> Add <code>source</code> / <code>target</code> properties on
+<code>Allocation</code> reading <code>self.grammar.connectorPart</code> (binary: 2 ends; n-ary: N
+ends, <code>source</code> = first, <code>target</code> = rest). Same for <code>AllocationDefinition</code> if
+the connector is accepted there (probe first — grammar allows
+<code>allocationDefinition : occurrenceDefinitionPrefix ALLOCATION DEF definition</code>,
+no connector).
+<em>Tests:</em> <code>allocate a to b;</code>, <code>allocation al allocate a to b;</code>, n-ary
+<code>allocate (a, b, c);</code>, dump round-trip (the connector already dumps).</p>
+<p><strong>A3. Satisfy (S, ~3 h).</strong> <code>Requirement</code> gains <code>requirement</code> /
+<code>satisfying</code> reading <code>grammar.ors</code> / <code>grammar.ssm</code> (reuse the existing
+<code>traceability._last_segment</code> style helper — move it to a shared place rather
+than copy it). Populate <code>subject</code> (currently always None) from <code>ssm</code>.
+<em>Tests:</em> <code>satisfy R by S;</code>, <code>satisfy R;</code> (no subject), qualified reference
+<code>satisfy P::R by S;</code>, nested inside a requirement body.</p>
+<p><strong>A4. Verify (M, ~6 h).</strong> Two parts:
+1. <strong>Build the element.</strong> The dict exists
+   (<code>RequirementVerificationMember → VerifyRequirementUsage</code>); the requirement
+   <em>body</em> walk that would reach it does not exist for verification cases.
+   Add a <code>Verify</code> element (sysml_type <code>verify</code>) built from
+   <code>VerifyRequirementUsage</code>, and make <code>RequirementBodyItem →
+   RequirementVerificationMember</code> reachable from the body dispatch used by
+   definitions.
+2. <strong>Expose it on the case.</strong> <code>VerificationCase.verified_requirements</code>
+   (names) from its own grammar body, so a consumer does not have to walk to
+   find the Verify element.
+   Also feeds <code>traceability.verified_by</code> (currently always empty — #27 item 3).
+<em>Tests:</em> objective-verify, direct <code>verify R;</code> in a verification body, assert on
+<code>VerificationCase.verified_requirements</code>, <code>traceability.verified_by</code>, and that
+<code>dump()</code> still round-trips.</p>
+<p><strong>A5. Interchange + docs (S, ~2 h).</strong> New attributes are derived (not stored),
+so <code>to_interchange</code> should be unaffected — verify with a round-trip test that
+asserts the graph is byte-identical to 0.99.7's for a model using these
+constructs. Add a README section + <code>examples/</code> script.</p>
+<p>Phase A total: <strong>~1.5 days</strong> including tests, docs, release.</p>
+<h3 id="phase-b-24-metadata-applications-release-01010">Phase B — #24 metadata applications (release 0.101.0)<a class="headerlink" href="#phase-b-24-metadata-applications-release-01010" title="Permanent link">&para;</a></h3>
+<p><strong>B1. <code>Metadata</code> values and <code>about</code> (S, ~3 h).</strong> Extend
+<code>_add_metadata_child</code> (and the <code>Metadata</code> class) to read
+<code>grammar.ownedRelationship_about</code> (→ <code>annotated</code> names) and
+<code>grammar.bodyFeatures</code> (→ <code>values</code> / <code>value_text</code>; <code>bodyFeatures</code> already carry
+<code>name</code>, <code>value</code>, <code>text</code>, <code>featureKeyword</code> from the PR #9 work). This alone
+covers <code>metadata m : M about X;</code> for CARTA's planning-attribute use case.
+<em>Tests:</em> about with one and several targets, values of literal and expression
+form, <code>metadata m : M;</code> (no about).</p>
+<p><strong>B2. <code>@M { … }</code> in every body + its serializer (M, ~7 h).</strong> The visitor emits
+<code>AnnotatingElement → MetadataFeature</code> inside definition bodies; the
+definition-body dispatch drops it. Add the <code>AnnotatingElement</code> /
+<code>NonOccurrenceUsageElement</code>-with-<code>MetadataFeature</code> handling the package loader
+already has, attach the resulting <code>Metadata</code> to the <strong>owning element</strong> rather
+than the enclosing namespace, and give every element an <code>annotations</code> list
+(cheap: <code>[]</code> on the base class, appended to). <strong>Plus the serializer</strong>, without
+which the model cannot be saved: <code>@M { a = 1; }</code> currently dumps as
+<code>@ : M {a=1;};</code> (no name slot, not re-parseable inside a body) — the
+<code>AnnotatingElement</code>/<code>MetadataFeature</code> dump needs the <code>@</code>-form without the
+spurious <code>:</code> and a body that round-trips.
+<em>Tests:</em> annotation on a part def, on an attribute, on a usage, two
+annotations of the same type (the currently non-idempotent case), annotation
+with a nested metadata body, each with dump → parse → dump.</p>
+<p><strong>B3. <code>#M</code> prefix form + its serializer (M, ~8 h, the only visitor work).</strong>
+Capture <code>PrefixMetadataMember</code> where a definition/usage prefix is parsed
+(<code>_get_occurrence_definition_prefix</code>, <code>_get_usage_prefix_dict</code> — both are
+duplicated helpers, see the skill note) and carry it into the element dict as
+<code>prefixMetadata</code>, then attach it as an annotation like B2. On the way out the
+prefix must be emitted again — today <code>#M part def Y;</code> dumps as <code>part def Y;</code>,
+losing the annotation.
+<em>Tests:</em> <code>#M part def Y;</code>, <code>#M part y;</code>, prefixed usage with a name
+(<code>#M part def Y { }</code>), two prefix annotations, and that the prefix survives
+<code>dump()</code>.</p>
+<p><strong>B4. Resolution + interchange + docs (S, ~4 h).</strong> <code>annotated_elements</code>,
+<code>model.resolve_references()</code> opt-in pass; decide whether annotations appear in
+<code>to_interchange</code> output (they do not today; adding them changes graph shape —
+see Risks); README + examples.</p>
+<p>Phase B total: <strong>~3 days</strong> including tests, docs, release.</p>
+<h3 id="sequencing">Sequencing<a class="headerlink" href="#sequencing" title="Permanent link">&para;</a></h3>
+<p>At a glance:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What</th>
+<th>Size</th>
+<th>Unlocks</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A1</td>
+<td><code>Dependency.clients</code> / <code>.suppliers</code></td>
+<td>2 h</td>
+<td>dependency traceability</td>
+</tr>
+<tr>
+<td>A2</td>
+<td><code>Allocation.source</code> / <code>.target</code></td>
+<td>2 h</td>
+<td>allocation traceability</td>
+</tr>
+<tr>
+<td>A3</td>
+<td><code>Requirement.requirement</code> / <code>.satisfying</code> / <code>.subject</code></td>
+<td>3 h</td>
+<td>satisfy traceability</td>
+</tr>
+<tr>
+<td>A4</td>
+<td><code>Verify</code> element + <code>VerificationCase.verified_requirements</code></td>
+<td>6 h</td>
+<td><code>traceability.verified_by</code> (#27)</td>
+</tr>
+<tr>
+<td>A5</td>
+<td>interchange check, docs, release 0.100.0</td>
+<td>2 h</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B1</td>
+<td><code>Metadata.annotated</code> / <code>.values</code> (works for <code>metadata m : M about X</code>)</td>
+<td>3 h</td>
+<td>CARTA's planning attributes</td>
+</tr>
+<tr>
+<td>B2</td>
+<td><code>@M { … }</code> model + serializer, <code>element.annotations</code></td>
+<td>7 h</td>
+<td>annotation reads <em>and</em> saves</td>
+</tr>
+<tr>
+<td>B3</td>
+<td><code>#M</code> prefix model + serializer</td>
+<td>8 h</td>
+<td>prefix form</td>
+</tr>
+<tr>
+<td>B4</td>
+<td>resolution pass, interchange decision, docs, release 0.101.0</td>
+<td>4 h</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>A1 → A2 → A3 are independent and small; A4 unlocks <code>traceability.verified_by</code>
+(#27) and should land in the same release. B1 is independent of B2/B3. If a
+downstream deadline forces a split: <strong>A1+A2+A3+B1 first</strong> (≈1 day) removes
+most of CARTA's text scanning, because those are the four edges they read most.</p>
+<hr />
+<h2 id="4-risks-and-decisions">4. Risks and decisions<a class="headerlink" href="#4-risks-and-decisions" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Names vs elements.</strong> The plan exposes names-as-written by default and
+   resolved elements only on request. That keeps parsing cheap and avoids
+   pretending a name resolved when it did not (<code>satisfy Reqs::R</code> where <code>Reqs</code>
+   is a library package). <em>Decision needed:</em> do we want a single
+   <code>model.resolve_references()</code> pass, or per-element properties that resolve
+   lazily? Lazy is simpler to ship; a pass is easier to reason about.</li>
+<li><strong><code>verify</code> shape.</strong> A <code>Verify</code> element in the tree changes child lists for
+   verification cases — anyone diffing <code>children</code> sees new members. The
+   alternative is a property only. <em>Decision needed:</em> element + property (this
+   plan) or property only.</li>
+<li><strong><code>annotations</code> on the base class.</strong> Every element gains an empty list, so
+   <code>repr</code>/<code>dump</code> output must not change. Interchange is the risk: if
+   annotations are exported, <code>@graph</code> shapes change for models that use them
+   (new nodes are fine; new <em>properties</em> on existing nodes are a schema
+   change). <em>Proposal:</em> annotations stay out of interchange in 0.101.0 and get
+   their own increment with a version bump of the interchange format.</li>
+<li><strong>Duplicate prefix helpers.</strong> <code>_get_occurrence_usage_prefix</code> and
+   <code>_get_usage_prefix_dict</code> are separate, already-diverged implementations.
+   B3 must touch both (the skill records this exact family of bug).</li>
+<li><strong><code>bodyFeatures</code> values.</strong> They carry text (<code>'=1'</code>), not typed literals.
+   Typed extraction needs the expression layer; ship text first, add typed
+   values only where the existing evaluator already handles the shape.</li>
+<li><strong>Conformance check.</strong> Every new API should be cross-checked against
+   OpenSysML's validator for at least one positive and one negative model per
+   construct — its error messages also tell us what it <em>requires</em>
+   (e.g. it insists a connection usage carries its own ends).</li>
+</ol>
+<hr />
+<h2 id="5-acceptance-criteria">5. Acceptance criteria<a class="headerlink" href="#5-acceptance-criteria" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The CARTA reproducers for #23 and #24 (as filed) produce no text scanning:
+  endpoints and annotations readable from the object model alone.</li>
+<li><code>dump()</code> → <code>parse()</code> → <code>dump()</code> stays a fixed point for every model in the
+  new tests.</li>
+<li><code>to_interchange</code> / <code>from_interchange</code> round-trip unchanged for a model that
+  contains all four relationship forms and all three metadata forms.</li>
+<li>The ci gate on the bundled library does not regress (baseline at 0.99.7:
+  0 parse failures, <code>DUPLICATE_NAME</code> 0, 2079 <code>UNDEFINED_SYMBOL</code>, 5643
+  <code>UNRESOLVED_EXPRESSION_IDENTIFIER</code>, 577 <code>IMPLICIT_LIBRARY_IMPORT</code>).</li>
+<li>Full suite green; new tests named <code>tests/issue23_*_test.py</code> /
+  <code>tests/issue24_*_test.py</code> per construct, plus one end-to-end
+  <code>examples/metadata_and_endpoints.py</code>.</li>
+</ul>
+<hr />
+<h2 id="6-what-is-explicitly-not-in-scope">6. What is explicitly NOT in scope<a class="headerlink" href="#6-what-is-explicitly-not-in-scope" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>interface</code> endpoints and <code>flow</code> payload feature values beyond names (flows
+  now reach the model as of 0.99.7; their ends are readable from the grammar,
+  exposing them is a separate small increment).</li>
+<li>Metadata <em>semantics</em> (evaluating metadata expressions, type checking
+  against the metadata def's features). Values stay textual.</li>
+<li>The <code>dependency</code> grammar ambiguity recorded in <code>Dependency.dump</code> (unnamed
+  <code>dependency name a to X;</code> is unparseable) — separate upstream question.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
