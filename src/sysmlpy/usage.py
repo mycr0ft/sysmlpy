@@ -283,7 +283,12 @@ class Usage(Searchable):
         Sets a UUID-based name, empty children list, and null references
         for typedby and parent.
         """
-        self.name = str(uuidlib.uuid4())
+        # v0.101.0 (issue #27 decision): anonymous members keep name=None —
+        # a fresh uuid4 per parse churned downstream identity maps, and a
+        # derived id would leak into the *content* (`name` serializes as a
+        # declaredName). Durable identity: `sysmlpy.stable_ids(model)` /
+        # `element.stable_id` (uuid5, see docs/stable-identities.md).
+        self.name = None
         self.children = []
         self.typedby = None
         self._is_definition = None  # overridden via the setter below
@@ -1736,7 +1741,7 @@ class Usage(Searchable):
 
         return self
 
-    def add_directed_feature(self, direction, name=str(uuidlib.uuid4())):
+    def add_directed_feature(self, direction, name=None):
         """Add a directional reference (in/out/inout) as a child.
 
         Parameters
@@ -2405,7 +2410,7 @@ class Binding:
 
     def __init__(self, name=None):
         self.grammar = None
-        self.name = name if name is not None else str(uuidlib.uuid4())
+        self.name = name  # anonymous members keep name=None (issue #27)
         self.children = []
         self.parent = None
 
@@ -2625,7 +2630,8 @@ class Interface(Usage):
         # Base-Usage state — see Requirement.__init__ (v0.82.0).
         Usage.__init__(self)
         self.is_definition = definition
-        self.name = name if name else str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): anonymous members keep name=None
+        self.name = name
         self.children = []
         self.typedby = None
         self.parent = None
@@ -2868,7 +2874,8 @@ class Action(Usage):
         
         self.is_definition = definition
         self.action_shortname = shortname
-        self.name = name if name else str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): anonymous members keep name=None
+        self.name = name
         self.children = []
         self.typedby = None
         self.parent = None
@@ -3383,7 +3390,8 @@ class UseCase(Usage):
             self.grammar = None
         
         self.is_definition = definition
-        self.name = name if name else str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): anonymous members keep name=None
+        self.name = name
         self.children = []
         self.typedby = None
         self.parent = None
@@ -3600,7 +3608,8 @@ class Requirement(Usage):
             self.grammar = None
         
         self.is_definition = definition
-        self.name = name if name else str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): anonymous members keep name=None
+        self.name = name
         self.children = []
         self.typedby = None
         self.parent = None
@@ -4098,7 +4107,8 @@ class Message(Usage):
         """
         # Base-Usage state — see Requirement.__init__ (v0.82.0).
         Usage.__init__(self)
-        self.name = name if name else str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): anonymous members keep name=None
+        self.name = name
         self.children = []
         self.typedby = None
         self.parent = None

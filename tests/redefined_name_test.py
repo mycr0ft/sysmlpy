@@ -53,16 +53,24 @@ def test_redefined_name_resolves_redefine():
 
 
 def test_display_name_suppresses_uuid_for_redefined():
-    """``display_name`` returns the user-visible name even when
-    ``self.name`` is the UUID sentinel."""
+    """``display_name`` returns the user-visible name for a redefined
+    member.
+
+    v0.101.0 (issue #27): anonymous members keep ``name=None`` instead of
+    a uuid4 sentinel — the uuid-suppression path became a no-op, and the
+    redefined name carries through ``redefined_name``/``display_name``
+    unchanged. The name stays out of dumps (the `:>>` form serializes);
+    the ``Model`` root's documented uuid remains the only per-parse
+    uuid anywhere in the tree.
+    """
     model = loads(USAGE)
     view = model.get_child("DummyUsageModel.ViewUsage")
     attr = view.attributes[0]
-    # self.name stays the auto-generated UUID (backward-compatible)
-    from sysmlpy.usage import _is_uuid
-    assert _is_uuid(attr.name)
-    # ...but display_name surfaces the redefined name:
+    # anonymous member: name is None (no uuid sentinel any more)
+    assert attr.name is None
+    # ...display_name surfaces the redefined name exactly as before:
     assert attr.display_name == "exampleAttribute"
+    assert attr.redefined_name == "exampleAttribute"
 
 
 def test_definition_attribute_name_unchanged():

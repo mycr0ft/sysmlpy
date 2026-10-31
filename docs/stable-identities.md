@@ -215,3 +215,50 @@ does not.  Trade-off documented here rather than hidden.
 - Same-name sibling collision groups grow/shrink on edit; ids inside
   the group shift by design (tie-breaker index). Acceptable if
   documented; option C removes it entirely.
+## 6. Object-model mirror (option D) — `sysmlpy.stable_ids()` (v0.101.0, issue #27)
+
+**Decision.** A downstream consumer asked for deterministic identity on
+the *object model* (`repro_05`: every parse of identical text minted a
+fresh uuid4 `name` on anonymous members, churning identity maps). Of the
+two asks (leave `name=None`, or derive the id from content/position), the
+shipped decision is **both, in separate slots**:
+
+- **`name` stays a content slot.** Anonymous members now keep
+  `name=None` (the satisfy/verify/dependency members already did).
+  Minted uuid4 names churned per parse; a *derived* id placed in `name`
+  would be worse — `name` serializes as a `declaredName`, so the model
+  would gain declared content it never had.
+- **UUIDv5 lives in the id slot**: `sysmlpy.stable_ids(model)` returns
+  `{element: "sysml:<uuid5>"}` and `element.stable_id` reads it.
+
+**Contract.**
+
+- Declared (named) elements join through the export's `#qn_registry`
+  side table — their id **is** the node `@id` in
+  `to_interchange(model, stable_ids=True)`: exact agreement with the
+  JSON by construction, for nested members and name-collision groups
+  alike.
+- Anonymous members derive `uuid5(STABLE_NAMESPACE, qn || struct |type)`
+  over the public tree (`children:<index>` chains). Documented bound:
+  the JSON flattener walks the rebuilt dict tree (wrapper nodes
+  included), so an anonymous member's *string* differs between the
+  object model and the JSON while both are content-addressed and stable
+  under the same edit classes. Declared-element agreement is the
+  load-bearing contract.
+- The `Model` root keeps its per-parse uuid (documented above); it is
+  not a member, never serializes as content, and is skipped by every
+  identity walk (`_MODEL_NAME_RE`).
+- Same-name sibling groups: distinct occurrence-indexed ids on both
+  sides; ids inside a group shift on group-local insertion (L2
+  degradation, unchanged).
+
+**Side-table defect fixed en route (v0.101.0).** The registry's
+same-name-sibling branch stored a literal `...` (Ellipsis) placeholder
+instead of the second occurrence's node id, and keyed it by the raw
+dict-tree qn. It now keys `"<deduped-qn>#<index>"` and carries the
+actual node id — the join the object-model mirror relies on.
+
+**Bounds.** Renaming an ancestor re-mints descendant ids (declared-path
+hashing, by design — see §2/L2). Programmatic members built without
+grammar join the anonymous path. `stable_id` recomputes the map per
+access; bulk readers hold `stable_ids(model)` directly.

@@ -562,7 +562,10 @@ class Package(Searchable):
         shortname : str, optional
             Abbreviated name.
         """
-        self.name = str(uuidlib.uuid4())
+        # v0.101.0 (issue #27): an unnamed package keeps name=None; the
+        # Model root's per-parse uuid is documented identity state and
+        # never serializes as member content.
+        self.name = name
         self.children = []
         self._imports = []
         self.typedby = None

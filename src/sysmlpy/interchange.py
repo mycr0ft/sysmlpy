@@ -266,16 +266,10 @@ class _StableIdAssigner:
             # carry derived ids and are skipped.
             if type_name == "Identification":
                 deduped = _dedupe_repeat_tail(qn_path, own_name)
-                if deduped and deduped not in self._qn_registry:
-                    self._qn_registry[deduped] = ("sysml:"
-                                                  + str(_uuid.uuid5(
-                                                      STABLE_NAMESPACE,
-                                                      key)))
-                elif deduped in self._qn_registry:
-                    n = self._registry_occurrence.get(key, 0)
-                    self._registry_occurrence[key] = n + 1
-                    self._qn_registry[f"{key}|#{n}"] = ...
+            else:
+                deduped = None
         else:
+            deduped = None
             key = "root" if not qn_path and not struct_path else (
                 "|".join(qn_path) + "||" + _struct_text(struct_path)
                 + f"|{type_name}"
@@ -284,7 +278,21 @@ class _StableIdAssigner:
         self._occurrence[key] = n + 1
         if n:
             key = f"{key}|#{n}"
-        return "sysml:" + str(_uuid.uuid5(STABLE_NAMESPACE, key))
+        node_id = "sysml:" + str(_uuid.uuid5(STABLE_NAMESPACE, key))
+        if deduped and type_name == "Identification" and own_name:
+            # v0.101.0: the registry records the ACTUAL node id for every
+            # occurrence.  The first entry keys the deduped QN plainly;
+            # same-name sibling groups key `deduped#<index>` (index over
+            # the registry-dup counter, offset by the first occurrence
+            # which already took the plain key).  This branch previously
+            # stored a `...` placeholder for duplicate-name groups.
+            if deduped not in self._qn_registry:
+                self._qn_registry[deduped] = node_id
+            else:
+                dn = self._registry_occurrence.get(deduped, 0)
+                self._registry_occurrence[deduped] = dn + 1
+                self._qn_registry[f"{deduped}#{dn + 1}"] = node_id
+        return node_id
 
 
 def _dedupe_repeat_tail(qn_path: tuple, own_name: "str | None") -> str:
@@ -353,6 +361,118 @@ _MODEL_NAME_RE = _re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}"
 
 def _struct_text(struct_path: tuple) -> str:
     return ">".join(f"{key}:{i}" for key, i in struct_path)
+
+
+def stable_ids(model):
+    """Object-model mirror of the stable interchange ``@id`` scheme.
+
+    Returns **{element: "sysml:<uuid5>"}** covering every member of
+    *model* (the Model root itself is not a member and is not mapped).
+
+    Derivation mirrors :class:`_StableIdAssigner` (the ``stable_ids=True``
+    exporter) key-for-key:
+
+    - **declared (named) elements** join through the exporter's own QN
+      registry (``#qn_registry``): their id is the ``@id`` of the
+      element's Identification node in
+      ``to_interchange(model, stable_ids=True)`` — exact agreement with
+      the export by construction, including nested members and
+      same-name sibling groups (v0.101.0 fixed the registry's
+      duplicate-name entries, which stored a `...` placeholder instead
+      of the second occurrence's id).
+    - **same-name sibling groups** take an occurrence index exactly like
+      the exporter (per identical key), so plain reparse and sibling
+      insertion elsewhere behave the same on both sides.
+    - **anonymous members** (``name is None`` — the issue #27 change:
+      no member carries a uuid4 name any more) hash the nearest declared
+      ancestor path plus the structural path (``children:<index>``
+      chains from the root) — the object-model analogue of the exporter's
+      dict-tree structural path. Documented bound: the JSON flattener
+      walks the rebuilt dict tree (wrapper levels included), so an
+      anonymous member's *string* differs between JSON and object model —
+      both are content-addressed and stable under the same edit classes;
+      declared-element agreement is the load-bearing contract.
+    - the per-parse ``Model`` root uuid is skipped (it never serializes
+      as member content).
+
+    Typical use::
+
+        ids = sysmlpy.stable_ids(model)          # {element: "sysml:…"}
+        ids[part]                                # → "sysml:…"
+
+    Convenience: every element exposes ``.stable_id`` (walks to its root
+    and reads this map — O(n) per access; iterate ``stable_ids(model)``
+    directly for bulk work).
+
+    See ``docs/stable-identities.md`` (option D, "object-model mirror")
+    for the decision record (issue #27)."""
+
+    mapping = {}
+    occurrence = {}
+
+    # Named elements join through the exporter's own QN registry (every
+    # registry id IS the node @id in the stable export — exact agreement).
+    # v0.101.0 also fixed the registry's duplicate-name entries, which
+    # stored a `...` placeholder instead of the second occurrence's id.
+    registry = qn_registry(to_interchange(model, stable_ids=True))
+
+    def _type_name(el):
+        g = getattr(el, "grammar", None)
+        if g is not None:
+            return type(g).__name__
+        return type(el).__name__
+
+    def _walk(el, qn_path, struct_path):
+        name = getattr(el, "name", None)
+        # uuid-looking names (the Model root's per-parse uuid) never count
+        # as declared names — same skip the doc-id harvest applies
+        named = bool(name and not _MODEL_NAME_RE.match(str(name)))
+        tname = _type_name(el)
+        if named:
+            qn = ".".join(qn_path + (str(name),))
+            n = occurrence.get(qn, 0)
+            occurrence[qn] = n + 1
+            key = qn if n == 0 else f"{qn}#{n}"
+            if key in registry:
+                mapping[el] = registry[key]
+            else:
+                # defensive fallback: derive in the graph-node form
+                raw = "|".join(qn_path + (str(name),)) + "|" + tname
+                mapping[el] = ("sysml:"
+                               + str(_uuid.uuid5(STABLE_NAMESPACE, raw)))
+            child_qn = qn_path + (str(name),)
+        else:
+            if el is not model:
+                key = ("|".join(qn_path) + "||" + _struct_text(struct_path)
+                       + f"|{tname}")
+                n = occurrence.get(key, 0)
+                occurrence[key] = n + 1
+                if n:
+                    key = f"{key}|#{n}"
+                mapping[el] = "sysml:" + str(_uuid.uuid5(STABLE_NAMESPACE, key))
+            child_qn = qn_path
+        for i, ch in enumerate(getattr(el, "children", None) or []):
+            _walk(ch, child_qn, struct_path + (("children", i),))
+
+    _walk(model, (), ())
+    return mapping
+
+
+def stable_id_for(model, element):
+    """Single-element convenience: the stable id of *element* in *model*.
+
+    Computes (and would recompute, per call) the full
+    :func:`stable_ids` map — bulk callers should hold the map and read
+    it. Walks up the parent chain if *element* is a nested child.
+    """
+    root = element
+    seen = 0
+    while getattr(root, "parent", None) is not None and seen < 64:
+        root = root.parent
+        seen += 1
+    if root is not model and getattr(model, "parent", None) is not None:
+        root = model
+    return stable_ids(root).get(element)
 
 
 def _flatten(node: dict, parent_id: str, key: str, index: int,

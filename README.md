@@ -1096,6 +1096,22 @@ from sysmlpy import to_interchange
 document = to_interchange(model)              # position-derived @ids
 ```
 
+**Object-model mirror (v0.101.0, issue #27).** Anonymous members keep
+`name=None` — no minted uuids in the model. Durable identity on the
+object model comes from the same UUIDv5 scheme the stable export uses:
+
+```python
+from sysmlpy import stable_ids
+ids = stable_ids(model)        # {element: "sysml:<uuid5>"}
+ids[model.find_one("car")]     # the element's @id in stable exports
+part.stable_id                 # single-element convenience
+```
+
+Declared elements agree exactly with their `@id` in
+`to_interchange(model, stable_ids=True)` (the `#qn_registry` join);
+anonymous members derive from the nearest declared ancestor (documented
+bound in `docs/stable-identities.md` §6).
+
 **`stable_ids=True` — content-addressed (L2 idempotency).** Named
 elements hash their declared qualified-name path + metaclass type;
 unnamed elements hash the nearest named anchor plus the structural path

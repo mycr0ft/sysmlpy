@@ -2056,14 +2056,9 @@ def as_action_flow_view(model, focus=None, elements=None, style="bw", direction=
         from_alias = id_map.get(from_id)
         to_alias = id_map.get(to_id)
         if from_alias and to_alias:
-            # Anonymous flows carry UUID names from the visitor — they
-            # are unnamed in the source and unlabeled in official
-            # notation, so fall back to the neutral "flow" label.
-            if (flow_name and len(flow_name) == 36
-                    and flow_name.count("-") == 4
-                    and all(c in "0123456789abcdef"
-                            for c in flow_name.replace("-", ""))):
-                flow_name = None
+            # Anonymous flows are unnamed in the source and unlabeled in
+            # official notation, so fall back to the neutral "flow" label
+            # (v0.101.0: names are None rather than visitor-minted uuids).
             label_text = flow_name if flow_name else "flow"
             lines.append(f'{from_alias} {ARROW_STYLES["flow"]} {to_alias} : {label_text}')
 
@@ -2264,8 +2259,11 @@ def _extract_flow_connections(model):
         if getattr(element, 'sysml_type', '') == 'flow':
             from_names, to_names = _extract_flow_endpoints(element)
             flow_name = getattr(element, 'name', None)
-            if (flow_name and len(flow_name) == 36
-                    and flow_name.count("-") == 4):
+            # v0.101.0: anonymous members keep name=None, so the declared
+            # name must also be recovered when the name is None — the
+            # uuid-shape check alone used to catch the old uuid sentinel
+            if ((flow_name and len(flow_name) == 36
+                 and flow_name.count("-") == 4) or not flow_name):
                 declared = _flow_declared_name(element)
                 if declared:
                     flow_name = declared

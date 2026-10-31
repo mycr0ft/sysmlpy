@@ -324,6 +324,29 @@ class Searchable:
         return item in self.children
 
     # ------------------------------------------------------------------
+    # Stable object-model identity (issue #27 decision, v0.101.0)
+    # ------------------------------------------------------------------
+
+    @property
+    def stable_id(self):
+        """Content-addressed ``sysml:<uuid5>`` for this element.
+
+        Computed by :func:`sysmlpy.interchange.stable_ids` over this
+        element's tree — the same derivation keys the
+        ``stable_ids=True`` interchange export hashes, so declared
+        elements agree with the exported ``@id``.  Anonymous members keep
+        ``name=None`` (no uuid churn); their ids are derived from the
+        nearest declared ancestor.
+        """
+        from sysmlpy.interchange import stable_ids  # lazy: avoids cycles
+        root = self
+        hops = 0
+        while getattr(root, "parent", None) is not None and hops < 64:
+            root = root.parent
+            hops += 1
+        return stable_ids(root).get(self)
+
+    # ------------------------------------------------------------------
     # Jupyter HTML representation
     # ------------------------------------------------------------------
 

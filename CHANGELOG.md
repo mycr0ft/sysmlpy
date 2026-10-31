@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## 0.101.0 (2026-10-31)
+
+- **Issue #27 (decision shipped): deterministic object-model identity.**
+  Anonymous members keep `name=None` — the per-parse `uuid4()` name mint
+  (17 sites: `Usage`/`Package` defaults, six class overrides, the
+  visitor's `Requirement_`/`UseCase_`/`Interface_`/`Case_`/`AnalysisCase_`
+  /`VerificationCase_` prefixes) is gone; uuid churn in downstream
+  identity maps is over. Durable identity is UUIDv5 in the ID slot:
+  - `sysmlpy.stable_ids(model)` → `{element: "sysml:<uuid5>"}`,
+    `element.stable_id` convenience; declared elements join through the
+    stable export's `#qn_registry` and agree **exactly** with their
+    `@id` in `to_interchange(model, stable_ids=True)` — nested members
+    and same-name sibling groups included (pinned).
+  - Anonymous members derive from the nearest declared ancestor +
+    structural path (public-tree `children:<index>` version of the
+    exporter's dict-tree path — documented bound:
+    `docs/stable-identities.md` §6, option D).
+  - The `Model` root keeps its documented per-parse uuid (not a member;
+    never serialized as content).
+  - Registry defect fixed en route: the `#qn_registry` side table stored
+    a literal `...` placeholder for same-name sibling groups' second+
+    occurrences, keyed by the raw dict-tree qn; it now keys
+    `"<deduped-qn>#<index>"` with the actual node id (the object-model
+    mirror relies on that join).
+- Pins: `tests/issue27_id_test.py` (no uuid names, no churn across
+  parses, export agreement incl. nested members, `stable_id` property,
+  distinct ids in name-collision groups, anonymous determinism).
+
 ## 0.100.1 (2026-10-31)
 
 - **Issue #25 emission gaps, all fixed** (downstream report):

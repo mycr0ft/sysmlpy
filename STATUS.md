@@ -1,12 +1,19 @@
 # sysmlpy — Project Status
 
-Current version: **v0.100.1** (2026-10-31)
+Current version: **v0.101.0** (2026-10-31)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.101.0)
+
+- **Issue #27 identity decision shipped**: anonymous members keep
+  `name=None`; durable identity via `stable_ids(model)`/`element.stable_id`
+  (UUIDv5, exact agreement with stable interchange exports); the
+  `#qn_registry` duplicate-name placeholder defect fixed.
 
 ## Recent Highlights (0.100.1)
 

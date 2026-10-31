@@ -20,7 +20,7 @@ __all__ = [
     "as_sequence_view", "as_case_view", "as_browser_view",
     "extract_traceability", "TraceabilityReport", "RequirementTrace",
     "to_interchange", "from_interchange", "interchange_to_json_text",
-    "reconcile_ids", "qn_registry",
+    "reconcile_ids", "qn_registry", "stable_ids",
     "reqif_import", "reqif_import_model", "reqif_export",
     "evaluate_expression", "evaluate_calculation", "collect_values",
     "check_constraints", "ConstraintReport", "ConstraintResult",
@@ -36,7 +36,7 @@ __all__ = [
     "render_state_transition_view_svg", "boxes_view",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.100.1"
+__version__ = "0.101.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
@@ -58,7 +58,7 @@ from sysmlpy.traceability import (
 )
 from sysmlpy.interchange import (
     to_interchange, from_interchange, interchange_to_json_text,
-    reconcile_ids, qn_registry,
+    reconcile_ids, qn_registry, stable_ids,
 )
 from sysmlpy.reqif_io import (
     reqif_import, reqif_import_model, reqif_export,

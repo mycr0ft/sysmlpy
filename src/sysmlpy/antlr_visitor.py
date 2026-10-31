@@ -1538,8 +1538,11 @@ def _make_requirement_definition_dict(ctx, member_prefix=None):
         body_ctx = ctx.requirementBody()
         body_items = _visit_requirement_body_dict(body_ctx)
     
-    if not name and not shortname:
-        name = "Requirement_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     
     return {
         "name": "PackageMember",
@@ -1577,8 +1580,11 @@ def _make_use_case_definition_dict(ctx, member_prefix=None):
         defn = ctx.definition()
         if hasattr(defn, "definitionBody") and defn.definitionBody():
             body_items = _visit_definition_body_dict(defn.definitionBody())
-    if not name and not shortname:
-        name = "UseCase_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     
     # Note: UseCaseDefinition uses 'declaration' not 'definition'
     return {
@@ -1854,8 +1860,11 @@ def _make_interface_definition_dict(ctx, member_prefix=None):
                 item_dict = _visit_definition_body_item_dict(item_ctx, is_interface=True)
                 if item_dict:
                     body_items.append(item_dict)
-    if not name and not shortname:
-        name = "Interface_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     
     return {
         "name": "PackageMember",
@@ -8301,8 +8310,11 @@ def _make_case_definition_dict(ctx, member_prefix=None):
         defn = ctx.definition()
         if hasattr(defn, "definitionBody") and defn.definitionBody():
             body_items = _visit_definition_body_dict(defn.definitionBody())
-    if not name and not shortname:
-        name = "Case_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
@@ -8337,8 +8349,11 @@ def _make_analysis_case_definition_dict(ctx, member_prefix=None):
     """
     name, shortname = _get_definition_identification(ctx)
     occ_prefix = _get_occurrence_definition_prefix(ctx)
-    if not name and not shortname:
-        name = "AnalysisCase_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     
     # Parse caseBody
     case_body = {"name": "CaseBody", "item": [], "ownedRelationship": None}
@@ -8379,8 +8394,11 @@ def _make_verification_case_definition_dict(ctx, member_prefix=None):
     case_body = {"name": "CaseBody", "item": [], "ownedRelationship": None}
     if hasattr(ctx, "caseBody") and ctx.caseBody():
         case_body = _visit_case_body_dict(ctx.caseBody())
-    if not name and not shortname:
-        name = "VerificationCase_" + str(uuid.uuid4())[:8]
+    # v0.101.0 (issue #27): an unnamed member keeps declaredName None —
+    # minted "Requirement_"+uuid tokens churned identity maps and leaked
+    # into dumps rebuilt from the visitor dict.
+    if False:
+        name = None
     return {
         "name": "PackageMember",
         "prefix": member_prefix,
