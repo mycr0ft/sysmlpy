@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01001-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.100.1 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01000-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -885,6 +896,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01001-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.100.1 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01000-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1136,6 +1158,42 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01001-2026-10-31">0.100.1 (2026-10-31)<a class="headerlink" href="#01001-2026-10-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #25 emission gaps, all fixed</strong> (downstream report):</li>
+<li>Keyword-less variant members (<code>variant automatic;</code>,
+     <code>variant 'six cyl' { … }</code> — grammar <code>VariantUsageElement →
+     VariantReference</code>) dropped from the model. They now build <code>Reference</code>
+     children of the variation with <code>is_variant</code> set and the referenced
+     chain on <code>variant_reference</code> (naming follows the bare-reference
+     convention: the chain makes the member addressable, exactly how the
+     OpenSysML oracle resolves them), and re-emit the <code>variant</code> keyword.</li>
+<li>Enumerated values (<code>enum def Color { a; enum b; }</code>, §7.8.2) reached
+     the grammar dict but never the model — values are now
+     <code>EnumeratedValue</code> children of the Enumeration (<code>keyword</code> preserved);
+     serialization unchanged.</li>
+<li><code>ref part r : X;</code> had no <code>is_reference</code> — the <code>BasicUsagePrefix</code> REF
+     token now sets <code>Usage.is_reference</code>; kind-less elements are
+     referential by construction (§7.6.4).</li>
+<li>Kind-less usages with a prefix chain (<code>private ref #M z1;</code>,
+     <code>abstract #M z2;</code>, <code>private #M z3;</code>) dropped. They build Reference
+     elements carrying the <code>#M</code> metadata annotations, and re-emit
+     visibility + <code>ref</code>/flags + <code>#M</code> in source order (REF-less forms keep
+     REF-less dumps; no spurious <code>ref</code>).</li>
+<li>refPrefix flag tokens (<code>abstract</code>/<code>variation</code>/<code>derived</code>/<code>constant</code>)
+     dropped from kind-less members on dump (<code>abstract z2;</code> → <code>z2;</code>).
+     Also <code>constant</code> re-emits as <code>constant</code> — the textual keyword; the
+     <code>isReadOnly</code> field name is a historical misnomer (<code>readonly</code> is not
+     in the grammar; the OpenSysML oracle rejects <code>readonly x;</code>).</li>
+<li>Member-level visibility rode to the semantic layer for these members
+  (<code>private</code> on a body member was dropped); body-member visibility
+  round-trips now.</li>
+<li>The OMG <code>Variability Examples/VehicleVariabilityModel.sysml</code> corpus
+  parses with the variant forms emitted (pinned in
+  <code>tests/issue25_test.py</code>). Pre-existing, out of scope: assert-constraint
+  expression bodies still glue on the first dump; whole-file dump
+  identity is not asserted there.</li>
+</ul>
 <h2 id="01000-2026-10-30">0.100.0 (2026-10-30)<a class="headerlink" href="#01000-2026-10-30" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Relationship endpoints are on the object model</strong> (issue #23, downstream
