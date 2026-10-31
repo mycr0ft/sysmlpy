@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01000-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.100.0 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0997-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -874,6 +885,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01000-2026-10-30" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.100.0 (2026-10-30)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#0997-2026-10-30" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1114,6 +1136,56 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01000-2026-10-30">0.100.0 (2026-10-30)<a class="headerlink" href="#01000-2026-10-30" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Relationship endpoints are on the object model</strong> (issue #23, downstream
+  report from the CARTA team). All four relationship usages parsed with the
+  endpoints on the grammar object only; the public elements now carry them.</li>
+<li><code>Dependency.clients</code> / <code>.suppliers</code> — name lists as written (the grammar
+     kept them since issue #4 / PR #7; the loader never read them), plus
+     <code>client_elements</code> / <code>supplier_elements</code> resolving lazily (unambiguous
+     names only).</li>
+<li><code>Allocation.source</code> / <code>.target</code> — first/second end of a binary
+     <code>allocate a to b;</code>; an n-ary <code>allocate (a, b, c);</code> reports all ends as
+     <code>source</code> (grammar <code>AllocationUsage.connectorPart</code>, present since issue
+     #5 / PR #6) plus <code>source_elements</code> / <code>target_elements</code>.</li>
+<li><code>Requirement.requirement</code> / <code>.satisfying</code> — the <code>satisfy R by S;</code>
+     endpoints (<code>ors</code> / <code>ssm</code>) and <code>is_satisfy</code> / <code>satisfy_elements()</code>. The
+     satisfy wrapper is now built through <code>load_from_grammar</code> (its endpoints
+     were previously unreachable because the loader was bypassed).</li>
+<li><code>VerificationCase.verified_requirements</code> and a <code>Verify</code> child element
+     per <code>verify R;</code> member (the only grammatical home for <code>verify</code> is the
+     objective's requirement body). <code>traceability.verified_by</code> is populated
+     from the same edges — previously always empty (issue #27 item 3).</li>
+<li><strong>Metadata applications</strong> (issue #24, same report).</li>
+<li><code>metadata m : M about X, W;</code> — <code>Metadata.annotated</code> (names as written),
+    <code>annotated_elements</code> (lazy), <code>type_name</code>; the grammar carries these since
+    the issue #3 work, the public element never read them.</li>
+<li><code>@M { w = 1; }</code> inside any definition/usage body attaches to the owning
+    element via <code>element.annotations</code> (list of <code>Metadata</code>, each with
+    <code>type_name</code>, <code>values</code>, <code>value_text</code>), never uuid-named, never a child.</li>
+<li><code>#M part def Y;</code> — the <code>PrefixMetadataMember</code> is captured on the
+    occurrence prefix (<code>prefixMetadata</code> on both occurrence prefix grammar
+    classes), attached like <code>@</code>, and re-emitted as <code>#M</code> on dump.</li>
+<li>Serializer: <code>@M { w = 1; }</code> dumped as <code>@ : M {w=1;};</code> (not re-parseable
+    inside a definition body — the <code>:</code> belongs between a declared name and
+    its type, and a braced metadata body carries no terminator); <code>metadata
+    m : M about X;</code> dumped with a double terminator; <code>#M part def Y;</code> lost
+    the prefix. All three fixed; annotations survive dump → parse → dump.</li>
+<li><code>diff</code> signatures and <code>traceability</code> unaffected except where noted in
+    0.99.7.</li>
+<li>Multi-line <code>doc</code> comments aligned under their first line gained one indent
+  level per dump → parse → dump cycle (CARTA round-trip finding, closing the
+  last issue #26 item): <code>Documentation.dump</code> now renders continuation lines
+  flush at the member indent, like anonymous block comments already did.
+  Pinned as <code>test_issue26_multiline_doc_indent_is_idempotent</code>.</li>
+<li>New example <code>examples/metadata_and_endpoints.py</code> (the acceptance script for
+  #23/#24: endpoints, verification, traceability, all three metadata
+  notations). <code>to_interchange</code> → <code>from_interchange</code> round-trips a model
+  carrying all of them; annotations are deliberately not exported yet
+  (<code>@graph</code> shape change deferred to the interop increment, see
+  <code>docs/v0.100-endpoints-and-metadata-plan.md</code>).</li>
+</ul>
 <h2 id="0997-2026-10-30">0.99.7 (2026-10-30)<a class="headerlink" href="#0997-2026-10-30" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>flow</code> usages reach the model</strong> (issue #26, downstream report from the
