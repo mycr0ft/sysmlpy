@@ -247,6 +247,17 @@ repos:
 Full options (excludes, library path, version pinning, DFA cache for
 faster re-runs, and the promote-to-strict path): `docs/ci-integration.md`.
 
+## Parse Performance and the DFA Cache
+
+A *cold* ANTLR parse (first run, or with `SYSMLPY_DFA_CACHE=off`) spends
+almost all of its time inside `adaptivePredict` — on large converted models
+that can be tens of seconds. `dfa_cache` ships a prediction cache keyed by
+grammar version, so an unchanged grammar parses in a fraction of the cold
+time on the next run. Set `SYSMLPY_DFA_CACHE` to a writable path (the
+`ci` tool does this by default; older `SYSSMLPY_DFA_CACHE` spelling is still
+accepted). `SYSMLPY_DFA_CACHE=off` always bypasses the cache, which is the
+recommended way to report parse-time issues.
+
 ## Documentation
 
 Documentation can be found [here.](https://mycr0ft.github.io/sysmlpy/)
@@ -358,6 +369,61 @@ model, errors = parse("invalid @@ syntax")
 assert model is None
 assert len(errors) > 0
 ```
+
+## Relationship Endpoints and Metadata
+
+The object model carries relationship endpoints and metadata applications
+(issue #23 / #24) — downstream traceability does not need a text scanner.
+Endpoints are names as written; `*_elements` resolve them against the model
+lazily (unambiguous names only). Metadata applications never get uuid names,
+so identity maps stay stable.
+
+```python
+from sysmlpy import loads, traceability
+
+model = loads("""
+package P {
+  metadata def Planning;
+  part def A;
+  part def B;
+  requirement def R;
+  part def S;
+  part def T { satisfy R by S; }
+  #Planning part def Tracked;
+  part def Monitored { @Planning { owner = 'ops'; } }
+  metadata plan1 : Planning about Tracked;
+  dependency d from A to B;
+  allocation al allocate A to B;
+  verification def V { objective { verify R; } }
+}
+""")
+
+dep = model.find_one("d")
+print(dep.clients, dep.suppliers)          # ['A'] ['B']
+print([e.name for e in dep.supplier_elements])   # ['B']
+
+al = model.find_one("al")
+print(al.source, al.target)                # ['A'] ['B']
+
+t = model.find_one("T")
+sat = [c for c in t.children if getattr(c, "is_satisfy", False)][0]
+print(sat.requirement, sat.satisfying)     # R ['S']
+
+print(model.find_one("V").verified_requirements)  # ['R']
+
+tracked = model.find_one("Tracked")
+print([(a.type_name, a.values) for a in tracked.annotations])   # [('Planning', {})]
+mon = model.find_one("Monitored")
+print([(a.type_name, a.values) for a in mon.annotations])       # [('Planning', {"owner": "'ops'"})]
+
+plan1 = model.find_one("plan1")
+print(plan1.type_name, plan1.annotated)     # Planning ['Tracked']
+
+# and traceability reads the same edges — no text scanning:
+print(traceability.extract_traceability(model).requirements[0].verified_by)
+```
+
+A runnable version of this walk is `examples/metadata_and_endpoints.py`.
 
 ## Model Navigation
 

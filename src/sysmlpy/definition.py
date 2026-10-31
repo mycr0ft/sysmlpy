@@ -24,9 +24,10 @@ from sysmlpy import Part, Item, Port, Requirement, UseCase, Attribute, Action, C
 from sysmlpy.usage import (
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
-    View, Viewpoint, Concern, Reference, Interaction,
+    View, Viewpoint, Concern, Reference, Interaction, Verify,
 )
 from sysmlpy.usage import _comment_body_to_text as _comment_body_to_text_package
+from sysmlpy.usage import _metadata_from_feature
 
 ModelType = TypeVar("Model", bound="Model")
 
@@ -974,17 +975,10 @@ class Package(Searchable):
 
         Package-level ``metadata m1 : MD;`` members parse into a
         MetadataFeature (the ``@``-annotation form) which the public-API
-        tree previously dropped (v0.88.0)."""
-        md_obj = Metadata()
-        md_obj.grammar = mf
-        ident = getattr(mf, 'identification', None)
-        declared = getattr(ident, 'declaredName', None)
-        if declared:
-            md_obj.name = declared
-        typing = getattr(mf, 'typing', None)
-        qn = getattr(getattr(getattr(typing, 'type', None), 'type', None), 'names', None)
-        if qn:
-            md_obj._typed_by_name = '::'.join(qn)
+        tree previously dropped (v0.88.0).  Issue #24 also surfaces the
+        annotated elements (``about X, W``) and the metadata body values.
+        """
+        md_obj = _metadata_from_feature(mf)
         md_obj.parent = self
         self.children.append(md_obj)
         return md_obj
@@ -1518,6 +1512,11 @@ class Package(Searchable):
                     decl = inner_element.declaration
                     if hasattr(decl, 'identification') and decl.identification:
                         c.name = decl.identification.declaredName
+                # Issue #23: surface each `verify R;` member as a Verify child
+                for ref in c.verified_requirements:
+                    v = Verify(requirement=ref)
+                    v.parent = c
+                    c.children.append(v)
                 c.parent = self
                 self.children.append(c)
             elif inner_class == "VerificationCaseUsage":
@@ -1604,6 +1603,17 @@ class Package(Searchable):
                 d.grammar = inner_element
                 if hasattr(inner_element, 'identification') and inner_element.identification:
                     d.name = inner_element.identification.declaredName
+                # Issue #23: the grammar carries the endpoints as
+                # QualifiedName lists; the public model dropped them, which
+                # is what pushed a downstream integrator to a text scanner.
+                d.clients = [
+                    c.dump() for c in getattr(inner_element, 'clients', None) or []
+                    if c is not None and getattr(c, 'dump', None)
+                ]
+                d.suppliers = [
+                    s.dump() for s in getattr(inner_element, 'suppliers', None) or []
+                    if s is not None and getattr(s, 'dump', None)
+                ]
                 d.parent = self
                 self.children.append(d)
             else:

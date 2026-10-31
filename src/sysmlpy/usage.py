@@ -54,6 +54,104 @@ def _declaration_name(elem):
     return None
 
 
+def _resolve_names_to_elements(obj, names):
+    """Resolve names-as-written to elements, lazily (issue #23 #24).
+
+    Walks up to the model root and matches each name against element names;
+    a name is only returned as an element when exactly one element carries
+    it, so an ambiguous reference (or a reference into the standard library)
+    stays unresolved instead of guessing.  Used by the ``*_elements``
+    endpoint properties; resolution is never implied by ``load``.
+    """
+    if not names:
+        return []
+    root = obj
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+
+    seen = set()
+
+    def _walk(el):
+        if el is None or id(el) in seen:
+            return
+        seen.add(id(el))
+        yield el
+        for child in getattr(el, "children", None) or []:
+            yield from _walk(child)
+
+    out = []
+    for name in names:
+        if not name or "::" in name or "." in name:
+            continue  # qualified references are not lazy-resolved by name
+        matches = [el for el in _walk(root)
+                   if getattr(el, "name", None) == name]
+        if len(matches) == 1:
+            out.append(matches[0])
+    return out
+
+
+def _metadata_from_feature(mf):
+    """Build a :class:`Metadata` element from a ``MetadataFeature`` grammar
+    object (issue #24).
+
+    Reads the application's type (``ownedFeatureTyping``), the annotated
+    elements (``ownedRelationship_about`` → ``Annotation``), and the
+    metadata body features (``bodyFeatures``, each with ``name`` / ``value``
+    / ``text`` from the braced-body work in issue #3).
+    """
+    md = Metadata()
+    md.grammar = mf
+    name = _declaration_name(mf)
+    if not name:
+        # MetadataFeature carries `identification` directly (no
+        # UsageDeclaration wrapper like other usages).
+        ident = getattr(mf, "identification", None)
+        name = getattr(ident, "declaredName", None)
+    if name:
+        md.name = name
+    typing = getattr(mf, "typing", None)
+    if typing is None:
+        offt = getattr(mf, "ownedFeatureTyping", None)
+        typing = getattr(getattr(offt, "type", None), "type", None)
+    qn = getattr(getattr(getattr(typing, "type", None), "type", None),
+                 "names", None)
+    if qn:
+        md._typed_by_name = "::".join(qn)
+    # The grammar stores the `about` clauses as `.annotations`
+    # (`ownedRelationship_about` in the dict); read both spellings so
+    # caller-built dicts work too.
+    about = (getattr(mf, "annotations", None)
+             or getattr(mf, "ownedRelationship_about", None) or [])
+    for ann in about:
+        target = getattr(ann, "annotatedElement", None)
+        if target is None:
+            # Grammar `Annotation` keeps the QualifiedName as `.annotation`
+            target = getattr(ann, "annotation", None)
+        if target is None:
+            continue
+        names_ = getattr(target, "names", None)
+        if names_:
+            md.annotated.append("::".join(str(part) for part in names_))
+        elif hasattr(target, "dump"):
+            md.annotated.append(target.dump().strip().rstrip(";").strip())
+    for bf in getattr(mf, "bodyFeatures", None) or []:
+        if isinstance(bf, dict):
+            bname = bf.get("name")
+            raw_val = bf.get("value") or bf.get("text") or ""
+        else:
+            bname = getattr(bf, "name", None)
+            raw_val = (getattr(bf, "value", None)
+                       or getattr(bf, "text", None) or "")
+        if not bname:
+            continue
+        val = raw_val.strip().rstrip(";").strip()
+        if val.startswith("="):
+            val = val[1:].strip()
+        md.values[bname] = val
+        md.value_text[bname] = raw_val
+    return md
+
+
 def _resolve_name_from_specialization(specialization):
     """Find the most user-visible identifier in a ``FeatureSpecializationPart``.
 
@@ -207,6 +305,9 @@ class Usage(Searchable):
         self.is_variant = False
         self.is_variation = False
         self.is_abstract = False
+        # Issue #24: metadata applications attached to this element via
+        # `@M { … }` (braced-body form) or the `#M` prefix form.
+        self.annotations = []
 
     def variants(self):
         """The variant members of this variation (0.99.0).
@@ -1260,6 +1361,13 @@ class Usage(Searchable):
                 text = _comment_body_to_text(getattr(sc, 'body', ''))
                 if text:
                     self.doc = text
+            elif class_name == "MetadataFeature":
+                # Issue #24: `@M { w = 1; }` inside a definition/usage body
+                # is DefinitionBodyItemContent -> DefinitionElement ->
+                # AnnotatingElement -> MetadataFeature; the unwrap reaches
+                # the MetadataFeature directly.  Attach it to THIS element
+                # (the annotated one), not to the enclosing namespace.
+                self._attach_metadata_feature(sc)
             elif class_name == "PartDefinition":
                 c = Part(definition=True).load_from_grammar(sc)
                 c.parent = self
@@ -1464,7 +1572,28 @@ class Usage(Searchable):
             if getattr(_holder, 'isAbstract', None) in ('abstract', True):
                 self.is_abstract = True
 
+        # Issue #24: `#M` prefix metadata carried on the occurrence prefix
+        # (OccurrenceDefinitionPrefix / OccurrenceUsagePrefix both expose
+        # `.prefixMetadata` as MetadataFeature grammar objects).
+        for mf in getattr(grammar, 'prefix', None).prefixMetadata \
+                if getattr(getattr(grammar, 'prefix', None), 'prefixMetadata', None) else []:
+            self._attach_metadata_feature(mf)
+
         return self
+
+    def _attach_metadata_feature(self, mf):
+        """Attach a ``MetadataFeature`` as one of this element's annotations.
+
+        Issue #24: `@M { w = 1; }` inside this element's body applies `M` to
+        this element, so the application lives on ``self.annotations`` — not
+        on the enclosing namespace, and not as a child (it is not a member).
+        """
+        md = _metadata_from_feature(mf)
+        md.parent = self
+        if getattr(self, "annotations", None) is None:
+            self.annotations = []
+        self.annotations.append(md)
+        return md
 
     def _extract_specialization_info(self, grammar):
         """Capture Typings / Subsettings / Redefinitions / References names
@@ -1750,13 +1879,14 @@ def _load_behavior_child(parent, inner, inner_name):
         c._extract_specialization_info(inner)
         return c
     if inner_name == "SatisfyRequirementUsage":
-        c = Requirement()
-        c.grammar = inner
+        # Issue #23: go through load_from_grammar so the satisfy endpoints
+        # (ors → requirement, ssm → satisfying) reach the public element;
+        # the previous manual construction left requirement/satisfying None.
+        c = Requirement().load_from_grammar(inner)
         c.name = _name_from_declaration(inner)
         # v0.88.1: the ors+fsp form (``satisfy s1 : R``) has no
         # UsageDeclaration — the member is anonymous by design (``ors``
         # is the requirement reference, not the member name).
-        c._extract_specialization_info(inner)
         return c
     if inner_name == "VerificationCaseUsage":
         c = VerificationCase()
@@ -3445,6 +3575,11 @@ class Requirement(Usage):
         self.req_attributes = []
         self.req_constraints = []
         self.assume_constraints = []
+        # Issue #23: a `satisfy <req> by <subjects>;` usage loads as a
+        # Requirement element; `requirement` is the referenced requirement's
+        # name as written and `satisfying` the `by` subjects.
+        self.requirement = None
+        self.satisfying = []
 
         if definition:
             self.keyword = "requirement def"
@@ -3692,7 +3827,38 @@ class Requirement(Usage):
 
         self._extract_specialization_info(grammar)
 
+        # Issue #23: `satisfy R by S;` loads as a Requirement element whose
+        # grammar is a SatisfyRequirementUsage; the endpoints lived only on
+        # the grammar object (traceability already read them there).
+        if grammar.__class__.__name__ == "SatisfyRequirementUsage":
+            ors = getattr(grammar, "ors", None)
+            if ors is not None:
+                req_ref = ors.dump().strip().rstrip(";").strip()
+                self.requirement = req_ref or None
+            ssm = getattr(grammar, "ssm", None)
+            if ssm is not None:
+                subj = ssm.dump().strip().rstrip(";").strip()
+                if subj and subj not in self.satisfying:
+                    self.satisfying.append(subj)
+
+        # Issue #24: `#M` prefix metadata (`#M requirement def R;`)
+        _pm = getattr(getattr(grammar, "prefix", None), "prefixMetadata", None)
+        for mf in _pm or []:
+            self._attach_metadata_feature(mf)
+
         return self
+
+    @property
+    def is_satisfy(self) -> bool:
+        """True when this element wraps a ``satisfy`` usage."""
+        return (getattr(self, "grammar", None) is not None and
+                self.grammar.__class__.__name__ == "SatisfyRequirementUsage")
+
+    def satisfy_elements(self):
+        """The `by` subjects resolved to elements (unambiguous names only)."""
+        if self.is_satisfy:
+            return _resolve_names_to_elements(self, self.satisfying)
+        return []
 
     def _extract_subject_member(self, subject_member):
         """Extract (name, type) from a SubjectMember grammar object (v0.62.0).
@@ -4750,6 +4916,53 @@ class Allocation(Usage):
         if shortname is not None:
             self._set_name(shortname, short=True)
 
+    # -- endpoints (issue #23) ----------------------------------------------
+    def _allocation_ends(self):
+        """Endpoint names as written, from ``grammar.connectorPart``.
+
+        The ends have been on the grammar object since issue #5 / PR #6;
+        the public model simply never read them.  Names use the connector
+        end's own dump text, so chains (``allocate a.p to b.q;``) survive
+        as written.
+        """
+        cp = getattr(self.grammar, "connectorPart", None)
+        if cp is None:
+            return []
+        ends = []
+        for member in getattr(getattr(cp, "part", None), "children", None) or []:
+            text = member.dump() if hasattr(member, "dump") else str(member)
+            text = text.strip().rstrip(";").strip()
+            if text:
+                ends.append(text)
+        return ends
+
+    @property
+    def source(self):
+        """Allocation source(s): first end of a binary ``allocate``, all
+        ends of an n-ary ``allocate (a, b, c);`` (there is no distinguished
+        target then)."""
+        ends = self._allocation_ends()
+        if len(ends) == 2:
+            return ends[:1]
+        return ends
+
+    @property
+    def target(self):
+        """Allocation target(s): second end of a binary ``allocate``;
+        empty for an n-ary form."""
+        ends = self._allocation_ends()
+        if len(ends) == 2:
+            return ends[1:]
+        return []
+
+    @property
+    def source_elements(self):
+        return _resolve_names_to_elements(self, self.source)
+
+    @property
+    def target_elements(self):
+        return _resolve_names_to_elements(self, self.target)
+
 
 class Metadata(_NonOccurrenceUsage):
     sysml_type = 'metadata'
@@ -4784,6 +4997,22 @@ class Metadata(_NonOccurrenceUsage):
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+
+        # Issue #24: the application record — annotated elements (`about …`)
+        # and the metadata body feature values.
+        self.annotated = []
+        self.values = {}
+        self.value_text = {}
+
+    @property
+    def annotated_elements(self):
+        """The `about` targets resolved to elements (unambiguous only)."""
+        return _resolve_names_to_elements(self, self.annotated)
+
+    @property
+    def type_name(self):
+        """The metadata definition this application instantiates (``M``)."""
+        return self._typed_by_name
 
 
 class Rendering(Usage):
@@ -5095,6 +5324,81 @@ class VerificationCase(_BehaviorUsage):
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+
+    # -- verified requirements (issue #23) ----------------------------------
+    @staticmethod
+    def _verification_requirement_names(body):
+        """Collect `verify <ref>` targets from a requirement-like body.
+
+        Walks ``RequirementBody.items`` for
+        ``RequirementBodyItem(ownedRelationship=RequirementVerificationMember
+        → VerifyRequirementUsage(.ors))`` and returns each referenced
+        requirement name as written.
+        """
+        names = []
+        for item in getattr(body, "items", None) or []:
+            member = getattr(item, "child", None)
+            if member is None:
+                continue
+            if member.__class__.__name__ == "RequirementVerificationMember":
+                member = getattr(member, "child", None)
+            if member is not None and member.__class__.__name__ == "VerifyRequirementUsage":
+                ors = getattr(member, "ors", None)
+                if ors is not None:
+                    ref = ors.dump().strip().rstrip(";").strip()
+                    if ref and ref not in names:
+                        names.append(ref)
+        return names
+
+    @property
+    def verified_requirements(self):
+        """Requirements this case verifies, as written.
+
+        The only grammatical home for `verify R;` is inside the case's
+        ``objective`` (``CaseBody → CaseBodyItem → ObjectiveMember →
+        ObjectiveRequirementUsage → RequirementBody``); direct `verify`
+        members in a verification body are not in the grammar.
+        """
+        names = []
+        for ci in getattr(getattr(self.grammar, "body", None), "items", None) or []:
+            child = getattr(ci, "child", None)
+            if child is None:
+                continue
+            if child.__class__.__name__ == "ObjectiveMember":
+                obj_body = getattr(getattr(child, "child", None), "body", None)
+                for ref in self._verification_requirement_names(obj_body):
+                    if ref not in names:
+                        names.append(ref)
+            elif child.__class__.__name__ == "RequirementVerificationMember":
+                # direct verify member, if a grammar revision ever allows it
+                member = getattr(child, "child", None)
+                if member is not None and member.__class__.__name__ == "VerifyRequirementUsage":
+                    ors = getattr(member, "ors", None)
+                    if ors is not None:
+                        ref = ors.dump().strip().rstrip(";").strip()
+                        if ref and ref not in names:
+                            names.append(ref)
+        return names
+
+
+class Verify(Usage):
+    sysml_type = 'verify'
+    """A `verify <requirement>` member (issue #23).
+
+    Appears inside a verification case's `objective`.  `requirement` names
+    the verified requirement as written; the element carries no declared
+    name of its own (never uuid-named), matching how satisfy usages load.
+    """
+    def __init__(self, requirement=None):
+        Usage.__init__(self)
+        self.grammar = None
+        # Anonymous members keep name=None (Dependency sets the same shape);
+        # a uuid name here would churn downstream identity maps (issue #27).
+        self.name = None
+        self.requirement = requirement
+
+    def dump(self):
+        return f"verify {self.requirement};" if self.requirement else "verify;"
 
 
 class Reference(Usage):
@@ -5420,6 +5724,16 @@ class Dependency(Usage):
         if self.grammar is not None and hasattr(self.grammar, 'dump'):
             return self.grammar.dump()
         return "dependency"
+
+    @property
+    def client_elements(self):
+        """Clients resolved to elements (unambiguous names only, issue #23)."""
+        return _resolve_names_to_elements(self, self.clients or [])
+
+    @property
+    def supplier_elements(self):
+        """Suppliers resolved to elements (unambiguous names only, issue #23)."""
+        return _resolve_names_to_elements(self, self.suppliers or [])
 
     def _get_definition(self, child=None):
         """Build a PackageMember-wrapped Dependency dict for the model tree.

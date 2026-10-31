@@ -1,5 +1,55 @@
 # CHANGELOG
 
+## 0.100.0 (2026-10-30)
+
+- **Relationship endpoints are on the object model** (issue #23, downstream
+  report from the CARTA team). All four relationship usages parsed with the
+  endpoints on the grammar object only; the public elements now carry them.
+  1. `Dependency.clients` / `.suppliers` — name lists as written (the grammar
+     kept them since issue #4 / PR #7; the loader never read them), plus
+     `client_elements` / `supplier_elements` resolving lazily (unambiguous
+     names only).
+  2. `Allocation.source` / `.target` — first/second end of a binary
+     `allocate a to b;`; an n-ary `allocate (a, b, c);` reports all ends as
+     `source` (grammar `AllocationUsage.connectorPart`, present since issue
+     #5 / PR #6) plus `source_elements` / `target_elements`.
+  3. `Requirement.requirement` / `.satisfying` — the `satisfy R by S;`
+     endpoints (`ors` / `ssm`) and `is_satisfy` / `satisfy_elements()`. The
+     satisfy wrapper is now built through `load_from_grammar` (its endpoints
+     were previously unreachable because the loader was bypassed).
+  4. `VerificationCase.verified_requirements` and a `Verify` child element
+     per `verify R;` member (the only grammatical home for `verify` is the
+     objective's requirement body). `traceability.verified_by` is populated
+     from the same edges — previously always empty (issue #27 item 3).
+- **Metadata applications** (issue #24, same report).
+  - `metadata m : M about X, W;` — `Metadata.annotated` (names as written),
+    `annotated_elements` (lazy), `type_name`; the grammar carries these since
+    the issue #3 work, the public element never read them.
+  - `@M { w = 1; }` inside any definition/usage body attaches to the owning
+    element via `element.annotations` (list of `Metadata`, each with
+    `type_name`, `values`, `value_text`), never uuid-named, never a child.
+  - `#M part def Y;` — the `PrefixMetadataMember` is captured on the
+    occurrence prefix (`prefixMetadata` on both occurrence prefix grammar
+    classes), attached like `@`, and re-emitted as `#M` on dump.
+  - Serializer: `@M { w = 1; }` dumped as `@ : M {w=1;};` (not re-parseable
+    inside a definition body — the `:` belongs between a declared name and
+    its type, and a braced metadata body carries no terminator); `metadata
+    m : M about X;` dumped with a double terminator; `#M part def Y;` lost
+    the prefix. All three fixed; annotations survive dump → parse → dump.
+  - `diff` signatures and `traceability` unaffected except where noted in
+    0.99.7.
+- Multi-line `doc` comments aligned under their first line gained one indent
+  level per dump → parse → dump cycle (CARTA round-trip finding, closing the
+  last issue #26 item): `Documentation.dump` now renders continuation lines
+  flush at the member indent, like anonymous block comments already did.
+  Pinned as `test_issue26_multiline_doc_indent_is_idempotent`.
+- New example `examples/metadata_and_endpoints.py` (the acceptance script for
+  #23/#24: endpoints, verification, traceability, all three metadata
+  notations). `to_interchange` → `from_interchange` round-trips a model
+  carrying all of them; annotations are deliberately not exported yet
+  (`@graph` shape change deferred to the interop increment, see
+  `docs/v0.100-endpoints-and-metadata-plan.md`).
+
 ## 0.99.7 (2026-10-30)
 
 - **`flow` usages reach the model** (issue #26, downstream report from the

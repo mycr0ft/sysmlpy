@@ -7,6 +7,21 @@ Created on Sat Jun  3 12:37:27 2023
 """
 
 import json
+import re
+
+
+def _prefix_metadata_name(metadata_feature):
+    """Name carried by a `#M` prefix-metadata feature (issue #24).
+
+    The prefix form is ``HASH prefixMetadataFeature(ownedFeatureTyping)`` —
+    no identification and no body — so the serialized `#M` is just the
+    metadata definition's name.
+    """
+    typing = getattr(metadata_feature, "typing", None)
+    qn = getattr(getattr(getattr(typing, "type", None), "type", None), "names", None)
+    if qn:
+        return "::".join(str(part) for part in qn)
+    return None
 
 
 def valid_definition(definition, name):
@@ -4773,10 +4788,18 @@ class Documentation:
             self.body = definition["body"]
 
     def dump(self):
+        # Continuation lines of a multi-line doc body must not carry the
+        # source's own indentation: `beautify` re-indents every dumped line
+        # by nesting level, so preserved leading whitespace accumulated one
+        # level per dump → parse → dump cycle (CARTA round-trip finding,
+        # issue #26 follow-up).  Mirror the anonymous block-comment
+        # behaviour of CommentSysML.dump: continuation lines render flush at
+        # the member indent.
+        body = re.sub(r"\n[\s]*", "\n", self.body)
         if self.identification is not None:
-            return " ".join([self.keyword, self.identification.dump(), self.body])
+            return " ".join([self.keyword, self.identification.dump(), body])
         else:
-            return " ".join([self.keyword, self.body])
+            return " ".join([self.keyword, body])
 
     def get_definition(self):
         output = {"name": self.__class__.__name__}
@@ -4860,15 +4883,29 @@ class MetadataFeature:
         output.append("@")
         if self.identification is not None:
             output.append(self.identification.dump())
+            # the ':' belongs between a declared name and its type: the bare
+            # `@M { … }` application form has no name and therefore no colon
+            # (dumping `@ : M {a=1;}` does not re-parse, issue #24)
+            if self.typing is not None:
+                output.append(":")
         if self.typing is not None:
-            output.append(":")
             output.append(self.typing.dump())
         if self.annotations:
             output.append("about")
             output.append(", ".join([a.dump() for a in self.annotations]))
+        braced_body = False
         if self.body:
-            output.append(self.body)
+            text = self.body.strip()
+            # the metadataBody of a bare `metadata m : M about X;` is just
+            # ';'; emitting it separately double-prints the terminator, and
+            # a braced `{ … }` body carries NO terminator at all (`@M { … };`
+            # does not re-parse inside a body — issue #24)
+            if text and text != ";":
+                output.append(text)
+                braced_body = text.startswith("{")
         # the ';' terminator glues to the last token (@ : m;)
+        if braced_body:
+            return " ".join(x for x in output if x.strip())
         return (" ".join(x for x in output if x.strip()) + ";").replace(" ;", ";")
 
     def get_definition(self):
@@ -5016,8 +5053,18 @@ class OccurrenceDefinitionPrefix:
             else:
                 self.keywords = []
 
+            # Issue #24: `#M` prefix metadata (PrefixMetadataMember)
+            self.prefixMetadata = []
+            for pm in definition.get("prefixMetadata", None) or []:
+                self.prefixMetadata.append(MetadataFeature(pm))
+
     def dump(self):
         output = []
+        for pm in getattr(self, "prefixMetadata", None) or []:
+            # the prefix form serializes `#<name>`, not the `@`-form
+            nm = _prefix_metadata_name(pm)
+            if nm:
+                output.append("#" + nm)
         if self.prefix is not None:
             output.append(self.prefix.dump())
 
@@ -5039,6 +5086,7 @@ class OccurrenceDefinitionPrefix:
             "isIndividual": self.isIndividual,
             "ownedRelationship": [c.get_definition() for c in self.children],
             "keyword": self.keywords,
+            "prefixMetadata": [p.get_definition() for p in getattr(self, "prefixMetadata", None) or []],
         }
 
 
@@ -5049,7 +5097,9 @@ class BasicDefinitionPrefix:
             self.isVariation = definition["isVariation"]
 
     def dump(self):
-        # Only one or the other
+        # Only one or the other (neither is possible on a rebuilt prefix:
+        # return empty and let the enclosing prefix decide)
+        output = ""
         if self.isAbstract:
             output = "abstract"
         if self.isVariation:
@@ -8314,8 +8364,18 @@ class OccurrenceUsagePrefix:
             else:
                 self.usageExtension = []
 
+            # Issue #24: `#M` prefix metadata (PrefixMetadataMember)
+            self.prefixMetadata = []
+            for pm in definition.get("prefixMetadata", None) or []:
+                self.prefixMetadata.append(MetadataFeature(pm))
+
     def dump(self):
         output = []
+        for pm in getattr(self, "prefixMetadata", None) or []:
+            # the prefix form serializes `#<name>`, not the `@`-form
+            nm = _prefix_metadata_name(pm)
+            if nm:
+                output.append("#" + nm)
         output.append(self.prefix.dump())
         if self.isIndividual:
             output.append("individual")
@@ -8335,6 +8395,7 @@ class OccurrenceUsagePrefix:
             "isIndividual": self.isIndividual,
             "portionKind": self.portionKind.get_definition() if self.portionKind else None,
             "usageExtension": [e.get_definition() for e in self.usageExtension],
+            "prefixMetadata": [p.get_definition() for p in getattr(self, "prefixMetadata", None) or []],
         }
 
 

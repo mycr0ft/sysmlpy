@@ -101,3 +101,28 @@ def test_issue26_flow_body_members_survive():
     again = parse(dump)[0]
     assert again is not None
     assert str(again).strip() == dump.strip()
+
+
+def test_issue26_multiline_doc_indent_is_idempotent():
+    # CARTA round-trip finding: a doc continuation aligned under the first
+    # line gained one indent level per dump → parse → dump cycle whenever
+    # the doc member sat in a requirement body (subject + doc + siblings).
+    src = """package P {
+  requirement def <'N.1'> R1 {
+    subject v : Vehicle;
+    doc /* first line of the requirement
+           continuation aligned under the text
+           third line */
+    attribute mass = 100 [kg];
+  }
+}"""
+    model = parse(src)[0]
+    assert model is not None
+    r1 = model.find_one("R1")
+    assert r1.doc is not None and "continuation" in r1.doc
+    d1 = str(model)
+    assert d1 == str(parse(d1)[0]), d1
+    d2 = str(parse(d1)[0])
+    assert d2 == str(parse(d2)[0]), "doc indent must stabilize after one cycle"
+    # the doc text itself is intact (no indent churn inside the comment)
+    assert "continuation aligned under the text" in parse(d2)[0].find_one("R1").doc

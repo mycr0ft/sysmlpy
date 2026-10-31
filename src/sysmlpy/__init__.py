@@ -36,14 +36,14 @@ __all__ = [
     "render_state_transition_view_svg", "boxes_view",
 ]
 __author__ = "Jon Fox"
-__version__ = "0.99.7"
+__version__ = "0.100.0"
 
 from sysmlpy.usage import (
     Item, Attribute, Part, Port, Action, Reference, UseCase, Requirement, Interface, Message,
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
     View, Viewpoint, Concern,
-    Case, AnalysisCase, VerificationCase, Dependency,
+    Case, AnalysisCase, VerificationCase, Dependency, Verify,
 )
 
 from sysmlpy.definition import Model, Package

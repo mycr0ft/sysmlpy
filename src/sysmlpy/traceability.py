@@ -413,6 +413,23 @@ def extract_traceability(model) -> TraceabilityReport:
     for obj in _walk(model):
         _extract_satisfy_edges(obj, traces_by_name, traces, qnames)
 
+    # Pass 3: verification edges — `verification def V { objective {
+    # verify R; } }` verifies the referenced requirement, so R reads
+    # verified_by=['P::V'] (issue #23; previously always empty, #27).
+    for obj in _walk(model):
+        if obj.__class__.__name__ != "VerificationCase":
+            continue
+        case_qn = _qualified_name(obj)
+        for ref in getattr(obj, "verified_requirements", None) or []:
+            target_name = _last_segment(ref)
+            trace = traces_by_name.get(target_name) or traces_by_name.get(ref)
+            if trace is None:
+                trace = RequirementTrace(name=target_name, qualified_name=ref)
+                traces_by_name[target_name] = trace
+                traces.append(trace)
+            if case_qn and case_qn not in trace.verified_by:
+                trace.verified_by.append(case_qn)
+
     return TraceabilityReport(requirements=traces)
 
 

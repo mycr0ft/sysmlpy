@@ -1,12 +1,21 @@
 # sysmlpy — Project Status
 
-Current version: **v0.99.7** (2026-10-30)
+Current version: **v0.100.0** (2026-10-30)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.100.0)
+
+- **Relationship endpoints + metadata applications** (issues #23/#24): the
+  object model now carries dependency/allocation/satisfy/verify endpoints and
+  `element.annotations` for `@M { … }`, `#M` prefix, `metadata … about` —
+  downstream traceability scanners are no longer needed. Plan record:
+  `docs/v0.100-endpoints-and-metadata-plan.md`. Acceptance example:
+  `examples/metadata_and_endpoints.py`.
 
 ## Recent Highlights (0.99.7)
 

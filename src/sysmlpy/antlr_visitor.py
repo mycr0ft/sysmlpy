@@ -1152,6 +1152,10 @@ def _get_occurrence_usage_prefix(ctx):
     portion_kind = None
     is_abstract = False
     is_variation = False
+    # not every usage shape carries an occurrence prefix (e.g. the
+    # binding/succession connector forms); default None so the
+    # prefix-metadata collection below has a defined value (issue #24)
+    oup = None
 
     if hasattr(ctx, 'occurrenceUsagePrefix') and ctx.occurrenceUsagePrefix():
         oup = ctx.occurrenceUsagePrefix()
@@ -1191,9 +1195,11 @@ def _get_occurrence_usage_prefix(ctx):
     
     has_direction = any([direction_in, direction_out, direction_inout])
 
+    prefix_metadata = _collect_prefix_metadata(oup) if oup is not None else []
     if (not is_reference and not has_direction and not is_end
             and not is_individual and portion_kind is None
-            and not is_abstract and not is_variation):
+            and not is_abstract and not is_variation
+            and not prefix_metadata):
         return None
 
     ref_prefix = None
@@ -1229,7 +1235,9 @@ def _get_occurrence_usage_prefix(ctx):
         },
         "isIndividual": "individual" if is_individual else None,
         "portionKind": portion_kind_dict,
-        "usageExtension": []
+        "usageExtension": [],
+        # Issue #24: `#M` prefix metadata (PrefixMetadataMember)
+        "prefixMetadata": prefix_metadata,
     }
 
 
@@ -1308,31 +1316,81 @@ def _make_portion_usage_prefix(ctx):
     }
 
 
+def _collect_prefix_metadata(prefix_ctx, out=None):
+    """Collect `#M` prefix-metadata members under an occurrence prefix.
+
+    Prefix metadata nests oddly in the parse tree: for a definition it rides
+    ``OccurrenceDefinitionPrefix → definitionExtensionKeyword →
+    PrefixMetadataMember``, for a usage ``occurrenceUsagePrefix →
+    basicUsagePrefix → refPrefix → usageExtensionKeyword →
+    PrefixMetadataMember`` — descend generically and collect each
+    ``PrefixMetadataMember → PrefixMetadataFeature(ownedFeatureTyping)`` as a
+    MetadataFeature dict (issue #24; the visitor previously dropped the whole
+    member, so `#M part def Y;` carried nothing at all).
+
+    The `prefixMetadataUsage` alternative (``#M about …`` with a metadata
+    body) is not represented by the grammar classes yet and keeps the
+    previous dropped behaviour.
+    """
+    out = [] if out is None else out
+    if prefix_ctx is None:
+        return out
+    for child in getattr(prefix_ctx, "children", None) or []:
+        nm = type(child).__name__
+        if nm == "PrefixMetadataMemberContext":
+            feature = None
+            for sub in getattr(child, "children", None) or []:
+                if type(sub).__name__ == "PrefixMetadataFeatureContext":
+                    feature = sub
+            if (feature is not None and hasattr(feature, "ownedFeatureTyping")
+                    and feature.ownedFeatureTyping()):
+                out.append({
+                    "name": "MetadataFeature",
+                    "prefixMetadataMember": [],
+                    "identification": None,
+                    "ownedFeatureTyping":
+                        _visit_owned_feature_typing_dict(feature.ownedFeatureTyping()),
+                    "ownedRelationship_about": [],
+                    "body": "",
+                    "bodyFeatures": [],
+                })
+        else:
+            _collect_prefix_metadata(child, out)
+    return out
+
 def _get_occurrence_definition_prefix(ctx):
     """Extract OccurrenceDefinitionPrefix from a definition context (for 'abstract' etc.)."""
     is_abstract = False
     is_variation = False
     
+    odp_ctx = None
     if hasattr(ctx, 'occurrenceDefinitionPrefix') and ctx.occurrenceDefinitionPrefix():
         odp = ctx.occurrenceDefinitionPrefix()
         if hasattr(odp, 'basicDefinitionPrefix') and odp.basicDefinitionPrefix():
             bdp = odp.basicDefinitionPrefix()
             is_abstract = hasattr(bdp, 'ABSTRACT') and bdp.ABSTRACT() is not None
             is_variation = hasattr(bdp, 'VARIATION') and bdp.VARIATION() is not None
-    
-    if not is_abstract and not is_variation:
+        odp_ctx = odp
+    # not every definition kind carries an occurrence prefix
+    prefix_metadata = _collect_prefix_metadata(odp_ctx)
+    if not is_abstract and not is_variation and not prefix_metadata:
         return None
     
     return {
         "name": "OccurrenceDefinitionPrefix",
-        "prefix": {
+        # omit BasicDefinitionPrefix when neither keyword is present — a
+        # prefix dict of all-None crashed BasicDefinitionPrefix.dump on the
+        # round trip (issue #24 work)
+        "prefix": None if (not is_abstract and not is_variation) else {
             "name": "BasicDefinitionPrefix",
             "isAbstract": "abstract" if is_abstract else None,
             "isVariation": "variation" if is_variation else None,
         },
         "isIndividual": None,
         "ownedRelationship": [],
-        "keyword": []
+        "keyword": [],
+        # Issue #24: `#M` prefix metadata (PrefixMetadataMember)
+        "prefixMetadata": prefix_metadata,
     }
 
 def _make_part_definition_dict(ctx, member_prefix=None):
