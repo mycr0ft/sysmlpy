@@ -25,6 +25,7 @@ from sysmlpy.usage import (
     State, Constraint, Connection, Flow, Calculation, Enumeration,
     Allocation, Metadata, Rendering, Individual, FlowDef,
     View, Viewpoint, Concern, Reference, Interaction, Verify,
+    EnumeratedValue,
 )
 from sysmlpy.usage import _comment_body_to_text as _comment_body_to_text_package
 from sysmlpy.usage import _metadata_from_feature
@@ -1309,6 +1310,27 @@ class Package(Searchable):
                 e.grammar = inner_element
                 if hasattr(inner_element, 'declaration') and hasattr(inner_element.declaration, 'identification') and inner_element.declaration.identification:
                     e.name = inner_element.declaration.identification.declaredName
+                # Issue #25: enumerated values are owned enumeration usages
+                # (§7.8.2) — surface them as children.  The grammar body
+                # keeps the serialization; these are semantic children.
+                for member in getattr(
+                        getattr(inner_element, 'body', None),
+                        'relationships', None) or []:
+                    if member.__class__.__name__ != "EnumerationUsageMember":
+                        continue
+                    for value in getattr(member, 'relationships', None) or []:
+                        usage_obj = getattr(value, 'usage', None)
+                        vname = getattr(
+                            getattr(
+                                getattr(
+                                    getattr(usage_obj, 'declaration', None),
+                                    'declaration', None),
+                                'identification', None),
+                            'declaredName', None)
+                        ev = EnumeratedValue(
+                            name=vname, keyword=getattr(value, 'keyword', None))
+                        ev.parent = e
+                        e.children.append(ev)
                 e.parent = self
                 self.children.append(e)
             elif inner_class == "AllocationDefinition":

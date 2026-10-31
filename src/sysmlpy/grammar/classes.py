@@ -4761,6 +4761,60 @@ class CommentSysML:
         return output
 
 
+class VariantReference:
+    """The keyword-less variant member (v0.100.1, issue #25).
+
+    Grammar: variantReference : ownedReferenceSubsetting featureSpecialization*
+    usageBody — `variant automatic;` / `variant 'six cyl' { … }` declare an
+    unnamed variant usage referencing the like-named feature.  The source
+    text carries no `:>>` operator (a bare reference in a variation body),
+    so the dump re-emits the chain verbatim; the ``variant`` keyword comes
+    from the wrapping VariantUsageMember.
+    """
+
+    def __init__(self, definition=None):
+        self.prefix = None
+        self.specialization = None
+        if definition is not None:
+            if valid_definition(definition, self.__class__.__name__):
+                if definition["prefix"] is not None:
+                    self.prefix = RefPrefix(definition["prefix"])
+                spec = definition["specialization"]
+                if spec is not None:
+                    self.specialization = OwnedReferenceSubsetting(spec)
+                self.body = UsageBody(definition["body"])
+        else:
+            self.body = UsageBody()
+
+    def dump(self):
+        output = []
+        if self.prefix is not None:
+            p = self.prefix.dump()
+            if p and p.strip():
+                output.append(p)
+        if self.specialization is not None:
+            chain = self.specialization.dump()
+            if chain:
+                output.append(chain)
+        body_text = self.body.dump()
+        tail = body_text.strip()
+        head = " ".join(x for x in output if x and x.strip())
+        if tail == ";":
+            return head + ";" if head else ";"
+        if not head:
+            return tail
+        return head + " " + tail
+
+    def get_definition(self):
+        return {
+            "name": self.__class__.__name__,
+            "prefix": self.prefix.get_definition() if self.prefix else None,
+            "specialization": self.specialization.get_definition()
+            if self.specialization else None,
+            "body": self.body.get_definition(),
+        }
+
+
 class Annotation:
     def __init__(self, definition):
         if valid_definition(definition, "Annotation"):
@@ -5406,10 +5460,14 @@ class VariantUsageMember:
                     self.children.append(OccurrenceUsageElement(element))
 
     def dump(self):
-        output = []
-        for child in self.children:
-            output.append("variant " + child.dump())
-        return "\n".join(output)
+        visibility = ""
+        if self.prefix is not None:
+            v = self.prefix.dump()
+            if v and v.strip():
+                visibility = v.strip() + " "
+        lines = [visibility + "variant " + child.dump()
+                 for child in self.children]
+        return "\n".join(lines)
 
     def get_definition(self):
         output = {
@@ -5440,9 +5498,15 @@ class NonOccurrenceUsageMember:
 
     def dump(self):
         output = []
+        if self.prefix is not None:
+            # v0.100.1: member visibility (`private ref …`) belongs before
+            # the member text; the visitor threads memberPrefix through now
+            visibility = self.prefix.dump()
+            if visibility and visibility.strip():
+                output.append(visibility.strip())
         for child in self.children:
             output.append(child.dump())
-        return "\n".join(output)
+        return " ".join(output)
 
     def get_definition(self):
         output = {
@@ -5513,6 +5577,11 @@ class NonOccurrenceUsageElement:
                 # the rebuild round-trips instead of crashing on
                 # children=None.
                 self.children = MetadataFeature(definition["ownedRelatedElement"])
+            elif name == "VariantReference":
+                # v0.100.1: `variant automatic;` / `variant 'six cyl' { … }` —
+                # the keyword-less variant member (issue #25).
+                self.children = VariantReference(
+                    definition["ownedRelatedElement"])
             elif name == "EndFeatureUsage":
                 self.children = EndFeatureUsage(definition["ownedRelatedElement"])
             elif name == "AssertConstraintUsage":
@@ -5536,16 +5605,27 @@ class ReferenceUsage:
     def __init__(self, definition):
         self.prefix = None
         self.keyword = "ref"
+        # v0.100.1: `#M` prefix metadata riding usageExtensionKeyword on a
+        # kind-less prefixed usage (`private ref #M z1;` — issue #25).
+        self.prefixMetadata = []
         if valid_definition(definition, self.__class__.__name__):
             if definition["prefix"] is not None:
                 self.prefix = RefPrefix(definition["prefix"])
             self.child = Usage(definition["usage"])
+            for mf in definition.get("prefixMetadata", None) or []:
+                self.prefixMetadata.append(MetadataFeature(mf))
 
     def dump(self):
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
         output.append(self.keyword)
+        # the `#M` extensions render between the `ref` keyword and the name,
+        # exactly where the source text puts them
+        for mf in self.prefixMetadata:
+            nm = _prefix_metadata_name(mf)
+            if nm:
+                output.append("#" + nm)
         output.append(self.child.dump())
         # A bare ``refPrefix`` (every flag/direction null) dumps as an empty
         # string; joining it unconditionally left a leading space on every
@@ -5558,6 +5638,8 @@ class ReferenceUsage:
             "prefix": self.prefix.get_definition() if self.prefix else None,
             "usage": self.child.get_definition(),
         }
+        output["prefixMetadata"] = [mf.get_definition()
+                                    for mf in self.prefixMetadata]
         return output
 
 
@@ -5874,6 +5956,9 @@ class DefaultReferenceUsage:
     def __init__(self, definition=None):
         self.prefix = None
         self.valuepart = None
+        # v0.100.1: `#M` extensions on a REF-less kind-less usage
+        # (`abstract #M z2;` — issue #25)
+        self.prefixMetadata = []
         if definition is not None:
             if valid_definition(definition, "DefaultReferenceUsage"):
                 if definition["prefix"] is not None:
@@ -5884,6 +5969,8 @@ class DefaultReferenceUsage:
                     self.valuepart = ValuePart(definition["valuepart"])
 
                 self.body = UsageBody(definition["body"])
+                for mf in definition.get("prefixMetadata", None) or []:
+                    self.prefixMetadata.append(MetadataFeature(mf))
         else:
             self.declaration = UsageDeclaration()
             self.body = UsageBody()
@@ -5892,6 +5979,11 @@ class DefaultReferenceUsage:
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
+        # the `#M` extensions render before the declaration, as in the source
+        for mf in self.prefixMetadata:
+            nm = _prefix_metadata_name(mf)
+            if nm:
+                output.append("#" + nm)
         output.append(self.declaration.dump())
         if self.valuepart is not None:
             output.append(self.valuepart.dump())
@@ -5914,6 +6006,8 @@ class DefaultReferenceUsage:
             output["valuepart"] = self.valuepart.get_definition()
         output["declaration"] = self.declaration.get_definition()
         output["body"] = self.body.get_definition()
+        output["prefixMetadata"] = [mf.get_definition()
+                                    for mf in self.prefixMetadata]
         return output
 
 
@@ -8476,7 +8570,10 @@ class RefPrefix:
             output.append("variation")
 
         if self.isReadOnly:
-            output.append("readonly")
+            # The textual keyword is `constant` — `readonly` is not in the
+            # grammar (the oracle rejects `readonly x;`); the isReadOnly
+            # field name is a historical misnomer (v0.100.1, issue #25).
+            output.append("constant")
 
         if self.isDerived:
             output.append("derived")

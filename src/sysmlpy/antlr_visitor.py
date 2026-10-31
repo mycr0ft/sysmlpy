@@ -10334,6 +10334,18 @@ def _visit_variant_usage_element(variant_usage):
     the ``variant`` keyword.
     """
     attr_name = None
+    # v0.100.1: the keyword-less variant forms — `variant automatic;` and
+    # `variant 'six cyl' { ... }` — parse as VariantReference
+    # (ownedReferenceSubsetting featureSpecialization* usageBody), an
+    # unnamed variant usage referencing the like-named feature (the
+    # OpenSysML oracle reads it the same way).  The usage-kind scan below
+    # finds no child for them, so they dropped from the model entirely
+    # (issue #25).
+    if getattr(variant_usage, 'variantReference', None) is not None \
+            and variant_usage.variantReference() is not None:
+        return _make_variant_reference_dict(
+            variant_usage.variantReference())
+
     for attr in ("partUsage", "attributeUsage", "itemUsage", "portUsage"):
         if getattr(variant_usage, attr, None) and getattr(variant_usage, attr)():
             attr_name = attr
@@ -10546,6 +10558,19 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
                 inner_element = ann_dict.get("ownedRelatedElement", {})
                 wrapper = "DefinitionMember"
     # Check for definitionBodyItemContent
+    # v0.100.1: the memberPrefix (visibility) on a definition body item
+    # (`private ref #M z1;`) was dropped; thread it onto the member dict so
+    # the round trip keeps it.  memberPrefix = `( visibilityIndicator )?`.
+    member_prefix_dict = None
+    if hasattr(item_ctx, 'memberPrefix') and item_ctx.memberPrefix():
+        mp = item_ctx.memberPrefix()
+        if hasattr(mp, 'visibilityIndicator') and mp.visibilityIndicator():
+            member_prefix_dict = {
+                "name": "MemberPrefix",
+                "visibility": _visit_visibility_indicator_dict(
+                    mp.visibilityIndicator()),
+            }
+
     if not inner_element and hasattr(item_ctx, 'definitionBodyItemContent') and item_ctx.definitionBodyItemContent():
         content = item_ctx.definitionBodyItemContent()
         # print(f"DEBUG: Found definitionBodyItemContent: {content}")
@@ -10733,7 +10758,7 @@ def _visit_definition_body_item_dict(item_ctx, is_interface=False):
         "ownedRelationship": [
             {
                 "name": wrapper,
-                "prefix": None,
+                "prefix": member_prefix_dict,
                 "ownedRelatedElement": owned
             }
         ]
@@ -11430,6 +11455,14 @@ def _visit_nested_non_occurrence_usage(non_occ):
         ctx = non_occ.defaultReferenceUsage()
         return _make_default_reference_usage_dict(ctx)
     
+    # Handle extendedUsage (`private ref #M z1;` / `abstract #M z2;` —
+    # kind-less usage with prefix chain + #M extensions; issue #25).
+    # Checked BEFORE the plain reference/attribute branches: the same
+    # NonOccurrenceUsageElement carries the prefixes on itself here.
+    if hasattr(non_occ, 'extendedUsage') and non_occ.extendedUsage():
+        ctx = non_occ.extendedUsage()
+        return _make_extended_usage_dict(ctx)
+
     # Handle bindingConnectorAsUsage (bind X = Y)
     if hasattr(non_occ, 'bindingConnectorAsUsage') and non_occ.bindingConnectorAsUsage():
         ctx = non_occ.bindingConnectorAsUsage()
@@ -11441,6 +11474,205 @@ def _visit_nested_non_occurrence_usage(non_occ):
         return _make_succession_as_usage_dict(ctx)
     
     return None
+
+
+def _make_variant_reference_dict(vr_ctx):
+    """Build the NonOccurrenceUsageElement/VariantReference dict (issue #25).
+
+    Grammar: variantReference : ownedReferenceSubsetting featureSpecialization*
+    usageBody.  A bare `variant X;` / `variant 'six cyl' { ... }` is an
+    unnamed variant usage referencing the like-named feature; the element
+    keeps the source text (no invented `:>>`), so the dump re-emits
+    `variant X;` verbatim.
+    """
+    if vr_ctx is None:
+        return None
+    specialization = _build_owned_reference_subsetting_dict(
+        vr_ctx.ownedReferenceSubsetting())
+    body_dict = {
+        "name": "UsageBody",
+        "body": {"name": "DefinitionBody", "ownedRelatedElement": []},
+    }
+    if hasattr(vr_ctx, 'usageBody') and vr_ctx.usageBody():
+        ub = vr_ctx.usageBody()
+        if hasattr(ub, 'definitionBody') and ub.definitionBody():
+            body_items = _visit_definition_body_dict(ub.definitionBody())
+            body_dict["body"]["ownedRelatedElement"] = body_items or []
+    return {
+        "name": "NonOccurrenceUsageElement",
+        "ownedRelatedElement": {
+            "name": "VariantReference",
+            "prefix": {
+                "name": "RefPrefix",
+                "isAbstract": None,
+                "isVariation": None,
+                "isReadOnly": None,
+                "isDerived": None,
+                "isEnd": None,
+                "direction": {
+                    "name": "FeatureDirection", "in": "", "out": "", "inout": ""
+                },
+            },
+            "specialization": specialization,
+            "body": body_dict,
+        },
+    }
+
+
+def _make_extended_usage_dict(ctx):
+    """Build the dict for a kind-less prefixed usage (issue #25).
+
+    Grammar: extendedUsage : unextendedUsagePrefix usageExtensionKeyword+ usage.
+    This is the `private ref #M z1;` / `abstract #M z2;` family — a
+    ReferenceUsage-shaped member whose `ref` rides the BasicUsagePrefix REF
+    token, whose `#M` rides UsageExtensionKeyword, and whose visibility
+    rides the enclosing definitionBodyItem's memberPrefix (applied by the
+    body-item dispatcher).  Emitted as a ReferenceUsage dict plus a
+    ``prefixMetadata`` list.
+
+    RefPrefix flag tokens (`abstract`/`variation`/`derived`/`constant`)
+    previously dropped even for the plain DefaultReferenceUsage forms.
+    """
+    is_reference = False
+    is_abstract = False
+    is_variation = False
+    is_readonly = False
+    is_derived = False
+
+    if hasattr(ctx, 'unextendedUsagePrefix') and ctx.unextendedUsagePrefix():
+        uup = ctx.unextendedUsagePrefix()
+        bup = uup.basicUsagePrefix() \
+            if (hasattr(uup, 'basicUsagePrefix') and uup.basicUsagePrefix()) \
+            else None
+        if bup is not None:
+            is_reference = hasattr(bup, 'REF') and bup.REF() is not None
+            rp = bup.refPrefix() \
+                if (hasattr(bup, 'refPrefix') and bup.refPrefix()) \
+                else None
+            if rp is not None:
+                is_abstract = hasattr(rp, 'ABSTRACT') and rp.ABSTRACT() is not None
+                is_variation = hasattr(rp, 'VARIATION') and rp.VARIATION() is not None
+                # `constant` textual keyword; stored as the read-only flag
+                is_readonly = hasattr(rp, 'CONSTANT') and rp.CONSTANT() is not None
+                is_derived = hasattr(rp, 'DERIVED') and rp.DERIVED() is not None
+
+    # Name/shortname from the inner usage (same convention as the other
+    # reference helpers)
+    name = None
+    shortname = None
+    usage_ctx = ctx.usage() if hasattr(ctx, 'usage') and ctx.usage() else None
+    if usage_ctx is not None:
+        if hasattr(usage_ctx, 'usageDeclaration') and usage_ctx.usageDeclaration():
+            ident = usage_ctx.usageDeclaration().identification()
+            if ident is not None:
+                name_list = ident.name()
+                if name_list:
+                    if isinstance(name_list, list):
+                        if len(name_list) >= 2:
+                            shortname = name_list[0].getText()
+                            name = name_list[1].getText()
+                        else:
+                            name = name_list[-1].getText()
+                    else:
+                        name = name_list.getText()
+
+    specialization = _build_full_specialization_from_ctx(usage_ctx) \
+        if usage_ctx is not None else None
+
+    valuepart = None
+    body_items = []
+    if usage_ctx is not None:
+        valuepart = _get_usage_value_part(usage_ctx)
+        uc = usage_ctx.usageCompletion() \
+            if (hasattr(usage_ctx, 'usageCompletion') and usage_ctx.usageCompletion()) \
+            else None
+        if uc is not None and hasattr(uc, 'usageBody') and uc.usageBody():
+            ub = uc.usageBody()
+            if hasattr(ub, 'definitionBody') and ub.definitionBody():
+                body_items = _visit_definition_body_dict(ub.definitionBody())
+
+    ref_prefix_dict = {
+        "name": "RefPrefix",
+        "isAbstract": is_abstract,
+        "isVariation": is_variation,
+        "isReadOnly": is_readonly,
+        "isDerived": is_derived,
+        "isEnd": None,
+        "direction": {
+            "name": "FeatureDirection", "in": "", "out": "", "inout": ""
+        },
+    }
+
+    # v0.100.1: a kind-less usage WITH the REF token serializes as a
+    # ReferenceUsage (its keyword rides the BasicUsagePrefix); without
+    # REF it is a DefaultReferenceUsage (`abstract #M z2;` must not gain
+    # a `ref` keyword on the round trip).
+    if is_reference:
+        inner = {
+            "name": "ReferenceUsage",
+            "prefix": ref_prefix_dict,
+            "usage": {
+                "name": "Usage",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": {
+                            "name": "Identification",
+                            "declaredShortName": shortname,
+                            "declaredName": name,
+                        },
+                        "specialization": specialization,
+                    },
+                },
+                "completion": {
+                    "name": "UsageCompletion",
+                    "valuepart": valuepart,
+                    "body": {
+                        "name": "UsageBody",
+                        "body": {
+                            "name": "DefinitionBody",
+                            "ownedRelatedElement": body_items or [],
+                        },
+                    },
+                },
+            },
+            # `#M` metadata riding usageExtensionKeyword — the
+            # ReferenceUsage grammar class re-emits `#<name>` and the
+            # loader attaches the features to the element.
+            "prefixMetadata": _collect_prefix_metadata(ctx),
+        }
+    else:
+        inner = {
+            "name": "DefaultReferenceUsage",
+            "prefix": ref_prefix_dict,
+            "valuepart": valuepart,
+            "declaration": {
+                "name": "UsageDeclaration",
+                "declaration": {
+                    "name": "FeatureDeclaration",
+                    "identification": {
+                        "name": "Identification",
+                        "declaredShortName": shortname,
+                        "declaredName": name,
+                    },
+                    "specialization": specialization,
+                },
+            },
+            "body": {
+                "name": "UsageBody",
+                "body": {
+                    "name": "DefinitionBody",
+                    "ownedRelatedElement": body_items or [],
+                },
+            },
+            "prefixMetadata": _collect_prefix_metadata(ctx),
+        }
+
+    return {
+        "name": "NonOccurrenceUsageElement",
+        "ownedRelatedElement": inner,
+    }
 
 
 def _build_owned_reference_subsetting_dict(ors_ctx):
@@ -13436,6 +13668,16 @@ def _make_default_reference_usage_dict(ctx):
                 direction_out = "out"
             elif direction_text == 'inout':
                 direction_inout = "inout"
+        # v0.100.1: the flag tokens dropped from kind-less prefixed usages
+        # (`abstract z2;` dumped as `z2;`) — issue #25.
+        if hasattr(rp, 'ABSTRACT') and rp.ABSTRACT() is not None:
+            is_abstract = True
+        if hasattr(rp, 'VARIATION') and rp.VARIATION() is not None:
+            is_variation = True
+        if hasattr(rp, 'CONSTANT') and rp.CONSTANT() is not None:
+            is_readonly = True
+        if hasattr(rp, 'DERIVED') and rp.DERIVED() is not None:
+            is_derived = True
     
     # Extract name from usage -> usageDeclaration -> identification
     name = None

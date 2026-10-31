@@ -1,12 +1,20 @@
 # sysmlpy — Project Status
 
-Current version: **v0.100.0** (2026-10-30)
+Current version: **v0.100.1** (2026-10-31)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.100.1)
+
+- **Issue #25 closed** — kind-less variant members, enumeration values,
+  `is_reference`, kind-less prefixed usages (`private ref #M z1;`), and
+  `refPrefix` flag round-trips (`abstract`/`constant`) all reach the
+  model and re-serialize; the OMG VehicleVariability corpus variant forms
+  pinned.
 
 ## Recent Highlights (0.100.0)
 

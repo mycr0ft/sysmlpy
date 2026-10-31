@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## 0.100.1 (2026-10-31)
+
+- **Issue #25 emission gaps, all fixed** (downstream report):
+  1. Keyword-less variant members (`variant automatic;`,
+     `variant 'six cyl' { … }` — grammar `VariantUsageElement →
+     VariantReference`) dropped from the model. They now build `Reference`
+     children of the variation with `is_variant` set and the referenced
+     chain on `variant_reference` (naming follows the bare-reference
+     convention: the chain makes the member addressable, exactly how the
+     OpenSysML oracle resolves them), and re-emit the `variant` keyword.
+  2. Enumerated values (`enum def Color { a; enum b; }`, §7.8.2) reached
+     the grammar dict but never the model — values are now
+     `EnumeratedValue` children of the Enumeration (`keyword` preserved);
+     serialization unchanged.
+  3. `ref part r : X;` had no `is_reference` — the `BasicUsagePrefix` REF
+     token now sets ``Usage.is_reference``; kind-less elements are
+     referential by construction (§7.6.4).
+  4. Kind-less usages with a prefix chain (`private ref #M z1;`,
+     `abstract #M z2;`, `private #M z3;`) dropped. They build Reference
+     elements carrying the `#M` metadata annotations, and re-emit
+     visibility + `ref`/flags + `#M` in source order (REF-less forms keep
+     REF-less dumps; no spurious `ref`).
+  5. refPrefix flag tokens (`abstract`/`variation`/`derived`/`constant`)
+     dropped from kind-less members on dump (`abstract z2;` → `z2;`).
+     Also `constant` re-emits as `constant` — the textual keyword; the
+     `isReadOnly` field name is a historical misnomer (`readonly` is not
+     in the grammar; the OpenSysML oracle rejects `readonly x;`).
+- Member-level visibility rode to the semantic layer for these members
+  (`private` on a body member was dropped); body-member visibility
+  round-trips now.
+- The OMG `Variability Examples/VehicleVariabilityModel.sysml` corpus
+  parses with the variant forms emitted (pinned in
+  `tests/issue25_test.py`). Pre-existing, out of scope: assert-constraint
+  expression bodies still glue on the first dump; whole-file dump
+  identity is not asserted there.
+
 ## 0.100.0 (2026-10-30)
 
 - **Relationship endpoints are on the object model** (issue #23, downstream

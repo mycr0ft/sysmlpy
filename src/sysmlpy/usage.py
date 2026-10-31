@@ -305,6 +305,14 @@ class Usage(Searchable):
         self.is_variant = False
         self.is_variation = False
         self.is_abstract = False
+        # Issue #25: `ref part r : X;` — the referential-use marker (the
+        # BasicUsagePrefix REF token); kind-less members default via the
+        # Reference class (§7.6.4: a usage without a kind keyword IS a
+        # reference usage).
+        self.is_reference = False
+        # Issue #25: ``variant X;`` — the like-named feature the variant
+        # member references (ownedReferenceSubsetting chain, as written).
+        self.variant_reference = None
         # Issue #24: metadata applications attached to this element via
         # `@M { … }` (braced-body form) or the `#M` prefix form.
         self.annotations = []
@@ -1204,6 +1212,7 @@ class Usage(Searchable):
                                     _mark_variant_chain(inner0)
                         if hasattr(member, 'children') and member.children:
                             inner = member.children[0]
+                            _apply_member_visibility(member, inner)
                             # Handle DefinitionElement wrapping
                             if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
                                 inner = inner.children[0]
@@ -1248,6 +1257,7 @@ class Usage(Searchable):
                             for inner in mc:
                                 if inner is None:
                                     continue
+                                _apply_member_visibility(member, inner)
                                 # Handle DefinitionElement wrapping
                                 if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
                                     inner = inner.children[0]
@@ -1306,6 +1316,7 @@ class Usage(Searchable):
                         if not isinstance(mc, list):
                             mc = [mc] if mc is not None else []
                         for inner in mc:
+                            _apply_member_visibility(member, inner)
                             if inner is None:
                                 continue
                             if inner.__class__.__name__ == 'DefinitionElement' and hasattr(inner, 'children') and inner.children:
@@ -1411,12 +1422,22 @@ class Usage(Searchable):
                 # DefaultReferenceUsage — dropped from the model (issue
                 # #19) whenever they shared a body with siblings.
                 c = Reference().load_from_grammar(sc)
+                c.member_prefix = getattr(child, '_member_visibility', None)
                 c.parent = self
                 self.children.append(c)
             elif class_name == "ReferenceUsage":
                 # v0.79.1: nested `ref driver : Person;` inside part/item
                 # bodies was dropped from the object tree.
                 c = Reference().load_from_grammar(sc)
+                c.member_prefix = getattr(child, '_member_visibility', None)
+                c.parent = self
+                self.children.append(c)
+            elif class_name == "VariantReference":
+                # v0.100.1 (#25): `variant automatic;` — the keyword-less
+                # variant member, an unnamed reference to the like-named
+                # feature.
+                c = Reference().load_from_grammar(sc)
+                c.member_prefix = getattr(child, '_member_visibility', None)
                 c.parent = self
                 self.children.append(c)
             elif class_name == "AttributeDefinition":
@@ -1572,6 +1593,11 @@ class Usage(Searchable):
             if getattr(_holder, 'isAbstract', None) in ('abstract', True):
                 self.is_abstract = True
 
+        # Issue #25: `ref part r : X;` — the referential-use marker, from
+        # the BasicUsagePrefix REF token (carried as `isReference`).
+        if getattr(_bp, 'isReference', None):
+            self.is_reference = True
+
         # Issue #24: `#M` prefix metadata carried on the occurrence prefix
         # (OccurrenceDefinitionPrefix / OccurrenceUsagePrefix both expose
         # `.prefixMetadata` as MetadataFeature grammar objects).
@@ -1594,6 +1620,17 @@ class Usage(Searchable):
             self.annotations = []
         self.annotations.append(md)
         return md
+
+    def _attach_nested_prefix_metadata(self, grammar):
+        """Attach `#M` prefix metadata stored on a nested usage grammar.
+
+        Issue #25: the kind-less prefixed usages (`private ref #M z1;`)
+        carry their `#M` features on the ReferenceUsage/VariantReference
+        grammar object as ``prefixMetadata`` MetadataFeature list rather
+        than on an occurrence prefix.  Attach them like any application.
+        """
+        for mf in getattr(grammar, "prefixMetadata", None) or []:
+            self._attach_metadata_feature(mf)
 
     def _extract_specialization_info(self, grammar):
         """Capture Typings / Subsettings / Redefinitions / References names
@@ -3977,6 +4014,24 @@ class Requirement(Usage):
                             self.doc = text
 
 
+def _apply_member_visibility(member, inner):
+    """Carry a body member's `MemberPrefix` visibility onto the flattened
+    inner grammar object so the semantic dispatch can stamp it on the
+    element (v0.100.1, issue #25: `private ref #M z1;`).
+
+    The member wrapper (NonOccurrenceUsageMember/DefinitionMember class)
+    holds ``prefix``; the flatten drops wrappers, so copy the object.
+    """
+    if member is None or inner is None:
+        return
+    mp = getattr(member, "prefix", None)
+    if mp is not None and mp.__class__.__name__ == "MemberPrefix":
+        try:
+            setattr(inner, "_member_visibility", mp)
+        except Exception:  # pragma: no cover
+            pass
+
+
 def _mark_variant_chain(obj):
     """Depth-mark an object chain as belonging to a variant member (v0.99.0).
 
@@ -4875,11 +4930,85 @@ class Enumeration(Usage):
         Usage.__init__(self)
         # EnumerationDefinition is the only form
         self.grammar = EnumerationDefinition()
-        
+
         if name is not None:
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+
+
+class EnumeratedValue(Usage):
+    sysml_type = 'enumerated value'
+    """An enumerated value of an `enum def` (v0.100.1, issue #25).
+
+    §7.8.2: enumerated values are owned enumeration usages — `enum def
+    Color { red; enum blue; }` carries one child per value.  ``keyword``
+    is ``'enum'`` when the member spelled it out, otherwise None.  Values
+    are derived members: the enumeration's grammar body keeps the
+    serialization, so these children carry no grammar of their own (same
+    contract as Verify for `verify R;`).
+    """
+
+    def __init__(self, name=None, keyword=None):
+        Usage.__init__(self)
+        self.grammar = None
+        self.name = name
+        self.keyword = keyword
+
+    def usage_dump(self, child):
+        """Derived-member shape (mirrors the grammar-less Reference dump).
+
+        The owning Enumeration never rebuilds its body from children
+        (EnumerationDefinition carries no rebuild target), so this only
+        has to be safe when a caller serializes the value directly.
+        """
+        if self.grammar is None:
+            inner = {
+                "name": "NonOccurrenceUsageElement",
+                "ownedRelatedElement": {
+                    "name": "ReferenceUsage",
+                    "prefix": None,
+                    "usage": {
+                        "name": "Usage",
+                        "declaration": {
+                            "name": "UsageDeclaration",
+                            "declaration": {
+                                "name": "FeatureDeclaration",
+                                "identification": {
+                                    "name": "Identification",
+                                    "declaredShortName": None,
+                                    "declaredName": self.name,
+                                },
+                                "specialization": None,
+                            },
+                        },
+                    },
+                },
+            }
+        else:
+            inner = {
+                "name": "NonOccurrenceUsageElement",
+                "ownedRelatedElement": self.grammar.get_definition(),
+            }
+        if child == "DefinitionBody":
+            package = {
+                "name": "NonOccurrenceUsageMember",
+                "prefix": None,
+                "ownedRelatedElement": [inner],
+            }
+            package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
+        else:
+            package = {"name": "UsageElement", "ownedRelatedElement": inner}
+            package = {
+                "name": "PackageMember",
+                "ownedRelatedElement": package,
+                "prefix": None,
+            }
+        return package
+
+    def dump(self, child=None):
+        kw = self.keyword + " " if self.keyword else ""
+        return f"{kw}{self.name};" if self.name else f"{kw};"
 
 
 class Allocation(Usage):
@@ -5423,6 +5552,12 @@ class Reference(Usage):
         self.shortname = shortname
         self.redefines = redefines  # for redefinition like ref :>> name :
         self.ref_type = None  # type reference
+        # §7.6.4: a usage without a kind keyword is a reference usage —
+        # every Reference element is referential by construction.
+        self.is_reference = True
+        # v0.100.1: the MemberPrefix grammar object for a member-level
+        # visibility (`private ref …`); None unless loaded from grammar.
+        self.member_prefix = None
 
     def set_type(self, type_obj):
         """Set the type this reference points to.
@@ -5487,6 +5622,39 @@ class Reference(Usage):
                 if not getattr(ident, "declaredName", None):
                     self.name = _names[0] if _names else self.name
             self.is_definition = False
+            self._attach_nested_prefix_metadata(grammar)
+            return self
+
+        if grammar.__class__.__name__ == "VariantReference":
+            # v0.100.1 (issue #25): `variant automatic;` / `variant 'six
+            # cyl' { … }` — an unnamed variant usage referencing the
+            # like-named feature (ownedReferenceSubsetting chain).
+            # OpenSysML's reading: "a bare `variant X` is a VariantReference:
+            # a reference usage subsetting the like-named feature visible
+            # outside".  The element keeps the chain as written; the name
+            # follows the same bare-reference convention (the chain makes
+            # the member addressable).
+            parts = getattr(getattr(getattr(grammar, "specialization", None),
+                                    "referencedFeature", None), "names", None) or []
+            chain_elems = getattr(getattr(grammar, "specialization", None),
+                                  "elements", None) or []
+            for el in chain_elems:
+                sub = getattr(getattr(el, "chainingFeature", None), "names", None)
+                if sub:
+                    parts.extend(sub)
+            self.name = parts[-1] if parts else None
+            self.variant_reference = parts or None
+            self.is_definition = False
+            self.is_reference = True
+            # the variant marker rides the flattened grammar chain tag
+            # (v0.99.0 convention) — set it here because this branch
+            # returns before the shared load tail
+            self.is_variant = bool(
+                getattr(grammar, "_sysml_variant_member", False))
+            # `variant 'six cyl' { body }` keeps its body via the grammar's
+            # UsageBody; expose it through the standard body dispatch so
+            # members of the variant body load like any usage body.
+            self._attach_nested_prefix_metadata(grammar)
             return self
 
         usage = getattr(grammar, "child", None)  # grammar classes.Usage
@@ -5512,6 +5680,9 @@ class Reference(Usage):
                 # For the bare redefinition form declaredName is null in
                 # the grammar; the usage's name is the redefined feature.
                 self.name = self._redefined_refs[0]
+        # v0.100.1: `#M` metadata on a kind-less prefixed usage
+        # (`private ref #M z1;` — the ReferenceUsage grammar object).
+        self._attach_nested_prefix_metadata(grammar)
         return self
 
     def usage_dump(self, child):
@@ -5552,9 +5723,19 @@ class Reference(Usage):
             }
 
         if child == "DefinitionBody":
+            mp = getattr(self, "member_prefix", None)
+            # v0.100.1: the keyword-less variant member re-emits its
+            # `variant` keyword through the VariantUsageMember wrapper
+            # (the same switch the other usage_dump overrides carry)
+            member_name = ("VariantUsageMember"
+                           if getattr(self, "is_variant", False)
+                           else "NonOccurrenceUsageMember")
             package = {
-                "name": "NonOccurrenceUsageMember",
-                "prefix": None,
+                "name": member_name,
+                "prefix": (
+                    mp.get_definition()
+                    if mp is not None
+                    and mp.__class__.__name__ == "MemberPrefix" else None),
                 "ownedRelatedElement": [inner],
             }
             package = {"name": "DefinitionBodyItem", "ownedRelationship": [package]}
