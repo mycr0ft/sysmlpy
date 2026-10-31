@@ -735,6 +735,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#6-object-model-mirror-option-d-sysmlpystable_ids-v01010-issue-27" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Object-model mirror (option D) — sysmlpy.stable_ids() (v0.101.0, issue #27)
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1000,6 +1011,51 @@ does not.  Trade-off documented here rather than hidden.</p>
   the group shift by design (tie-breaker index). Acceptable if
   documented; option C removes it entirely.</li>
 </ul>
+<h2 id="6-object-model-mirror-option-d-sysmlpystable_ids-v01010-issue-27">6. Object-model mirror (option D) — <code>sysmlpy.stable_ids()</code> (v0.101.0, issue #27)<a class="headerlink" href="#6-object-model-mirror-option-d-sysmlpystable_ids-v01010-issue-27" title="Permanent link">&para;</a></h2>
+<p><strong>Decision.</strong> A downstream consumer asked for deterministic identity on
+the <em>object model</em> (<code>repro_05</code>: every parse of identical text minted a
+fresh uuid4 <code>name</code> on anonymous members, churning identity maps). Of the
+two asks (leave <code>name=None</code>, or derive the id from content/position), the
+shipped decision is <strong>both, in separate slots</strong>:</p>
+<ul>
+<li><strong><code>name</code> stays a content slot.</strong> Anonymous members now keep
+  <code>name=None</code> (the satisfy/verify/dependency members already did).
+  Minted uuid4 names churned per parse; a <em>derived</em> id placed in <code>name</code>
+  would be worse — <code>name</code> serializes as a <code>declaredName</code>, so the model
+  would gain declared content it never had.</li>
+<li><strong>UUIDv5 lives in the id slot</strong>: <code>sysmlpy.stable_ids(model)</code> returns
+  <code>{element: "sysml:&lt;uuid5&gt;"}</code> and <code>element.stable_id</code> reads it.</li>
+</ul>
+<p><strong>Contract.</strong></p>
+<ul>
+<li>Declared (named) elements join through the export's <code>#qn_registry</code>
+  side table — their id <strong>is</strong> the node <code>@id</code> in
+  <code>to_interchange(model, stable_ids=True)</code>: exact agreement with the
+  JSON by construction, for nested members and name-collision groups
+  alike.</li>
+<li>Anonymous members derive <code>uuid5(STABLE_NAMESPACE, qn || struct |type)</code>
+  over the public tree (<code>children:&lt;index&gt;</code> chains). Documented bound:
+  the JSON flattener walks the rebuilt dict tree (wrapper nodes
+  included), so an anonymous member's <em>string</em> differs between the
+  object model and the JSON while both are content-addressed and stable
+  under the same edit classes. Declared-element agreement is the
+  load-bearing contract.</li>
+<li>The <code>Model</code> root keeps its per-parse uuid (documented above); it is
+  not a member, never serializes as content, and is skipped by every
+  identity walk (<code>_MODEL_NAME_RE</code>).</li>
+<li>Same-name sibling groups: distinct occurrence-indexed ids on both
+  sides; ids inside a group shift on group-local insertion (L2
+  degradation, unchanged).</li>
+</ul>
+<p><strong>Side-table defect fixed en route (v0.101.0).</strong> The registry's
+same-name-sibling branch stored a literal <code>...</code> (Ellipsis) placeholder
+instead of the second occurrence's node id, and keyed it by the raw
+dict-tree qn. It now keys <code>"&lt;deduped-qn&gt;#&lt;index&gt;"</code> and carries the
+actual node id — the join the object-model mirror relies on.</p>
+<p><strong>Bounds.</strong> Renaming an ancestor re-mints descendant ids (declared-path
+hashing, by design — see §2/L2). Programmatic members built without
+grammar join the anonymous path. <code>stable_id</code> recomputes the map per
+access; bulk readers hold <code>stable_ids(model)</code> directly.</p>
 
 
 

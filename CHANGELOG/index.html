@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01010-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.101.0 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01001-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -896,6 +907,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01010-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.101.0 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01001-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1158,6 +1180,34 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01010-2026-10-31">0.101.0 (2026-10-31)<a class="headerlink" href="#01010-2026-10-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #27 (decision shipped): deterministic object-model identity.</strong>
+  Anonymous members keep <code>name=None</code> — the per-parse <code>uuid4()</code> name mint
+  (17 sites: <code>Usage</code>/<code>Package</code> defaults, six class overrides, the
+  visitor's <code>Requirement_</code>/<code>UseCase_</code>/<code>Interface_</code>/<code>Case_</code>/<code>AnalysisCase_</code>
+  /<code>VerificationCase_</code> prefixes) is gone; uuid churn in downstream
+  identity maps is over. Durable identity is UUIDv5 in the ID slot:</li>
+<li><code>sysmlpy.stable_ids(model)</code> → <code>{element: "sysml:&lt;uuid5&gt;"}</code>,
+    <code>element.stable_id</code> convenience; declared elements join through the
+    stable export's <code>#qn_registry</code> and agree <strong>exactly</strong> with their
+    <code>@id</code> in <code>to_interchange(model, stable_ids=True)</code> — nested members
+    and same-name sibling groups included (pinned).</li>
+<li>Anonymous members derive from the nearest declared ancestor +
+    structural path (public-tree <code>children:&lt;index&gt;</code> version of the
+    exporter's dict-tree path — documented bound:
+    <code>docs/stable-identities.md</code> §6, option D).</li>
+<li>The <code>Model</code> root keeps its documented per-parse uuid (not a member;
+    never serialized as content).</li>
+<li>Registry defect fixed en route: the <code>#qn_registry</code> side table stored
+    a literal <code>...</code> placeholder for same-name sibling groups' second+
+    occurrences, keyed by the raw dict-tree qn; it now keys
+    <code>"&lt;deduped-qn&gt;#&lt;index&gt;"</code> with the actual node id (the object-model
+    mirror relies on that join).</li>
+<li>Pins: <code>tests/issue27_id_test.py</code> (no uuid names, no churn across
+  parses, export agreement incl. nested members, <code>stable_id</code> property,
+  distinct ids in name-collision groups, anonymous determinism).</li>
+</ul>
 <h2 id="01001-2026-10-31">0.100.1 (2026-10-31)<a class="headerlink" href="#01001-2026-10-31" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #25 emission gaps, all fixed</strong> (downstream report):</li>
