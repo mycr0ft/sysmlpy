@@ -769,6 +769,45 @@ class SymbolTable:
         self._import_visibility: dict[str, str] = {}  # symbol_name -> "private"|"public"|"protected"
         self._definition_features: dict[str, dict[str, Any]] = {}  # definition_name -> {element, features, supertypes}
         self._duplicate_names: list[tuple[str, Any]] = []  # (name, element) for duplicates
+        #: id(element) -> the table that holds that element's members
+        #  (kept on the ROOT table; see ``_scope_for_member`` — issue #37)
+        self._element_scopes: dict[int, "SymbolTable"] = {}
+
+    def _root(self) -> "SymbolTable":
+        """The topmost table of this scope chain."""
+        tbl = self
+        while tbl._parent is not None:
+            tbl = tbl._parent
+        return tbl
+
+    def _register_element_scope(self, element: Any, table: "SymbolTable") -> None:
+        """Record that *element*'s members live in *table* (issue #37)."""
+        self._root()._element_scopes[id(element)] = table
+
+    def _scope_for_member(
+        self, name: str, element: Any = None
+    ) -> Optional["SymbolTable"]:
+        """The child table that holds the members of the namespace *name*.
+
+        ``_find_symbol_owner`` answers "where is this NAME visible" — which
+        for an imported namespace is the importing scope, whose
+        ``_children`` does not contain the namespace at all (issue #37:
+        ``InterfaceType::required`` with ``InterfaceType`` reached through
+        ``private import LIB::*``).  The build-time element→table map
+        answers "where do this ELEMENT's members live", which is what a
+        qualified-name descent needs.
+        """
+        child = self._children.get(name)
+        if child is not None:
+            return child
+        owner = self._find_symbol_owner(name)
+        if owner is not None:
+            child = owner._children.get(name)
+            if child is not None:
+                return child
+        if element is not None:
+            return self._root()._element_scopes.get(id(element))
+        return None
 
     def __repr__(self) -> str:
         return (f"SymbolTable(symbols={len(self._symbols)}, "
@@ -846,6 +885,10 @@ class SymbolTable:
         if is_container and name is not None and elem_type != "Model":
             child_table = table._children.setdefault(name, SymbolTable())
             child_table._parent = table
+            # issue #37: remember where this element's members live, so a
+            # qualified-name descent can follow the ELEMENT into the table
+            # that holds it even when the name reached us through an import
+            table._register_element_scope(element, child_table)
 
         # Collect imports from package grammar body
         if elem_type == "Package":
@@ -1078,11 +1121,7 @@ class SymbolTable:
                     all_found = False
                     break
             last_found = found
-            child_scope = lookup_table._children.get(part)
-            if child_scope is None:
-                owner = lookup_table._find_symbol_owner(part)
-                if owner is not None:
-                    child_scope = owner._children.get(part)
+            child_scope = lookup_table._scope_for_member(part, found)
             if child_scope is not None:
                 lookup_table = child_scope
             elif i < len(parts) - 1:
@@ -1111,20 +1150,12 @@ class SymbolTable:
         parts = ref_str.split("::")
         lookup_table = from_table
         for part in parts:
-            child = lookup_table._children.get(part)
+            child = lookup_table._scope_for_member(
+                part, lookup_table.lookup(part))
             if child is not None:
                 lookup_table = child
             else:
-                # Try from parent chain
-                owner = lookup_table._find_symbol_owner(part)
-                if owner is not None:
-                    child = owner._children.get(part)
-                    if child is not None:
-                        lookup_table = child
-                    else:
-                        return None
-                else:
-                    return None
+                return None
         return lookup_table
 
     def _find_symbol_owner(self, name: str) -> Optional[SymbolTable]:
@@ -3533,16 +3564,12 @@ class SemanticAnalyzer:
                     all_found = False
                     break
                 # Find the child scope for this part
-                child_scope = lookup_table._children.get(part)
-                if child_scope is None:
-                    # The element was found via parent lookup.
-                    # Find the table that actually contains this symbol.
-                    owner = lookup_table._find_symbol_owner(part)
-                    if owner is not None:
-                        child_scope = owner._children.get(part)
+                child_scope = lookup_table._scope_for_member(part, found)
                 if child_scope is not None:
                     lookup_table = child_scope
-                else:
+                elif i < len(parts) - 1:
+                    # only a NON-final segment needs a namespace to descend
+                    # into; the final segment IS the resolved element
                     all_found = False
                     break
             if all_found:

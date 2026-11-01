@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 0.102.1 (2026-10-31)
+
+- **Issue #37 (reported by failys): qualified references into an IMPORTED
+  namespace resolve.** `::> type = InterfaceType::required;` — with
+  `InterfaceType` visible only through `private import LIB::*` — was
+  reported as `UNRESOLVED_EXPRESSION_IDENTIFIER`, twice per use (the
+  value-owning `Port` and the redefining `Reference`).
+  - Root cause: the qualified-name descent resolved the head name, then
+    asked `_find_symbol_owner(head)` — which answers *where the name is
+    visible* (the importing scope) — and looked for the namespace in that
+    scope's `_children`. An imported namespace's member table belongs to
+    its DEFINING package (`LIB::InterfaceType`), so the descent never
+    reached `required`.
+  - Fix: `SymbolTable` records element → member-table at build time
+    (`_element_scopes`, kept on the root table; `_scope_for_member`
+    consults it after the existing child/owner lookups), and all three
+    descents use it (`_resolve_qualified_name`, `_find_namespace_table`,
+    `_is_resolved`). The final segment stays "the resolved element" — no
+    child namespace is required for it.
+  - Not leniency: a bogus member (`E::nope`) is still reported, and the
+    reporter's model validates clean under Open-MBEE's OpenSysML
+    (`-validate -strict`), confirming the finding was ours.
+  - Pins: `tests/issue37_test.py` (5 — the reporter's model, named-import
+    and same-package forms, the negative case, and a symbol-table pin that
+    the resolver returns the `EnumeratedValue` member).
+  - Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS
+    (identical per-code histogram — the pattern does not occur in the
+    bundled corpus). Affected suites 372 passed; full suite 1802 passed /
+    79 skipped.
+
 ## 0.102.0 (2026-10-31)
 
 - **Issue #34 (phase 1+2): the analyzer's library fallback resolves

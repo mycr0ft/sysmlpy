@@ -1,14 +1,24 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.0** (2026-10-31, tagged)
+Current version: **v0.102.1** (2026-10-31, tagged)
 
-Current released version: **v0.102.0** (2026-10-31, on PyPI; 0.101.0 superseded)
+Current released version: **v0.102.1** (2026-10-31, on PyPI; 0.102.0 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.1)
+
+- **Issue #37 fixed** (reporter: failys): `InterfaceType::required` — a
+  qualified reference whose head is visible only through an import — was
+  reported as `UNRESOLVED_EXPRESSION_IDENTIFIER`. The descent asked where
+  the NAME is visible instead of where the ELEMENT's members live;
+  `SymbolTable` now records element → member-table at build time and all
+  three qualified-name descents use it. Pins: `tests/issue37_test.py` (5).
+  Gate unchanged (3369/2961, PASS); full suite 1802 passed / 79 skipped.
 
 ## Recent Highlights (0.102.0)
 
