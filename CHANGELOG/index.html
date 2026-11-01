@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01020-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.0 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01010-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -907,6 +918,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01020-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.0 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01010-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1180,6 +1202,44 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01020-2026-10-31">0.102.0 (2026-10-31)<a class="headerlink" href="#01020-2026-10-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #34 (phase 1+2): the analyzer's library fallback resolves
+  through loaded library MODELS</strong>, not the scraped name index.</li>
+<li><code>LibrarySymbolIndex.exists_in_loaded_model(name)</code> — a leaf → file
+    fingerprint picks the smallest candidate set; each candidate loads
+    once per process through the public pipeline and answers on truth:
+    re-export facades (<code>ISQ</code> → <code>ISQBase</code>), star-imported members
+    (<code>import SI::*</code> + bare <code>kg</code> SHORT names, <code>&lt;Gy&gt; gray</code>), and unit
+    members classify correctly. Doc-scraped false leaves can no longer
+    prove existence.</li>
+<li>The fingerprint is <strong>lexical</strong> (packages, definitions, member usages,
+    <code>&lt;short&gt;</code> names — one line scan, 0.3 s over the bundled library) and
+    is shared with the index walk via <code>_leaves_on_line</code>, so the two
+    cannot drift. A cold resolver need therefore no longer pays the
+    scraped index's .kerml parse: facade-model <code>analyze</code> 56 s → 4 s cold,
+    LSP diagnostics subprocess 120 s → 66 s (the residual is the .kerml
+    index pass, #35), <code>tests/library_model_test.py</code> 156 s → 68 s.</li>
+<li>Wired into both resolver fallbacks and the <code>UNRESOLVED_IMPORT</code>
+    validators (leaf-level checks).</li>
+<li>Gate deltas (baseline 7890 errors / 940 warnings → PASS; fresh run
+    this release: 0 parse failures, 3369 errors / 2961 warnings):
+    UNDEFINED_SYMBOL 2079 → 58, IMPLICIT_LIBRARY_IMPORT 577 → 2598 — the
+    2,021 moved findings are unimported library-type uses inside the
+    bundled sources, re-classified from error (undefined symbol) to
+    intentional-import warning (advisory); UNRESOLVED_EXPRESSION_
+    IDENTIFIER 5640 → 3180 (the last 102 are unit SHORT names — <code>ft</code>,
+    <code>lb</code>, <code>lbf</code>, <code>Btu_IT</code> … — that the shared harvester now fingerprints);
+    UNRESOLVED_IMPORT 57 → 17. Every other code unchanged. Nothing
+    suppressed; parse failures 0.</li>
+<li>Only .sysml sources model-load this phase; the .kerml half stays
+    index-backed until its DFA cache (#35). <strong>Deferred follow-up
+    (documented):</strong> model-resolved import visibility (fresh SymbolTables
+    over library files) exploded warm analysis cost (~100 s/analysis
+    warm) when wired; deferred until the tables persist across
+    processes — <code>docs/v0.102-library-model-resolution.md</code> steps 5–7.</li>
+<li>Pins: <code>tests/library_model_test.py</code> (6).</li>
+</ul>
 <h2 id="01010-2026-10-31">0.101.0 (2026-10-31)<a class="headerlink" href="#01010-2026-10-31" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #27 (decision shipped): deterministic object-model identity.</strong>

@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01010" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -819,6 +830,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01020" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01010" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -982,10 +1004,22 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.101.0</strong> (2026-10-31)</p>
+<p>Current version: <strong>v0.102.0</strong> (2026-10-31, tagged)</p>
+<p>Current released version: <strong>v0.102.0</strong> (2026-10-31, on PyPI; 0.101.0 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01020">Recent Highlights (0.102.0)<a class="headerlink" href="#recent-highlights-01020" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #34 phase 1+2</strong>: the library fallback resolves through loaded
+  library models (facades, star-import visibility, SHORT names); gate
+  UNDEFINED_SYMBOL 2079 → 58 with the moved findings re-classified as
+  import warnings (advisory); fresh gate 0 parse failures, 3369 errors /
+  2961 warnings, PASS. The leaf fingerprint is lexical (0.3 s, shared
+  harvester) so a cold resolver need no longer pays the .kerml index
+  pass — facade-model <code>analyze</code> 56 s → 4 s cold. Plan record:
+  <code>docs/v0.102-library-model-resolution.md</code>.</li>
+</ul>
 <h2 id="recent-highlights-01010">Recent Highlights (0.101.0)<a class="headerlink" href="#recent-highlights-01010" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #27 identity decision shipped</strong>: anonymous members keep
