@@ -13,7 +13,7 @@ import dataclasses
 import os
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from sysmlpy.definition import Package
 
@@ -95,6 +95,16 @@ class LibrarySymbolIndex:
     _cache: Optional[frozenset[str]] = None
     _simple_names_cache: Optional[frozenset[str]] = None
     _library_roots: Optional[list[Path]] = None
+    #: side map filled during the walking extractors
+    #  (issue #34: on-demand resolution needs the file, the index has it)
+    _leaf_fp: "dict[str, set[str]]" = {}
+    _leaf_fingerprint: Optional[dict[str, set[str]]] = None
+    #: per-name resolution results (issue #34)
+    _exists_cache: "dict[str, bool]" = {}
+    #: resolved library namespace tables, per qn (issue #34)
+    _namespace_tables: "dict[str, Any]" = {}
+    #: filepath fingerprint -> loaded model (per process; issue #34)
+    _loaded_models: "dict[str, Any]" = {}
 
     @classmethod
     def get_symbols(
@@ -170,6 +180,61 @@ class LibrarySymbolIndex:
 
         return None
 
+    # issue #34: member USAGES also fingerprint — the unit members are
+    # bare `attribute <kg> kilogram : MassUnit` lines (not defs), and
+    # short-name/leaf resolution needs them
+    _MEMBER_RE = re.compile(
+        r'^\s*(?:public\s+|private\s+|protected\s+)?'
+        r'(?:abstract\s+|variation\s+|constant\s+|derived\s+|)'
+        r'(attribute|part|item|port|action|state|calc|requirement|'
+        r'constraint|interface|connection|flow|actor|perform|exhibit)\b')
+
+    @classmethod
+    def _leaves_on_line(cls, stripped: str) -> list[str]:
+        """Leaf simple names a single source line declares (issue #34).
+
+        Package / definition / member-usage names, plus any SHORT name
+        written as ``<kg>`` (``attribute <kg> kilogram : MassUnit``
+        declares both ``kilogram`` and ``kg``).  Shared by the index
+        walk and the lexical fingerprint walk so the two cannot drift.
+        """
+        leaves: list[str] = []
+
+        def _add(name: str) -> None:
+            name = name.strip().strip("'\"").strip()
+            if name and name not in leaves:
+                leaves.append(name)
+
+        matched = False
+        pkg_match = _PACKAGE_RE.search(stripped)
+        if pkg_match:
+            _add(pkg_match.group(1))
+            matched = True
+        else:
+            def_match = _DEFINITION_RE.search(stripped)
+            if def_match:
+                _add(def_match.group(1))
+                matched = True
+            else:
+                mem_match = cls._MEMBER_RE.match(stripped)
+                if mem_match:
+                    tail = stripped[mem_match.end():].strip()
+                    m2 = re.match(
+                        r"(?:<([^<>]+)>\s*\(?)?"
+                        r"('(?:[^'])+'|[A-Za-z_][\w']*)?", tail)
+                    if m2:
+                        if m2.group(2):
+                            _add(m2.group(2))
+                            matched = True
+                        if m2.group(1):
+                            _add(m2.group(1))
+                            matched = True
+        if matched:
+            _short = re.search(r"<([^<>]+)>", stripped)
+            if _short:
+                _add(_short.group(1))
+        return leaves
+
     @classmethod
     def _extract_from_file(cls, filepath: Path, symbols: set[str]) -> None:
         """Extract symbol names from a single library file.
@@ -212,6 +277,8 @@ class LibrarySymbolIndex:
                 # The package itself is a symbol
                 if len(package_stack) > 1:
                     symbols.add("::".join(name for name, _ in package_stack))
+                # issue #34: fingerprint the package leaf → this file
+                cls._leaf_fp.setdefault(pkg_name, set()).add(str(filepath))
 
             # Check for definitions (use current package context)
             def_match = _DEFINITION_RE.search(stripped)
@@ -220,12 +287,287 @@ class LibrarySymbolIndex:
                 qualified = "::".join(name for name, _ in package_stack) + "::" + def_name
                 symbols.add(qualified)
 
+            # issue #34: fingerprint every leaf this line declares — the
+            # line's package/definition/member-usage name plus any SHORT
+            # name in `<>` (SI's ``attribute <kg> kilogram : MassUnit``)
+            for _leaf in cls._leaves_on_line(stripped):
+                cls._leaf_fp.setdefault(_leaf, set()).add(str(filepath))
+
             # Update brace depth
             brace_depth += open_braces - close_braces
 
             # Pop packages that have been closed
             while package_stack and package_stack[-1][1] >= brace_depth:
                 package_stack.pop()
+
+    @classmethod
+    def _leaf_fp_from_file(cls, filepath):
+        """Fingerprint one .sysml file lexically (no parse; issue #34).
+
+        Every package name, definition name and member-usage name in the
+        file's text — plus declared short names in `<>` — maps to this
+        file, so a failing reference finds its defining file without a
+        parse pass. The truth decision stays with the loaded-model
+        membership check that follows. (.kerml sources are not
+        fingerprinted here: they never model-load this phase; their
+        leaves arrive through ``_extract_kerml_parsed``.)
+        """
+        try:
+            content = filepath.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return
+        fp = cls._leaf_fp
+        file_key = str(filepath)
+        for raw in content.splitlines():
+            stripped = raw.strip()
+            if not stripped or stripped.startswith(("doc", "/*", "*", "//")):
+                continue
+            for leaf in cls._leaves_on_line(stripped):
+                fp.setdefault(leaf, set()).add(file_key)
+
+    @classmethod
+    def _fingerprint_for(cls, roots) -> dict[str, set[str]]:
+        """Leaf simple name → source path strings that mention it (issue #34).
+
+        Populated as a side effect of the extractors
+        (``_extract_from_file`` / ``_extract_kerml_parsed``), which
+        ``get_symbols()`` drives over every candidate file — so when the
+        symbol index is already built the fingerprint is just a snapshot
+        of that walk.  Otherwise the same leaves are harvested by a
+        lexical walk (no .kerml parse), which is what keeps a first
+        resolver need cheap in a cold process (LSP analysis).
+        """
+        if cls._leaf_fingerprint is None:
+            if cls._cache is None:
+                for (filepath, _is_kerml) in cls._candidate_files(roots):
+                    if _is_kerml:
+                        continue
+                    cls._leaf_fp_from_file(filepath)
+            cls._leaf_fingerprint = dict(cls._leaf_fp)
+        return cls._leaf_fp
+
+    @classmethod
+    def _candidate_files(cls, roots) -> list[tuple[Path, bool]]:
+        """(path, is_kerml) pairs for the default/current library roots."""
+        out = []
+        resolved = cls._resolve_roots(None) if roots is None else (
+            [roots] if isinstance(roots, Path) else list(roots))
+        for root in resolved or []:
+            if not root.is_dir():
+                continue
+            for ext, is_kerml in (("*.kerml", True), ("*.sysml", False)):
+                for filepath in root.rglob(ext):
+                    out.append((filepath, is_kerml))
+        return out
+
+    @classmethod
+    def _model_for_file(cls, fp_key: str) -> "Any | None":
+        """Load (once per process) the model of a fingerprinted source file.
+
+        Issue #34 shared helper for both ``model_for_name`` and
+        :meth:`library_namespace_table` — .sysml sources only this phase.
+        """
+        if not fp_key.endswith(".sysml"):
+            return None
+        if fp_key in cls._loaded_models:
+            return cls._loaded_models[fp_key]
+        try:
+            import sysmlpy as _sysmlpy
+            model = _sysmlpy.loads(Path(fp_key).read_text(encoding="utf-8"))
+        except Exception:
+            cls._loaded_models[fp_key] = None
+            return None
+        cls._loaded_models[fp_key] = model
+        return model
+
+    @classmethod
+    def model_for_name(
+        cls,
+        lib_roots: Optional[Path | Sequence[Path]] = None,
+        leaf_names: Optional[set[str]] = None,
+    ) -> "list[Any]":
+        """Load the smallest set of library models that declare *leaf_names*.
+
+        Issue #34 (resolver truth): instead of asking a scraped index
+        whether a name exists, actually load and check the declaring
+        model.  Candidates come from the fingerprint (leaf → file);
+        each candidate is loaded once per process through the public
+        pipeline (DFA-cached, so warm parses are cheap) and cached by
+        file fingerprint.
+
+        Only .sysml files model-load this phase; .kerml sources stay
+        index-only until #35 (their DFA cache) makes the cold cost sane.
+        """
+        # NB (issue #34): do NOT build the scraped name index here.  Its
+        # .kerml parse costs ~55 s cold, and the fingerprint is now a
+        # lexical walk (~0.3 s) — the resolver's later scraped-index
+        # fallback still builds it when a name actually needs it.
+        if cls._leaf_fingerprint is None:
+            cls._fingerprint_for(lib_roots)
+        fp = cls._leaf_fp
+        wanted = leaf_names or set()
+        files: set[str] = set()
+        for leaf in wanted:
+            files |= fp.get(leaf, set())
+        models = []
+        for fp_key in sorted(files):
+            if not fp_key.endswith(".sysml"):
+                continue
+            cached = cls._loaded_models.get(fp_key)
+            if cached is not None:
+                models.append(cached)
+                continue
+            try:
+                import sysmlpy as _sysmlpy
+                model = _sysmlpy.loads(
+                    Path(fp_key).read_text(encoding="utf-8"))
+            except Exception:
+                cls._loaded_models[fp_key] = None
+                continue
+            cls._loaded_models[fp_key] = model
+            models.append(model)
+        return [m for m in models if m is not None]
+
+    @classmethod
+    def library_namespace_table(
+        cls,
+        qn_str: str,
+        lib_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> "Any | None":
+        """The SymbolTable of a library namespace (issue #34).
+
+        The user model's namespace import resolves against a REAL
+        library model: the defining file loads through the public
+        pipeline (DFA-cached; process-cached here) and a fresh
+        SymbolTable walks it; the descent follows the namespace's own
+        package names.  ``None`` when no library source defines it (the
+        caller keeps the scraped-index fallback).
+        """
+        if not qn_str:
+            return None
+        cached = cls._namespace_tables.get(qn_str)
+        if cached is not None:
+            return cached
+        fp = cls._fingerprint_for(lib_roots)
+        first = qn_str.split("::")[0]
+        candidates: set[str] = {fp_key for fp_key in fp.get(first, set())
+                                if fp_key.endswith(".sysml")}
+        table_cls = type(SymbolTable())
+        for fp_key in sorted(candidates):
+            model = cls._model_for_file(fp_key)
+            if model is None:
+                continue
+            table = table_cls()
+            table.build_from_model(model, [])
+            cur = table
+            found = True
+            for seg in qn_str.split("::"):
+                child = cur._children.get(seg)
+                if child is None:
+                    found = False
+                    break
+                cur = child
+            if found and cur is not table:
+                cls._namespace_tables.setdefault(qn_str, cur)
+                return cur
+        cls._namespace_tables[qn_str] = None
+        return None
+
+    @classmethod
+    def exists_in_loaded_model(
+        cls,
+        ref_str: str,
+        lib_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> bool:
+        """Does *ref_str* (simple or short name) exist in a real library model?
+
+        The resolving semantics are the loaded model's own (facades,
+        star-import visibility, unit members and SHORT names all carry
+        their true structure); the scraped index remains the final
+        fallback in the callers, so a .kerml-only name is unaffected.
+        """
+        if not ref_str:
+            return False
+        cached_hit = cls._exists_cache.get(ref_str)
+        if cached_hit is not None:
+            return cached_hit
+        result = False
+        models = cls.model_for_name(lib_roots, {ref_str})
+        for model in models:
+            # walk the candidate model once per (model, batch of names):
+            # declared name OR declared SHORT name — `kg` rides SI's
+            # ``attribute <kg> kilogram`` identification as `<kg>`
+            hit = False
+            for el in model.find():
+                nm = getattr(el, "name", None)
+                if nm == ref_str:
+                    hit = True
+                    break
+                sn = getattr(el, "shortname", None)
+                if sn == ref_str:
+                    hit = True
+                    break
+                gsn = getattr(el, "req_shortname", None)
+                if gsn == ref_str:
+                    hit = True
+                    break
+                # the grammar's identification carries the short name
+                # (`<kg>`) — strip the angle brackets before comparing
+                for gsn2 in cls._grammar_short_names(el):
+                    if gsn2 == ref_str:
+                        hit = True
+                        break
+                if hit:
+                    break
+            if hit:
+                result = True
+                break
+        cls._exists_cache[ref_str] = result
+        return result
+
+    @classmethod
+    def _grammar_short_names(cls, el) -> list[str]:
+        """Short names recorded on the element's grammar identification.
+
+        The identification stores the literal `<kg>` spelling (angle
+        brackets included); strip them for name comparison.  Declaration
+        chains only — no containment descent (bodies belong to children).
+        """
+        out: list[str] = []
+        g = getattr(el, "grammar", None)
+
+        def harvest(node, depth=0):
+            if node is None or depth > 6 or len(out) > 8:
+                return
+            sn = getattr(node, "declaredShortName", None)
+            if sn:
+                s = str(sn).strip()
+                if s.startswith("<") and s.endswith(">"):
+                    s = s[1:-1].strip()
+                if s and s not in out:
+                    out.append(s)
+            for key in ("usage", "declaration", "identification"):
+                sub = getattr(node, key, None)
+                if isinstance(sub, str) or sub is None:
+                    continue
+                if hasattr(sub, "__children__"):
+                    # containment edge — names below belong to children
+                    continue
+                harvest(sub, depth + 1)
+
+        harvest(g)
+        return out
+
+    @classmethod
+    def clear_cache(cls) -> None:
+        """Clear the cached symbol index (useful for testing)."""
+        cls._cache = None
+        cls._simple_names_cache = None
+        cls._leaf_fingerprint = None
+        cls._leaf_fp = {}
+        cls._loaded_models = {}
+        cls._namespace_tables = {}
+        cls._exists_cache = {}
 
     @classmethod
     def _extract_kerml_parsed(cls, filepath: Path, symbols: set[str]) -> None:
@@ -266,8 +608,13 @@ class LibrarySymbolIndex:
                     # operator-named functions carry quoted names
                     # ('all', '=='); strip to the bare form to match the
                     # historical regex-scraped spellings
-                    symbols.add("::".join(
-                        namespace + [nm.strip("'\"")]))
+                    bare = nm.strip("'\"")
+                    symbols.add("::".join(namespace + [bare]))
+                    # issue #34: fingerprint the leaf → this file
+                    cls._leaf_fp.setdefault(bare, set()).add(str(filepath))
+                    if namespace:
+                        cls._leaf_fp.setdefault(
+                            namespace[-1], set()).add(str(filepath))
                 for c in el.get("children", []):
                     walk(c, namespace + ([nm.strip("'\"")] if nm else []))
 
@@ -321,11 +668,6 @@ class LibrarySymbolIndex:
         )
         return cls._simple_names_cache
 
-    @classmethod
-    def clear_cache(cls) -> None:
-        """Clear the cached symbol index (useful for testing)."""
-        cls._cache = None
-        cls._simple_names_cache = None
 
 
 # Backwards-compatible constant (populated lazily from library files)
@@ -680,6 +1022,10 @@ class SymbolTable:
                 self._recursive_import(target_table, table, visibility)
         else:
             # Fall back to LibrarySymbolIndex for library namespaces
+            # (issue #34 note: a full model-resolved import — visibility
+            # via fresh SymbolTables over library files — exploded warm
+            # analysis cost and is deferred to the persisted-table
+            # follow-up documented in docs/v0.102-library-model-resolution.md)
             prefix = ref_str + "::"
             lib_symbols = LibrarySymbolIndex.get_symbols(lib_roots)
             for sym in lib_symbols:
@@ -3078,6 +3424,12 @@ class SemanticAnalyzer:
             return
         if ref_str in _KNOWN_LIBRARY_SYMBOLS:
             return
+        # issue #34: a real library model decides before the report — the
+        # target may be a facade-re-exported member the index lacks
+        _leaf = ref_str.split("::")[-1]
+        if _leaf and LibrarySymbolIndex.exists_in_loaded_model(
+                _leaf, lib_roots):
+            return
         
         element = symtab._resolve_qualified_name(ref_str, table)
         if element is None:
@@ -3118,6 +3470,11 @@ class SemanticAnalyzer:
         # Also check if any library symbol starts with this namespace
         lib_symbols = LibrarySymbolIndex.get_symbols(lib_roots)
         if any(sym.startswith(ref_str + "::") for sym in lib_symbols):
+            return
+        # issue #34: a real library model decides before the report — the
+        # namespace may be a facade the index scraped incompletely
+        if LibrarySymbolIndex.exists_in_loaded_model(
+                ref_str.split("::")[-1], lib_roots):
             return
         
         target_table = symtab._find_namespace_table(ref_str, table)
@@ -3206,6 +3563,11 @@ class SemanticAnalyzer:
         ):
             return True
 
+        # issue #34: a real library model decides before the scraped
+        # index — facades / star-imported members resolve on truth.
+        if LibrarySymbolIndex.exists_in_loaded_model(ref_str, lib_roots):
+            return True
+
         if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
             return True
         if ref_str in _KNOWN_LIBRARY_SIMPLE_NAMES:
@@ -3274,6 +3636,10 @@ class SemanticAnalyzer:
             ref_str, symtab, element
         ):
             return False
+
+        # issue #34: a real library model decides before the scraped index
+        if LibrarySymbolIndex.exists_in_loaded_model(ref_str, lib_roots):
+            return True
 
         if ref_str in LibrarySymbolIndex.get_simple_names(lib_roots):
             return True

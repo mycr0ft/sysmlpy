@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 0.102.0 (2026-10-31)
+
+- **Issue #34 (phase 1+2): the analyzer's library fallback resolves
+  through loaded library MODELS**, not the scraped name index.
+  - `LibrarySymbolIndex.exists_in_loaded_model(name)` — a leaf → file
+    fingerprint picks the smallest candidate set; each candidate loads
+    once per process through the public pipeline and answers on truth:
+    re-export facades (`ISQ` → `ISQBase`), star-imported members
+    (`import SI::*` + bare `kg` SHORT names, `<Gy> gray`), and unit
+    members classify correctly. Doc-scraped false leaves can no longer
+    prove existence.
+  - The fingerprint is **lexical** (packages, definitions, member usages,
+    `<short>` names — one line scan, 0.3 s over the bundled library) and
+    is shared with the index walk via `_leaves_on_line`, so the two
+    cannot drift. A cold resolver need therefore no longer pays the
+    scraped index's .kerml parse: facade-model `analyze` 56 s → 4 s cold,
+    LSP diagnostics subprocess 120 s → 66 s (the residual is the .kerml
+    index pass, #35), `tests/library_model_test.py` 156 s → 68 s.
+  - Wired into both resolver fallbacks and the `UNRESOLVED_IMPORT`
+    validators (leaf-level checks).
+  - Gate deltas (baseline 7890 errors / 940 warnings → PASS; fresh run
+    this release: 0 parse failures, 3369 errors / 2961 warnings):
+    UNDEFINED_SYMBOL 2079 → 58, IMPLICIT_LIBRARY_IMPORT 577 → 2598 — the
+    2,021 moved findings are unimported library-type uses inside the
+    bundled sources, re-classified from error (undefined symbol) to
+    intentional-import warning (advisory); UNRESOLVED_EXPRESSION_
+    IDENTIFIER 5640 → 3180 (the last 102 are unit SHORT names — `ft`,
+    `lb`, `lbf`, `Btu_IT` … — that the shared harvester now fingerprints);
+    UNRESOLVED_IMPORT 57 → 17. Every other code unchanged. Nothing
+    suppressed; parse failures 0.
+  - Only .sysml sources model-load this phase; the .kerml half stays
+    index-backed until its DFA cache (#35). **Deferred follow-up
+    (documented):** model-resolved import visibility (fresh SymbolTables
+    over library files) exploded warm analysis cost (~100 s/analysis
+    warm) when wired; deferred until the tables persist across
+    processes — `docs/v0.102-library-model-resolution.md` steps 5–7.
+  - Pins: `tests/library_model_test.py` (6).
+
 ## 0.101.0 (2026-10-31)
 
 - **Issue #27 (decision shipped): deterministic object-model identity.**

@@ -1,12 +1,25 @@
 # sysmlpy — Project Status
 
-Current version: **v0.101.0** (2026-10-31)
+Current version: **v0.102.0** (2026-10-31, tagged)
+
+Current released version: **v0.102.0** (2026-10-31, on PyPI; 0.101.0 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.0)
+
+- **Issue #34 phase 1+2**: the library fallback resolves through loaded
+  library models (facades, star-import visibility, SHORT names); gate
+  UNDEFINED_SYMBOL 2079 → 58 with the moved findings re-classified as
+  import warnings (advisory); fresh gate 0 parse failures, 3369 errors /
+  2961 warnings, PASS. The leaf fingerprint is lexical (0.3 s, shared
+  harvester) so a cold resolver need no longer pays the .kerml index
+  pass — facade-model `analyze` 56 s → 4 s cold. Plan record:
+  `docs/v0.102-library-model-resolution.md`.
 
 ## Recent Highlights (0.101.0)
 
