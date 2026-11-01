@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01021-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.1 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01020-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -918,6 +929,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01021-2026-10-31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.1 (2026-10-31)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01020-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1202,6 +1224,36 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01021-2026-10-31">0.102.1 (2026-10-31)<a class="headerlink" href="#01021-2026-10-31" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #37 (reported by failys): qualified references into an IMPORTED
+  namespace resolve.</strong> <code>::&gt; type = InterfaceType::required;</code> — with
+  <code>InterfaceType</code> visible only through <code>private import LIB::*</code> — was
+  reported as <code>UNRESOLVED_EXPRESSION_IDENTIFIER</code>, twice per use (the
+  value-owning <code>Port</code> and the redefining <code>Reference</code>).</li>
+<li>Root cause: the qualified-name descent resolved the head name, then
+    asked <code>_find_symbol_owner(head)</code> — which answers <em>where the name is
+    visible</em> (the importing scope) — and looked for the namespace in that
+    scope's <code>_children</code>. An imported namespace's member table belongs to
+    its DEFINING package (<code>LIB::InterfaceType</code>), so the descent never
+    reached <code>required</code>.</li>
+<li>Fix: <code>SymbolTable</code> records element → member-table at build time
+    (<code>_element_scopes</code>, kept on the root table; <code>_scope_for_member</code>
+    consults it after the existing child/owner lookups), and all three
+    descents use it (<code>_resolve_qualified_name</code>, <code>_find_namespace_table</code>,
+    <code>_is_resolved</code>). The final segment stays "the resolved element" — no
+    child namespace is required for it.</li>
+<li>Not leniency: a bogus member (<code>E::nope</code>) is still reported, and the
+    reporter's model validates clean under Open-MBEE's OpenSysML
+    (<code>-validate -strict</code>), confirming the finding was ours.</li>
+<li>Pins: <code>tests/issue37_test.py</code> (5 — the reporter's model, named-import
+    and same-package forms, the negative case, and a symbol-table pin that
+    the resolver returns the <code>EnumeratedValue</code> member).</li>
+<li>Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS
+    (identical per-code histogram — the pattern does not occur in the
+    bundled corpus). Affected suites 372 passed; full suite 1802 passed /
+    79 skipped.</li>
+</ul>
 <h2 id="01020-2026-10-31">0.102.0 (2026-10-31)<a class="headerlink" href="#01020-2026-10-31" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #34 (phase 1+2): the analyzer's library fallback resolves
