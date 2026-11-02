@@ -1,14 +1,25 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.2** (2026-11-01, tagged)
+Current version: **v0.102.3** (2026-11-01, tagged)
 
-Current released version: **v0.102.2** (2026-11-01, on PyPI; 0.102.1 superseded)
+Current released version: **v0.102.3** (2026-11-01, on PyPI; 0.102.2 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.3)
+
+- **Issue #35 fixed**: the KerML parser now uses the persistent DFA cache, per
+  grammar family (`dfa-<key>.pkl` SysML — historical name kept — and
+  `dfa-kerml-<key>.pkl`). A target is only loaded/saved when its parser ran,
+  and an `atexit` hook re-saves when the run warmed more states than the file,
+  so a multi-file library walk converges instead of half-caching.
+  Measured: index 51 s → 26 s, post-index analysis 59 s → 1.7 s,
+  `Occurrences.kerml` 13.7 s → 3.3 s, full suite 34m44s → 23m04s.
+  Pins: `tests/issue35_test.py` (7). Gate unchanged (3369/2961, PASS).
 
 ## Recent Highlights (0.102.2)
 

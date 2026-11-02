@@ -1,5 +1,44 @@
 # CHANGELOG
 
+## 0.102.3 (2026-11-01)
+
+- **Issue #35: the KerML parser shares the persistent DFA cache.** `dfa_cache`
+  covered only the SysML parser, so every KerML corpus run and every
+  library-index walk re-derived the prediction structures cold
+  (`Occurrences.kerml` ~14 s per parse, every process).
+  - The cache is now per grammar family: each target has its own key and file,
+    derived from its own serialized ATNs (plus ANTLR runtime + version), so a
+    SysML grammar change can never invalidate or corrupt the KerML cache and
+    vice versa. SysML keeps its historical `dfa-<key>.pkl` name (caches written
+    by earlier releases stay valid); KerML writes `dfa-kerml-<key>.pkl`.
+  - A target is only loaded/saved when its parser actually ran in the process
+    (`used`), so a SysML-only run never imports the KerML classes or touches
+    its file.
+  - **Exit-time re-save:** the once-per-process save landed after the FIRST
+    parse of a run, so a library-index walk persisted 558 of the 1,622 states
+    it warmed. `maybe_load`/`maybe_save` now register an `atexit` hook that
+    re-saves each used target when its in-process DFA is strictly warmer than
+    the file — the multi-file walk converges instead of half-caching.
+  - Measured (fresh processes, bundled library): `LibrarySymbolIndex.get_symbols`
+    51 s → 26 s; the analysis that follows a warm index 59 s → 1.7 s;
+    `Occurrences.kerml` 13.7 s → 3.3 s; full test suite 34m44s → 23m04s.
+  - `dfa_cache` API: `cache_key/cache_file/load_dfa_cache/save_dfa_cache/
+    maybe_load/maybe_save/stats` take an optional `target` (`"sysml"` default,
+    so every existing call and cache stays valid); `targets()` lists the
+    families. Cache problems still never break a parse (`maybe_*` swallow).
+  - Fixed en route: the generated parsers define `serializedATN()` at MODULE
+    level — keying on the class attribute raises `AttributeError`, which the
+    new `_serialized_atn()` resolves (module first, class fallback).
+  - Docs: README's "Parse Performance and the DFA Cache" now covers both
+    grammars and the measured numbers.
+  - Pins: `tests/issue35_test.py` (7 — per-target keys/files, save→load, the
+    SysML/KerML file isolation, the disable flag, the never-raise contract, and
+    a subprocess pin that the exit hook persists the whole corpus walk). The
+    `dfa_cache_test` monkeypatch of `cache_file` accepts the new `target`
+    keyword.
+  - Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS. Full
+    suite 1815 passed / 79 skipped.
+
 ## 0.102.2 (2026-11-01)
 
 - **Issue #30 (reported downstream by the CARTA team): allocation usages and

@@ -12,6 +12,12 @@ This module serializes the warmed parser + lexer ATN/DFA graphs with
 ``pickle`` after a successful parse and reinstalls them at the start of
 subsequent processes, eliminating the cold start.
 
+Both grammars are covered (#35): the SysML v2 parser/lexer and the KerML
+parser/lexer (``sysmlpy.kerml``) each have their own key and cache file,
+so a grammar change in one never invalidates the other.  A target is only
+loaded/saved when its parser was actually used in this process — the
+SysML path never imports the KerML classes, and vice versa.
+
 Design notes
 ------------
 * The *whole* reachable graph is pickled (ATN objects, DFA states, the
@@ -44,18 +50,38 @@ from typing import Any, Dict, Optional, Tuple
 _CACHE_PROTOCOL = 4          # stable across Python 3.8+; avoids protocol drift
 _MAX_CACHE_BYTES = 256 * 1024 * 1024   # refuse absurd cache files on load
 
+#: Grammar families with their own parser/lexer pair and cache file.
+#  Each target is keyed by its own serialized ATNs, so a SysML grammar
+#  change never invalidates (or corrupts) the KerML cache and vice versa
+#  (#35: KerML used to parse cold on every run — Occurrences.kerml ~11 s).
+_TARGETS = ("sysml", "kerml")
+
 # RLock: stats()/set_dfa_cache() re-enter while held
 _lock = threading.RLock()
 _state: Dict[str, Any] = {
     "enabled": None,        # None = not overridden by set_dfa_cache()
     "directory": None,      # None = default (env/XDG/~/.cache/sysmlpy)
-    "load_attempted": False,
-    "loaded": False,
-    "file_states": 0,       # DFA states in the cache file at load time
-    "save_attempted": False,
-    "saved": False,
-    "saved_states": 0,
+    #: per-target load/save bookkeeping, see ``_tstate``
+    "targets": {},
+    #: targets whose parser actually ran in this process (exit-hook scope)
+    "used": set(),
 }
+
+
+def _tstate(target: str = "sysml") -> Dict[str, Any]:
+    """Per-target bookkeeping dict (created on demand)."""
+    with _lock:
+        states = _state["targets"]
+        if target not in states:
+            states[target] = {
+                "load_attempted": False,
+                "loaded": False,
+                "file_states": 0,     # DFA states in the cache file at load
+                "save_attempted": False,
+                "saved": False,
+                "saved_states": 0,
+            }
+        return states[target]
 
 
 # ---------------------------------------------------------------------------
@@ -142,16 +168,18 @@ def _cache_directory() -> str:
     return os.path.join(root, "sysmlpy")
 
 
-def cache_key() -> str:
-    """Stable key binding the cache file to the grammar + runtime."""
+def cache_key(target: str = "sysml") -> str:
+    """Stable key binding one target's cache file to its grammar + runtime."""
     import antlr4 as _antlr4
-    from sysmlpy.antlr import SysMLv2Lexer, SysMLv2Parser
 
+    P, L = _target_classes(target)
+    Pmod, Lmod = _target_modules(target)
     parts = [
-        SysMLv2Parser.serializedATN(),
-        SysMLv2Lexer.serializedATN(),
-        getattr(SysMLv2Parser, "grammarFileName", "SysMLv2Parser.g4"),
-        getattr(SysMLv2Lexer, "grammarFileName", "SysMLv2Lexer.g4"),
+        target,
+        _serialized_atn(Pmod, P),
+        _serialized_atn(Lmod, L),
+        getattr(P, "grammarFileName", target + "Parser.g4"),
+        getattr(L, "grammarFileName", target + "Lexer.g4"),
         "antlr4=" + getattr(_antlr4, "__version__", "unknown"),
         "sysmlpy=" + _sysmlpy_version(),
         f"pickle={_CACHE_PROTOCOL}",
@@ -174,10 +202,16 @@ def _sysmlpy_version() -> str:
         return "unknown"
 
 
-def cache_file() -> str:
-    """Full path of the DFA cache file for this grammar version."""
+def cache_file(target: str = "sysml") -> str:
+    """Full path of the DFA cache file for this target's grammar version.
+
+    The SysML file keeps its historical ``dfa-<key>.pkl`` name so caches
+    written by earlier releases stay valid; every other family is prefixed
+    with its name (``dfa-kerml-<key>.pkl``).
+    """
+    prefix = "dfa" if target == "sysml" else "dfa-" + target
     return os.path.join(_cache_directory(),
-                        "dfa-%s.pkl" % cache_key()[:16])
+                        "%s-%s.pkl" % (prefix, cache_key(target)[:16]))
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +219,12 @@ def cache_file() -> str:
 # ---------------------------------------------------------------------------
 
 
-def _classes() -> Tuple[type, type]:
+def _target_classes(target: str = "sysml") -> Tuple[type, type]:
+    """(parser, lexer) classes for a grammar family."""
+    if target == "kerml":
+        from sysmlpy.kerml.KerMLLexer import KerMLLexer as _Lexer
+        from sysmlpy.kerml.KerMLParser import KerMLParser as _Parser
+        return _Parser, _Lexer
     # NB: ``sysmlpy.antlr`` is a namespace package whose submodule names
     # shadow the class names — import the classes from their modules
     from sysmlpy.antlr.SysMLv2Lexer import SysMLv2Lexer as _Lexer
@@ -193,9 +232,42 @@ def _classes() -> Tuple[type, type]:
     return _Parser, _Lexer
 
 
-def _payload() -> Tuple[Any, ...]:
+def _target_modules(target: str = "sysml") -> Tuple[Any, Any]:
+    """(parser_module, lexer_module) — where ANTLR puts ``serializedATN()``.
+
+    The generated code defines ``serializedATN`` as a MODULE-level function
+    (the class carries only ``atn``/``decisionsToDFA``); keying on the class
+    attribute silently fails, so resolve the modules explicitly.
+    """
+    if target == "kerml":
+        import sysmlpy.kerml.KerMLLexer as _Lmod
+        import sysmlpy.kerml.KerMLParser as _Pmod
+        return _Pmod, _Lmod
+    import sysmlpy.antlr.SysMLv2Lexer as _Lmod
+    import sysmlpy.antlr.SysMLv2Parser as _Pmod
+    return _Pmod, _Lmod
+
+
+def _serialized_atn(module: Any, cls: type) -> Any:
+    """The serialized ATN for a generated parser/lexer (see above)."""
+    fn = getattr(module, "serializedATN", None)
+    if callable(fn):
+        return fn()
+    fn = getattr(cls, "serializedATN", None)
+    if callable(fn):
+        return fn()
+    raise AttributeError(
+        f"{getattr(cls, '__name__', cls)} exposes no serializedATN()")
+
+
+def _classes() -> Tuple[type, type]:
+    """Backwards-compatible alias for the SysML parser/lexer pair."""
+    return _target_classes("sysml")
+
+
+def _payload(target: str = "sysml") -> Tuple[Any, ...]:
     """The pickled state: parser + lexer ATN/DFA/context-cache attrs."""
-    P, L = _classes()
+    P, L = _target_classes(target)
     return (P.atn, P.decisionsToDFA, P.sharedContextCache,
             L.atn, L.decisionsToDFA)
 
@@ -292,10 +364,10 @@ def _rebind_empty_contexts(payload: Tuple[Any, ...]) -> Tuple[Any, ...]:
     return (payload[0], payload[1], rebuilt, payload[3], payload[4])
 
 
-def _install(payload: Tuple[Any, ...]) -> None:
+def _install(payload: Tuple[Any, ...], target: str = "sysml") -> None:
     payload = _rebind_empty_contexts(payload)
     P_atn, P_dfa, P_ctx, L_atn, L_dfa = payload
-    P, L = _classes()
+    P, L = _target_classes(target)
     P.atn = P_atn
     P.decisionsToDFA = P_dfa
     P.sharedContextCache = P_ctx
@@ -303,21 +375,23 @@ def _install(payload: Tuple[Any, ...]) -> None:
     L.decisionsToDFA = L_dfa
 
 
-def load_dfa_cache(path: Optional[str] = None) -> bool:
+def load_dfa_cache(path: Optional[str] = None,
+                   target: str = "sysml") -> bool:
     """Try to install a persisted DFA cache.  Returns True on success.
 
-    Safe to call repeatedly (loads at most once per process) and never
-    raises: any problem falls back to the normal uncached path with a
-    one-time warning.
+    Safe to call repeatedly (loads at most once per process per target)
+    and never raises: any problem falls back to the normal uncached path
+    with a one-time warning.
     """
+    state = _tstate(target)
     with _lock:
-        if _state["load_attempted"]:
-            return _state["loaded"]
-        _state["load_attempted"] = True
+        if state["load_attempted"]:
+            return state["loaded"]
+        state["load_attempted"] = True
     if not is_enabled():
         return False
-    path = path or cache_file()
     try:
+        path = path or cache_file(target)
         if not os.path.isfile(path):
             return False
         if os.path.getsize(path) > _MAX_CACHE_BYTES:
@@ -329,9 +403,9 @@ def load_dfa_cache(path: Optional[str] = None) -> bool:
         file_states = sum(len(dfa.states) for dfa in payload[1])
         file_states += sum(len(dfa.states) for dfa in payload[4])
         with _lock:
-            _install(payload)
-            _state["loaded"] = True
-            _state["file_states"] = file_states
+            _install(payload, target)
+            state["loaded"] = True
+            state["file_states"] = file_states
         return True
     except Exception as exc:
         warnings.warn(
@@ -340,34 +414,38 @@ def load_dfa_cache(path: Optional[str] = None) -> bool:
         return False
 
 
-def save_dfa_cache(path: Optional[str] = None) -> bool:
-    """Persist the (warm) DFA cache.  Returns True when written.
+def save_dfa_cache(path: Optional[str] = None,
+                   target: str = "sysml",
+                   force: bool = False) -> bool:
+    """Persist one target's (warm) DFA cache.  Returns True when written.
 
     Never raises; failures degrade to a one-time warning.  Skipped when
-    the cache is disabled or nothing new to save.
+    the cache is disabled or nothing new to save.  ``force`` re-attempts a
+    save in a process that already saved (the exit hook uses it), still
+    only when the in-process DFA is strictly warmer than the file.
     """
+    state = _tstate(target)
     with _lock:
-        if _state["save_attempted"]:
-            return _state["saved"]
-        _state["save_attempted"] = True
+        if state["save_attempted"] and not force:
+            return state["saved"]
+        state["save_attempted"] = True
     if not is_enabled():
         return False
-    path = path or cache_file()
     try:
-        warm_states = sum(len(dfa.states) for dfa in _payload()[1])
-        warm_states += sum(len(dfa.states) for dfa in _payload()[4])
+        path = path or cache_file(target)
+        warm_states = sum(len(dfa.states) for dfa in _payload(target)[1])
+        warm_states += sum(len(dfa.states) for dfa in _payload(target)[4])
         with _lock:
-            file_states = _state["file_states"]
+            file_states = state["file_states"]
         if os.path.isfile(path) and warm_states <= file_states:
             # Nothing learned beyond what the file already holds.
             with _lock:
-                _state["saved"] = False
+                state["saved"] = False
             return False
         # Fresh write, or a strictly warmer in-process cache: supersede
         # the file so DFA states learned since its last write (e.g. new
         # grammar paths like the short-name `<...>` forms) persist.
-        P, L = _classes()
-        payload = _payload()
+        payload = _payload(target)
         blob = pickle.dumps(payload, protocol=_CACHE_PROTOCOL)
         states = sum(len(dfa.states) for dfa in payload[1])
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -376,8 +454,8 @@ def save_dfa_cache(path: Optional[str] = None) -> bool:
             f.write(blob)
         os.replace(tmp, path)
         with _lock:
-            _state["saved"] = True
-            _state["saved_states"] = states
+            state["saved"] = True
+            state["saved_states"] = states
         return True
     except Exception as exc:
         warnings.warn(
@@ -386,36 +464,96 @@ def save_dfa_cache(path: Optional[str] = None) -> bool:
         return False
 
 
-def maybe_load() -> None:
-    """Lazy hook: attempt the cache load once per process."""
-    load_dfa_cache()
+def maybe_load(target: str = "sysml") -> None:
+    """Lazy hook: attempt the cache load once per process for *target*.
+
+    Called from the parse paths, so it must never raise — a cache problem
+    may only cost speed, never a parse.
+    """
+    try:
+        load_dfa_cache(target=target)
+    except Exception:
+        pass
+    with _lock:
+        _state["used"].add(target)
+    _register_atexit()
 
 
-def maybe_save() -> None:
-    """Lazy hook: persist the warm cache once per process, if missing."""
-    save_dfa_cache()
+def maybe_save(target: str = "sysml") -> None:
+    """Lazy hook: persist *target*'s warm cache once per process."""
+    try:
+        save_dfa_cache(target=target)
+    except Exception:
+        pass
+    with _lock:
+        _state["used"].add(target)
+    _register_atexit()
+
+
+def _register_atexit() -> None:
+    """Persist every used target's warm DFA states when the process ends.
+
+    A once-per-process save (``maybe_save``) is not enough for multi-file
+    work: the library-index walk parses ~36 .kerml files, and saving after
+    the FIRST of them persisted 558 of the 1,622 states the run warmed —
+    the next process then re-derived the rest.  Saving again at exit (only
+    when strictly warmer than the file) makes the cache converge on the
+    real workload.
+    """
+    with _lock:
+        if _state.get("atexit_registered"):
+            return
+        _state["atexit_registered"] = True
+    import atexit
+    atexit.register(_save_all_used)
+
+
+def _save_all_used() -> None:
+    import warnings as _warnings
+    with _lock:
+        used = sorted(_state.get("used", ()))
+    for target in used:
+        try:
+            with _warnings.catch_warnings():
+                _warnings.simplefilter("ignore")
+                save_dfa_cache(target=target, force=True)
+        except Exception:
+            pass
+
+
+def targets() -> Tuple[str, ...]:
+    """Grammar families with a persistent DFA cache."""
+    return _TARGETS
 
 
 def reset_for_tests() -> None:
     """Reset process state (load/save flags); used by the test suite."""
     with _lock:
-        for key in ("load_attempted", "loaded", "save_attempted",
-                    "saved", "saved_states"):
-            _state[key] = False if key != "saved_states" else 0
-        _state["file_states"] = 0
+        _state["targets"] = {}
+        if isinstance(_state.get("used"), set):
+            _state["used"].clear()
 
 
-def stats() -> Dict[str, Any]:
-    """Current cache state (for tests and diagnostics)."""
+def stats(target: Optional[str] = None) -> Dict[str, Any]:
+    """Current cache state (for tests and diagnostics).
+
+    Without *target* the SysML entry is reported at the top level (the
+    historical shape); every family also appears under ``targets``.
+    """
+    name = target or "sysml"
+    state = _tstate(name)
     with _lock:
         return {
             "enabled": is_enabled(),
             "directory": _cache_directory(),
-            "file": cache_file(),
-            "key": cache_key(),
-            "load_attempted": _state["load_attempted"],
-            "loaded": _state["loaded"],
-            "save_attempted": _state["save_attempted"],
-            "saved": _state["saved"],
-            "saved_states": _state["saved_states"],
+            "target": name,
+            "file": cache_file(name),
+            "key": cache_key(name),
+            "load_attempted": state["load_attempted"],
+            "loaded": state["loaded"],
+            "file_states": state["file_states"],
+            "save_attempted": state["save_attempted"],
+            "saved": state["saved"],
+            "saved_states": state["saved_states"],
+            "targets": {t: _tstate(t) for t in _TARGETS},
         }

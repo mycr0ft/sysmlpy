@@ -258,6 +258,15 @@ time on the next run. Set `SYSMLPY_DFA_CACHE` to a writable path (the
 accepted). `SYSMLPY_DFA_CACHE=off` always bypasses the cache, which is the
 recommended way to report parse-time issues.
 
+Both grammars are cached: the SysML v2 parser (`dfa-<key>.pkl`) and the KerML
+parser (`dfa-kerml-<key>.pkl`) have separate files keyed by their own
+serialized ATNs, so a grammar change in one never invalidates the other. A
+target is only written when its parser actually ran in that process, and the
+file is re-saved at exit when the run warmed more states than it held — a
+library-index walk over the bundled `.kerml` sources, for example. Measured on
+this repo: `LibrarySymbolIndex` cold 51 s → 26 s, and the analysis that
+follows a warm index 59 s → 1.7 s.
+
 ## Documentation
 
 Documentation can be found [here.](https://mycr0ft.github.io/sysmlpy/)

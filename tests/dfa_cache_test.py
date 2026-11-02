@@ -160,8 +160,10 @@ class TestFallbackSafety:
         dfa_cache.set_dfa_cache(enabled=True, directory=str(tmp_path))
         dfa_cache.reset_for_tests()
         # force the write to fail on an impossible directory
+        # (cache_file/load_dfa_cache/save_dfa_cache take a `target`
+        # keyword now — #35 added the KerML family)
         monkeypatch.setattr(dfa_cache, "cache_file",
-                            lambda: "/proc/impossible/dir/x.pkl")
+                            lambda *args, **kwargs: "/proc/impossible/dir/x.pkl")
         with pytest.warns(UserWarning, match="DFA cache save failed"):
             assert dfa_cache.save_dfa_cache() is False
         from sysmlpy import parse

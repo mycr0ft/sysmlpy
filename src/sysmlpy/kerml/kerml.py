@@ -85,6 +85,12 @@ def parse(source, prediction_mode="sll"):
     Raises KerMLSyntaxError on syntax errors (message carries all
     listener errors, one per line).
     """
+    # Persistent DFA cache (#35): KerML shares dfa_cache with the SysML
+    # parser under its own key/file, so a warm process restores the
+    # prediction structures instead of paying ~11 s on Occurrences.kerml.
+    from sysmlpy import dfa_cache as _dfa_cache
+    _dfa_cache.maybe_load("kerml")
+
     lexer = KerMLLexer(InputStream(source))
     stream = CommonTokenStream(lexer)
     parser = KerMLParser(stream)
@@ -96,6 +102,8 @@ def parse(source, prediction_mode="sll"):
     tree = parser.rootNamespace()
     if listener.errors:
         raise KerMLSyntaxError("\n".join(listener.errors))
+    # Persist the states this parse warmed (once per process).
+    _dfa_cache.maybe_save("kerml")
     return tree
 
 
