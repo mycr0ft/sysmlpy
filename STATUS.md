@@ -1,14 +1,23 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.4** (2026-11-02, tagged)
+Current version: **v0.102.5** (2026-11-02, tagged)
 
-Current released version: **v0.102.4** (2026-11-02, on PyPI; 0.102.3 superseded)
+Current released version: **v0.102.5** (2026-11-02, on PyPI; 0.102.4 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.5)
+
+- **Issue #34 step 5 shipped**: imports resolve against the loaded library
+  model (shallow table — direct members plus declared SHORT names), so
+  `private import SI::*` brings in `<kg> kilogram`. Gate errors 3369 → 1183,
+  warnings 2961 → 1706, every other code unchanged; cold analyze +10 s, warm
+  unchanged. Pins: `tests/issue34_step5_test.py` (7). Remaining on #34:
+  step 7 (`.kerml` semantic loads) and the facade re-export residual.
 
 ## Recent Highlights (0.102.4)
 

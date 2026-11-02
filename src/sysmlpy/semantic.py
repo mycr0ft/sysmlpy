@@ -453,23 +453,39 @@ class LibrarySymbolIndex:
         candidates: set[str] = {fp_key for fp_key in fp.get(first, set())
                                 if fp_key.endswith(".sysml")}
         table_cls = type(SymbolTable())
-        for fp_key in sorted(candidates):
-            model = cls._model_for_file(fp_key)
-            if model is None:
-                continue
-            table = table_cls()
-            table.build_from_model(model, [])
-            cur = table
-            found = True
-            for seg in qn_str.split("::"):
-                child = cur._children.get(seg)
-                if child is None:
-                    found = False
-                    break
-                cur = child
-            if found and cur is not table:
-                cls._namespace_tables.setdefault(qn_str, cur)
-                return cur
+        # Issue #34 step 5: build SHALLOW (no library root) — a table that
+        # resolved its own imports recursively walked the whole library
+        # closure (248 s cold on a two-import model).  Direct members plus
+        # short names are what a star-import needs; a facade's re-exported
+        # members keep resolving through ``exists_in_loaded_model``, which
+        # answers on truth without a table walk.  Re-entrancy guard kept for
+        # safety: two library files that import each other cannot loop.
+        guard = getattr(cls, "_namespace_table_building", None)
+        if guard is None:
+            guard = cls._namespace_table_building = set()
+        if qn_str in guard:
+            return None
+        guard.add(qn_str)
+        try:
+            for fp_key in sorted(candidates):
+                model = cls._model_for_file(fp_key)
+                if model is None:
+                    continue
+                table = table_cls()
+                table.build_from_model(model, None)
+                cur = table
+                found = True
+                for seg in qn_str.split("::"):
+                    child = cur._children.get(seg)
+                    if child is None:
+                        found = False
+                        break
+                    cur = child
+                if found and cur is not table:
+                    cls._namespace_tables[qn_str] = cur
+                    return cur
+        finally:
+            guard.discard(qn_str)
         cls._namespace_tables[qn_str] = None
         return None
 
@@ -871,6 +887,13 @@ class SymbolTable:
         # Skip Model's UUID name (not a real SysML symbol)
         if name is not None and type(element).__name__ != "Model":
             table.register(name, element)
+            # issue #34 step 5: a declared SHORT name is a name too.  The
+            # library's unit members are `attribute <kg> kilogram : …`, and a
+            # star-import of that namespace has to carry `kg`; the scraped
+            # index used to be the only place that knew it.
+            for short in LibrarySymbolIndex._grammar_short_names(element):
+                if short and short != name:
+                    table.register(short, element)
 
         # Track definitions and their features/supertypes for inheritance resolution
         elem_type = type(element).__name__
@@ -1064,11 +1087,28 @@ class SymbolTable:
             if is_recursive:
                 self._recursive_import(target_table, table, visibility)
         else:
+            # Issue #34 step 5: resolve the import against the REAL library
+            # model when one defines the namespace — the loaded table carries
+            # the facade's re-exports, nested members and SHORT names, which
+            # the scraped index cannot see.  `.kerml`-only namespaces keep the
+            # scraped path (no semantic model loading for KerML yet, step 7).
+            lib_table = LibrarySymbolIndex.library_namespace_table(
+                ref_str, lib_roots)
+            if lib_table is not None:
+                for sym_name, element in lib_table._symbols.items():
+                    table._imported_symbols[sym_name] = element
+                    table._import_visibility[sym_name] = visibility
+                # members the library namespace re-exports publicly
+                for sym_name, element in lib_table._imported_symbols.items():
+                    vis = lib_table._import_visibility.get(sym_name, "private")
+                    if vis == "public" and sym_name not in table._imported_symbols:
+                        table._imported_symbols[sym_name] = element
+                        table._import_visibility[sym_name] = visibility
+                if is_recursive:
+                    self._recursive_import(lib_table, table, visibility)
+                return
+
             # Fall back to LibrarySymbolIndex for library namespaces
-            # (issue #34 note: a full model-resolved import — visibility
-            # via fresh SymbolTables over library files — exploded warm
-            # analysis cost and is deferred to the persisted-table
-            # follow-up documented in docs/v0.102-library-model-resolution.md)
             prefix = ref_str + "::"
             lib_symbols = LibrarySymbolIndex.get_symbols(lib_roots)
             for sym in lib_symbols:

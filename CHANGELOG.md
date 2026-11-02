@@ -1,5 +1,44 @@
 # CHANGELOG
 
+## 0.102.5 (2026-11-02)
+
+- **Issue #34 step 5: imports resolve against the loaded library model.**
+  Phase 1+2 (0.102.0) made the *existence* question answer on truth; this
+  release does the same for import **visibility** — a `private import SI::*`
+  imports the members the loaded `SI` model really declares, including
+  declared **short names** (`attribute <kg> kilogram`), which no scraped name
+  list carried.
+  - `SymbolTable._walk_element` registers declared short names for every
+    element (not just library ones), so `attribute <x> foo : Real;` makes `x`
+    a real name in its own namespace too.
+  - `SymbolTable.lookup_member`/table descent unchanged; the library table is
+    built **shallow** (direct members, no recursive import walk) and cached per
+    namespace. A table that resolved its own imports walked the whole library
+    closure: **248 s cold** on a two-import model, which is why the earlier
+    attempt was deferred. Shallow costs ~1–2 s per namespace (DFA-warm) and
+    leaves a facade's re-exported members to
+    `exists_in_loaded_model` — they still resolve as references (the residual
+    is the import-*suggestion* warning for a re-exported name, documented
+    below).
+  - Re-entrancy guard (`_namespace_table_building`) so two library files that
+    import each other cannot loop; `.kerml`-only namespaces (e.g.
+    `VectorFunctions`) keep the scraped fallback unchanged (step 7 will
+    model-load them).
+  - **Gate delta** (bundled library + fixtures, 99 files): errors **3369 →
+    1183**, warnings **2961 → 1706**, PASS, 0 parse failures. Per-code:
+    UNRESOLVED_EXPRESSION_IDENTIFIER 3180 → 1006, IMPLICIT_LIBRARY_IMPORT
+    2598 → 1343, UNDEFINED_SYMBOL 58 → 46; **every other code unchanged**
+    (nothing increased, nothing suppressed).
+  - Cost: a cold `analyze` on a library-importing model 28.9 s → 39.5 s (the
+    table builds for the imported namespaces); warm analysis unchanged
+    (~0.0 s). Persisting tables across processes (step 6) is now a
+    cost-optimisation, not a prerequisite.
+  - Pins: `tests/issue34_step5_test.py` (7 — unit short names, facade truth
+    fallback, short names in the table, element-valued members, the `.kerml`
+    fallback, user-model short names, and a namespace no library defines still
+    warns).
+  - Plan record updated: `docs/v0.102-library-model-resolution.md`.
+
 ## 0.102.4 (2026-11-02)
 
 - **Issue #29: interface ends are first-class children and keep their
