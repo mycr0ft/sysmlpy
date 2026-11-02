@@ -1,14 +1,25 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.3** (2026-11-01, tagged)
+Current version: **v0.102.4** (2026-11-02, tagged)
 
-Current released version: **v0.102.3** (2026-11-01, on PyPI; 0.102.2 superseded)
+Current released version: **v0.102.4** (2026-11-02, on PyPI; 0.102.3 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.4)
+
+- **Issue #29 fixed**: interface ends are first-class `InterfaceEnd` children
+  carrying `typed_by_name`, `multiplicity` and the `::>` `reference`, with
+  `typed_elements`/`reference_elements` resolution. The body rebuild emitted
+  the name only, so `end e1 : PD;` dumped as `end e1;`; it now serializes in
+  the visitor's own shape and `dump → parse → dump` is a fixed point. Dump
+  glue fixed for `interface ib connect a to b;`; programmatic `Interface`
+  dumps no longer raise AttributeError. Pins: `tests/issue29_test.py` (7).
+  Gate unchanged (3369/2961, PASS); full suite 1822 passed / 79 skipped.
 
 ## Recent Highlights (0.102.3)
 

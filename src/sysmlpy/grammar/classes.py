@@ -7933,7 +7933,10 @@ class InterfaceUsageDeclaration:
                     has_end_members = bool(
                         getattr(binpart, 'children', []) or [])
                 if has_end_members:
-                    self.keyword = "connect\n"
+                    # Issue #29: the keyword carried a literal newline
+                    # ("connect\n") so `interface ib connect a to b;` dumped
+                    # as `connect\n a to b;`.  The parent joins with a space.
+                    self.keyword = "connect"
             elif definition["part2"] is not None:
                 self.part = InterfacePart(definition["part2"])
 

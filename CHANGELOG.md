@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## 0.102.4 (2026-11-02)
+
+- **Issue #29: interface ends are first-class children and keep their
+  typing.** `interface def I { end e1 : PD; end e2 : PD [1..*]; }` built the
+  `Interface` with **zero children**, kept the ends only in
+  ``Interface.ends`` as ``(name, None, None)``, and dumped ``end e1;`` — the
+  declared type, multiplicity and flags were gone from the model *and* the
+  text.
+  - New public element **`InterfaceEnd`** (also exported as
+    ``sysmlpy.InterfaceEnd``): `name`, `typed_by_name`, `multiplicity` (as
+    written, e.g. ``[1..*]`` / ``[0..1] ordered nonunique``), `reference`
+    (the ``::> a.b`` chain as written), plus ``typed_elements`` /
+    ``reference_elements`` lazy resolution (the issue #23 ``*_elements``
+    rule: unambiguous names only). Ends appear in ``iface.children``;
+    ``iface.ends`` / ``iface.iface_connections`` keep their old shapes, now
+    with the type filled in.
+  - `Interface.load_from_grammar` reads the ``: T`` typing
+    (``Typings → TypedBy``) and the multiplicity part (bounds plus
+    ``ordered``/``nonunique``) that it previously dropped.
+  - The rebuild that serializes an interface body
+    (``Usage._ensure_body``) emits each end through one shared builder
+    (``_interface_end_body_item``) in the visitor's own shape
+    (``InterfaceBodyItem → InterfaceOccurrenceUsageMember →
+    InterfaceOccurrenceUsageElement → DefaultInterfaceEnd → Usage``), with
+    the Typings and ``::>`` chain specializations and a rebuilt
+    ``MultiplicityPart`` — so the body no longer degrades on every dump and
+    ``dump → parse → dump`` is a fixed point. Children take precedence; the
+    ``self.ends`` path remains for programmatic ``add_end()``.
+  - Dump glue: ``InterfaceUsageDeclaration`` carried a literal newline in
+    its ``connect`` keyword, so ``interface ib connect a to b;`` came out as
+    ``connect\\n a to b;``.
+  - Fixed en route (pre-existing, proved on 0.102.3): a **programmatically
+    built** ``Interface`` raised ``AttributeError: 'NoneType' object has no
+    attribute 'get_definition'`` from ``Model.dump()`` because
+    ``Interface.grammar`` stayed ``None``; ``Interface._get_definition`` now
+    synthesizes a body-less grammar object.
+  - Pins: `tests/issue29_test.py` (7 — reporter model, typing in the dump,
+    multiplicity/flags round trip, ``::>`` chain, usage-with-body, single-line
+    ``connect``, programmatic definitions and usages).
+  - Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS.
+    Affected suites 713 passed; full suite 1822 passed / 79 skipped.
+
 ## 0.102.3 (2026-11-01)
 
 - **Issue #35: the KerML parser shares the persistent DFA cache.** `dfa_cache`

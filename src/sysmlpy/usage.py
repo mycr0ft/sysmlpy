@@ -90,6 +90,181 @@ def _resolve_names_to_elements(obj, names):
     return out
 
 
+def _multiplicity_dict(text):
+    """MultiplicityPart dict for a bound text like ``1``, ``1..*``, ``0..1``.
+
+    Issue #29: interface ends are re-serialized from their element data, so
+    the bounds have to be rebuilt in the same dict shape the visitor emits
+    (``MultiplicityPart → OwnedMultiplicity → MultiplicityRange →
+    MultiplicityExpressionMember → … → LiteralInteger/LiteralInfinity``).
+    """
+    import re as _re
+
+    raw = (text or "").strip()
+    # MultiplicityPart.dump() appends the flags ('[0..1] ordered nonunique');
+    # keep only the bracketed range for the dict (the flags ride separately).
+    match = _re.match(r"\[([^\]]*)\]", raw)
+    if match:
+        raw = match.group(1).strip()
+    elif raw.startswith("[") and raw.endswith("]"):
+        raw = raw[1:-1].strip()
+    if not raw:
+        return None
+
+    def _member(value):
+        value = value.strip()
+        if not value or value == "*":
+            literal = {"name": "LiteralInfinity", "value": "*"}
+        else:
+            try:
+                literal = {"name": "LiteralInteger", "value": int(value)}
+            except ValueError:
+                return None
+        return {
+            "name": "MultiplicityExpressionMember",
+            "ownedRelatedElement": [{
+                "name": "MultiplicityRelatedElement",
+                "ownedRelatedElement": literal,
+            }],
+        }
+
+    parts = raw.split("..") if ".." in raw else [raw]
+    members = [m for m in (_member(p) for p in parts) if m is not None]
+    if not members:
+        return None
+    return {
+        "name": "MultiplicityPart",
+        "isOrdered": False,
+        "isNonunique": False,
+        "ownedRelationship": [{
+            "name": "OwnedMultiplicity",
+            "ownedRelatedElement": [{
+                "name": "MultiplicityRange",
+                "ownedRelationship": members,
+            }],
+        }],
+    }
+
+
+def _interface_end_body_item(name, type_name=None, multiplicity=None,
+                             reference=None, is_ordered=False,
+                             is_nonunique=False,
+                             body_item_name="InterfaceBodyItem"):
+    """Body-item dict for one interface end (issue #29).
+
+    The shape is the visitor's own (``InterfaceBodyItem →
+    InterfaceOccurrenceUsageMember → InterfaceOccurrenceUsageElement →
+    DefaultInterfaceEnd → Usage``), so a rebuilt interface body dumps and
+    re-parses like a parsed one.  ``type_name`` is the declared ``: T``
+    typing, ``reference`` the ``::> a.b`` chain as written, both of which
+    the pre-#29 rebuild dropped.
+    """
+    specializations = []
+    if type_name:
+        specializations.append({
+            "name": "FeatureSpecialization",
+            "ownedRelationship": {
+                "name": "Typings",
+                "typedby": {
+                    "name": "TypedBy",
+                    "ownedRelationship": [{
+                        "name": "FeatureTyping",
+                        "ownedRelationship": {
+                            "name": "OwnedFeatureTyping",
+                            "type": {
+                                "name": "FeatureType",
+                                "type": {
+                                    "name": "QualifiedName",
+                                    "names": [type_name],
+                                },
+                                "ownedRelatedElement": [],
+                            },
+                        },
+                    }],
+                },
+                "ownedRelationship": [],
+            },
+        })
+    if reference:
+        segments = [s for s in str(reference).split(".") if s]
+        if segments:
+            chainings = [{
+                "name": "OwnedFeatureChaining",
+                "chainingFeature": {
+                    "name": "QualifiedName",
+                    "names": [seg],
+                },
+            } for seg in segments[1:]]
+            specializations.append({
+                "name": "FeatureSpecialization",
+                "ownedRelationship": {
+                    "name": "References",
+                    "ownedRelationship": [{
+                        "name": "OwnedReferenceSubsetting",
+                        "referencedFeature": {
+                            "name": "QualifiedName",
+                            "names": [segments[0]],
+                        },
+                        "ownedRelatedElement": [{
+                            "name": "OwnedFeatureChain",
+                            "feature": {
+                                "name": "FeatureChain",
+                                "ownedRelationship": chainings,
+                            },
+                        }],
+                    }],
+                },
+            })
+
+    multiplicity_dict = _multiplicity_dict(multiplicity)
+    if multiplicity_dict is not None:
+        # the ordered/nonunique flags ride the MultiplicityPart
+        multiplicity_dict["isOrdered"] = bool(is_ordered)
+        multiplicity_dict["isNonunique"] = bool(is_nonunique)
+
+    end_usage = {
+        "name": "Usage",
+        "declaration": {
+            "name": "UsageDeclaration",
+            "declaration": {
+                "name": "FeatureDeclaration",
+                "identification": {
+                    "name": "Identification",
+                    "declaredShortName": None,
+                    "declaredName": name,
+                },
+                "specialization": {
+                    "name": "FeatureSpecializationPart",
+                    "specialization": specializations,
+                    "multiplicity": multiplicity_dict,
+                    "specialization2": [],
+                    "multiplicity2": None,
+                } if (specializations or multiplicity_dict) else None,
+            },
+        },
+        "completion": None,
+    }
+    return {
+        "name": body_item_name,
+        "ownedRelationship": [{
+            "name": "InterfaceOccurrenceUsageMember",
+            "prefix": None,
+            "ownedRelatedElement": [{
+                "name": "InterfaceOccurrenceUsageElement",
+                "element": {
+                    "name": "DefaultInterfaceEnd",
+                    "direction": None,
+                    "isAbstract": None,
+                    "isVariation": None,
+                    "isEnd": "end",
+                    "keyword": None,
+                    "usage": end_usage,
+                },
+            }],
+        }],
+    }
+
+
 def _metadata_from_feature(mf):
     """Build a :class:`Metadata` element from a ``MetadataFeature`` grammar
     object (issue #24).
@@ -216,6 +391,8 @@ from sysmlpy.grammar.classes import (
     DefinitionBodyItem,
     FeatureSpecializationPart,
     SubclassificationPart,
+    InterfaceDefinition,
+    InterfaceUsage,
 )
 
 from sysmlpy.grammar.classes import (
@@ -375,6 +552,10 @@ class Usage(Searchable):
         # Add children
         body = []
         for abc in self.children:
+            if type(abc).__name__ == "InterfaceEnd":
+                # serialized by the interface-ends block below, in the
+                # InterfaceBodyItem shape (not wrapped as a DefinitionBodyItem)
+                continue
             body.append(
                 DefinitionBodyItem(
                     abc._get_definition(child="DefinitionBody")
@@ -410,95 +591,40 @@ class Usage(Searchable):
                 }],
             })
 
-        # v0.96.1: keep interface ends (parsed into self.ends +
-        # self.iface_connections) in the rebuilt body — they have no
-        # public-API child to re-serialize, so emit them directly.
-        # Targets from ``end p ::> part.port;`` are re-emitted through
-        # the References/OwnedReferenceSubsetting/OwnedFeatureChain
-        # specialization chain (the same shape the visitor produces),
-        # so ``iface_connections`` survives a dump round-trip.
+        # Interface ends (v0.96.1, issue #29): ends are first-class children
+        # now — a parsed end serializes from its child, which carries the
+        # declared typing (`: PD`), multiplicity and `::>` chain.  ``self.ends``
+        # still covers programmatic ``add_end()`` calls.  The pre-#29 rebuild
+        # emitted the name only, so `end e1 : PD;` degraded to `end e1;`.
+        body_item_name = (
+            "InterfaceBodyItem"
+            if type(getattr(self.grammar, 'body', None)).__name__ == "InterfaceBody"
+            else "DefinitionBodyItem")
         end_targets = {
             conn[0]: conn[1]
             for conn in (getattr(self, 'iface_connections', None) or [])
             if len(conn) >= 2 and conn[1]
         }
-        for end_name, end_type, end_mult in (
-                getattr(self, 'ends', None) or []):
-            target = end_targets.get(end_name)
-            end_specialization = None
-            if target:
-                segments = [s for s in target.split(".") if s]
-                if segments:
-                    chainings = [{
-                        "name": "OwnedFeatureChaining",
-                        "chainingFeature": {
-                            "name": "QualifiedName",
-                            "names": [seg],
-                        },
-                    } for seg in segments[1:]]
-                    end_specialization = {
-                        "name": "FeatureSpecializationPart",
-                        "specialization": [{
-                            "name": "FeatureSpecialization",
-                            "ownedRelationship": {
-                                "name": "References",
-                                "ownedRelationship": [{
-                                    "name": "OwnedReferenceSubsetting",
-                                    "referencedFeature": {
-                                        "name": "QualifiedName",
-                                        "names": [segments[0]],
-                                    },
-                                    "ownedRelatedElement": [{
-                                        "name": "OwnedFeatureChain",
-                                        "feature": {
-                                            "name": "FeatureChain",
-                                            "ownedRelationship": chainings,
-                                        },
-                                    }],
-                                }],
-                            },
-                        }],
-                        "specialization2": None,
-                        "multiplicity": None,
-                        "multiplicity2": None,
-                    }
-            end_usage = {
-                "name": "Usage",
-                "declaration": {
-                    "name": "UsageDeclaration",
-                    "declaration": {
-                        "name": "FeatureDeclaration",
-                        "identification": {
-                            "name": "Identification",
-                            "declaredShortName": None,
-                            "declaredName": end_name,
-                        },
-                        "specialization": end_specialization,
-                    },
-                },
-                "completion": None,
-            }
-            body.append({
-                "name": ("InterfaceBodyItem"
-                         if type(body_owner := getattr(self.grammar, 'body', None)).__name__ == "InterfaceBody"
-                         else "DefinitionBodyItem"),
-                "ownedRelationship": [{
-                    "name": "InterfaceOccurrenceUsageMember",
-                    "prefix": None,
-                    "ownedRelatedElement": [{
-                        "name": "InterfaceOccurrenceUsageElement",
-                        "element": {
-                            "name": "DefaultInterfaceEnd",
-                            "direction": None,
-                            "isAbstract": None,
-                            "isVariation": None,
-                            "isEnd": "end",
-                            "keyword": None,
-                            "usage": end_usage,
-                        },
-                    }],
-                }],
-            })
+        covered = set()
+        for child in self.children:
+            if type(child).__name__ != "InterfaceEnd":
+                continue
+            covered.add(getattr(child, 'name', None))
+            body.append(_interface_end_body_item(
+                getattr(child, 'name', None),
+                getattr(child, 'typed_by_name', None),
+                getattr(child, 'multiplicity', None),
+                getattr(child, 'reference', None),
+                getattr(child, 'is_ordered', False),
+                getattr(child, 'is_nonunique', False),
+                body_item_name=body_item_name,
+            ))
+        for end_name, end_type, end_mult in (getattr(self, 'ends', None) or []):
+            if end_name in covered:
+                continue
+            body.append(_interface_end_body_item(
+                end_name, end_type, end_mult, end_targets.get(end_name),
+                body_item_name=body_item_name))
 
         if len(body) > 0:
             # Most usages (Part, Item, Attribute, ...) nest their body under
@@ -2679,6 +2805,60 @@ class Interface(Usage):
 
     set_specializes = _set_specializes
 
+    def _empty_grammar(self):
+        """A body-less grammar object for a programmatically built interface.
+
+        ``Interface.__init__`` leaves ``grammar = None``; ``Model.dump()``
+        goes through ``Usage._get_definition``, which needs a grammar object
+        to hold the rebuilt body — so a programmatic interface raised
+        ``AttributeError: 'NoneType' object has no attribute
+        'get_definition'`` on dump (pre-existing, fixed with issue #29).
+        """
+        ident = {
+            "name": "Identification",
+            "declaredShortName": self.iface_shortname,
+            "declaredName": self.name,
+        }
+        if self.is_definition:
+            return InterfaceDefinition({
+                "name": "InterfaceDefinition",
+                "prefix": None,
+                "definition": {
+                    "name": "Definition",
+                    "declaration": {
+                        "name": "DefinitionDeclaration",
+                        "identification": ident,
+                        "subclassificationpart": None,
+                    },
+                    "body": {"name": "DefinitionBody",
+                             "ownedRelatedElement": []},
+                },
+            })
+        return InterfaceUsage({
+            "name": "InterfaceUsage",
+            "prefix": None,
+            "declaration": {
+                "name": "InterfaceUsageDeclaration",
+                "declaration": {
+                    "name": "UsageDeclaration",
+                    "declaration": {
+                        "name": "FeatureDeclaration",
+                        "identification": ident,
+                        "specialization": None,
+                    },
+                },
+                "part1": None,
+                "part2": None,
+            },
+            "body": {"name": "InterfaceBody", "item": []},
+        })
+
+    def _get_definition(self, child=None):
+        """Serialize for the model tree, synthesizing grammar if needed."""
+        if self.grammar is None:
+            self.grammar = self._empty_grammar()
+        return super()._get_definition(child)
+
     def dump(self):
         name_str = getattr(self, 'name', "") or ""
         keyword = getattr(self, 'keyword', 'interface')
@@ -2798,11 +2978,38 @@ class Interface(Usage):
                     ident = getattr(fd, 'identification', None)
                     if ident is not None:
                         end_name = getattr(ident, 'declaredName', None)
+                    # Issue #29: the end's declared typing (`: PD`) and
+                    # multiplicity (`[1..*] ordered`) were never read, so the
+                    # dump degraded to `end e1;`.  Typings/TypedBy dump as
+                    # ``: PD``; the multiplicity part as ``[1..*] ordered``.
+                    type_name = None
+                    end_mult = None
+                    is_ordered = False
+                    is_nonunique = False
+                    spec_part = getattr(fd, 'specialization', None)
+                    if spec_part is not None:
+                        mp = getattr(spec_part, 'multiplicity', None)
+                        if mp is not None:
+                            try:
+                                end_mult = mp.dump().strip()
+                            except Exception:
+                                end_mult = None
+                            is_ordered = bool(getattr(mp, 'isOrdered', False))
+                            is_nonunique = bool(getattr(mp, 'isNonunique', False))
+                        for fs in (getattr(spec_part, 'specializations', None) or []):
+                            fs_rel = getattr(fs, 'relationship', None)
+                            if fs_rel is None or type(fs_rel).__name__ != "Typings":
+                                continue
+                            try:
+                                typed_text = fs_rel.dump().strip()
+                            except Exception:
+                                continue
+                            if typed_text.startswith(":"):
+                                type_name = typed_text[1:].strip() or None
                     # ::> target: FeatureSpecializationPart ->
                     # specializations -> relationship children ->
                     # OwnedReferenceSubsetting (+ OwnedFeatureChain)
                     target = None
-                    spec_part = getattr(fd, 'specialization', None)
                     for fs in (getattr(spec_part, 'specializations', None) or []):
                         rel = getattr(fs, 'relationship', None)
                         for child in (getattr(rel, 'children', None) or []):
@@ -2820,7 +3027,11 @@ class Interface(Usage):
                             if segments:
                                 target = ".".join(segments)
                     if end_name is not None:
-                        self.add_end(end_name)
+                        self.add_end(end_name, type_name, end_mult)
+                        end = InterfaceEnd(end_name, type_name, end_mult,
+                                           target, is_ordered, is_nonunique)
+                        end.parent = self
+                        self.children.append(end)
                     if target:
                         self.iface_connections.append((end_name, target))
 
@@ -4810,6 +5021,69 @@ class Constraint(_NonOccurrenceUsage):
         """Language tag of the constraint's textual body, or None."""
         reps = self.textual_representations()
         return reps[0][0] or None if reps else None
+
+
+class InterfaceEnd(Usage):
+    """One ``end`` member of an interface (issue #29).
+
+    First-class child of an :class:`Interface`, so a consumer sees the end
+    in ``iface.children`` instead of only in ``iface.ends``:
+
+    .. code-block:: sysml
+
+        interface def I {
+            end e1 : PD [1..*] ::> part1.p;
+        }
+
+    -> ``InterfaceEnd(name='e1', typed_by_name='PD', multiplicity='[1..*]',
+    reference='part1.p')``.
+
+    ``typed_elements`` / ``reference_elements`` resolve the names-as-written
+    against the model (same lazy, unambiguous-only rule as the
+    ``*_elements`` endpoint properties from issue #23); resolution is never
+    implied by ``load``.
+    """
+
+    sysml_type = 'interface end'
+
+    def __init__(self, name=None, type_name=None, multiplicity=None,
+                 reference=None, is_ordered=False, is_nonunique=False):
+        Usage.__init__(self)
+        self.name = name
+        self.is_definition = False
+        self._typed_by_name = type_name
+        self.multiplicity = multiplicity
+        self.reference = reference
+        self.is_ordered = bool(is_ordered)
+        self.is_nonunique = bool(is_nonunique)
+
+    def _dump_end(self):
+        mult = f" {self.multiplicity}" if self.multiplicity else ""
+        typed = f" : {self.typed_by_name}" if self.typed_by_name else ""
+        referenced = f" ::> {self.reference}" if self.reference else ""
+        return f"end {self.name or ''}{typed}{mult}{referenced};".strip()
+
+    def _get_definition(self, child=None):
+        """Serialize as the interface end body item (issue #29)."""
+        return _interface_end_body_item(
+            self.name, self.typed_by_name, self.multiplicity, self.reference,
+            self.is_ordered, self.is_nonunique,
+            body_item_name=("InterfaceBodyItem" if child in (None, "", "InterfaceBody")
+                            else "DefinitionBodyItem"))
+
+    @property
+    def typed_elements(self):
+        """The declared type resolved to an element (unambiguous names only)."""
+        return _resolve_names_to_elements(
+            self, [self.typed_by_name] if self.typed_by_name else [])
+
+    @property
+    def reference_elements(self):
+        """The head of the ``::>`` chain resolved to an element."""
+        if not self.reference:
+            return []
+        head = str(self.reference).split(".")[0]
+        return _resolve_names_to_elements(self, [head])
 
 
 class Connection(Usage):
