@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01027-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.7 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01026-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -984,6 +995,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01027-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.7 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01026-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1334,6 +1356,51 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01027-2026-11-02">0.102.7 (2026-11-02)<a class="headerlink" href="#01027-2026-11-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #31: <code>assert constraint</code> bodies dumped glued operators and never
+  reached a fixed point.</strong> Three separate defects in the expression emitter —
+  only the third was in the report:</li>
+<li><strong>Wrong operand class for the loose boolean layers.</strong>
+     <code>_unwrap_to_layer</code> handed <code>OrExpression</code> the And-layer, <code>XorExpression</code>
+     the Or-layer and <code>ImpliesExpression</code> the tail of a ladder, but each layer's
+     grammar class expects the layer immediately BELOW it
+     (<code>orExpression : xorExpression (OR xorExpression)*</code>). Any expression using
+     <code>or</code>/<code>xor</code>/<code>implies</code> therefore put a foreign chain dict into an operand
+     slot and the dumper stringified it:
+     <code>a xor b</code> → <code>a xor {'name': 'OrExpression', 'operator': [], ...}</code>.
+     Corrected for OR (→ xor), XOR (→ and) and IMPLIES (→ or).</li>
+<li><strong>Parenthesized groups never entered the chain.</strong> <code>(A and B) xor (C and D)</code>
+     matched no emitter branch, so the <em>whole</em> expression collapsed to one
+     FeatureReference name. Groups are now unwrapped
+     (<code>_paren_inner_context</code>, which follows the
+     <code>ownedExpression → primaryExpression → baseExpression → '('
+     sequenceExpressionList ')'</code> wrappers). A group keeps its parens whenever
+     its loosest operator binds <strong>no tighter</strong> than the enclosing operator —
+     at equal precedence the parens still decide the grouping
+     (<code>tp / (tm * v)</code> must not become <code>tp / tm * v</code>, <code>-(2 - 5)</code> must not become
+     <code>-2 - 5</code>), and a unary prefix over a grouping stays text for the same
+     reason.</li>
+<li><strong>The text fallback glued tokens.</strong> <code>ctx.getText()</code> concatenates tokens,
+     so any preserved expression became unparseable
+     (<code>(a or b) and c</code> → <code>(aorb)andc</code>). The fallback now slices the original
+     source (<code>_verbatim_text</code>, whitespace-normalised) using the context's
+     character interval, so preserved text is the source text.</li>
+<li><strong>Dumps no longer print on stdout.</strong> <code>valid_definition</code> printed the offending
+  dict's <code>name</code> before raising — on a normal control-flow miss (probing an
+  operand against several layer classes). It flooded <code>sysmlpy ci</code> with layer
+  names; the raise stays, the print is gone.</li>
+<li>Corpus: <code>VehicleVariabilityModel.sysml</code> (the reporting file) now reaches a
+  fixed point with <strong>no</strong> <code>language "English"</code> capture and an operator sequence
+  identical to the source (21 operators, <code>==</code>/<code>and</code>/<code>xor</code>).</li>
+<li>Gate: 0 parse failures, <strong>1180</strong> errors (was 1183) / 1706 warnings, PASS —
+  the three former text-captured bodies now expose their identifiers to the
+  resolver, retiring 5 <code>UNRESOLVED_EXPRESSION_IDENTIFIER</code> findings.</li>
+<li>Pins: <code>tests/issue31_test.py</code> (11). Known and unchanged: unit-expression
+  exponents (<code>s ^ -1</code>, <code>1024 ^ (1/1000)</code>) still dump their <code>UnaryExpression</code>
+  dict — a pre-existing leak tracked by issue #33, which the same machinery
+  now makes tractable.</li>
+</ul>
 <h2 id="01026-2026-11-02">0.102.6 (2026-11-02)<a class="headerlink" href="#01026-2026-11-02" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #34 step 7: the <code>.kerml</code> half of the library now answers on truth.</strong>
