@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01022" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01021" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -841,6 +852,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01022" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01021" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1026,11 +1048,25 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.1</strong> (2026-10-31, tagged)</p>
-<p>Current released version: <strong>v0.102.1</strong> (2026-10-31, on PyPI; 0.102.0 superseded)</p>
+<p>Current version: <strong>v0.102.2</strong> (2026-11-01, tagged)</p>
+<p>Current released version: <strong>v0.102.2</strong> (2026-11-01, on PyPI; 0.102.1 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01022">Recent Highlights (0.102.2)<a class="headerlink" href="#recent-highlights-01022" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #30 fixed</strong>: allocation usages/definitions keep their body members.
+  <code>allocate p to q { attribute note : String; }</code> built the element with zero
+  children (consumer-visible data loss); the visitor hardcoded an empty body
+  and all three loaders bypassed <code>load_from_grammar</code>. Parsed allocations keep
+  their parsed body authoritative on dump so redefined ends (<code>end :&gt;&gt; source :
+  Wheel;</code>) and inner <code>allocate</code> statements survive. Pins:
+  <code>tests/issue30_test.py</code> (6). Gate unchanged (3369/2961, PASS); full suite
+  1808 passed / 79 skipped.</li>
+<li>LSP subprocess test budget 120 s → 300 s with the cold-cost cause documented
+  (index + first <code>SI.sysml</code> load; the DFA cache is version-keyed, so the first
+  run after a release is cold). The old 120 s passed at 119.9 s — a flake.</li>
+</ul>
 <h2 id="recent-highlights-01021">Recent Highlights (0.102.1)<a class="headerlink" href="#recent-highlights-01021" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #37 fixed</strong> (reporter: failys): <code>InterfaceType::required</code> — a

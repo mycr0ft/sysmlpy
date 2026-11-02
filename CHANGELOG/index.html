@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01022-2026-11-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.2 (2026-11-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01021-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -929,6 +940,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01022-2026-11-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.2 (2026-11-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01021-2026-10-31" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1224,6 +1246,44 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01022-2026-11-01">0.102.2 (2026-11-01)<a class="headerlink" href="#01022-2026-11-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #30 (reported downstream by the CARTA team): allocation usages and
+  definitions keep their body members.</strong> <code>allocate p to q { attribute note :
+  String; }</code> built the <code>Allocation</code> element with <strong>zero children</strong> — the body
+  member was absent from the model, and the dump kept it only by re-serializing
+  the parsed grammar — so a consumer reading allocations (their <code>repro_01</code>) saw
+  nothing inside them. No exception, no visitor warning.</li>
+<li>Visitor: <code>allocationUsage</code> hardcoded an empty <code>DefinitionBody</code> — the same
+    defect the connection fix closed in 0.99.5. It now fills the body through
+    the shared <code>usageBody</code> helper (<code>_connection_usage_body_items</code>, whose
+    docstring now records that <code>allocationUsage</code> has the same shape).</li>
+<li>Loaders: all three sites assigned <code>element.grammar</code> directly instead of
+    calling <code>load_from_grammar</code>, so nothing was ever flattened — the
+    package-level definition and usage (<code>definition.py</code>), the nested usage in a
+    definition body, and the behavior-body path (<code>usage.py</code>). All four now use
+    the shared loader.</li>
+<li>Dump: <code>AllocationUsage.dump</code> joined unstripped parts, emitting
+    <code>allocate p to q  {</code> (double space); it now strips like its base class.</li>
+<li>Serialization safety: a <strong>parsed</strong> allocation keeps its parsed body
+    authoritative (<code>Allocation._ensure_body</code> returns early), because rebuilding
+    from children loses what no child models — redefinition-carrying ends
+    (<code>end :&gt;&gt; source : Wheel;</code>, the 0.98.1/PR#18 pin) and inner
+    <code>allocate source.xs to target.y;</code> statements. Programmatic elements still
+    rebuild from children as before.</li>
+<li>Pins: <code>tests/issue30_test.py</code> (6 — usage body, definition body, nested
+    usage, visitor-dict body, dump→parse→dump fixed point, empty bodies
+    unchanged).</li>
+<li><strong>LSP subprocess test budget 120 s → 300 s, with the cost documented.</strong> The
+  end-to-end test spawns a cold server that pays the scraped library index
+  (.kerml parse, ~55 s; #35 caches it) plus the first <code>SI.sysml</code> load (~60 s
+  when the DFA cache has no entry for that family — the cache file is keyed by
+  the sysmlpy version, so the first run after every release is cold). It passed
+  at 119.9 s against a 120 s timeout: a latent flake, not a measurement. No
+  analysis-cost change.</li>
+<li>Verified: affected suites 527 passed; gate unchanged (0 parse failures, 3369
+  errors / 2961 warnings, PASS); full suite 1808 passed / 79 skipped.</li>
+</ul>
 <h2 id="01021-2026-10-31">0.102.1 (2026-10-31)<a class="headerlink" href="#01021-2026-10-31" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #37 (reported by failys): qualified references into an IMPORTED
