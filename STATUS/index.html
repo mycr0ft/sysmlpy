@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01024" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01023" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -863,6 +874,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01024" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01023" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1070,11 +1092,22 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.3</strong> (2026-11-01, tagged)</p>
-<p>Current released version: <strong>v0.102.3</strong> (2026-11-01, on PyPI; 0.102.2 superseded)</p>
+<p>Current version: <strong>v0.102.4</strong> (2026-11-02, tagged)</p>
+<p>Current released version: <strong>v0.102.4</strong> (2026-11-02, on PyPI; 0.102.3 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01024">Recent Highlights (0.102.4)<a class="headerlink" href="#recent-highlights-01024" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #29 fixed</strong>: interface ends are first-class <code>InterfaceEnd</code> children
+  carrying <code>typed_by_name</code>, <code>multiplicity</code> and the <code>::&gt;</code> <code>reference</code>, with
+  <code>typed_elements</code>/<code>reference_elements</code> resolution. The body rebuild emitted
+  the name only, so <code>end e1 : PD;</code> dumped as <code>end e1;</code>; it now serializes in
+  the visitor's own shape and <code>dump → parse → dump</code> is a fixed point. Dump
+  glue fixed for <code>interface ib connect a to b;</code>; programmatic <code>Interface</code>
+  dumps no longer raise AttributeError. Pins: <code>tests/issue29_test.py</code> (7).
+  Gate unchanged (3369/2961, PASS); full suite 1822 passed / 79 skipped.</li>
+</ul>
 <h2 id="recent-highlights-01023">Recent Highlights (0.102.3)<a class="headerlink" href="#recent-highlights-01023" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #35 fixed</strong>: the KerML parser now uses the persistent DFA cache, per

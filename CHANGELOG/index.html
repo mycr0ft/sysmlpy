@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01024-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.4 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01023-2026-11-01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -951,6 +962,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01024-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.4 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01023-2026-11-01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1268,6 +1290,48 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01024-2026-11-02">0.102.4 (2026-11-02)<a class="headerlink" href="#01024-2026-11-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #29: interface ends are first-class children and keep their
+  typing.</strong> <code>interface def I { end e1 : PD; end e2 : PD [1..*]; }</code> built the
+  <code>Interface</code> with <strong>zero children</strong>, kept the ends only in
+  <code>Interface.ends</code> as <code>(name, None, None)</code>, and dumped <code>end e1;</code> — the
+  declared type, multiplicity and flags were gone from the model <em>and</em> the
+  text.</li>
+<li>New public element <strong><code>InterfaceEnd</code></strong> (also exported as
+    <code>sysmlpy.InterfaceEnd</code>): <code>name</code>, <code>typed_by_name</code>, <code>multiplicity</code> (as
+    written, e.g. <code>[1..*]</code> / <code>[0..1] ordered nonunique</code>), <code>reference</code>
+    (the <code>::&gt; a.b</code> chain as written), plus <code>typed_elements</code> /
+    <code>reference_elements</code> lazy resolution (the issue #23 <code>*_elements</code>
+    rule: unambiguous names only). Ends appear in <code>iface.children</code>;
+    <code>iface.ends</code> / <code>iface.iface_connections</code> keep their old shapes, now
+    with the type filled in.</li>
+<li><code>Interface.load_from_grammar</code> reads the <code>: T</code> typing
+    (<code>Typings → TypedBy</code>) and the multiplicity part (bounds plus
+    <code>ordered</code>/<code>nonunique</code>) that it previously dropped.</li>
+<li>The rebuild that serializes an interface body
+    (<code>Usage._ensure_body</code>) emits each end through one shared builder
+    (<code>_interface_end_body_item</code>) in the visitor's own shape
+    (<code>InterfaceBodyItem → InterfaceOccurrenceUsageMember →
+    InterfaceOccurrenceUsageElement → DefaultInterfaceEnd → Usage</code>), with
+    the Typings and <code>::&gt;</code> chain specializations and a rebuilt
+    <code>MultiplicityPart</code> — so the body no longer degrades on every dump and
+    <code>dump → parse → dump</code> is a fixed point. Children take precedence; the
+    <code>self.ends</code> path remains for programmatic <code>add_end()</code>.</li>
+<li>Dump glue: <code>InterfaceUsageDeclaration</code> carried a literal newline in
+    its <code>connect</code> keyword, so <code>interface ib connect a to b;</code> came out as
+    <code>connect\\n a to b;</code>.</li>
+<li>Fixed en route (pre-existing, proved on 0.102.3): a <strong>programmatically
+    built</strong> <code>Interface</code> raised <code>AttributeError: 'NoneType' object has no
+    attribute 'get_definition'</code> from <code>Model.dump()</code> because
+    <code>Interface.grammar</code> stayed <code>None</code>; <code>Interface._get_definition</code> now
+    synthesizes a body-less grammar object.</li>
+<li>Pins: <code>tests/issue29_test.py</code> (7 — reporter model, typing in the dump,
+    multiplicity/flags round trip, <code>::&gt;</code> chain, usage-with-body, single-line
+    <code>connect</code>, programmatic definitions and usages).</li>
+<li>Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS.
+    Affected suites 713 passed; full suite 1822 passed / 79 skipped.</li>
+</ul>
 <h2 id="01023-2026-11-01">0.102.3 (2026-11-01)<a class="headerlink" href="#01023-2026-11-01" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #35: the KerML parser shares the persistent DFA cache.</strong> <code>dfa_cache</code>
