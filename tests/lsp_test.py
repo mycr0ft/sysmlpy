@@ -24,6 +24,15 @@ from sysmlpy.lsp import (
 
 URI = "file:///tmp/lsp_demo.sysml"
 
+#: Budget for the end-to-end stdio-server subprocess.  It is a COLD process:
+# it pays the scraped library index (.kerml parse, ~55 s — #35 will cache it)
+# plus, for a model with unit expressions, the first load of SI.sysml (~60 s
+# when the DFA cache has no entry for that family — the cache file is keyed
+# by the sysmlpy version, so the first run after every release is cold).
+# 120 s was a latent flake: it passed at 119.9 s.  300 s keeps the test
+# meaningful (a hang still fails) without making release-day runs red.
+_LSP_SUBPROCESS_TIMEOUT = 300
+
 MODEL_TEXT = """package VehicleSpec {
     part def Vehicle {
         attribute mass : Real := 1200;
@@ -511,7 +520,7 @@ class TestSubprocess:
         blob = b"".join(encode_message(m) for m in msgs)
         proc = subprocess.run(
             [sys.executable, "-m", "sysmlpy.lsp"],
-            input=blob, capture_output=True, timeout=120,
+            input=blob, capture_output=True, timeout=_LSP_SUBPROCESS_TIMEOUT,
         )
         assert proc.returncode == 0, proc.stderr.decode()[-500:]
         stream = io.BytesIO(proc.stdout)

@@ -1,14 +1,28 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.1** (2026-10-31, tagged)
+Current version: **v0.102.2** (2026-11-01, tagged)
 
-Current released version: **v0.102.1** (2026-10-31, on PyPI; 0.102.0 superseded)
+Current released version: **v0.102.2** (2026-11-01, on PyPI; 0.102.1 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.2)
+
+- **Issue #30 fixed**: allocation usages/definitions keep their body members.
+  `allocate p to q { attribute note : String; }` built the element with zero
+  children (consumer-visible data loss); the visitor hardcoded an empty body
+  and all three loaders bypassed `load_from_grammar`. Parsed allocations keep
+  their parsed body authoritative on dump so redefined ends (`end :>> source :
+  Wheel;`) and inner `allocate` statements survive. Pins:
+  `tests/issue30_test.py` (6). Gate unchanged (3369/2961, PASS); full suite
+  1808 passed / 79 skipped.
+- LSP subprocess test budget 120 s → 300 s with the cold-cost cause documented
+  (index + first `SI.sysml` load; the DFA cache is version-keyed, so the first
+  run after a release is cold). The old 120 s passed at 119.9 s — a flake.
 
 ## Recent Highlights (0.102.1)
 

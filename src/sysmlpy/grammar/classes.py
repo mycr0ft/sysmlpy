@@ -11028,7 +11028,10 @@ class AllocationUsage(_PrefixedUsageBase):
             return " ".join(x.strip() for x in parts if x.strip()) + ";"
         if body_text.strip():
             parts.append(body_text)
-        return " ".join(parts)
+        # strip every part: the body text starts with its own separator
+        # space, and 'connect'/'allocate' parts are re-joined here rather
+        # than through the base class's stripped join (issue #30 de-glue)
+        return " ".join(x.strip() for x in parts if x.strip())
 
     def get_definition(self):
         # Emit under the `part` key (matching ConnectionUsage convention

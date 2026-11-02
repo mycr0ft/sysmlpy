@@ -1488,10 +1488,9 @@ class Usage(Searchable):
                         c.parent = self
                         self.children.append(c)
                     elif inner.__class__.__name__ == "AllocationUsage":
-                        # Phase 0: allocation usages inside a definition
-                        # body live in StructureUsageElement -> AllocationUsage.
-                        a = Allocation()
-                        a.grammar = inner
+                        # issue #30: through the loader — a bare
+                        # ``grammar`` assignment dropped body members
+                        a = Allocation().load_from_grammar(inner)
                         a.parent = self
                         self.children.append(a)
                     elif inner.__class__.__name__ == "RenderingUsage":
@@ -1943,10 +1942,8 @@ def _load_behavior_child(parent, inner, inner_name):
         c._extract_specialization_info(inner)
         return c
     if inner_name == "AllocationUsage":
-        c = Allocation()
-        c.grammar = inner
-        c.name = _name_from_declaration(inner)
-        c._extract_specialization_info(inner)
+        # issue #30: the shared loader flattens the body members
+        c = Allocation().load_from_grammar(inner)
         return c
     return None
 
@@ -5054,6 +5051,29 @@ class Allocation(Usage):
             self._set_name(name)
         if shortname is not None:
             self._set_name(shortname, short=True)
+        #: True when this element was built from a parsed grammar object —
+        #  its body is then authoritative for serialization (issue #30)
+        self._body_loaded_from_grammar = False
+
+    def load_from_grammar(self, grammar):
+        """Load a parsed allocation, keeping the parsed body authoritative."""
+        element = super().load_from_grammar(grammar)
+        self._body_loaded_from_grammar = True
+        return element
+
+    def _ensure_body(self, subgrammar="usage"):
+        """Serialize children into the grammar body — except after a parse.
+
+        Issue #30: rebuilding from ``self.children`` loses everything a
+        child element does not model — redefinition-carrying ends
+        (``end :>> source : Wheel;``, the #23 regression) and inner
+        ``allocate a.b to c.d;`` statements.  A parsed allocation therefore
+        serializes its parsed body verbatim; the public children are the
+        read side of the same text.
+        """
+        if getattr(self, "_body_loaded_from_grammar", False):
+            return self
+        return super()._ensure_body(subgrammar)
 
     # -- endpoints (issue #23) ----------------------------------------------
     def _allocation_ends(self):

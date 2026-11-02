@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## 0.102.2 (2026-11-01)
+
+- **Issue #30 (reported downstream by the CARTA team): allocation usages and
+  definitions keep their body members.** `allocate p to q { attribute note :
+  String; }` built the `Allocation` element with **zero children** — the body
+  member was absent from the model, and the dump kept it only by re-serializing
+  the parsed grammar — so a consumer reading allocations (their `repro_01`) saw
+  nothing inside them. No exception, no visitor warning.
+  - Visitor: `allocationUsage` hardcoded an empty `DefinitionBody` — the same
+    defect the connection fix closed in 0.99.5. It now fills the body through
+    the shared `usageBody` helper (`_connection_usage_body_items`, whose
+    docstring now records that `allocationUsage` has the same shape).
+  - Loaders: all three sites assigned `element.grammar` directly instead of
+    calling `load_from_grammar`, so nothing was ever flattened — the
+    package-level definition and usage (`definition.py`), the nested usage in a
+    definition body, and the behavior-body path (`usage.py`). All four now use
+    the shared loader.
+  - Dump: `AllocationUsage.dump` joined unstripped parts, emitting
+    `allocate p to q  {` (double space); it now strips like its base class.
+  - Serialization safety: a **parsed** allocation keeps its parsed body
+    authoritative (`Allocation._ensure_body` returns early), because rebuilding
+    from children loses what no child models — redefinition-carrying ends
+    (`end :>> source : Wheel;`, the 0.98.1/PR#18 pin) and inner
+    `allocate source.xs to target.y;` statements. Programmatic elements still
+    rebuild from children as before.
+  - Pins: `tests/issue30_test.py` (6 — usage body, definition body, nested
+    usage, visitor-dict body, dump→parse→dump fixed point, empty bodies
+    unchanged).
+- **LSP subprocess test budget 120 s → 300 s, with the cost documented.** The
+  end-to-end test spawns a cold server that pays the scraped library index
+  (.kerml parse, ~55 s; #35 caches it) plus the first `SI.sysml` load (~60 s
+  when the DFA cache has no entry for that family — the cache file is keyed by
+  the sysmlpy version, so the first run after every release is cold). It passed
+  at 119.9 s against a 120 s timeout: a latent flake, not a measurement. No
+  analysis-cost change.
+- Verified: affected suites 527 passed; gate unchanged (0 parse failures, 3369
+  errors / 2961 warnings, PASS); full suite 1808 passed / 79 skipped.
+
 ## 0.102.1 (2026-10-31)
 
 - **Issue #37 (reported by failys): qualified references into an IMPORTED

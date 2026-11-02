@@ -1337,24 +1337,15 @@ class Package(Searchable):
                 e.parent = self
                 self.children.append(e)
             elif inner_class == "AllocationDefinition":
-                a = Allocation(definition=True)
-                a.grammar = inner_element
-                if hasattr(inner_element, 'definition') and inner_element.definition:
-                    if hasattr(inner_element.definition, 'declaration') and inner_element.definition.declaration:
-                        decl = inner_element.definition.declaration
-                        if hasattr(decl, 'identification') and decl.identification:
-                            a.name = decl.identification.declaredName
+                # issue #30: go through the shared loader — setting
+                # ``grammar`` directly skipped body flattening, so
+                # ``allocation def`` members never became children
+                a = Allocation(definition=True).load_from_grammar(inner_element)
                 a.parent = self
                 self.children.append(a)
             elif inner_class == "AllocationUsage":
-                a = Allocation()
-                a.grammar = inner_element
-                if hasattr(inner_element, 'declaration') and inner_element.declaration:
-                    decl = inner_element.declaration
-                    if hasattr(decl, 'declaration') and decl.declaration:
-                        feat_decl = decl.declaration
-                        if hasattr(feat_decl, 'identification') and feat_decl.identification:
-                            a.name = feat_decl.identification.declaredName
+                # issue #30: same — the body members used to vanish
+                a = Allocation().load_from_grammar(inner_element)
                 a.parent = self
                 self.children.append(a)
             elif inner_class == "MetadataDefinition":

@@ -6934,7 +6934,7 @@ def _make_requirement_usage_dict(ctx, prefix=None):
 
 
 def _connection_usage_body_items(ctx):
-    """Body items of a ``connectionUsage`` context.
+    """Body items of a context whose rule ends in ``usageBody``.
 
     Grammar: ``connectionUsage : occurrenceUsagePrefix ( CONNECTION
     usageDeclaration? valuePart? ( CONNECT connectorPart )? | CONNECT
@@ -6945,6 +6945,10 @@ def _connection_usage_body_items(ctx):
     used to hardcode an empty DefinitionBody, so every member of a
     connection body (``:>> description = "...";``, ``ref template = ...;``)
     vanished from the model and the dump.
+
+    ``allocationUsage`` has the same shape (issue #30) and reuses this
+    helper: ``allocationUsage : occurrenceUsagePrefix
+    allocationUsageDeclaration usageBody``.
     """
     if ctx is None:
         return []
@@ -8694,7 +8698,7 @@ def _make_allocation_usage_dict(ctx, prefix=None):
                             "name": "UsageBody",
                             "body": {
                                 "name": "DefinitionBody",
-                                "ownedRelatedElement": []
+                                "ownedRelatedElement": _connection_usage_body_items(ctx)
                             }
                         }
                     }
