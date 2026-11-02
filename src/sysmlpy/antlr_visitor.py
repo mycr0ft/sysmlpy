@@ -543,10 +543,14 @@ def parse_to_dict(source, library=None, rescue_language="English"):
         A dictionary representation of the SysML model.
     """
     from sysmlpy import antlr_parser
-    
-    tree = antlr_parser.parse(source, library=library,
-                        rescue_language=rescue_language)
-    return _visit_root_namespace_dict(tree)
+
+    _PARSE_SOURCE[0] = source if isinstance(source, str) else ""
+    try:
+        tree = antlr_parser.parse(source, library=library,
+                            rescue_language=rescue_language)
+        return _visit_root_namespace_dict(tree)
+    finally:
+        _PARSE_SOURCE[0] = ""
 
 
 def _visit_root_namespace_dict(tree):
@@ -12288,15 +12292,19 @@ def _unwrap_to_layer(rhs_chain, layer_name):
     if path is None:
         # For higher layers, return the chain at the layer BELOW the
         # current one (matching the grammar-class operand expectation).
+        # The operand of layer L must be the grammar class just BELOW L
+        # (xorExpression : andExpression (XOR andExpression)*, etc.).
+        # Getting this one layer wrong leaves a foreign chain dict in the
+        # operand slot, which the dumper stringifies into the output
+        # (issue #31: `a xor b` dumped the raw dict).
         if layer_name in ("AndExpression",):
             path = ["expression", "operand", 0, "implies", "or", "xor", "and", "equality"]
         elif layer_name == "OrExpression":
-            path = ["expression", "operand", 0, "implies", "or", "xor", "and"]
+            path = ["expression", "operand", 0, "implies", "or", "xor"]
         elif layer_name == "XorExpression":
-            path = ["expression", "operand", 0, "implies", "or"]
+            path = ["expression", "operand", 0, "implies", "or", "xor", "and"]
         elif layer_name == "ImpliesExpression":
-            path = ["expression", "operand", 0]
-            path = ["expression", "operand", 0, "implies", "or", "xor", "and", "equality", "classification", "relational", "range", "additive"]
+            path = ["expression", "operand", 0, "implies", "or"]
     return _walk_chain(rhs_chain, path)
 
 
@@ -12913,6 +12921,65 @@ def _emit_base_primary(be_ctx):
     return None
 
 
+def _paren_inner_context(ctx):
+    """Inner ownedExpression of a ``( expr )`` group, else None (issue #31).
+
+    The group reaches the emitter through single-child wrappers
+    (``ownedExpression → primaryExpression → baseExpression``), so the helper
+    descends those before testing for the paren pattern.  The layered chain
+    has no parentheses node, so a group is emitted as its inner chain; callers
+    that splice a group under another operator compare binding power first
+    (``_chain_top_rank``) and keep the text fallback when the parens actually
+    decide the grouping.
+    """
+    if ctx is None or not hasattr(ctx, "getChildren"):
+        return None
+    node = ctx
+    for _ in range(5):
+        children = list(node.getChildren())
+        if (len(children) == 3
+                and children[0].getText().strip() == "("
+                and children[2].getText().strip() == ")"):
+            inner = children[1]
+            if type(inner).__name__ == "OwnedExpressionContext":
+                return inner
+            # baseExpression : '(' sequenceExpressionList ')' — a single
+            # expression is a group; a comma list is a sequence expression
+            # and keeps the text fallback.
+            if type(inner).__name__ == "SequenceExpressionListContext":
+                inner_kids = list(inner.getChildren())
+                if (len(inner_kids) == 1
+                        and type(inner_kids[0]).__name__ == "OwnedExpressionContext"):
+                    return inner_kids[0]
+            return None
+        if (len(children) == 1
+                and type(children[0]).__name__ in ("PrimaryExpressionContext",
+                                                   "BaseExpressionContext")):
+            node = children[0]
+            continue
+        return None
+    return None
+
+
+def _chain_top_rank(chain):
+    """Precedence rank of the LOOSEST operator inside a chain (0 = none)."""
+    for layer, path in _LAYER_PATHS.items():
+        node = _walk_chain(chain, path)
+        field = _LAYER_OP_FIELDS.get(layer)
+        if not isinstance(node, dict) or not field:
+            continue
+        value = node.get(field)
+        if not value:
+            continue
+        op = value[0] if isinstance(value, list) else value
+        if isinstance(op, dict):
+            op = op.get("operator") or op.get("name")
+        rank = _PRECEDENCE_RANK.get(str(op).strip())
+        if rank:
+            return rank
+    return 0
+
+
 def _emit_structured_expression(oe_ctx):
     """Emit a structured OwnedExpression chain dict for an ANTLR
     ownedExpression context of the flat left-recursive rule.
@@ -12946,6 +13013,10 @@ def _emit_structured_expression(oe_ctx):
 
     # Simple primary: the whole expression is one PrimaryExpression
     if kinds == ["PrimaryExpressionContext"]:
+        group = _paren_inner_context(children[0])
+        if group is not None:
+            # `( a and b )` — emit the inner chain (grouping is in the layers)
+            return _emit_structured_expression(group)
         primary = _emit_primary_level(children[0])
         if primary is None:
             return None
@@ -12960,6 +13031,12 @@ def _emit_structured_expression(oe_ctx):
     ):
         operand_chain = _emit_structured_expression(children[1])
         if operand_chain is None:
+            return None
+        # `-(2 - 5)`: a parenthesized operand carrying its own operators
+        # cannot be attached to the unary layer without changing the meaning
+        # (it would read `-2 - 5`); keep the parens via the text fallback.
+        if (_paren_inner_context(children[1]) is not None
+                and _chain_top_rank(operand_chain)):
             return None
         # Nested unary prefixes would overwrite the single unary layer's
         # operator field -- keep them as text.
@@ -12988,6 +13065,15 @@ def _emit_structured_expression(oe_ctx):
     if kinds == ["OwnedExpressionContext", "TerminalNodeImpl", "TypeReferenceContext"]:
         return None
 
+    # Parenthesized group: '(' ownedExpression ')' — grouping is carried by
+    # the chain layers, so the inner chain is emitted directly.  The binary
+    # branch below refuses to splice a group whose loosest operator binds
+    # LOOSER than the enclosing one (there the parens decide the grouping and
+    # the text fallback stays).
+    inner = _paren_inner_context(oe_ctx)
+    if inner is not None:
+        return _emit_structured_expression(inner)
+
     # Binary: OwnedExpression op OwnedExpression -- splice at the
     # operator's layer (left-spine: lhs already holds lower-precedence
     # structure, rhs recurses independently)
@@ -13007,6 +13093,18 @@ def _emit_structured_expression(oe_ctx):
         rhs_chain = _emit_structured_expression(children[2])
         if rhs_chain is None:
             return None
+        # A parenthesized side only loses its parens when the inner chain
+        # binds STRICTLY tighter than this operator: at equal precedence the
+        # parens still decide the grouping (`tp / (tm * v)`, `-(2 - 5)`), and
+        # dropping them silently changes the meaning (issue #31).
+        op_rank = _PRECEDENCE_RANK.get(op_text, 0)
+        for side_ctx, side_chain in ((children[0], lhs_chain),
+                                     (children[2], rhs_chain)):
+            if _paren_inner_context(side_ctx) is None:
+                continue
+            top_rank = _chain_top_rank(side_chain)
+            if top_rank and op_rank and top_rank <= op_rank:
+                return None  # parens carry meaning here -> keep the text
         return _splice_operator(lhs_chain, layer, op_text, rhs_chain)
 
     return None
@@ -13119,11 +13217,35 @@ _UNARY_LAYER_PATH = [
 ]
 
 
+# Source text of the parse currently being visited (set by parse_to_dict).
+# Token text alone is not enough: ``ctx.getText()`` concatenates tokens and
+# glues a multi-token expression into something that does not re-parse
+# (``(a or b) and c`` -> ``(aorb)andc``), so text-preserving fallbacks slice
+# the original source instead (issue #31).
+_PARSE_SOURCE = [""]
+
+
+def _verbatim_text(ctx):
+    """Original SOURCE text of a parse-tree context, whitespace-normalised."""
+    if ctx is None:
+        return ""
+    source = _PARSE_SOURCE[0]
+    start = getattr(ctx, "start", None)
+    stop = getattr(ctx, "stop", None)
+    if source and start is not None and stop is not None:
+        try:
+            text = source[start.start:stop.stop + 1]
+        except Exception:
+            text = ""
+        if text and text.strip():
+            return " ".join(text.split())
+    return ctx.getText() if hasattr(ctx, "getText") else ""
+
+
 def _fallback_to_text(oe_ctx):
-    """Fallback: preserve the original text as a single
-    FeatureReferenceMember (the v0.51.0 lossy behavior)."""
-    text = oe_ctx.getText() if hasattr(oe_ctx, "getText") else ""
-    return _wrap_expression_layers(_make_feature_reference_primary(text))
+    """Fallback: preserve the original SOURCE text as a single
+    FeatureReferenceMember (the v0.51.0 lossy behavior, now whitespace-safe)."""
+    return _wrap_expression_layers(_make_feature_reference_primary(_verbatim_text(oe_ctx)))
 
 
 def _emit_unary_chain(operand_chain, op_text):
@@ -13501,7 +13623,7 @@ def _visit_owned_expression(oe_ctx):
     if oe_ctx is None:
         return None
 
-    text = oe_ctx.getText().strip() if hasattr(oe_ctx, 'getText') else ''
+    text = _verbatim_text(oe_ctx)
 
     if not text:
         return None

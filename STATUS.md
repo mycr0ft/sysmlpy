@@ -1,14 +1,28 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.6** (2026-11-02, tagged)
+Current version: **v0.102.7** (2026-11-02, tagged)
 
-Current released version: **v0.102.6** (2026-11-02, on PyPI; 0.102.5 superseded)
+Current released version: **v0.102.7** (2026-11-02, on PyPI; 0.102.6 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.7)
+
+- **Issue #31 shipped**: assert-constraint bodies no longer glue operators.
+  Three defects: `_unwrap_to_layer` gave OR/XOR/IMPLIES the wrong operand class
+  (raw chain dicts in the dump), parenthesized groups never entered the chain
+  (whole expression collapsed to one name), and the text fallback used token
+  glue (`(a or b) and c` -> `(aorb)andc`) instead of source text. Groups keep
+  their parens unless the inner operator binds strictly tighter
+  (`tp / (tm * v)`, `-(2 - 5)` preserved). VehicleVariabilityModel reaches a
+  fixed point with the source's exact operator sequence. `valid_definition` no
+  longer prints; dumps are stdout-silent. Gate 1180/1706 PASS (was 1183/1706).
+  Pins: `tests/issue31_test.py` (11). Unit-expression exponents still leak a
+  dict -> issue #33.
 
 ## Recent Highlights (0.102.6)
 

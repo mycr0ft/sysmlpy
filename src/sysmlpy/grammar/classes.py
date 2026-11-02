@@ -30,7 +30,9 @@ def valid_definition(definition, name):
             if definition["name"] == name:
                 return True
             else:
-                print(definition["name"])  # pragma: no cover
+                # No stdout here: this is a normal control-flow miss (a caller
+                # probing an operand dict against several layer classes), and
+                # printing the name flooded `sysmlpy ci` output.
                 raise ValueError(
                     "The name of the element did not match."
                 )  # pragma: no cover

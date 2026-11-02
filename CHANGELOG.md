@@ -1,5 +1,50 @@
 # CHANGELOG
 
+## 0.102.7 (2026-11-02)
+
+- **Issue #31: `assert constraint` bodies dumped glued operators and never
+  reached a fixed point.** Three separate defects in the expression emitter —
+  only the third was in the report:
+  1. **Wrong operand class for the loose boolean layers.**
+     `_unwrap_to_layer` handed `OrExpression` the And-layer, `XorExpression`
+     the Or-layer and `ImpliesExpression` the tail of a ladder, but each layer's
+     grammar class expects the layer immediately BELOW it
+     (`orExpression : xorExpression (OR xorExpression)*`). Any expression using
+     `or`/`xor`/`implies` therefore put a foreign chain dict into an operand
+     slot and the dumper stringified it:
+     `a xor b` → `a xor {'name': 'OrExpression', 'operator': [], ...}`.
+     Corrected for OR (→ xor), XOR (→ and) and IMPLIES (→ or).
+  2. **Parenthesized groups never entered the chain.** `(A and B) xor (C and D)`
+     matched no emitter branch, so the *whole* expression collapsed to one
+     FeatureReference name. Groups are now unwrapped
+     (`_paren_inner_context`, which follows the
+     `ownedExpression → primaryExpression → baseExpression → '('
+     sequenceExpressionList ')'` wrappers). A group keeps its parens whenever
+     its loosest operator binds **no tighter** than the enclosing operator —
+     at equal precedence the parens still decide the grouping
+     (`tp / (tm * v)` must not become `tp / tm * v`, `-(2 - 5)` must not become
+     `-2 - 5`), and a unary prefix over a grouping stays text for the same
+     reason.
+  3. **The text fallback glued tokens.** `ctx.getText()` concatenates tokens,
+     so any preserved expression became unparseable
+     (`(a or b) and c` → `(aorb)andc`). The fallback now slices the original
+     source (`_verbatim_text`, whitespace-normalised) using the context's
+     character interval, so preserved text is the source text.
+- **Dumps no longer print on stdout.** `valid_definition` printed the offending
+  dict's `name` before raising — on a normal control-flow miss (probing an
+  operand against several layer classes). It flooded `sysmlpy ci` with layer
+  names; the raise stays, the print is gone.
+- Corpus: `VehicleVariabilityModel.sysml` (the reporting file) now reaches a
+  fixed point with **no** `language "English"` capture and an operator sequence
+  identical to the source (21 operators, `==`/`and`/`xor`).
+- Gate: 0 parse failures, **1180** errors (was 1183) / 1706 warnings, PASS —
+  the three former text-captured bodies now expose their identifiers to the
+  resolver, retiring 5 `UNRESOLVED_EXPRESSION_IDENTIFIER` findings.
+- Pins: `tests/issue31_test.py` (11). Known and unchanged: unit-expression
+  exponents (`s ^ -1`, `1024 ^ (1/1000)`) still dump their `UnaryExpression`
+  dict — a pre-existing leak tracked by issue #33, which the same machinery
+  now makes tractable.
+
 ## 0.102.6 (2026-11-02)
 
 - **Issue #34 step 7: the `.kerml` half of the library now answers on truth.**
