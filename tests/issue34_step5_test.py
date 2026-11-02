@@ -82,10 +82,12 @@ def test_step5_table_members_are_elements_not_strings():
     assert getattr(element, "name", None) == "kilogram"
 
 
-def test_step5_kerml_only_namespaces_keep_the_scraped_fallback():
-    # VectorFunctions lives in a .kerml source (no semantic model load yet,
-    # step 7) — the import must still resolve through the scraped index.
-    assert LibrarySymbolIndex.library_namespace_table("VectorFunctions") is None
+def test_step5_kerml_namespaces_answer_since_step7():
+    # Step 5 filtered its candidates to .sysml, so a `.kerml` namespace fell
+    # back to the scraped index.  Step 7 (0.102.6) builds a table from the
+    # KerML visitor dict, so the namespace answers on truth now; the import
+    # must resolve either way.
+    assert LibrarySymbolIndex.library_namespace_table("VectorFunctions") is not None
     codes = _codes("""
 package P {
   private import VectorFunctions::*;

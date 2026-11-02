@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## 0.102.6 (2026-11-02)
+
+- **Issue #34 step 7: the `.kerml` half of the library now answers on truth.**
+  KerML names were only ever *scraped* — `exists_in_loaded_model` returned
+  False for them by design, `library_namespace_table` filtered its candidates
+  to `.sysml`, and the regex index carried doc-comment words as names.
+  - KerML has no public `Model` loader, but its `parse_to_dict` output is
+    already name-shaped (`name` = the declaration KIND, `declaredName` /
+    `declaredShortName` = identifiers, `children` = nested members). A symbol
+    table is now built directly from that dict
+    (`LibrarySymbolIndex._kerml_table_for_file`, process-cached), so
+    `VectorFunctions`, `VectorValues`, `ScalarValues`, `Collections` … answer
+    with their real members; declarations are represented by a minimal
+    `_LibrarySymbol` (name, kind, typed_by, shortname) because there is no
+    model element to hand back.
+  - `library_namespace_table` accepts `.kerml` candidates, so
+    `private import VectorFunctions::*` imports real members; the scraped index
+    stays only as the callers' last fallback.
+  - `exists_in_loaded_model` consults the KerML table for fingerprinted
+    `.kerml` sources (nested members included), so `exists_in_loaded_model(
+    "VectorOf")` is True instead of False-with-a-scraped-fallback.
+  - The **leaf fingerprint now harvests `.kerml` declarations lexically**
+    (`_KERML_DECL_RE`, leading modifiers included: `abstract datatype
+    VectorValue`, `in feature v`), so the step-7 path works in a cold process
+    that has not built the full symbol index. Before this the kerml leaves
+    existed only as a side effect of the index walk, and a step-7 lookup in a
+    fresh process silently found no candidates.
+  - Gate unchanged by design: 0 parse failures, 1183 errors / 1706 warnings,
+    PASS, identical per-code histogram to 0.102.5 — the scraped
+    fallback was already resolving these names on the corpus, so step 7 changes
+    *how* they resolve (truth, without doc-comment noise), not how many.
+  - Pins: `tests/issue34_step7_test.py` (7 — member tables, kernel namespaces,
+    the symbol stand-in, `exists_in_loaded_model`, nested members, absence of
+    doc-comment words, and an import resolving through the table). Two older
+    pins updated to the new truth (`library_model_test`, `issue34_step5_test`).
+
 ## 0.102.5 (2026-11-02)
 
 - **Issue #34 step 5: imports resolve against the loaded library model.**

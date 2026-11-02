@@ -66,10 +66,12 @@ def test_issue34_facade_typing_no_noise():
     assert not undefined, _codes
 
 
-def test_issue34_kerml_fallback_names_unaffected():
-    # VectorOf lives in a .kerml source (VectorFunctions) — the loaded-
-    # model check answers False and the SCRAPED fallback still resolves it
-    assert LibrarySymbolIndex.exists_in_loaded_model("VectorOf") is False
+def test_issue34_kerml_names_resolve_from_the_loaded_source():
+    # VectorOf lives in a .kerml source (VectorFunctions).  Step 7 (0.102.6)
+    # builds a symbol table from the KerML visitor dict, so the loaded-model
+    # answer is TRUE now — the scraped index still carries the name as the
+    # callers' fallback.
+    assert LibrarySymbolIndex.exists_in_loaded_model("VectorOf") is True
     assert "VectorFunctions::VectorOf" in LibrarySymbolIndex.get_symbols(None)
 
 

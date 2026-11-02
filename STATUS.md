@@ -1,14 +1,25 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.5** (2026-11-02, tagged)
+Current version: **v0.102.6** (2026-11-02, tagged)
 
-Current released version: **v0.102.5** (2026-11-02, on PyPI; 0.102.4 superseded)
+Current released version: **v0.102.6** (2026-11-02, on PyPI; 0.102.5 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.6)
+
+- **Issue #34 step 7 shipped**: the `.kerml` half of the library answers on
+  truth — symbol tables built from the KerML visitor dict (`VectorFunctions`,
+  `VectorValues`, `ScalarValues`, `Collections` …), `exists_in_loaded_model`
+  True for KerML names, and `.kerml` leaves are fingerprinted lexically so the
+  path works in a cold process. Gate unchanged by design (1183 / 1706, PASS,
+  identical histogram — the scraped fallback already resolved these on the
+  corpus). Pins: `tests/issue34_step7_test.py` (7). #34 stays open for step 6
+  (persisted tables) and the facade re-export residual.
 
 ## Recent Highlights (0.102.5)
 

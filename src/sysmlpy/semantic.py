@@ -70,6 +70,18 @@ _PACKAGE_RE = re.compile(
     r'(?:standard\s+library\s+)?package\s+(\w+)\s*\{',
     re.IGNORECASE,
 )
+#: KerML declarations, for the lexical leaf fingerprint (issue #34 step 7).
+#  A KerML source can only be fingerprinted without a parse this way; the
+#  truth decision stays with the visitor-dict table.
+_KERML_DECL_RE = re.compile(
+    r"^\s*(?:standard\s+)?(?:library\s+)?"
+    # leading modifiers: abstract datatype VectorValue / in feature v / …
+    r"(?:(?:abstract|variation|readonly|derived|constant|individual|ref|in|out|inout|end)\s+)*"
+    r"(?:package|class|structure|struct|association|assoc|behavior|function|"
+    r"predicate|datatype|metaclass|type|feature|connector|binding|step|expr|"
+    r"interaction|enum)\s+"
+    r"(['\"][^'\"]+['\"]|[A-Za-z_]\w*)"
+)
 _DEFINITION_RE = re.compile(
     r'(?:abstract\s+)?'
     r'(?:datatype|class|metaclass|attribute\s+def|part\s+def|item\s+def|port\s+def|'
@@ -83,6 +95,27 @@ _DEFINITION_RE = re.compile(
     r"""(['"]?\w+['"]?)""",
     re.IGNORECASE,
 )
+
+
+class _LibrarySymbol:
+    """A symbol declared by a loaded library source (issue #34).
+
+    SysML sources yield real model elements; a ``.kerml`` source has no
+    public ``Model`` loader (step 7), so its declarations are represented by
+    this minimal stand-in — enough for the resolver, which only asks for
+    existence and, in messages, for the name.
+    """
+
+    __slots__ = ("name", "kind", "typed_by", "shortname")
+
+    def __init__(self, name, kind, typed_by=None, shortname=None):
+        self.name = name
+        self.kind = kind
+        self.typed_by = list(typed_by or [])
+        self.shortname = shortname
+
+    def __repr__(self):
+        return f"<{self.kind} {self.name}>"
 
 
 class LibrarySymbolIndex:
@@ -105,6 +138,9 @@ class LibrarySymbolIndex:
     _namespace_tables: "dict[str, Any]" = {}
     #: filepath fingerprint -> loaded model (per process; issue #34)
     _loaded_models: "dict[str, Any]" = {}
+    #: KerML file fingerprint -> symbol table built from its visitor dict
+    #  (issue #34 step 7 — KerML has no public Model loader)
+    _kerml_tables: "dict[str, Any]" = {}
 
     @classmethod
     def get_symbols(
@@ -302,15 +338,15 @@ class LibrarySymbolIndex:
 
     @classmethod
     def _leaf_fp_from_file(cls, filepath):
-        """Fingerprint one .sysml file lexically (no parse; issue #34).
+        """Fingerprint one library source lexically (no parse; issue #34).
 
         Every package name, definition name and member-usage name in the
         file's text — plus declared short names in `<>` — maps to this
         file, so a failing reference finds its defining file without a
-        parse pass. The truth decision stays with the loaded-model
-        membership check that follows. (.kerml sources are not
-        fingerprinted here: they never model-load this phase; their
-        leaves arrive through ``_extract_kerml_parsed``.)
+        parse pass.  The truth decision stays with the loaded-model /
+        KerML-table membership check that follows.  ``.kerml`` sources are
+        fingerprinted with the KerML declaration keywords (issue #34
+        step 7): their names used to arrive only from a full index walk.
         """
         try:
             content = filepath.read_text(encoding="utf-8", errors="ignore")
@@ -318,9 +354,21 @@ class LibrarySymbolIndex:
             return
         fp = cls._leaf_fp
         file_key = str(filepath)
+        is_kerml = str(filepath).endswith(".kerml")
         for raw in content.splitlines():
             stripped = raw.strip()
             if not stripped or stripped.startswith(("doc", "/*", "*", "//")):
+                continue
+            if is_kerml:
+                match = _KERML_DECL_RE.match(stripped)
+                if match:
+                    leaf = match.group(1).strip("'\"").strip()
+                    if leaf:
+                        fp.setdefault(leaf, set()).add(file_key)
+                    short = re.search(r"<([^<>]+)>", stripped)
+                    if short:
+                        fp.setdefault(
+                            short.group(1).strip("'\"<> "), set()).add(file_key)
                 continue
             for leaf in cls._leaves_on_line(stripped):
                 fp.setdefault(leaf, set()).add(file_key)
@@ -340,8 +388,6 @@ class LibrarySymbolIndex:
         if cls._leaf_fingerprint is None:
             if cls._cache is None:
                 for (filepath, _is_kerml) in cls._candidate_files(roots):
-                    if _is_kerml:
-                        continue
                     cls._leaf_fp_from_file(filepath)
             cls._leaf_fingerprint = dict(cls._leaf_fp)
         return cls._leaf_fp
@@ -379,6 +425,76 @@ class LibrarySymbolIndex:
             return None
         cls._loaded_models[fp_key] = model
         return model
+
+    @classmethod
+    def _kerml_table_for_file(cls, fp_key: str) -> "Any | None":
+        """Symbol table of a ``.kerml`` source, built from its visitor dict.
+
+        Issue #34 step 7: KerML has no public ``Model`` loader, but its
+        ``parse_to_dict`` output is already name-shaped — ``name`` carries the
+        declaration KIND ("library package", "class", "function", "feature"),
+        ``declaredName``/``declaredShortName`` the identifiers, and ``children``
+        the nested members.  Walking that gives the same symbol table a SysML
+        model gives, without inventing a model layer (and without the
+        doc-comment noise the old regex scraper produced).
+
+        Parsing is DFA-cached (#35), so the first call pays tokenization only.
+        """
+        if not fp_key.endswith(".kerml"):
+            return None
+        if fp_key in cls._kerml_tables:
+            return cls._kerml_tables[fp_key]
+        table = None
+        try:
+            from sysmlpy.kerml import kerml as _kerml
+            doc = _kerml.parse_to_dict(
+                Path(fp_key).read_text(encoding="utf-8"))
+            table = type(SymbolTable())()
+            cls._kerml_table_walk(doc.get("children") or [], table)
+        except Exception:
+            table = None
+        cls._kerml_tables[fp_key] = table
+        return table
+
+    @classmethod
+    def _kerml_table_walk(cls, nodes, table) -> None:
+        """Register KerML dict nodes (and their members) into *table*."""
+        for node in nodes or []:
+            if not isinstance(node, dict):
+                continue
+            name = (node.get("declaredName") or "").strip("'\"")
+            short = (node.get("declaredShortName") or "").strip("'\"<> ")
+            kind = node.get("name") or "element"
+            child_table = table
+            if name:
+                symbol = _LibrarySymbol(name, kind,
+                                        node.get("typed_by") or [], short or None)
+                table.register(name, symbol)
+                if short:
+                    table.register(short, symbol)
+                child_table = table._children.setdefault(name, type(table)())
+                child_table._parent = table
+            # members (parameters of a function, features of a class, nested
+            # packages) belong to this node's namespace
+            cls._kerml_table_walk(node.get("children") or [], child_table)
+
+    @classmethod
+    def _kerml_symbol_exists(cls, fp_key: str, name: str) -> bool:
+        """Is *name* declared anywhere in this ``.kerml`` source?"""
+        table = cls._kerml_table_for_file(fp_key)
+        if table is None or not name:
+            return False
+        stack = [table]
+        seen = set()
+        while stack:
+            current = stack.pop()
+            if id(current) in seen:
+                continue
+            seen.add(id(current))
+            if name in current._symbols:
+                return True
+            stack.extend(current._children.values())
+        return False
 
     @classmethod
     def model_for_name(
@@ -451,8 +567,8 @@ class LibrarySymbolIndex:
         fp = cls._fingerprint_for(lib_roots)
         first = qn_str.split("::")[0]
         candidates: set[str] = {fp_key for fp_key in fp.get(first, set())
-                                if fp_key.endswith(".sysml")}
-        table_cls = type(SymbolTable())
+                                if fp_key.endswith((".sysml", ".kerml"))}
+        table_cls = SymbolTable
         # Issue #34 step 5: build SHALLOW (no library root) — a table that
         # resolved its own imports recursively walked the whole library
         # closure (248 s cold on a two-import model).  Direct members plus
@@ -468,11 +584,18 @@ class LibrarySymbolIndex:
         guard.add(qn_str)
         try:
             for fp_key in sorted(candidates):
-                model = cls._model_for_file(fp_key)
-                if model is None:
-                    continue
-                table = table_cls()
-                table.build_from_model(model, None)
+                if fp_key.endswith(".kerml"):
+                    # issue #34 step 7: KerML namespaces come from the
+                    # visitor-dict table (no public Model loader exists)
+                    table = cls._kerml_table_for_file(fp_key)
+                    if table is None:
+                        continue
+                else:
+                    model = cls._model_for_file(fp_key)
+                    if model is None:
+                        continue
+                    table = table_cls()
+                    table.build_from_model(model, None)
                 cur = table
                 found = True
                 for seg in qn_str.split("::"):
@@ -499,8 +622,12 @@ class LibrarySymbolIndex:
 
         The resolving semantics are the loaded model's own (facades,
         star-import visibility, unit members and SHORT names all carry
-        their true structure); the scraped index remains the final
-        fallback in the callers, so a .kerml-only name is unaffected.
+        their true structure).  Since issue #34 step 7 the ``.kerml`` half of
+        the library answers too — its declarations come from the KerML
+        visitor dict, which is name-shaped (``declaredName`` /
+        ``declaredShortName``) and free of the doc-comment noise the old
+        regex scraper carried.  The scraped index remains the callers' last
+        fallback.
         """
         if not ref_str:
             return False
@@ -508,6 +635,13 @@ class LibrarySymbolIndex:
         if cached_hit is not None:
             return cached_hit
         result = False
+        # issue #34 step 7: a .kerml source declares the name somewhere in its
+        # own table (nested members included) — no model load needed.
+        for fp_key in sorted(cls._leaf_fp.get(ref_str, ())):
+            if fp_key.endswith(".kerml") and cls._kerml_symbol_exists(
+                    fp_key, ref_str):
+                cls._exists_cache[ref_str] = True
+                return True
         models = cls.model_for_name(lib_roots, {ref_str})
         for model in models:
             # walk the candidate model once per (model, batch of names):
@@ -584,6 +718,8 @@ class LibrarySymbolIndex:
         cls._loaded_models = {}
         cls._namespace_tables = {}
         cls._exists_cache = {}
+        cls._kerml_tables = {}
+        cls._namespace_table_building = set()
 
     @classmethod
     def _extract_kerml_parsed(cls, filepath: Path, symbols: set[str]) -> None:
