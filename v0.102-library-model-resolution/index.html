@@ -779,28 +779,33 @@ Three false-positive classes ride on that:</p>
 <td>—</td>
 </tr>
 <tr>
-<td>5 (follow-up)</td>
-<td><strong>model-resolved import visibility</strong> — <code>library_namespace_table</code> (fresh SymbolTables over library files) exploded warm analysis cost when wired into <code>_resolve_namespace_import</code> (~100 s/analysis on the warm path; every unresolved leaf fingerprint-match triggers a candidate-file table build). Deferred until the tables persist across processes (below).</td>
-<td>—</td>
-<td>true import-chain visibility</td>
+<td>5</td>
+<td><strong>model-resolved import visibility</strong> — <code>library_namespace_table</code> wired into <code>_resolve_namespace_import</code>, built SHALLOW (direct members + short names); a deep build that resolved the library's own imports walked the whole closure (248 s cold). Gate: errors 3369 → 1183, warnings 2961 → 1706, every other code unchanged.</td>
+<td>6 h — DONE (0.102.5)</td>
+<td>true member visibility for star imports</td>
 </tr>
 <tr>
 <td>6 (follow-up)</td>
-<td>persist built namespace tables keyed by file fingerprint (dfa_cache-style) so no process re-derives them; then re-wire step 5</td>
+<td>persist built namespace tables keyed by file fingerprint (dfa_cache-style): now a pure cost optimisation (+10 s on a cold analyze of a library-importing model), not a prerequisite for step 5</td>
 <td>8 h</td>
-<td>cli/user analyze at zero standing cost</td>
+<td>colder starts stop paying the table builds</td>
 </tr>
 <tr>
 <td>7 (follow-up)</td>
-<td>.kerml semantic model-loading after #35 (DFA cache) makes cold cost sane</td>
+<td>.kerml semantic model-loading — #35 landed (v0.102.3), so the cold cost objection is gone</td>
 <td>4 h</td>
-<td>full-library truth</td>
+<td>full-library truth (VectorFunctions and the kernel namespaces)</td>
 </tr>
 </tbody>
 </table>
 <p>Non-goals: changing the DEFAULT advisory strictness (the gate must stay
-advisory by default); touching <code>reconcile</code>/identity layers; KerML
-semantic loads before #35 lands (cost without the cache).</p>
+advisory by default); touching <code>reconcile</code>/identity layers.</p>
+<p>Residual after step 5: a FACADE's re-exported members
+(<code>ISQ::LengthValue</code> → <code>ISQBase</code>) are not in the shallow table, so the
+import-<em>suggestion</em> warning for them survives on models that import the
+facade. References still resolve through <code>exists_in_loaded_model</code>. Closing
+this needs either the deep table (248 s cold) or lazily resolving a
+table's own imports at lookup time.</p>
 <h2 id="acceptance">Acceptance<a class="headerlink" href="#acceptance" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>analyze</code> on a facade-heavy + star-import model with <code>kg</code>-style unit
