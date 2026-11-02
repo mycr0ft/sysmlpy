@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01026-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.6 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01025-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -973,6 +984,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01026-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.6 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01025-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1312,6 +1334,42 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01026-2026-11-02">0.102.6 (2026-11-02)<a class="headerlink" href="#01026-2026-11-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #34 step 7: the <code>.kerml</code> half of the library now answers on truth.</strong>
+  KerML names were only ever <em>scraped</em> — <code>exists_in_loaded_model</code> returned
+  False for them by design, <code>library_namespace_table</code> filtered its candidates
+  to <code>.sysml</code>, and the regex index carried doc-comment words as names.</li>
+<li>KerML has no public <code>Model</code> loader, but its <code>parse_to_dict</code> output is
+    already name-shaped (<code>name</code> = the declaration KIND, <code>declaredName</code> /
+    <code>declaredShortName</code> = identifiers, <code>children</code> = nested members). A symbol
+    table is now built directly from that dict
+    (<code>LibrarySymbolIndex._kerml_table_for_file</code>, process-cached), so
+    <code>VectorFunctions</code>, <code>VectorValues</code>, <code>ScalarValues</code>, <code>Collections</code> … answer
+    with their real members; declarations are represented by a minimal
+    <code>_LibrarySymbol</code> (name, kind, typed_by, shortname) because there is no
+    model element to hand back.</li>
+<li><code>library_namespace_table</code> accepts <code>.kerml</code> candidates, so
+    <code>private import VectorFunctions::*</code> imports real members; the scraped index
+    stays only as the callers' last fallback.</li>
+<li><code>exists_in_loaded_model</code> consults the KerML table for fingerprinted
+    <code>.kerml</code> sources (nested members included), so <code>exists_in_loaded_model(
+    "VectorOf")</code> is True instead of False-with-a-scraped-fallback.</li>
+<li>The <strong>leaf fingerprint now harvests <code>.kerml</code> declarations lexically</strong>
+    (<code>_KERML_DECL_RE</code>, leading modifiers included: <code>abstract datatype
+    VectorValue</code>, <code>in feature v</code>), so the step-7 path works in a cold process
+    that has not built the full symbol index. Before this the kerml leaves
+    existed only as a side effect of the index walk, and a step-7 lookup in a
+    fresh process silently found no candidates.</li>
+<li>Gate unchanged by design: 0 parse failures, 1183 errors / 1706 warnings,
+    PASS, identical per-code histogram to 0.102.5 — the scraped
+    fallback was already resolving these names on the corpus, so step 7 changes
+    <em>how</em> they resolve (truth, without doc-comment noise), not how many.</li>
+<li>Pins: <code>tests/issue34_step7_test.py</code> (7 — member tables, kernel namespaces,
+    the symbol stand-in, <code>exists_in_loaded_model</code>, nested members, absence of
+    doc-comment words, and an import resolving through the table). Two older
+    pins updated to the new truth (<code>library_model_test</code>, <code>issue34_step5_test</code>).</li>
+</ul>
 <h2 id="01025-2026-11-02">0.102.5 (2026-11-02)<a class="headerlink" href="#01025-2026-11-02" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #34 step 5: imports resolve against the loaded library model.</strong>

@@ -791,10 +791,10 @@ Three false-positive classes ride on that:</p>
 <td>colder starts stop paying the table builds</td>
 </tr>
 <tr>
-<td>7 (follow-up)</td>
-<td>.kerml semantic model-loading — #35 landed (v0.102.3), so the cold cost objection is gone</td>
-<td>4 h</td>
-<td>full-library truth (VectorFunctions and the kernel namespaces)</td>
+<td>7</td>
+<td><strong>.kerml semantic model-loading</strong> — a symbol table built straight from the KerML visitor dict (<code>_kerml_table_for_file</code>), plus lexical <code>.kerml</code> leaf fingerprinting so the path works in a cold process; <code>library_namespace_table</code> and <code>exists_in_loaded_model</code> both answer for KerML sources</td>
+<td>5 h — DONE (0.102.6)</td>
+<td>full-library truth (VectorFunctions, VectorValues, kernel namespaces)</td>
 </tr>
 </tbody>
 </table>

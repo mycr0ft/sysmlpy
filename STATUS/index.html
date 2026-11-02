@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.6)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01025" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -885,6 +896,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.6)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01025" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1114,11 +1136,22 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.5</strong> (2026-11-02, tagged)</p>
-<p>Current released version: <strong>v0.102.5</strong> (2026-11-02, on PyPI; 0.102.4 superseded)</p>
+<p>Current version: <strong>v0.102.6</strong> (2026-11-02, tagged)</p>
+<p>Current released version: <strong>v0.102.6</strong> (2026-11-02, on PyPI; 0.102.5 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01026">Recent Highlights (0.102.6)<a class="headerlink" href="#recent-highlights-01026" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #34 step 7 shipped</strong>: the <code>.kerml</code> half of the library answers on
+  truth — symbol tables built from the KerML visitor dict (<code>VectorFunctions</code>,
+  <code>VectorValues</code>, <code>ScalarValues</code>, <code>Collections</code> …), <code>exists_in_loaded_model</code>
+  True for KerML names, and <code>.kerml</code> leaves are fingerprinted lexically so the
+  path works in a cold process. Gate unchanged by design (1183 / 1706, PASS,
+  identical histogram — the scraped fallback already resolved these on the
+  corpus). Pins: <code>tests/issue34_step7_test.py</code> (7). #34 stays open for step 6
+  (persisted tables) and the facade re-export residual.</li>
+</ul>
 <h2 id="recent-highlights-01025">Recent Highlights (0.102.5)<a class="headerlink" href="#recent-highlights-01025" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #34 step 5 shipped</strong>: imports resolve against the loaded library
