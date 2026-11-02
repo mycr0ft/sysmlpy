@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01023-2026-11-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.3 (2026-11-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01022-2026-11-01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -940,6 +951,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01023-2026-11-01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.3 (2026-11-01)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01022-2026-11-01" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1246,6 +1268,45 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01023-2026-11-01">0.102.3 (2026-11-01)<a class="headerlink" href="#01023-2026-11-01" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #35: the KerML parser shares the persistent DFA cache.</strong> <code>dfa_cache</code>
+  covered only the SysML parser, so every KerML corpus run and every
+  library-index walk re-derived the prediction structures cold
+  (<code>Occurrences.kerml</code> ~14 s per parse, every process).</li>
+<li>The cache is now per grammar family: each target has its own key and file,
+    derived from its own serialized ATNs (plus ANTLR runtime + version), so a
+    SysML grammar change can never invalidate or corrupt the KerML cache and
+    vice versa. SysML keeps its historical <code>dfa-&lt;key&gt;.pkl</code> name (caches written
+    by earlier releases stay valid); KerML writes <code>dfa-kerml-&lt;key&gt;.pkl</code>.</li>
+<li>A target is only loaded/saved when its parser actually ran in the process
+    (<code>used</code>), so a SysML-only run never imports the KerML classes or touches
+    its file.</li>
+<li><strong>Exit-time re-save:</strong> the once-per-process save landed after the FIRST
+    parse of a run, so a library-index walk persisted 558 of the 1,622 states
+    it warmed. <code>maybe_load</code>/<code>maybe_save</code> now register an <code>atexit</code> hook that
+    re-saves each used target when its in-process DFA is strictly warmer than
+    the file — the multi-file walk converges instead of half-caching.</li>
+<li>Measured (fresh processes, bundled library): <code>LibrarySymbolIndex.get_symbols</code>
+    51 s → 26 s; the analysis that follows a warm index 59 s → 1.7 s;
+    <code>Occurrences.kerml</code> 13.7 s → 3.3 s; full test suite 34m44s → 23m04s.</li>
+<li><code>dfa_cache</code> API: <code>cache_key/cache_file/load_dfa_cache/save_dfa_cache/
+    maybe_load/maybe_save/stats</code> take an optional <code>target</code> (<code>"sysml"</code> default,
+    so every existing call and cache stays valid); <code>targets()</code> lists the
+    families. Cache problems still never break a parse (<code>maybe_*</code> swallow).</li>
+<li>Fixed en route: the generated parsers define <code>serializedATN()</code> at MODULE
+    level — keying on the class attribute raises <code>AttributeError</code>, which the
+    new <code>_serialized_atn()</code> resolves (module first, class fallback).</li>
+<li>Docs: README's "Parse Performance and the DFA Cache" now covers both
+    grammars and the measured numbers.</li>
+<li>Pins: <code>tests/issue35_test.py</code> (7 — per-target keys/files, save→load, the
+    SysML/KerML file isolation, the disable flag, the never-raise contract, and
+    a subprocess pin that the exit hook persists the whole corpus walk). The
+    <code>dfa_cache_test</code> monkeypatch of <code>cache_file</code> accepts the new <code>target</code>
+    keyword.</li>
+<li>Gate unchanged: 0 parse failures, 3369 errors / 2961 warnings, PASS. Full
+    suite 1815 passed / 79 skipped.</li>
+</ul>
 <h2 id="01022-2026-11-01">0.102.2 (2026-11-01)<a class="headerlink" href="#01022-2026-11-01" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #30 (reported downstream by the CARTA team): allocation usages and
