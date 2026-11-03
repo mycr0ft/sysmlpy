@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01029" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.9)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01028" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -918,6 +929,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01029" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.9)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01028" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1180,11 +1202,22 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.8</strong> (2026-11-02, tagged)</p>
-<p>Current released version: <strong>v0.102.8</strong> (2026-11-02, on PyPI; 0.102.7 superseded)</p>
+<p>Current version: <strong>v0.102.9</strong> (2026-11-03, tagged)</p>
+<p>Current released version: <strong>v0.102.9</strong> (2026-11-03, on PyPI; 0.102.8 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01029">Recent Highlights (0.102.9)<a class="headerlink" href="#recent-highlights-01029" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #38 shipped</strong>: <code>Redefinitions.dump()</code> joined redefinition targets with
+  a space instead of a comma, so <code>attribute :&gt;&gt; A::x, B::x</code> emitted
+  <code>:&gt;&gt; A::x B::x</code> — unparseable, which is why SI/USCustomaryUnits/ShapeItems
+  never round-tripped. <code>References</code> (<code>::&gt;</code>) needed the opposite fix (repeat the
+  operator, the grammar rejects a comma there). SI.sysml, SIPrefixes.sysml and
+  USCustomaryUnits.sysml are now clean fixed points. Pins:
+  <code>tests/issue38_test.py</code> (16). Filed #39 for the binding-connector dump
+  (<code>binding [1] bind ...</code>), the last blocker for ShapeItems.</li>
+</ul>
 <h2 id="recent-highlights-01028">Recent Highlights (0.102.8)<a class="headerlink" href="#recent-highlights-01028" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issues #33 and #32 shipped.</strong> Groups are now a real node in the expression
