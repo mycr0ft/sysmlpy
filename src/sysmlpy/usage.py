@@ -1461,6 +1461,71 @@ class Usage(Searchable):
         if u_name is not None:
             self.name = u_name
 
+        self._load_body_members(children)
+        # v0.96.1: doc comments on every usage/definition kind — walk
+        # the grammar body items (definition / usage / declaration
+        # paths) and pick up Documentation / CommentSysML nodes.  The
+        # Requirement path already called this; the shared walk here
+        # covers part/item/port/action/... uniformly.
+        grammar_body = None
+
+        defn = getattr(grammar, 'definition', None)
+        if defn is not None and hasattr(defn, 'body'):
+            grammar_body = defn.body
+        if grammar_body is None:
+            usage = getattr(grammar, 'usage', None)
+            if usage is not None:
+                completion = getattr(usage, 'completion', None)
+                if completion is not None:
+                    body = getattr(completion, 'body', None)
+                    grammar_body = getattr(body, 'body', None) if body else None
+        if grammar_body is None:
+            grammar_body = getattr(grammar, 'body', None)
+        if grammar_body is not None and hasattr(grammar_body, 'children'):
+            for body_item in grammar_body.children:
+                try:
+                    self._extract_doc_from_body_item(body_item)
+                except Exception:  # pragma: no cover
+                    pass
+
+        self._extract_specialization_info(grammar)
+
+        # v0.99.0: variation/variant/abstract markers.  The variant
+        # flag rides the tagged source-class object (set by the body
+        # flatten when the member was a VariantUsageMember); the
+        # variation/abstract flags come from the grammar prefixes.
+        if getattr(grammar, '_sysml_variant_member', False):
+            self.is_variant = True
+        _p = getattr(grammar, 'prefix', None)
+        _bp = getattr(_p, 'prefix', None)
+        _rp = getattr(_bp, 'prefix', None) if _bp is not None else None
+        for _holder in (_rp, _bp):
+            if getattr(_holder, 'isVariation', None) in ('variation', True):
+                self.is_variation = True
+            if getattr(_holder, 'isAbstract', None) in ('abstract', True):
+                self.is_abstract = True
+
+        # Issue #25: `ref part r : X;` — the referential-use marker, from
+        # the BasicUsagePrefix REF token (carried as `isReference`).
+        if getattr(_bp, 'isReference', None):
+            self.is_reference = True
+
+        # Issue #24: `#M` prefix metadata carried on the occurrence prefix
+        # (OccurrenceDefinitionPrefix / OccurrenceUsagePrefix both expose
+        # `.prefixMetadata` as MetadataFeature grammar objects).
+        for mf in getattr(grammar, 'prefix', None).prefixMetadata \
+                if getattr(getattr(grammar, 'prefix', None), 'prefixMetadata', None) else []:
+            self._attach_metadata_feature(mf)
+
+        return self
+
+    def _load_body_members(self, children):
+        """Load body members into ``self.children`` (shared dispatch).
+
+        Extracted from ``load_from_grammar`` so a kind whose loader returns
+        early (the keyword-less ``variant X { ... }`` VariantReference, issue
+        #32) can still load its body through the same per-class dispatch.
+        """
         for child in children:
             # Handle different child types
             if hasattr(child, 'definition'):
@@ -1680,62 +1745,6 @@ class Usage(Searchable):
                                 c = Item(definition=True).load_from_grammar(inner)
                             c.parent = self
                             self.children.append(c)
-
-        # v0.96.1: doc comments on every usage/definition kind — walk
-        # the grammar body items (definition / usage / declaration
-        # paths) and pick up Documentation / CommentSysML nodes.  The
-        # Requirement path already called this; the shared walk here
-        # covers part/item/port/action/... uniformly.
-        grammar_body = None
-        defn = getattr(grammar, 'definition', None)
-        if defn is not None and hasattr(defn, 'body'):
-            grammar_body = defn.body
-        if grammar_body is None:
-            usage = getattr(grammar, 'usage', None)
-            if usage is not None:
-                completion = getattr(usage, 'completion', None)
-                if completion is not None:
-                    body = getattr(completion, 'body', None)
-                    grammar_body = getattr(body, 'body', None) if body else None
-        if grammar_body is None:
-            grammar_body = getattr(grammar, 'body', None)
-        if grammar_body is not None and hasattr(grammar_body, 'children'):
-            for body_item in grammar_body.children:
-                try:
-                    self._extract_doc_from_body_item(body_item)
-                except Exception:  # pragma: no cover
-                    pass
-
-        self._extract_specialization_info(grammar)
-
-        # v0.99.0: variation/variant/abstract markers.  The variant
-        # flag rides the tagged source-class object (set by the body
-        # flatten when the member was a VariantUsageMember); the
-        # variation/abstract flags come from the grammar prefixes.
-        if getattr(grammar, '_sysml_variant_member', False):
-            self.is_variant = True
-        _p = getattr(grammar, 'prefix', None)
-        _bp = getattr(_p, 'prefix', None)
-        _rp = getattr(_bp, 'prefix', None) if _bp is not None else None
-        for _holder in (_rp, _bp):
-            if getattr(_holder, 'isVariation', None) in ('variation', True):
-                self.is_variation = True
-            if getattr(_holder, 'isAbstract', None) in ('abstract', True):
-                self.is_abstract = True
-
-        # Issue #25: `ref part r : X;` — the referential-use marker, from
-        # the BasicUsagePrefix REF token (carried as `isReference`).
-        if getattr(_bp, 'isReference', None):
-            self.is_reference = True
-
-        # Issue #24: `#M` prefix metadata carried on the occurrence prefix
-        # (OccurrenceDefinitionPrefix / OccurrenceUsagePrefix both expose
-        # `.prefixMetadata` as MetadataFeature grammar objects).
-        for mf in getattr(grammar, 'prefix', None).prefixMetadata \
-                if getattr(getattr(grammar, 'prefix', None), 'prefixMetadata', None) else []:
-            self._attach_metadata_feature(mf)
-
-        return self
 
     def _attach_metadata_feature(self, mf):
         """Attach a ``MetadataFeature`` as one of this element's annotations.
@@ -3174,6 +3183,21 @@ class Action(Usage):
                             self._extract_action_target_succession(child)
                         elif child_name == "GuardedSuccessionMember":
                             self._extract_guarded_succession(child)
+                        elif child_name == "VariantUsageMember":
+                            # Issue #32: `variation action g : A { variant g1; }`
+                            # — the variant members of an action body live in
+                            # ActionBodyItem -> VariantUsageMember, which this
+                            # loader never dispatched, so they vanished from the
+                            # element tree (the grammar kept them, so only the
+                            # dump survived).  Route them through the shared
+                            # body dispatch like any other member.
+                            payload = getattr(child, "children", None)
+                            if not isinstance(payload, list):
+                                payload = [payload] if payload is not None else []
+                            for member in payload:
+                                if member is not None:
+                                    _mark_variant_chain(member)
+                            self._load_body_members(payload)
 
         self._extract_specialization_info(grammar)
 
@@ -5959,6 +5983,36 @@ class Reference(Usage):
             # UsageBody; expose it through the standard body dispatch so
             # members of the variant body load like any usage body.
             self._attach_nested_prefix_metadata(grammar)
+            body = getattr(grammar, "body", None)
+            if body is not None and not getattr(body, "children", None):
+                body = getattr(body, "body", None)
+            body_children = list(getattr(body, "children", None) or [])
+            if body_children:
+                # Issue #32: unpack each DefinitionBodyItem the way the usage
+                # path does (the member carries the element one level down) and
+                # hand the members to the shared dispatch so the variant gets
+                # real children, not just grammar-level text.
+                members = []
+                for body_item in body_children:
+                    member = getattr(body_item, "children", None)
+                    if not member:
+                        continue
+                    member = member[0] if isinstance(member, list) else member
+                    if member.__class__.__name__ == "VariantUsageMember":
+                        for inner2 in getattr(member, "children", None) or []:
+                            if inner2 is not None:
+                                _mark_variant_chain(inner2)
+                    inner_list = getattr(member, "children", None)
+                    if not isinstance(inner_list, list):
+                        inner_list = [inner_list] if inner_list is not None else []
+                    for inner in inner_list:
+                        if inner is None:
+                            continue
+                        if (inner.__class__.__name__ == "DefinitionElement"
+                                and getattr(inner, "children", None)):
+                            inner = inner.children[0]
+                        members.append(inner)
+                self._load_body_members(members)
             return self
 
         usage = getattr(grammar, "child", None)  # grammar classes.Usage

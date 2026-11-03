@@ -3680,6 +3680,25 @@ def _visit_non_behavior_body_item(nbi_ctx):
                                 if tr:
                                     return tr
         
+        elif cname == 'VariantUsageMemberContext':
+            # `variant gen4;` / `variant 'six cyl' { ... }` inside an action
+            # body (issue #32): nonBehaviorBodyItem -> VariantUsageMember ->
+            # VariantUsageElement -> VariantReference.  The definition-body
+            # path already routes variants through _visit_variant_usage_element
+            # (v0.99.0), but this path dropped them, so `variation action g
+            # : A { variant g1; }` lost its variants entirely.
+            el = None
+            for c2 in child.children:
+                if type(c2).__name__ == 'VariantUsageElementContext':
+                    el = _visit_variant_usage_element(c2)
+                    break
+            if el is not None:
+                return {
+                    "name": "VariantUsageMember",
+                    "prefix": None,
+                    "ownedRelatedElement": [el],
+                }
+
         elif cname == 'StructureUsageMemberContext':
             # Handle occurrence usages (parts, items, ports)
             for c2 in child.children:
@@ -12980,6 +12999,32 @@ def _chain_top_rank(chain):
     return 0
 
 
+def _paren_primary(inner_chain):
+    """PrimaryExpression carrying a parenthesized group as its base.
+
+    ``BaseExpression`` already dumps a ``SequenceExpression`` relationship in
+    parentheses, so a group is represented structurally and the parens survive
+    the dump.  The chain keeps the group as ONE operand of whatever encloses
+    it — which is what makes ``(x^(1/2)+0)`` evaluable and
+    ``tp / (tm * v)``/``(a or b) and c`` dump exactly as written (issue #33).
+    """
+    return {
+        "name": "PrimaryExpression",
+        "operator": [],
+        "operand": [],
+        "base": {
+            "name": "BaseExpression",
+            "ownedRelationship": {
+                "name": "SequenceExpression",
+                "operation": [],
+                "ownedRelationship": inner_chain,
+            },
+        },
+        "ownedRelationship1": [],
+        "ownedRelationship2": [],
+    }
+
+
 def _emit_structured_expression(oe_ctx):
     """Emit a structured OwnedExpression chain dict for an ANTLR
     ownedExpression context of the flat left-recursive rule.
@@ -13015,8 +13060,11 @@ def _emit_structured_expression(oe_ctx):
     if kinds == ["PrimaryExpressionContext"]:
         group = _paren_inner_context(children[0])
         if group is not None:
-            # `( a and b )` — emit the inner chain (grouping is in the layers)
-            return _emit_structured_expression(group)
+            # `( a and b )` — parenthesized primary, grouping preserved
+            inner_chain = _emit_structured_expression(group)
+            if inner_chain is None:
+                return None
+            return _wrap_expression_layers(_paren_primary(inner_chain))
         primary = _emit_primary_level(children[0])
         if primary is None:
             return None
@@ -13031,12 +13079,6 @@ def _emit_structured_expression(oe_ctx):
     ):
         operand_chain = _emit_structured_expression(children[1])
         if operand_chain is None:
-            return None
-        # `-(2 - 5)`: a parenthesized operand carrying its own operators
-        # cannot be attached to the unary layer without changing the meaning
-        # (it would read `-2 - 5`); keep the parens via the text fallback.
-        if (_paren_inner_context(children[1]) is not None
-                and _chain_top_rank(operand_chain)):
             return None
         # Nested unary prefixes would overwrite the single unary layer's
         # operator field -- keep them as text.
@@ -13065,14 +13107,15 @@ def _emit_structured_expression(oe_ctx):
     if kinds == ["OwnedExpressionContext", "TerminalNodeImpl", "TypeReferenceContext"]:
         return None
 
-    # Parenthesized group: '(' ownedExpression ')' — grouping is carried by
-    # the chain layers, so the inner chain is emitted directly.  The binary
-    # branch below refuses to splice a group whose loosest operator binds
-    # LOOSER than the enclosing one (there the parens decide the grouping and
-    # the text fallback stays).
+    # Parenthesized group: '(' ownedExpression ')' — emit the inner chain as
+    # a parenthesized primary so the grouping survives both the dump and the
+    # evaluator (issue #33).
     inner = _paren_inner_context(oe_ctx)
     if inner is not None:
-        return _emit_structured_expression(inner)
+        inner_chain = _emit_structured_expression(inner)
+        if inner_chain is None:
+            return None
+        return _wrap_expression_layers(_paren_primary(inner_chain))
 
     # Binary: OwnedExpression op OwnedExpression -- splice at the
     # operator's layer (left-spine: lhs already holds lower-precedence
@@ -13093,18 +13136,6 @@ def _emit_structured_expression(oe_ctx):
         rhs_chain = _emit_structured_expression(children[2])
         if rhs_chain is None:
             return None
-        # A parenthesized side only loses its parens when the inner chain
-        # binds STRICTLY tighter than this operator: at equal precedence the
-        # parens still decide the grouping (`tp / (tm * v)`, `-(2 - 5)`), and
-        # dropping them silently changes the meaning (issue #31).
-        op_rank = _PRECEDENCE_RANK.get(op_text, 0)
-        for side_ctx, side_chain in ((children[0], lhs_chain),
-                                     (children[2], rhs_chain)):
-            if _paren_inner_context(side_ctx) is None:
-                continue
-            top_rank = _chain_top_rank(side_chain)
-            if top_rank and op_rank and top_rank <= op_rank:
-                return None  # parens carry meaning here -> keep the text
         return _splice_operator(lhs_chain, layer, op_text, rhs_chain)
 
     return None

@@ -1,5 +1,57 @@
 # CHANGELOG
 
+## 0.102.8 (2026-11-02)
+
+- **Issue #33: grouped exponents were opaque text — calc bodies were
+  unevaluable, and unit-expression exponents dumped raw dicts.** A
+  parenthesized group had no representation in the expression chain, so the
+  emitter fell back to preserving the whole expression as one name:
+  `(x^(1/2)+0)` reached the evaluator as the identifier `(x^(1/2)+0)`. It is now
+  represented structurally — a `PrimaryExpression` whose base is a
+  `SequenceExpression` relationship, the shape `BaseExpression.dump()` already
+  renders in parentheses — so the group is *one operand* of whatever encloses
+  it:
+  - `(x^(1/2)+0)` at `x=9` → **3.0**; `(a+b)^2` → 25.0; `(x*(1+y))^2` → 64.0;
+    results stay pint-aware (`x * 2 [m]` → `Quantity(6.0, 'meter')`).
+  - The `#31` paren guards are gone: with a real paren node the emitter no
+    longer needs a binding-power heuristic, and `tp / (tm * v)`, `-(2 - 5)` and
+    `(a or b) and c` all dump as written and are now *structured* rather than
+    text.
+  - Two dumper defects behind the raw-dict leak:
+    `ExponentiationExpression.dump()` converted its right operand as another
+    `ExponentiationExpression` (the grammar says `unaryExpression`), so
+    `x ^ 2` printed `x ^ {'name': 'UnaryExpression', ...}`; and
+    `MultiplicativeExpression.dump()` joined operands with `""`
+    (`tp/ (tm* v)`). Both fixed.
+  - `const_fold` folds through groups (nested `OwnedExpression`,
+    `SequenceExpression`), and the evaluator accepts `^` (SysML spelling) as
+    well as `**`.
+  - Library effect: the four files that leaked dicts are clean —
+    SI.sysml 1085 → 0, USCustomaryUnits 325 → 0, SIPrefixes 35 → 0,
+    ShapeItems 104 → 0 — and dump without any stdout output.
+  - Pins: `tests/issue33_test.py` (27).
+
+- **Issue #32: keyword-less variant members kept their body at grammar level.**
+  `variant 'six cyl' { attribute note : String; }` built the variant element but
+  loaded no children, because `Reference.load_from_grammar` returned before the
+  shared body dispatch. The dispatch loop in `Usage.load_from_grammar` is now
+  `Usage._load_body_members`, and the VariantReference branch unpacks its
+  `UsageBody → DefinitionBody` members and loads them through it, so
+  `variant.children` really holds the members.
+  - Same gap in **action** bodies: `variation action g : A { variant g1; }`
+    parsed as `ActionBodyItem → VariantUsageMember`, which neither the visitor
+    nor `Action.load_from_grammar` dispatched — the variants existed only in
+    the grammar. The visitor now visits `VariantUsageMemberContext`, and the
+    action loader routes those members through the shared dispatch with the
+    variant chain marked (`is_variant` True). On the OMG corpus this restores
+    all four `variant generateTorque*/amplifyTorque*` members.
+  - Pins: `tests/issue32_test.py` (9), including the OMG
+    VehicleVariabilityModel round-trip.
+
+- **New issue #38 filed** (found here): multiple redefinitions are dumped
+  space-joined without repeating `:>>`, which is why SI.sysml / USCustomaryUnits
+  / ShapeItems still do not re-parse even with no raw dicts left.
+
 ## 0.102.7 (2026-11-02)
 
 - **Issue #31: `assert constraint` bodies dumped glued operators and never

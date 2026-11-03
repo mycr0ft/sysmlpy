@@ -6061,6 +6061,12 @@ def _fold_node(node: Any) -> Optional[Any]:
         return None
     name = node.get("name")
 
+    if name == "OwnedExpression":
+        # Nested OwnedExpression dicts appear inside a parenthesized group's
+        # SequenceExpression relationship (issue #33); const_fold only
+        # unwrapped the outermost one.
+        return _fold_node(node.get("expression"))
+
     if name == "ConditionalExpression":
         operands = node.get("operand", [])
         if len(operands) != 1:
@@ -6228,6 +6234,11 @@ def _fold_node(node: Any) -> Optional[Any]:
                             text = "".join(str(n) for n in me.get("names", []))
                             if text:
                                 return _fold_text(text)
+                if rel.get("name") == "SequenceExpression":
+                    # parenthesized group: BaseExpression dumps a
+                    # SequenceExpression relationship in parens, so the group
+                    # folds to its inner expression (issue #33).
+                    return _fold_node(rel.get("ownedRelationship"))
         return None
     return None
 

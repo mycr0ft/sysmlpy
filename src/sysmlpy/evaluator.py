@@ -483,7 +483,9 @@ _LEVEL_CHILD = [
 
 _BOOL_OPS = {"and", "or", "xor"}
 _CMP_OPS = {"==", "!=", "<", "<=", ">", ">="}
-_ARITH_OPS = {"+", "-", "*", "/", "%", "**"}
+# SysML spells exponentiation `^`; `**` appears in programmatic dicts and
+# in KerML-styled text (issue #33).
+_ARITH_OPS = {"+", "-", "*", "/", "%", "**", "^"}
 
 
 class _Evaluator:
@@ -1288,7 +1290,7 @@ def _apply_binary(operator, left, right):
                 return left / right
             if operator == "%":
                 return left % right
-            if operator == "**":
+            if operator in ("**", "^"):
                 return left ** right
         except Exception as e:
             raise EvaluationError(

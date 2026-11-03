@@ -6549,7 +6549,9 @@ class MultiplicativeExpression:
                 self.operators.append(MultiplicativeOperand(child))
 
     def dump(self):
-        return "".join([self.exponential.dump()] + [x.dump() for x in self.operators])
+        # "".join produced `tm* v` / `tp/ (tm * v)` (issue #33): the operands
+        # carry no leading space, so the separator has to come from the join.
+        return " ".join([self.exponential.dump()] + [x.dump() for x in self.operators])
 
     def get_definition(self):
         output = {
@@ -6577,8 +6579,12 @@ class ExponentiationExpression:
             for op, rhs in zip(self.operator, self.operand):
                 output.append(op)
                 if isinstance(rhs, dict):
+                    # exponentiationExpression : unaryExpression ( '**'|'^' unaryExpression )*
+                    # -- the right operand is a UnaryExpression chain; converting
+                    # it as another ExponentiationExpression failed validation and
+                    # dumped the raw dict (issue #33).
                     try:
-                        output.append(ExponentiationExpression(rhs).dump())
+                        output.append(UnaryExpression(rhs).dump())
                     except Exception:
                         output.append(str(rhs))
                 else:

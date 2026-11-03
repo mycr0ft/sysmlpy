@@ -1,14 +1,30 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.7** (2026-11-02, tagged)
+Current version: **v0.102.8** (2026-11-02, tagged)
 
-Current released version: **v0.102.7** (2026-11-02, on PyPI; 0.102.6 superseded)
+Current released version: **v0.102.8** (2026-11-02, on PyPI; 0.102.7 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.8)
+
+- **Issues #33 and #32 shipped.** Groups are now a real node in the expression
+  chain (PrimaryExpression with a SequenceExpression base, which the dumper
+  already renders in parens), so `(x^(1/2)+0)` evaluates (9 -> 3.0), calc
+  results stay pint-aware, and `tp / (tm * v)` / `-(2 - 5)` / `(a or b) and c`
+  are structured instead of captured text. The `#31` binding-power guards are
+  gone with them. Dumper fixes: exponentiation's right operand is a
+  UnaryExpression, multiplicative operands are space-joined — together these
+  clear the raw-dict leak in SI/USCustomaryUnits/SIPrefixes/ShapeItems
+  (1085/325/35/104 -> 0). Variant bodies load: shared
+  `Usage._load_body_members` is used by the VariantReference branch, and action
+  bodies now dispatch `VariantUsageMember` (restoring the four corpus
+  generateTorque/amplifyTorque variants). Pins: issue33 (27), issue32 (9).
+  Filed #38: multiple redefinitions dump without repeating `:>>`.
 
 ## Recent Highlights (0.102.7)
 
