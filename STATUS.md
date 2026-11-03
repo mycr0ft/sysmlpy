@@ -1,14 +1,25 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.8** (2026-11-02, tagged)
+Current version: **v0.102.9** (2026-11-03, tagged)
 
-Current released version: **v0.102.8** (2026-11-02, on PyPI; 0.102.7 superseded)
+Current released version: **v0.102.9** (2026-11-03, on PyPI; 0.102.8 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.102.9)
+
+- **Issue #38 shipped**: `Redefinitions.dump()` joined redefinition targets with
+  a space instead of a comma, so `attribute :>> A::x, B::x` emitted
+  `:>> A::x B::x` — unparseable, which is why SI/USCustomaryUnits/ShapeItems
+  never round-tripped. `References` (`::>`) needed the opposite fix (repeat the
+  operator, the grammar rejects a comma there). SI.sysml, SIPrefixes.sysml and
+  USCustomaryUnits.sysml are now clean fixed points. Pins:
+  `tests/issue38_test.py` (16). Filed #39 for the binding-connector dump
+  (`binding [1] bind ...`), the last blocker for ShapeItems.
 
 ## Recent Highlights (0.102.8)
 

@@ -9072,9 +9072,11 @@ class Redefinitions:
                 self.children.append(OwnedRedefinition(relationship))
 
     def dump(self):
-        output = [child.dump() for child in self.children]
-        output.insert(0, self.keyword)
-        return " ".join(output)
+        # ``redefines`` is a COMMA list (``:>> A::x, B::x``).  Joining with a
+        # plain space dropped the separator and emitted ``:>> A::x B::x``,
+        # which the grammar rejects — SI.sysml / USCustomaryUnits / ShapeItems
+        # could not round-trip because of it (issue #38).
+        return self.keyword + " " + ", ".join([child.dump() for child in self.children])
 
     def get_definition(self):
         output = {
@@ -9108,9 +9110,9 @@ class References:
                 self.children.append(OwnedReferenceSubsetting(relationship))
 
     def dump(self):
-        output = [child.dump() for child in self.children]
-        output.insert(0, self.keyword)
-        return " ".join(output)
+        # `::>` repeats the operator per target (`::> A ::> B`); the grammar
+        # rejects a comma list here, unlike `:>>` (issue #38).
+        return " ".join(self.keyword + " " + child.dump() for child in self.children)
 
     def get_definition(self):
         output = {

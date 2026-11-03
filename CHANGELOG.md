@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 0.102.9 (2026-11-03)
+
+- **Issue #38: multiple redefinitions lost their comma separator.** `redefines`
+  is a comma list, but `Redefinitions.dump()` joined the targets with a plain
+  space:
+
+  ```
+  attribute :>> ThermodynamicTemperatureUnit::quantityDimension TemperatureDifferenceUnit::quantityDimension {
+  ```
+
+  which the grammar rejects. The whole `attribute` line then failed to load, so
+  SI.sysml, USCustomaryUnits.sysml and ShapeItems.sysml were never re-parseable —
+  even after the last of their raw-dict leaks was removed. Now
+  `:>> A::x, B::x`, matching the source.
+
+- **`References` (`::>`) had the mirror-image bug**, one step behind it: that
+  operator repeats per target (`::> A ::> B`) and the grammar rejects a comma
+  list there, so its dump now repeats the operator instead of joining with a
+  space.
+
+- **Library round-trip: 3 of 4 files fixed.** SI.sysml, SIPrefixes.sysml and
+  USCustomaryUnits.sysml now dump → parse → dump with no change and no raw
+  dicts. ShapeItems.sysml still is not a fixed point, and the remaining diff is
+  entirely binding connectors — filed as **#39** (`binding [1] bind …` loses its
+  `binding` keyword and multiplicity, a captured-text artifact that only looked
+  correct on the first dump).
+
+- Pins: `tests/issue38_test.py` (16).
+
 ## 0.102.8 (2026-11-02)
 
 - **Issue #33: grouped exponents were opaque text — calc bodies were
