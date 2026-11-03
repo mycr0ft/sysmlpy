@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01028-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.8 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01027-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -995,6 +1006,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01028-2026-11-02" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.102.8 (2026-11-02)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01027-2026-11-02" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1356,6 +1378,64 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01028-2026-11-02">0.102.8 (2026-11-02)<a class="headerlink" href="#01028-2026-11-02" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #33: grouped exponents were opaque text — calc bodies were
+  unevaluable, and unit-expression exponents dumped raw dicts.</strong> A
+  parenthesized group had no representation in the expression chain, so the
+  emitter fell back to preserving the whole expression as one name:
+  <code>(x^(1/2)+0)</code> reached the evaluator as the identifier <code>(x^(1/2)+0)</code>. It is now
+  represented structurally — a <code>PrimaryExpression</code> whose base is a
+  <code>SequenceExpression</code> relationship, the shape <code>BaseExpression.dump()</code> already
+  renders in parentheses — so the group is <em>one operand</em> of whatever encloses
+  it:</li>
+<li><code>(x^(1/2)+0)</code> at <code>x=9</code> → <strong>3.0</strong>; <code>(a+b)^2</code> → 25.0; <code>(x*(1+y))^2</code> → 64.0;
+    results stay pint-aware (<code>x * 2 [m]</code> → <code>Quantity(6.0, 'meter')</code>).</li>
+<li>The <code>#31</code> paren guards are gone: with a real paren node the emitter no
+    longer needs a binding-power heuristic, and <code>tp / (tm * v)</code>, <code>-(2 - 5)</code> and
+    <code>(a or b) and c</code> all dump as written and are now <em>structured</em> rather than
+    text.</li>
+<li>Two dumper defects behind the raw-dict leak:
+    <code>ExponentiationExpression.dump()</code> converted its right operand as another
+    <code>ExponentiationExpression</code> (the grammar says <code>unaryExpression</code>), so
+    <code>x ^ 2</code> printed <code>x ^ {'name': 'UnaryExpression', ...}</code>; and
+    <code>MultiplicativeExpression.dump()</code> joined operands with <code>""</code>
+    (<code>tp/ (tm* v)</code>). Both fixed.</li>
+<li><code>const_fold</code> folds through groups (nested <code>OwnedExpression</code>,
+    <code>SequenceExpression</code>), and the evaluator accepts <code>^</code> (SysML spelling) as
+    well as <code>**</code>.</li>
+<li>Library effect: the four files that leaked dicts are clean —
+    SI.sysml 1085 → 0, USCustomaryUnits 325 → 0, SIPrefixes 35 → 0,
+    ShapeItems 104 → 0 — and dump without any stdout output.</li>
+<li>
+<p>Pins: <code>tests/issue33_test.py</code> (27).</p>
+</li>
+<li>
+<p><strong>Issue #32: keyword-less variant members kept their body at grammar level.</strong>
+  <code>variant 'six cyl' { attribute note : String; }</code> built the variant element but
+  loaded no children, because <code>Reference.load_from_grammar</code> returned before the
+  shared body dispatch. The dispatch loop in <code>Usage.load_from_grammar</code> is now
+  <code>Usage._load_body_members</code>, and the VariantReference branch unpacks its
+  <code>UsageBody → DefinitionBody</code> members and loads them through it, so
+  <code>variant.children</code> really holds the members.</p>
+</li>
+<li>Same gap in <strong>action</strong> bodies: <code>variation action g : A { variant g1; }</code>
+    parsed as <code>ActionBodyItem → VariantUsageMember</code>, which neither the visitor
+    nor <code>Action.load_from_grammar</code> dispatched — the variants existed only in
+    the grammar. The visitor now visits <code>VariantUsageMemberContext</code>, and the
+    action loader routes those members through the shared dispatch with the
+    variant chain marked (<code>is_variant</code> True). On the OMG corpus this restores
+    all four <code>variant generateTorque*/amplifyTorque*</code> members.</li>
+<li>
+<p>Pins: <code>tests/issue32_test.py</code> (9), including the OMG
+    VehicleVariabilityModel round-trip.</p>
+</li>
+<li>
+<p><strong>New issue #38 filed</strong> (found here): multiple redefinitions are dumped
+  space-joined without repeating <code>:&gt;&gt;</code>, which is why SI.sysml / USCustomaryUnits
+  / ShapeItems still do not re-parse even with no raw dicts left.</p>
+</li>
+</ul>
 <h2 id="01027-2026-11-02">0.102.7 (2026-11-02)<a class="headerlink" href="#01027-2026-11-02" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #31: <code>assert constraint</code> bodies dumped glued operators and never

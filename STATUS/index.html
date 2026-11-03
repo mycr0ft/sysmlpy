@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01028" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.8)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01027" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -907,6 +918,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01028" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.102.8)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01027" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1158,11 +1180,27 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.7</strong> (2026-11-02, tagged)</p>
-<p>Current released version: <strong>v0.102.7</strong> (2026-11-02, on PyPI; 0.102.6 superseded)</p>
+<p>Current version: <strong>v0.102.8</strong> (2026-11-02, tagged)</p>
+<p>Current released version: <strong>v0.102.8</strong> (2026-11-02, on PyPI; 0.102.7 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01028">Recent Highlights (0.102.8)<a class="headerlink" href="#recent-highlights-01028" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issues #33 and #32 shipped.</strong> Groups are now a real node in the expression
+  chain (PrimaryExpression with a SequenceExpression base, which the dumper
+  already renders in parens), so <code>(x^(1/2)+0)</code> evaluates (9 -&gt; 3.0), calc
+  results stay pint-aware, and <code>tp / (tm * v)</code> / <code>-(2 - 5)</code> / <code>(a or b) and c</code>
+  are structured instead of captured text. The <code>#31</code> binding-power guards are
+  gone with them. Dumper fixes: exponentiation's right operand is a
+  UnaryExpression, multiplicative operands are space-joined — together these
+  clear the raw-dict leak in SI/USCustomaryUnits/SIPrefixes/ShapeItems
+  (1085/325/35/104 -&gt; 0). Variant bodies load: shared
+  <code>Usage._load_body_members</code> is used by the VariantReference branch, and action
+  bodies now dispatch <code>VariantUsageMember</code> (restoring the four corpus
+  generateTorque/amplifyTorque variants). Pins: issue33 (27), issue32 (9).
+  Filed #38: multiple redefinitions dump without repeating <code>:&gt;&gt;</code>.</li>
+</ul>
 <h2 id="recent-highlights-01027">Recent Highlights (0.102.7)<a class="headerlink" href="#recent-highlights-01027" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #31 shipped</strong>: assert-constraint bodies no longer glue operators.
