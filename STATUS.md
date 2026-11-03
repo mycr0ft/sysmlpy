@@ -1,14 +1,26 @@
 # sysmlpy — Project Status
 
-Current version: **v0.103.0** (2026-11-03, tagged)
+Current version: **v0.103.1** (2026-11-03, tagged)
 
-Current released version: **v0.103.0** (2026-11-03, on PyPI; 0.102.9 superseded)
+Current released version: **v0.103.1** (2026-11-03, on PyPI; 0.103.0 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.103.1)
+
+- **Issue #36 shipped**: metadata applications state themselves in the
+  `@graph` — annotation nodes are typed `MetadataUsage` (the SysML metaclass,
+  per the OMG metamodel in SysML-v2-API-Services) and carry
+  `annotatedElement` (the element they annotate) plus `declaredKeyword`
+  (`@`/`#`). Both choices follow OpenSysML's RDF mapping and sysml-toolkit's
+  interop notes rather than an invented shape; `about` clauses keep their
+  `Annotation` nodes and get no derived edge. Element ids byte-identical to
+  0.103.0, old documents still import, `explicit_terms` covers the new terms.
+  Pins: `tests/issue36_test.py` (11).
 
 ## Recent Highlights (0.103.0)
 

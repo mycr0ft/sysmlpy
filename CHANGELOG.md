@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 0.103.1 (2026-11-03)
+
+- **Issue #36: metadata applications now state themselves in the `@graph`.**
+  Two shape decisions, both taken against what the implementations actually
+  emit — the OMG metamodel generated into `SysML-v2-API-Services`
+  (`MetadataUsage extends ItemUsage, MetadataFeature`; `Annotation` carries
+  `annotatedElement`/`annotatingElement`), OpenSysML's
+  `docs/reference/rdf-mapping.md`, and sysml-toolkit's `INTEROP.md`:
+  - **Metaclass (`D'`)**: an annotation node is now typed **`MetadataUsage`**,
+    the SysML metaclass, instead of the bare KerML `MetadataFeature`. The two
+    are related by inheritance, so a consumer keyed on either finds it.
+  - **Link (`B'`)**: the annotation node carries
+    `"annotatedElement": [{"@id": <the element it annotates>}]` — the metaclass
+    property, on the annotation (not a convenience edge on the anchor, which is
+    what I first proposed and then withdrew after checking the tools). For the
+    body form the anchor is the element whose body holds the application; for
+    the `#M` prefix form, the element being prefixed; for nested elements, the
+    nearest one.
+  - **Sigil**: `"declaredKeyword": "@" | "#"` records which form the author
+    wrote (the visitor now captures it; `metadata m : M;` normalises to `@`,
+    which is what its own dump already did).
+  - An annotation with an `about` clause keeps its `Annotation` nodes and gets
+    **no** derived edge — that clause names its own targets, and the ownership
+    edge would state something false.
+
+  Nothing enters the identity space: element ids are byte-identical to 0.103.0
+  (95/95 nodes on the probe model), `stable_ids`/`doc_ids`/`reconcile_ids` are
+  untouched, `explicit_terms=True` picks the new terms up automatically, and a
+  pre-0.103.1 document (typed `MetadataFeature`, no derived edge) still imports
+  unchanged.
+
+- Pins: `tests/issue36_test.py` (11).
+
 ## 0.103.0 (2026-11-03)
 
 - **Issue #39: binding connectors lost their `binding` keyword and

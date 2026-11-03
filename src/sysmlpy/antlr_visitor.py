@@ -331,12 +331,24 @@ def _visit_metadata_feature_dict(ctx):
             # Mirrors the per-endpoint capture introduced for issue #5.
             body_features = _visit_metadata_body_features(ctx.metadataBody())
 
+    # The sigil the author wrote (`@M …` vs `metadata m : M;`) — needed by the
+    # interchange export, which states it as `declaredKeyword` (issue #36).
+    keyword = None
+    kids = list(ctx.getChildren()) if hasattr(ctx, "getChildren") else []
+    for kid in kids:
+        if type(kid).__name__ == "TerminalNodeImpl":
+            text = kid.getText().strip()
+            if text in ("@", "metadata"):
+                keyword = "@" if text == "@" else None
+            break
+
     return {
         "name": "MetadataFeature",
         "prefixMetadataMember": prefix_members,
         "identification": identification,
         "ownedFeatureTyping": owned_feature_typing,
         "ownedRelationship_about": annotations,
+        "declaredKeyword": keyword,
         "body": body,
         "bodyFeatures": body_features,
     }
@@ -1355,6 +1367,8 @@ def _collect_prefix_metadata(prefix_ctx, out=None):
                     "ownedFeatureTyping":
                         _visit_owned_feature_typing_dict(feature.ownedFeatureTyping()),
                     "ownedRelationship_about": [],
+                    # `#M part def Y;` — the prefix form's sigil (issue #36)
+                    "declaredKeyword": "#",
                     "body": "",
                     "bodyFeatures": [],
                 })

@@ -98,6 +98,11 @@ INTERCHANGE_NAMESPACE = _uuid.uuid5(
     _uuid.NAMESPACE_URL, "https://github.com/mycr0ft/sysmlpy/interchange"
 )
 
+# SysML metaclass -> internal KerML metaclass, on import (issue #36).
+_IMPORT_TYPE_ALIASES = {"MetadataUsage": "MetadataFeature"}
+# Properties that an export DERIVES and an import must not replay as data.
+_DERIVED_ON_IMPORT = {"MetadataUsage": ("annotatedElement",)}
+
 _REF_KEYS = ("@id", "@type")
 
 
@@ -475,9 +480,29 @@ def stable_id_for(model, element):
     return stable_ids(root).get(element)
 
 
+# Metaclasses whose nodes are SysML *elements* — the things an annotation can be
+# attached to.  In this exporter's vocabulary the KerML cores ``Definition`` and
+# ``Usage`` are reached as children of a ``<Kind>Definition`` / ``<Kind>Usage``
+# and are NOT elements themselves, so they are excluded; every membership, body,
+# body item and ``*Element`` wrapper is a structural node, not an element.
+_ELEMENT_EXACT = {"Package"}
+_NON_ELEMENT_EXACT = {"Definition", "Usage"}
+
+
+def _is_element_node_name(name) -> bool:
+    if not isinstance(name, str) or not name:
+        return False
+    if name in _ELEMENT_EXACT:
+        return True
+    if name in _NON_ELEMENT_EXACT:
+        return False
+    return name.endswith("Definition") or name.endswith("Usage")
+
+
 def _flatten(node: dict, parent_id: str, key: str, index: int,
              graph: list, assigner: "_StableIdAssigner | None" = None,
-             parent_qn: tuple = (), parent_struct: tuple = ()) -> str:
+             parent_qn: tuple = (), parent_struct: tuple = (),
+             anchor_id: "str | None" = None) -> str:
     """Recursively flatten a visitor-dict node into the graph.
 
     With ``assigner=None`` (default) ids are position-derived
@@ -499,27 +524,46 @@ def _flatten(node: dict, parent_id: str, key: str, index: int,
         elem_id = _child_id(parent_id, key, index)
         child_qn = ()
         child_struct = ()
+    # An annotation is owned by the nearest enclosing ELEMENT (its body, or its
+    # prefix for `#M part def Y;`); that element is its `annotatedElement`
+    # (issue #36 — the shape OpenSysML and sysml-toolkit emit).
+    child_anchor = elem_id if _is_element_node_name(node.get("name")) else anchor_id
+
     elem = {"@id": elem_id, "@type": node.get("name")}
     for k, v in node.items():
         if k == "name":
             continue  # captured as @type
         elem[k] = _flatten_value(v, elem_id, k, graph,
                                  assigner=assigner, parent_qn=child_qn,
-                                 parent_struct=child_struct)
+                                 parent_struct=child_struct,
+                                 anchor_id=child_anchor)
+    if node.get("name") == "MetadataFeature":
+        # The SysML metaclass of an annotation is MetadataUsage (it IS a
+        # MetadataFeature: `MetadataUsage extends ItemUsage, MetadataFeature`),
+        # so pilot-shaped consumers find it under the name they expect.
+        elem["@type"] = "MetadataUsage"
+        # An `about` clause names its own targets, so the derived ownership edge
+        # would state something false — the Annotation nodes carry those
+        # targets instead (issue #36).
+        has_about = bool(node.get("ownedRelationship_about"))
+        if anchor_id and not has_about:
+            elem["annotatedElement"] = [{"@id": anchor_id}]
     graph.append(elem)
     return elem_id
 
 
 def _flatten_value(v, elem_id: str, key: str, graph: list,
                    assigner: "_StableIdAssigner | None" = None,
-                   parent_qn: tuple = (), parent_struct: tuple = ()):
+                   parent_qn: tuple = (), parent_struct: tuple = (),
+                   anchor_id: "str | None" = None):
     """Flatten one property value: dicts become @id refs, scalars inline."""
     if v is None or isinstance(v, (str, int, float, bool)):
         return v
     if isinstance(v, dict):
         return {"@id": _flatten(v, elem_id, key, 0, graph,
                                 assigner=assigner, parent_qn=parent_qn,
-                                parent_struct=parent_struct)}
+                                parent_struct=parent_struct,
+                                anchor_id=anchor_id)}
     if isinstance(v, list):
         out = []
         for i, item in enumerate(v):
@@ -527,7 +571,8 @@ def _flatten_value(v, elem_id: str, key: str, graph: list,
                 out.append({"@id": _flatten(item, elem_id, key, i, graph,
                                             assigner=assigner,
                                             parent_qn=parent_qn,
-                                            parent_struct=parent_struct)})
+                                            parent_struct=parent_struct,
+                                            anchor_id=anchor_id)})
             else:
                 out.append(item)
         return out
@@ -938,9 +983,18 @@ def _rebuild(ref: dict, by_id: dict, stack: tuple = ()) -> dict:
     elem = by_id.get(elem_id)
     if elem is None:
         raise ValueError(f"Interchange document references unknown @id: {elem_id}")
-    node = {"name": elem.get("@type")}
+    type_name = elem.get("@type")
+    # `MetadataUsage` is the SysML metaclass an export states for an annotation;
+    # internally the same node is a KerML MetadataFeature, and its
+    # `annotatedElement` edge is DERIVED from ownership (issue #36), so neither
+    # may reach the rebuild dict.
+    derived = set()
+    if type_name in _IMPORT_TYPE_ALIASES:
+        type_name = _IMPORT_TYPE_ALIASES[type_name]
+        derived = set(_DERIVED_ON_IMPORT.get(elem.get("@type"), ()))
+    node = {"name": type_name}
     for k, v in elem.items():
-        if k in _REF_KEYS:
+        if k in _REF_KEYS or k in derived:
             continue
         node[k] = _rebuild_value(v, by_id, stack + (elem_id,))
     return node
