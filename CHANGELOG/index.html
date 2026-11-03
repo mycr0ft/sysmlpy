@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01031-2026-11-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.103.1 (2026-11-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01030-2026-11-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1028,6 +1039,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01031-2026-11-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.103.1 (2026-11-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01030-2026-11-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1422,6 +1444,39 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01031-2026-11-03">0.103.1 (2026-11-03)<a class="headerlink" href="#01031-2026-11-03" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #36: metadata applications now state themselves in the <code>@graph</code>.</strong>
+  Two shape decisions, both taken against what the implementations actually
+  emit — the OMG metamodel generated into <code>SysML-v2-API-Services</code>
+  (<code>MetadataUsage extends ItemUsage, MetadataFeature</code>; <code>Annotation</code> carries
+  <code>annotatedElement</code>/<code>annotatingElement</code>), OpenSysML's
+  <code>docs/reference/rdf-mapping.md</code>, and sysml-toolkit's <code>INTEROP.md</code>:</li>
+<li><strong>Metaclass (<code>D'</code>)</strong>: an annotation node is now typed <strong><code>MetadataUsage</code></strong>,
+    the SysML metaclass, instead of the bare KerML <code>MetadataFeature</code>. The two
+    are related by inheritance, so a consumer keyed on either finds it.</li>
+<li><strong>Link (<code>B'</code>)</strong>: the annotation node carries
+    <code>"annotatedElement": [{"@id": &lt;the element it annotates&gt;}]</code> — the metaclass
+    property, on the annotation (not a convenience edge on the anchor, which is
+    what I first proposed and then withdrew after checking the tools). For the
+    body form the anchor is the element whose body holds the application; for
+    the <code>#M</code> prefix form, the element being prefixed; for nested elements, the
+    nearest one.</li>
+<li><strong>Sigil</strong>: <code>"declaredKeyword": "@" | "#"</code> records which form the author
+    wrote (the visitor now captures it; <code>metadata m : M;</code> normalises to <code>@</code>,
+    which is what its own dump already did).</li>
+<li>An annotation with an <code>about</code> clause keeps its <code>Annotation</code> nodes and gets
+    <strong>no</strong> derived edge — that clause names its own targets, and the ownership
+    edge would state something false.</li>
+</ul>
+<p>Nothing enters the identity space: element ids are byte-identical to 0.103.0
+  (95/95 nodes on the probe model), <code>stable_ids</code>/<code>doc_ids</code>/<code>reconcile_ids</code> are
+  untouched, <code>explicit_terms=True</code> picks the new terms up automatically, and a
+  pre-0.103.1 document (typed <code>MetadataFeature</code>, no derived edge) still imports
+  unchanged.</p>
+<ul>
+<li>Pins: <code>tests/issue36_test.py</code> (11).</li>
+</ul>
 <h2 id="01030-2026-11-03">0.103.0 (2026-11-03)<a class="headerlink" href="#01030-2026-11-03" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #39: binding connectors lost their <code>binding</code> keyword and
