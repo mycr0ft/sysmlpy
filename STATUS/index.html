@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01030" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01029" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -929,6 +940,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01030" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01029" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1202,11 +1224,23 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.102.9</strong> (2026-11-03, tagged)</p>
-<p>Current released version: <strong>v0.102.9</strong> (2026-11-03, on PyPI; 0.102.8 superseded)</p>
+<p>Current version: <strong>v0.103.0</strong> (2026-11-03, tagged)</p>
+<p>Current released version: <strong>v0.103.0</strong> (2026-11-03, on PyPI; 0.102.9 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01030">Recent Highlights (0.103.0)<a class="headerlink" href="#recent-highlights-01030" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #39 shipped</strong>: binding connectors keep their <code>binding</code> keyword and
+  multiplicity (<code>binding [1] bind [0..*] a = b;</code> round-trips verbatim), a bare
+  <code>bind</code> no longer acquires the keyword, and connector body members load.
+  <code>Succession</code> had the same two defects and is fixed with it — <code>first a then b;</code>
+  stays keyword-less, <code>succession first a then b;</code> keeps its keyword, and the
+  double space is gone. Library sweep (58 files): 0 raw dicts, ShapeItems
+  round-trips. Filed #40 for the three remaining stragglers (Actions succession
+  <code>perform</code> target, SampledFunctions <code>#(i)</code>, VerificationCases whitespace) plus
+  the case-usage skips. Pins: <code>tests/issue39_test.py</code> (21).</li>
+</ul>
 <h2 id="recent-highlights-01029">Recent Highlights (0.102.9)<a class="headerlink" href="#recent-highlights-01029" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #38 shipped</strong>: <code>Redefinitions.dump()</code> joined redefinition targets with
