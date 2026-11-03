@@ -5867,7 +5867,10 @@ class Succession:
         self.declaration = None
         self.keyword = "succession"
         self.children = []
+        self.has_succession_keyword = True
         if valid_definition(definition, self.__class__.__name__):
+            self.has_succession_keyword = bool(
+                definition.get("hasSuccessionKeyword", True))
             if definition["prefix"] is not None:
                 self.prefix = MemberPrefix(definition["prefix"])
 
@@ -5880,28 +5883,42 @@ class Succession:
             self.body = DefinitionBody(definition["body"])
 
     def dump(self):
+        # Same empty-token problem as the binding connector: an anonymous
+        # declaration contributed "" and the dump read `succession  first ...`
+        # (issue #39).
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
 
+        head = self.keyword if self.has_succession_keyword else ""
         if self.declaration is not None:
-            output.append(self.keyword)
-            output.append(self.declaration.dump())
+            decl = self.declaration.dump().strip()
+            if decl:
+                head = (head + " " + decl).strip()
+        if head:
+            output.append(head)
 
         output.append("first")
         output.append(self.children[0].dump())
         output.append("then")
         output.append(self.children[1].dump())
 
-        output.append(self.body.dump())
+        if self.body is not None:
+            body_text = self.body.dump()
+            if body_text.strip() not in ("", ";"):
+                output.append(body_text.strip())
 
-        return " ".join(output)
+        text = " ".join(x for x in output if x and x.strip())
+        if self.body is not None and self.body.dump().strip() == ";":
+            text = text.rstrip() + ";"
+        return text
 
     def get_definition(self):
         return {
             "name": self.__class__.__name__,
             "prefix": self.prefix.get_definition() if self.prefix else None,
             "declaration": self.declaration.get_definition() if self.declaration else None,
+            "hasSuccessionKeyword": self.has_succession_keyword,
             "ownedRelationship": [x.get_definition() for x in self.children],
             "body": self.body.get_definition(),
         }
@@ -5914,8 +5931,13 @@ class BindingConnector:
         self.keyword = "bind"
         self.children = []
         self.body = None
+        # `binding bind ...` (True) vs `bind ...` (False); default True keeps
+        # programmatically built connectors dumping the full form (issue #39).
+        self.has_binding_keyword = True
         if definition is not None:
             if valid_definition(definition, self.__class__.__name__):
+                self.has_binding_keyword = bool(
+                    definition.get("hasBindingKeyword", True))
                 if definition.get("declaration") is not None:
                     self.declaration = UsageDeclaration(definition["declaration"])
                 owned_rel = definition.get("ownedRelationship")
@@ -5926,12 +5948,22 @@ class BindingConnector:
                     self.body = DefinitionBody(definition["body"])
 
     def dump(self):
+        # `binding [1] bind a = b;` — the declaration may be empty (anonymous
+        # connector), in which case it contributed an empty token and produced
+        # `binding  bind ...`, and the connector's own multiplicity was missing
+        # entirely (issue #39).
         output = []
         if self.prefix is not None:
             output.append(self.prefix.dump())
+        head = ""
+        if self.has_binding_keyword:
+            head = "binding"
         if self.declaration is not None:
-            output.append("binding")
-            output.append(self.declaration.dump())
+            decl = self.declaration.dump().strip()
+            if decl:
+                head = (head + " " + decl).strip()
+        if head:
+            output.append(head)
         output.append(self.keyword)
 
         connectors = []
@@ -5939,10 +5971,14 @@ class BindingConnector:
             connectors.append(child.dump())
         output.append(" = ".join(connectors))
 
-        if self.body:
-            output.append(self.body.dump())
-
-        return " ".join(output)
+        text = " ".join(x for x in output if x and x.strip())
+        if self.body is not None:
+            body_text = self.body.dump()
+            if body_text.strip() == ";":
+                text = text.rstrip() + ";"
+            elif body_text.strip():
+                text = text + " " + body_text.strip()
+        return text
 
     def get_definition(self):
         return {
@@ -5950,6 +5986,7 @@ class BindingConnector:
             "prefix": None,
             "declaration": self.declaration.get_definition() if self.declaration else None,
             "ownedRelationship": [c.get_definition() for c in self.children],
+            "hasBindingKeyword": self.has_binding_keyword,
             "body": self.body.get_definition() if self.body else None,
         }
 
@@ -8723,6 +8760,10 @@ class UsageDeclaration:
 
 class FeatureDeclaration:
     def __init__(self, definition=None):
+        # Rendered usage multiplicity (`[1]`, `[0..*]`), when the visitor
+        # supplies it — binding/succession connectors keep it here so the dump
+        # can emit `binding [1] bind ...` (issue #39).
+        self.multiplicity = None
         if definition is not None:
             if valid_definition(definition, "FeatureDeclaration"):
                 if definition["identification"] is not None:
@@ -8730,12 +8771,13 @@ class FeatureDeclaration:
                 else:
                     self.identification = None
 
-                if definition["specialization"] is not None:
+                if definition.get("specialization") is not None:
                     self.specialization = FeatureSpecializationPart(
                         definition["specialization"]
                     )
                 else:
                     self.specialization = None
+                self.multiplicity = definition.get("multiplicity")
         else:
             self.identification = None
             self.specialization = None
@@ -8748,6 +8790,8 @@ class FeatureDeclaration:
             spec = self.specialization.dump()
             if spec.strip():
                 output.append(spec)
+        if self.multiplicity:
+            output.append(self.multiplicity)
         return " ".join(x for x in output if x.strip())
     def get_definition(self):
         iden = None
@@ -8758,11 +8802,14 @@ class FeatureDeclaration:
         if self.specialization is not None:
             spec = self.specialization.get_definition()
 
-        return {
+        output = {
             "name": self.__class__.__name__,
             "identification": iden,
             "specialization": spec,
         }
+        if self.multiplicity:
+            output["multiplicity"] = self.multiplicity
+        return output
 
 
 class FeatureSpecializationPart:

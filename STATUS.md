@@ -1,14 +1,26 @@
 # sysmlpy — Project Status
 
-Current version: **v0.102.9** (2026-11-03, tagged)
+Current version: **v0.103.0** (2026-11-03, tagged)
 
-Current released version: **v0.102.9** (2026-11-03, on PyPI; 0.102.8 superseded)
+Current released version: **v0.103.0** (2026-11-03, on PyPI; 0.102.9 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.103.0)
+
+- **Issue #39 shipped**: binding connectors keep their `binding` keyword and
+  multiplicity (`binding [1] bind [0..*] a = b;` round-trips verbatim), a bare
+  `bind` no longer acquires the keyword, and connector body members load.
+  `Succession` had the same two defects and is fixed with it — `first a then b;`
+  stays keyword-less, `succession first a then b;` keeps its keyword, and the
+  double space is gone. Library sweep (58 files): 0 raw dicts, ShapeItems
+  round-trips. Filed #40 for the three remaining stragglers (Actions succession
+  `perform` target, SampledFunctions `#(i)`, VerificationCases whitespace) plus
+  the case-usage skips. Pins: `tests/issue39_test.py` (21).
 
 ## Recent Highlights (0.102.9)
 

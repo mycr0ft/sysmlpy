@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 0.103.0 (2026-11-03)
+
+- **Issue #39: binding connectors lost their `binding` keyword and
+  multiplicity** — the last blocker for a clean library. Three causes:
+  1. the connector's usage-declaration multiplicity (`[1]`) was never read by
+     the visitor, so `binding [1] bind …` dumped as `binding  bind …`;
+  2. `BindingConnector.dump()` appended the *anonymous* declaration as its own
+     token, which is where the double space (and the "the keyword only survives
+     by accident" look) came from;
+  3. a bare `bind …` was indistinguishable from `binding bind …`, so the dumper
+     could invent the keyword. It now travels with the dict
+     (`hasBindingKeyword`), and a bare `bind` stays bare.
+
+  The connector's `usageBody` was also hardcoded empty, so members inside
+  `binding … { members }` were dropped; they load now.
+
+- **`Succession` had the same two defects** (dumped as `succession  first …`,
+  and the optional `succession` keyword was unconditional — `first a then b;`
+  came back as `succession first a then b;`). Same fix, same flag. This is what
+  made `systems/Flows.sysml` non-idempotent.
+
+- **Library sweep (58 files) after the fix**: 0 raw dicts, and the four
+  Quantities/Geometry files plus `systems/Flows.sysml` are clean fixed points.
+  Residual stragglers, each its own defect, are filed as **#40**:
+  `Actions.sysml` (a succession's `perform` target is dropped → parse error),
+  `SampledFunctions.sysml` (an indexed `#(i)` expression emits text the grammar
+  rejects), `VerificationCases.sysml` (`if  cond ?` whitespace not normalised),
+  and the `CaseUsage`/`AnalysisCaseUsage` skips that print on dump.
+
+- Pins: `tests/issue39_test.py` (21).
+
 ## 0.102.9 (2026-11-03)
 
 - **Issue #38: multiple redefinitions lost their comma separator.** `redefines`

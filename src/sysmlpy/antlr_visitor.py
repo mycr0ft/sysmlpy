@@ -11818,6 +11818,34 @@ def _build_connector_end_member_dict(cem_ctx):
     }
 
 
+def _usage_declaration_multiplicity_text(ud_ctx):
+    """Rendered multiplicity of a usage declaration (`[1]`, `[0..*]`), or None.
+
+    The binding/succession connector shares the usage-declaration shape, so the
+    multiplicity hangs off ``featureSpecializationPart -> multiplicityPart ->
+    ownedMultiplicity`` and was never read for those kinds (issue #39).
+    """
+    if ud_ctx is None:
+        return None
+    for accessor in ("featureSpecializationPart",):
+        part = getattr(ud_ctx, accessor, None)
+        part = part() if callable(part) else None
+        if part is None:
+            continue
+        mult_part = getattr(part, "multiplicityPart", None)
+        mult_part = mult_part() if callable(mult_part) else None
+        if mult_part is None:
+            continue
+        owned = getattr(mult_part, "ownedMultiplicity", None)
+        owned = owned() if callable(owned) else None
+        if owned is None:
+            continue
+        text = owned.getText().strip() if hasattr(owned, "getText") else ""
+        if text:
+            return text
+    return None
+
+
 def _make_binding_connector_dict(ctx):
     """Create a NonOccurrenceUsageElement dict wrapping a BindingConnector.
     
@@ -11866,10 +11894,28 @@ def _make_binding_connector_dict(ctx):
                         "declaredShortName": decl_shortname,
                         "declaredName": decl_name
                     },
-                    "specialization": None
+                    "specialization": None,
+                    # `binding [1] bind ...` — the connector's own multiplicity
+                    # lives on the usage declaration's multiplicity part; it was
+                    # dropped entirely, so the dump lost `[1]` (issue #39).
+                    "multiplicity": _usage_declaration_multiplicity_text(ud),
                 }
             }
     
+    # `binding ...` vs a bare `bind ...`: both parse to this connector, so the
+    # keyword's presence has to travel with the dict or the dump invents one
+    # (issue #39).
+    has_binding_keyword = bool(
+        hasattr(ctx, "BINDING") and ctx.BINDING() is not None)
+
+    # The connector's usageBody was hardcoded empty, so members inside a
+    # `binding ... { members }` block were dropped (issue #39).
+    body_items = []
+    if hasattr(ctx, "usageBody") and ctx.usageBody():
+        ub = ctx.usageBody()
+        if hasattr(ub, "definitionBody") and ub.definitionBody():
+            body_items = _visit_definition_body_dict(ub.definitionBody())
+
     return {
         "name": "NonOccurrenceUsageElement",
         "ownedRelatedElement": {
@@ -11877,9 +11923,10 @@ def _make_binding_connector_dict(ctx):
             "prefix": None,
             "declaration": declaration,
             "ownedRelationship": ends,
+            "hasBindingKeyword": has_binding_keyword,
             "body": {
                 "name": "DefinitionBody",
-                "ownedRelatedElement": []
+                "ownedRelatedElement": body_items
             }
         }
     }
@@ -11943,6 +11990,10 @@ def _make_succession_as_usage_dict(ctx):
             "prefix": None,
             "declaration": declaration,
             "ownedRelationship": ends,
+            # `succession first a then b;` vs a bare `first a then b;` — the
+            # keyword is optional and must not be invented (issue #39).
+            "hasSuccessionKeyword": bool(
+                hasattr(ctx, "SUCCESSION") and ctx.SUCCESSION() is not None),
             "body": {
                 "name": "DefinitionBody",
                 "ownedRelatedElement": []
