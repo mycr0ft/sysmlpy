@@ -1640,6 +1640,12 @@ class Usage(Searchable):
                 c = Attribute(definition=True).load_from_grammar(sc)
                 c.parent = self
                 self.children.append(c)
+            elif class_name == "Succession":
+                # Issue #41: keep `first a then b;` in the element tree, or the
+                # body rebuild drops it when the body has other members.
+                c = Succession().load_from_grammar(sc)
+                c.parent = self
+                self.children.append(c)
             elif class_name == "BindingConnector":
                 # Binding connectors are non-occurrence usages. Preserve
                 # them in the public model tree so structural renderers can
@@ -2562,6 +2568,64 @@ class Binding:
             "ownedRelationship": [{
                 "name": "VariantUsageMember" if getattr(
                     self, "is_variant", False) else "NonOccurrenceUsageMember",
+                "prefix": None,
+                "ownedRelatedElement": [{
+                    "name": "NonOccurrenceUsageElement",
+                    "ownedRelatedElement": self.grammar.get_definition(),
+                }],
+            }],
+        }
+
+
+class Succession:
+    """SysML succession connector (``first a then b;`` / ``succession …``).
+
+    Issue #41: a succession in a body with other members was dropped — the
+    loader built no child for it, and ``_ensure_body`` rebuilds a parsed body
+    from ``self.children``, so the member vanished from the dump.  ``Binding``
+    is modelled the same way (a non-occurrence usage kept in the element tree so
+    structural renderers can see the connection).
+    """
+
+    sysml_type = 'succession'
+
+    def __init__(self, name=None):
+        self.grammar = None
+        self.name = name  # anonymous members keep name=None (issue #27)
+        self.children = []
+        self.parent = None
+        self.ends = []
+
+    def load_from_grammar(self, grammar):
+        self.grammar = grammar
+        declaration = getattr(grammar, 'declaration', None)
+        declared = getattr(declaration, 'declaration', None)
+        ident = getattr(declared, 'identification', None)
+        if ident is not None and getattr(ident, 'declaredName', None):
+            self.name = ident.declaredName
+        ends = []
+        for member in getattr(grammar, 'children', None) or []:
+            text = member.dump() if hasattr(member, 'dump') else str(member)
+            text = text.strip().rstrip(';').strip()
+            if text:
+                ends.append(text)
+        self.ends = ends
+        return self
+
+    @property
+    def source(self):
+        return self.ends[0] if len(self.ends) > 0 else None
+
+    @property
+    def target(self):
+        return self.ends[1] if len(self.ends) > 1 else None
+
+    def _get_definition(self, child=None):
+        """Serialize the succession back into a definition-body member."""
+        return {
+            "name": "DefinitionBodyItem",
+            "ownedRelationship": [{
+                "name": "NonOccurrenceUsageMember",
                 "prefix": None,
                 "ownedRelatedElement": [{
                     "name": "NonOccurrenceUsageElement",

@@ -1,14 +1,24 @@
 # sysmlpy — Project Status
 
-Current version: **v0.103.2** (2026-11-03, tagged)
+Current version: **v0.103.3** (2026-11-03, tagged)
 
-Current released version: **v0.103.2** (2026-11-03, on PyPI; 0.103.1 superseded)
+Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.103.3)
+
+- **Issue #41 shipped**: a `first a then b;` succession is a first-class element
+  now (`Succession`, modelled like `Binding`), so it survives a body that has
+  other members — previously it vanished from the tree and the dump whenever a
+  sibling came first, because no child was built and `_ensure_body` rebuilds the
+  body from children. `source`/`target`/`ends` are readable, chains included,
+  and the `succession` keyword is preserved. Pins: `tests/issue41_test.py` (11);
+  library sweep still 58/58 clean.
 
 ## Recent Highlights (0.103.2)
 

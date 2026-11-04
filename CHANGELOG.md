@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 0.103.3 (2026-11-03)
+
+- **Issue #41: a succession vanished when its body had other members.**
+  `part p { first a then b; }` kept it; add one sibling —
+  `part p { attribute x : Real; first a then b; }` — and it disappeared from the
+  element tree *and* the dump. The parse tree and the visitor dict both carried
+  it, so the loss was in the loader: no child element was built for a
+  `Succession`, and `Usage._ensure_body` rebuilds a parsed body from
+  `self.children`. Alone, the body had no other member and the grammar body
+  survived by accident.
+
+  A succession is now a first-class element, modelled the way `Binding` already
+  is (a non-occurrence usage kept in the tree, `DefinitionBodyItem →
+  NonOccurrenceUsageMember → NonOccurrenceUsageElement` on the way back), with
+  `source` / `target` / `ends` readable from the connector ends:
+
+  ```python
+  p.children                     # [Attribute('x'), Succession(None)]
+  p.children[1].source, .target  # ('a', 'b')   — chains too: ('a.b', 'c.d')
+  ```
+
+  The `succession` keyword is preserved, multiple successions keep their order,
+  and any position in the body works (first, middle, last).
+
+- Library sweep stays clean: 58 files, 0 parse failures, 0 non-idempotent, 0 raw
+  dicts, 0 stdout noise.
+
+- Pins: `tests/issue41_test.py` (11).
+
 ## 0.103.2 (2026-11-03)
 
 - **Issue #40: the last four defects keeping library dumps from round-tripping.**
