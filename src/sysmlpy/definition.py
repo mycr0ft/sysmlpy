@@ -1369,6 +1369,22 @@ class Package(Searchable):
                             m.name = feat_decl.identification.declaredName
                 m.parent = self
                 self.children.append(m)
+            elif inner_class in ("CaseUsage", "AnalysisCaseUsage"):
+                # Issue #40: `case c1 : CD;` / `analysis a1 : AD;` at package
+                # level were reported as unknown and skipped — the member
+                # vanished from the model and from the dump, and the skip
+                # printed to stdout on every load.
+                c = Case() if inner_class == "CaseUsage" else AnalysisCase()
+                c.grammar = inner_element
+                decl = getattr(inner_element, 'declaration', None)
+                usage_decl = getattr(decl, 'declaration', None)
+                if usage_decl is not None:
+                    feat_decl = getattr(usage_decl, 'declaration', usage_decl)
+                    ident = getattr(feat_decl, 'identification', None)
+                    if ident is not None and getattr(ident, 'declaredName', None):
+                        c.name = ident.declaredName
+                c.parent = self
+                self.children.append(c)
             elif inner_class == "AnnotatingElement":
                 # v0.88.0: a package-level ``metadata m1 : MD;`` member
                 # parses as DefinitionElement -> AnnotatingElement ->

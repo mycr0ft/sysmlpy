@@ -2446,6 +2446,33 @@ def _visit_behavior_usage_member(bum_ctx):
             return _make_satisfy_requirement_usage_dict(bue.satisfyRequirementUsage(), prefix)
         elif hasattr(bue, 'verificationCaseUsage') and bue.verificationCaseUsage():
             return _make_nested_verification_case_usage_dict(bue.verificationCaseUsage(), prefix)
+        elif hasattr(bue, 'performActionUsage') and bue.performActionUsage():
+            # `then perform body;` inside an action body (issue #40): the member
+            # was dropped entirely, leaving a bare `then ;` that does not parse.
+            ctx = bue.performActionUsage()
+            decl = None
+            if hasattr(ctx, 'performActionUsageDeclaration') and ctx.performActionUsageDeclaration():
+                decl = _visit_perform_action_usage_declaration(
+                    ctx.performActionUsageDeclaration())
+            body = {"name": "ActionBody", "items": []}
+            if hasattr(ctx, 'actionBody') and ctx.actionBody():
+                visited = _visit_action_body(ctx.actionBody())
+                if visited:
+                    body = visited
+            return {
+                "name": "BehaviorUsageMember",
+                "prefix": prefix,
+                # BehaviorUsageMember -> BehaviorUsageElement -> PerformActionUsage
+                "ownedRelatedElement": {
+                    "name": "BehaviorUsageElement",
+                    "ownedRelationship": {
+                        "name": "PerformActionUsage",
+                        "prefix": _get_occurrence_usage_prefix(ctx),
+                        "declaration": decl,
+                        "body": body,
+                    },
+                },
+            }
     
     return None
 
@@ -13334,7 +13361,12 @@ def _verbatim_text(ctx):
         except Exception:
             text = ""
         if text and text.strip():
-            return " ".join(text.split())
+            # Collapse whitespace but NEVER a newline: a `//` line comment in
+            # the preserved text would otherwise swallow whatever followed it
+            # on the original line, and the dump would stop re-parsing
+            # (SampledFunctions.sysml, issue #40).
+            lines = [" ".join(line.split()) for line in text.strip().splitlines()]
+            return "\n".join(line for line in lines if line)
     return ctx.getText() if hasattr(ctx, "getText") else ""
 
 
@@ -15515,14 +15547,50 @@ def _make_nested_analysis_case_usage_dict(ctx, prefix=None):
     }
 
 
+def _case_usage_name_and_specialization(ctx):
+    """(name, shortname, specialization) for a case-family usage context.
+
+    ``caseUsage`` / ``analysisCaseUsage`` / ``verificationCaseUsage`` all carry
+    their declaration as a ``constraintUsageDeclaration``, while
+    ``_get_usage_identification`` expects a bare ``usageDeclaration`` — so
+    `case c1 : CD;` came out nameless (issue #40).
+    """
+    name = None
+    shortname = None
+    specialization = None
+    for accessor in ("constraintUsageDeclaration", "usageDeclaration"):
+        getter = getattr(ctx, accessor, None)
+        decl = getter() if callable(getter) else None
+        if decl is None:
+            continue
+        ud = getattr(decl, "usageDeclaration", None)
+        ud = ud() if callable(ud) else None
+        if isinstance(ud, list):
+            ud = ud[0] if ud else None
+        if ud is not None:
+            ident = getattr(ud, "identification", None)
+            ident = ident() if callable(ident) else None
+            if ident is not None:
+                name, shortname = _extract_name_from_ident(ident)
+        if not name:
+            name, shortname = _get_usage_identification_from_ud(decl)
+        typed_by = _get_action_usage_typed_by(decl)
+        if typed_by:
+            specialization = _build_specialization(typed_by)
+        if name or specialization:
+            break
+    if specialization is None:
+        specialization = _build_full_specialization_from_ctx(ctx)
+    return name, shortname, specialization
+
+
 def _make_nested_case_usage_dict(ctx, prefix=None):
     """Create a CaseUsage dict for nested usage."""
     if ctx is None:
         return None
     
-    name, shortname = _get_usage_identification(ctx)
+    name, shortname, specialization = _case_usage_name_and_specialization(ctx)
     occ_prefix = _get_occurrence_usage_prefix(ctx) if ctx else None
-    specialization = _build_full_specialization_from_ctx(ctx)
     
     # Get body items from caseBody
     body_items = []

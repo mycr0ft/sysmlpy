@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## 0.103.2 (2026-11-03)
+
+- **Issue #40: the last four defects keeping library dumps from round-tripping.**
+  With these fixed, **all 58 `.sysml` files in `src/sysmlpy/library` load, dump,
+  re-parse to identical text, contain no raw dicts, and print nothing.**
+
+  1. **`then perform body;` lost its target** (`Actions.sysml` — the one file
+     that failed to re-parse at all). The visitor's behavior-member dispatch had
+     no `performActionUsage` branch, so the member vanished and the dump emitted
+     a bare `then ;`, which the grammar rejects. The member now loads as
+     `BehaviorUsageMember → BehaviorUsageElement → PerformActionUsage`.
+  2. **Preserved text collapsed newlines** (`SampledFunctions.sysml`). A
+     constraint body with a trailing `//` comment was flattened onto one line, so
+     on the next parse the comment swallowed the rest of the expression and the
+     body fell back to captured text. `_verbatim_text` now collapses whitespace
+     *within* lines and keeps the line breaks.
+  3. **Ternary re-spacing was not idempotent** (`VerificationCases.sysml`).
+     `_respace_ternary_glue` re-spaced already-spaced text, adding a space per
+     round trip (`if  passing  ? …`). It now strips each part before re-joining.
+  4. **`case`/`analysis` usages were dropped and printed to stdout**
+     (`AnalysisCases.sysml`, `Cases.sysml`). `Package.load_from_grammar` had no
+     `CaseUsage`/`AnalysisCaseUsage` branch ("Unknown class … skipping"), and the
+     case-family declaration (name + typing) lives in a
+     `constraintUsageDeclaration` that the name helper never read — `case c1 :
+     CD;` came out as `case;`. Both now load with their names.
+
+- Pins: `tests/issue40_test.py` (9), including the whole-library sweep as the
+  acceptance criterion.
+
 ## 0.103.1 (2026-11-03)
 
 - **Issue #36: metadata applications now state themselves in the `@graph`.**

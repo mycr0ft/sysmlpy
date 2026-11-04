@@ -1,14 +1,26 @@
 # sysmlpy — Project Status
 
-Current version: **v0.103.1** (2026-11-03, tagged)
+Current version: **v0.103.2** (2026-11-03, tagged)
 
-Current released version: **v0.103.1** (2026-11-03, on PyPI; 0.103.0 superseded)
+Current released version: **v0.103.2** (2026-11-03, on PyPI; 0.103.1 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.103.2)
+
+- **Issue #40 shipped — the library now round-trips end to end.** All 58
+  `.sysml` files in `src/sysmlpy/library` load, dump, re-parse to identical
+  text, contain no raw dicts and print nothing (pinned as one sweep test).
+  Four defects: `then perform body;` lost its target (no `performActionUsage`
+  dispatch) and emitted a parse-failing `then ;`; preserved text collapsed
+  newlines so a `//` comment swallowed the next operand; ternary re-spacing
+  added a space per round trip; and `case`/`analysis` usages were dropped as
+  "Unknown class" with a stdout message, their names never read from the
+  `constraintUsageDeclaration`. Pins: `tests/issue40_test.py` (9).
 
 ## Recent Highlights (0.103.1)
 

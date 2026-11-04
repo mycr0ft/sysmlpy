@@ -1134,7 +1134,10 @@ def _respace_ternary_glue(text):
     parts = _split_ternary(text)
     if parts is None:
         return None
-    cond, then_part, else_part = parts
+    # The split parts keep whatever spacing the input had, so re-spacing
+    # already-spaced text added a space per pass (`if  cond  ? …`, and one more
+    # on every round trip) — strip before re-joining (issue #40).
+    cond, then_part, else_part = (part.strip() for part in parts)
     return f"if {cond} ? {then_part} else {else_part}"
 
 
