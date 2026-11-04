@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01033-2026-11-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.103.3 (2026-11-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01032-2026-11-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1050,6 +1061,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01033-2026-11-03" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.103.3 (2026-11-03)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01032-2026-11-03" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1466,6 +1488,35 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01033-2026-11-03">0.103.3 (2026-11-03)<a class="headerlink" href="#01033-2026-11-03" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #41: a succession vanished when its body had other members.</strong>
+  <code>part p { first a then b; }</code> kept it; add one sibling —
+  <code>part p { attribute x : Real; first a then b; }</code> — and it disappeared from the
+  element tree <em>and</em> the dump. The parse tree and the visitor dict both carried
+  it, so the loss was in the loader: no child element was built for a
+  <code>Succession</code>, and <code>Usage._ensure_body</code> rebuilds a parsed body from
+  <code>self.children</code>. Alone, the body had no other member and the grammar body
+  survived by accident.</li>
+</ul>
+<p>A succession is now a first-class element, modelled the way <code>Binding</code> already
+  is (a non-occurrence usage kept in the tree, <code>DefinitionBodyItem →
+  NonOccurrenceUsageMember → NonOccurrenceUsageElement</code> on the way back), with
+  <code>source</code> / <code>target</code> / <code>ends</code> readable from the connector ends:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">p</span><span class="o">.</span><span class="n">children</span>                     <span class="c1"># [Attribute('x'), Succession(None)]</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">p</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="o">.</span><span class="n">target</span>  <span class="c1"># ('a', 'b')   — chains too: ('a.b', 'c.d')</span>
+</code></pre></div>
+<p>The <code>succession</code> keyword is preserved, multiple successions keep their order,
+  and any position in the body works (first, middle, last).</p>
+<ul>
+<li>
+<p>Library sweep stays clean: 58 files, 0 parse failures, 0 non-idempotent, 0 raw
+  dicts, 0 stdout noise.</p>
+</li>
+<li>
+<p>Pins: <code>tests/issue41_test.py</code> (11).</p>
+</li>
+</ul>
 <h2 id="01032-2026-11-03">0.103.2 (2026-11-03)<a class="headerlink" href="#01032-2026-11-03" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #40: the last four defects keeping library dumps from round-tripping.</strong>
@@ -1473,11 +1524,11 @@
   re-parse to identical text, contain no raw dicts, and print nothing.</strong>
   Measured on the 0.103.1 wheel against the 0.103.2 tree:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>              before   after
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>parse failures    1       0      Actions.sysml (reparse returned None)
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>not idempotent    2       0      SampledFunctions, VerificationCases
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>raw dicts         0       0
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>stdout noise      2       0      AnalysisCases, Cases
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>              before   after
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>parse failures    1       0      Actions.sysml (reparse returned None)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>not idempotent    2       0      SampledFunctions, VerificationCases
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>raw dicts         0       0
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>stdout noise      2       0      AnalysisCases, Cases
 </code></pre></div>
 <ol>
 <li><strong><code>then perform body;</code> lost its target</strong> (<code>Actions.sysml</code> — the one file
@@ -1580,7 +1631,7 @@
   is a comma list, but <code>Redefinitions.dump()</code> joined the targets with a plain
   space:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>attribute :&gt;&gt; ThermodynamicTemperatureUnit::quantityDimension TemperatureDifferenceUnit::quantityDimension {
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>attribute :&gt;&gt; ThermodynamicTemperatureUnit::quantityDimension TemperatureDifferenceUnit::quantityDimension {
 </code></pre></div>
 <p>which the grammar rejects. The whole <code>attribute</code> line then failed to load, so
   SI.sysml, USCustomaryUnits.sysml and ShapeItems.sysml were never re-parseable —
