@@ -5,6 +5,15 @@
 - **Issue #40: the last four defects keeping library dumps from round-tripping.**
   With these fixed, **all 58 `.sysml` files in `src/sysmlpy/library` load, dump,
   re-parse to identical text, contain no raw dicts, and print nothing.**
+  Measured on the 0.103.1 wheel against the 0.103.2 tree:
+
+  ```
+                before   after
+  parse failures    1       0      Actions.sysml (reparse returned None)
+  not idempotent    2       0      SampledFunctions, VerificationCases
+  raw dicts         0       0
+  stdout noise      2       0      AnalysisCases, Cases
+  ```
 
   1. **`then perform body;` lost its target** (`Actions.sysml` — the one file
      that failed to re-parse at all). The visitor's behavior-member dispatch had
