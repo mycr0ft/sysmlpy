@@ -1468,18 +1468,23 @@
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h2 id="01032-2026-11-03">0.103.2 (2026-11-03)<a class="headerlink" href="#01032-2026-11-03" title="Permanent link">&para;</a></h2>
 <ul>
-<li>
-<p><strong>Issue #40: the last four defects keeping library dumps from round-tripping.</strong>
+<li><strong>Issue #40: the last four defects keeping library dumps from round-tripping.</strong>
   With these fixed, <strong>all 58 <code>.sysml</code> files in <code>src/sysmlpy/library</code> load, dump,
-  re-parse to identical text, contain no raw dicts, and print nothing.</strong></p>
-</li>
-<li>
-<p><strong><code>then perform body;</code> lost its target</strong> (<code>Actions.sysml</code> — the one file
+  re-parse to identical text, contain no raw dicts, and print nothing.</strong>
+  Measured on the 0.103.1 wheel against the 0.103.2 tree:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>              before   after
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>parse failures    1       0      Actions.sysml (reparse returned None)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>not idempotent    2       0      SampledFunctions, VerificationCases
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>raw dicts         0       0
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>stdout noise      2       0      AnalysisCases, Cases
+</code></pre></div>
+<ol>
+<li><strong><code>then perform body;</code> lost its target</strong> (<code>Actions.sysml</code> — the one file
      that failed to re-parse at all). The visitor's behavior-member dispatch had
      no <code>performActionUsage</code> branch, so the member vanished and the dump emitted
      a bare <code>then ;</code>, which the grammar rejects. The member now loads as
-     <code>BehaviorUsageMember → BehaviorUsageElement → PerformActionUsage</code>.</p>
-</li>
+     <code>BehaviorUsageMember → BehaviorUsageElement → PerformActionUsage</code>.</li>
 <li><strong>Preserved text collapsed newlines</strong> (<code>SampledFunctions.sysml</code>). A
      constraint body with a trailing <code>//</code> comment was flattened onto one line, so
      on the next parse the comment swallowed the rest of the expression and the
@@ -1500,7 +1505,7 @@
 <p>Pins: <code>tests/issue40_test.py</code> (9), including the whole-library sweep as the
   acceptance criterion.</p>
 </li>
-</ul>
+</ol>
 <h2 id="01031-2026-11-03">0.103.1 (2026-11-03)<a class="headerlink" href="#01031-2026-11-03" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #36: metadata applications now state themselves in the <code>@graph</code>.</strong>
@@ -1575,7 +1580,7 @@
   is a comma list, but <code>Redefinitions.dump()</code> joined the targets with a plain
   space:</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>attribute :&gt;&gt; ThermodynamicTemperatureUnit::quantityDimension TemperatureDifferenceUnit::quantityDimension {
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>attribute :&gt;&gt; ThermodynamicTemperatureUnit::quantityDimension TemperatureDifferenceUnit::quantityDimension {
 </code></pre></div>
 <p>which the grammar rejects. The whole <code>attribute</code> line then failed to load, so
   SI.sysml, USCustomaryUnits.sysml and ShapeItems.sysml were never re-parseable —
