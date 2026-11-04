@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01032" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01031" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -951,6 +962,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01032" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01031" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1246,11 +1268,23 @@
 
 
 <h1 id="sysmlpy-project-status">sysmlpy — Project Status<a class="headerlink" href="#sysmlpy-project-status" title="Permanent link">&para;</a></h1>
-<p>Current version: <strong>v0.103.1</strong> (2026-11-03, tagged)</p>
-<p>Current released version: <strong>v0.103.1</strong> (2026-11-03, on PyPI; 0.103.0 superseded)</p>
+<p>Current version: <strong>v0.103.2</strong> (2026-11-03, tagged)</p>
+<p>Current released version: <strong>v0.103.2</strong> (2026-11-03, on PyPI; 0.103.1 superseded)</p>
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01032">Recent Highlights (0.103.2)<a class="headerlink" href="#recent-highlights-01032" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #40 shipped — the library now round-trips end to end.</strong> All 58
+  <code>.sysml</code> files in <code>src/sysmlpy/library</code> load, dump, re-parse to identical
+  text, contain no raw dicts and print nothing (pinned as one sweep test).
+  Four defects: <code>then perform body;</code> lost its target (no <code>performActionUsage</code>
+  dispatch) and emitted a parse-failing <code>then ;</code>; preserved text collapsed
+  newlines so a <code>//</code> comment swallowed the next operand; ternary re-spacing
+  added a space per round trip; and <code>case</code>/<code>analysis</code> usages were dropped as
+  "Unknown class" with a stdout message, their names never read from the
+  <code>constraintUsageDeclaration</code>. Pins: <code>tests/issue40_test.py</code> (9).</li>
+</ul>
 <h2 id="recent-highlights-01031">Recent Highlights (0.103.1)<a class="headerlink" href="#recent-highlights-01031" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #36 shipped</strong>: metadata applications state themselves in the
