@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01050-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.105.0 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01042-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1105,6 +1116,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01050-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.105.0 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01042-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1576,6 +1598,36 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01050-2026-11-04">0.105.0 (2026-11-04)<a class="headerlink" href="#01050-2026-11-04" title="Permanent link">&para;</a></h2>
+<p><strong>Issue #42 closed: metadata bodies survive the dump, and their values are structured.</strong></p>
+<ul>
+<li><strong>Applications with a body no longer vanish from <code>dump()</code>.</strong> <code>element.annotations</code>
+  held them (issue #24) but the dump is generated from the grammar tree, which had
+  no member for them — so <code>@M { w = z; }</code> disappeared on a round trip while
+  <code>@M { w = 1; }</code> survived.  <code>_inject_annotations</code> puts each application back into
+  the annotated element's body, de-duplicated against applications the parsed body
+  already carries, and skips prefix applications (<code>#M part def Y;</code> renders once, in
+  the prefix).</li>
+<li><strong>The notation the author used is the notation dumped back.</strong> <code>#M</code> keeps its
+  sigil, <code>metadata app : M { … }</code> keeps its keyword, <code>@M</code> binds to its type
+  (<code>@ M</code> was the old spacing).  <code>declaredKeyword</code> now survives
+  <code>MetadataFeature.get_definition()</code>, which it previously dropped.</li>
+<li><strong>Values are structured.</strong> Each metadata body member is captured through the
+  same expression path attribute defaults use (<code>valuePart</code> → <code>FeatureValue</code> →
+  <code>OwnedExpression</code> → operator tree), exposed as
+  <code>Metadata.value_expressions[name]</code> alongside the author's <code>values[name]</code> text.
+  In the interchange graph each body member is a <code>ReferenceUsage</code> with
+  <code>declaredName</code> + <code>value</code> and a <code>FeatureValue</code>/expression subtree (the OpenSysML
+  shape), instead of an opaque <code>"body": "{w=z;}"</code> string — and import maps those
+  nodes back, so <code>values</code> and <code>value_expressions</code> survive a graph round trip.</li>
+<li>Pins: <code>tests/issue42_test.py</code> (22) — reference, literal, chain, arithmetic and
+  empty bodies; <code>#M</code>, <code>metadata app : M</code>, nested usage bodies, <code>about</code> clauses;
+  fixed-point round trips; graph structure and graph↔model equality.</li>
+<li>Two pins updated because the old expectations encoded the defect:
+  <code>issue24</code>'s <code>@ m1 : M …</code> and <code>class_test</code>'s canonical <code>@ m1 : MD</code> both assumed
+  the dump normalized a <code>metadata</code> declaration to the sigil form.</li>
+<li>Advisory gate unchanged: 1116 errors / 1678 warnings, PASS, 0 parse failures.</li>
+</ul>
 <h2 id="01042-2026-11-04">0.104.2 (2026-11-04)<a class="headerlink" href="#01042-2026-11-04" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Cold analyze: 190 s → 10.9 s</strong> (0.103.3 was 43.5 s).  The snapshot was only
