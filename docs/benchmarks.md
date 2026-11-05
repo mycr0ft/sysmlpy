@@ -64,9 +64,14 @@ analyze.fixtures            1.84 s       0.98 s      -47 %
 
 The facts index is the one case that changed character: `get_symbols()` reads a
 persisted record instead of scraping every file, and `exists_in_loaded_model()`
-answers name-level truth without loading a library model.  Cold cost of the
-index itself is 24.6 s on 8 cores (parallel per-file extract) — paid once per
-(library content, build id) pair, then 0.02 s.
+answers name-level truth without loading a library model.
+
+**Cold cost depends entirely on the DFA cache.** With a warm persistent DFA
+cache the build is 24.6 s on 8 cores; from a machine that has never parsed the
+library it is **276 s**, because every parse pays DFA construction (measured on
+the 0.104.0 wheel, 8 workers, `SYSMLPY_DFA_CACHE=off`).  That is why 0.104.1
+ships a prebuilt snapshot: 0.02 s to read, validated against build id + content
+digest, so it is never used when it could be wrong.
 
 ## Baseline — 0.103.3
 

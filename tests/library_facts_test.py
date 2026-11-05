@@ -152,6 +152,50 @@ def test_symbols_from_facts_are_cheap_when_cached(facts):
     assert elapsed < 5.0, f"facts path should be cache-speed, took {elapsed:.1f}s"
 
 
+def test_shipped_snapshot_matches_this_build_and_library():
+    """The packaged snapshot is what keeps a first run cheap.
+
+    Building the facts from source costs ~276 s on a machine with no DFA cache
+    (each parse pays DFA construction), against 0.2 s to read the snapshot — so
+    a stale snapshot silently costs every new user four minutes.  Regenerate with
+    `python scripts/gen_library_facts.py` after a version bump or a library edit.
+    """
+    path = library_facts.snapshot_path()
+    assert path.exists(), "run scripts/gen_library_facts.py"
+    payload = json.loads(path.read_text())
+    assert payload["build"] == library_facts.build_id(), \
+        "version bumped without regenerating the snapshot"
+    expected = library_facts.set_digest(library_facts._library_files(None))
+    assert payload["digest"] == expected, \
+        "library changed without regenerating the snapshot"
+    assert payload["version"] == library_facts.FACTS_VERSION
+    assert "ISQ" in payload["facts"]
+
+
+def test_snapshot_is_used_for_the_bundled_library(tmp_path, monkeypatch):
+    """A cold process reads the snapshot instead of building."""
+    monkeypatch.setenv(library_facts.CACHE_ENV, str(tmp_path))
+    start = time.perf_counter()
+    facts = library_facts.load(None)
+    elapsed = time.perf_counter() - start
+    assert "ISQ" in facts
+    assert elapsed < 5.0, f"snapshot path should be fast, took {elapsed:.1f}s"
+    assert not list(tmp_path.glob("facts-*.json")), \
+        "a snapshot hit must not write a cache record"
+
+
+def test_snapshot_does_not_apply_to_a_custom_library(tmp_path, monkeypatch):
+    """Custom roots have their own digest — the snapshot is never used for them."""
+    monkeypatch.setenv(library_facts.CACHE_ENV, str(tmp_path))
+    custom = tmp_path / "custom"
+    custom.mkdir()
+    (custom / "CustomTypes.kerml").write_text(
+        "package CustomTypes { part def CustomPart; }")
+    facts = library_facts.load([custom], force=True)
+    assert "CustomTypes" in facts
+    assert "ISQ" not in facts
+
+
 # ---------------------------------------------------------------------------
 # cache identity
 # ---------------------------------------------------------------------------

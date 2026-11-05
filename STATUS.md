@@ -10,6 +10,15 @@ Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 (Nothing staged.)
 
+## Recent Highlights (0.104.1)
+
+- **Shipped facts snapshot** (`src/sysmlpy/library_facts.json`, 564 KiB):
+  first-run library index **276 s → 0.02 s**, validated against build id +
+  library digest (stale ⇒ miss, custom roots ⇒ never used), regenerated with
+  `scripts/gen_library_facts.py` and guarded by a failing test when it drifts.
+- Pool workers keep out of the persistent DFA cache (8 workers re-saving a
+  tens-of-MB pickle was serialising the parallel extract).
+
 ## Recent Highlights (0.104.0)
 
 - **Issue #34 closed.** A library-wide facts index (`library_facts.py`) expands

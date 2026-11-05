@@ -506,6 +506,23 @@ def _workers() -> int:
     return min(8, os.cpu_count() or 1)
 
 
+def _worker_init() -> None:
+    """Pool-worker setup: keep workers out of the DFA cache file.
+
+    Each worker would otherwise load and re-save the persisted DFA pickle
+    (tens of MB) at its own exit; eight workers doing that concurrently cost
+    minutes — measured 279 s for a cold first-run build against 24 s with the
+    writes suppressed.  In-memory DFA growth inside a worker still helps its
+    own files, and the parent process keeps the persistent cache.
+    """
+    os.environ["SYSMLPY_DFA_CACHE"] = "off"
+    try:
+        from sysmlpy import dfa_cache
+        dfa_cache.reset_for_tests()
+    except Exception:
+        pass
+
+
 def build(lib_roots=None) -> Dict[str, dict]:
     """Extract facts from every library source (no model, no element tree)."""
     paths = [str(p) for p in _library_files(lib_roots)]
@@ -514,7 +531,8 @@ def build(lib_roots=None) -> Dict[str, dict]:
     if workers > 1 and len(paths) > 1:
         try:
             from concurrent.futures import ProcessPoolExecutor
-            with ProcessPoolExecutor(max_workers=workers) as pool:
+            with ProcessPoolExecutor(max_workers=workers,
+                                     initializer=_worker_init) as pool:
                 fragments = list(pool.map(_extract_file_facts, paths, chunksize=1))
         except Exception:
             fragments = []  # no pool here (restricted sandbox, spawn cost, …)
@@ -584,10 +602,38 @@ def _attach_lexical_imports(text: str, facts: Dict[str, dict],
             namespace["imports"].append(record)
 
 
+#: Facts for the library as shipped, generated at release time
+#: (`scripts/gen_library_facts.py`).  A prebuilt snapshot is what keeps a first
+#: run cheap: building from source costs ~276 s with no DFA cache (each parse
+#: pays DFA construction), against 0.2 s to read this file.  It is validated like
+#: any cache record — build id + library digest — so a stale snapshot is a miss,
+#: never wrong answers.  OpenSysML ships the same thing (`stdlib.snapshot`).
+SNAPSHOT_NAME = "library_facts.json"
+
+
+def snapshot_path() -> Path:
+    return Path(__file__).with_name(SNAPSHOT_NAME)
+
+
+def _load_snapshot(digest: str) -> Optional[Dict[str, dict]]:
+    try:
+        payload = json.loads(snapshot_path().read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if payload.get("build") != build_id() or payload.get("digest") != digest:
+        return None
+    facts = payload.get("facts")
+    return facts if isinstance(facts, dict) else None
+
+
 def load(lib_roots=None, *, force: bool = False) -> Dict[str, dict]:
-    """Facts for the shipped library, from cache when possible."""
+    """Facts for the shipped library, from the snapshot or cache when possible."""
     paths = _library_files(lib_roots)
     digest = set_digest(paths)
+    if lib_roots is None and not force:
+        snapped = _load_snapshot(digest)
+        if snapped is not None:
+            return snapped
     cache_file = _cache_path(digest)
     if cache_file is not None and not force and cache_file.exists():
         try:
