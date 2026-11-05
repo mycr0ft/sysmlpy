@@ -10,6 +10,21 @@ Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 (Nothing staged.)
 
+## Recent Highlights (0.104.0)
+
+- **Issue #34 closed.** A library-wide facts index (`library_facts.py`) expands
+  public star-imports to a fixpoint, so facade packages resolve their
+  re-exports: `ISQ::mass`, `ISQ::speed`, `ISQ::time`, `SI::time`, `SI::kg`, `ft`,
+  `Btu_IT`.  Private imports stay private (`ISQ::Real` is False).  KerML names
+  come from the visitor dict (quoting stripped) plus lexical imports.
+- Persisted facts cache (content + set + build + format key) — cold 24.6 s on 8
+  cores, warm 0.02 s.  `get_symbols()` went from 29.6 s warm / 53.5 s cold to
+  0.02 s cached; `exists_in_loaded_model()` no longer loads a library model.
+  Namespace tables stay model-backed so feature access through typed attributes
+  still resolves.
+- Gate: 2794 findings (1116 errors / 1678 warnings) from 2853 (1146/1707), every
+  class down, 0 parse failures.
+
 ## Recent Highlights (0.103.4)
 
 - **Benchmark suite added** (`benchmarks/bench.py` + `docs/benchmarks.md`):

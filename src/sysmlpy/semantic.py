@@ -170,6 +170,17 @@ class LibrarySymbolIndex:
             cls._cache = _KNOWN_LIBRARY_SYMBOLS
             return cls._cache
 
+        # Issue #34: the library-wide facts index already knows every namespace,
+        # member and short name, and its public star-imports are expanded to a
+        # fixpoint — so re-exported members (`ISQ::mass` via ISQSpaceTime) count
+        # as symbols.  That is both truer and much cheaper than walking each
+        # file's lines: 41 s cold (the parse cost) against 53 s, and ~0.02 s from
+        # the persisted facts cache against 29.6 s warm.
+        symbols = cls._symbols_from_facts(library_roots)
+        if symbols:
+            cls._cache = frozenset(symbols)
+            return cls._cache
+
         symbols = set()
         for root in roots:
             if not root.is_dir():
@@ -180,6 +191,29 @@ class LibrarySymbolIndex:
 
         cls._cache = frozenset(symbols)
         return cls._cache
+
+    @classmethod
+    def _symbols_from_facts(
+        cls,
+        library_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> set[str]:
+        """Qualified symbol names from the library-wide facts index."""
+        try:
+            from sysmlpy import library_facts
+            facts = library_facts.get(library_roots)
+        except Exception:
+            return set()
+        if not facts.facts:
+            return set()
+        symbols: set[str] = set()
+        for qn, record in facts.facts.items():
+            for name in record["members"]:
+                symbols.add(f"{qn}::{name}")
+            for name in record["reexports"]:
+                symbols.add(f"{qn}::{name}")
+            for short in record["shortnames"]:
+                symbols.add(f"{qn}::{short}")
+        return symbols
 
     @classmethod
     def _resolve_roots(
@@ -552,18 +586,99 @@ class LibrarySymbolIndex:
     ) -> "Any | None":
         """The SymbolTable of a library namespace (issue #34).
 
-        The user model's namespace import resolves against a REAL
-        library model: the defining file loads through the public
-        pipeline (DFA-cached; process-cached here) and a fresh
-        SymbolTable walks it; the descent follows the namespace's own
-        package names.  ``None`` when no library source defines it (the
-        caller keeps the scraped-index fallback).
+        Built from :mod:`sysmlpy.library_facts` — one library-wide facts index
+        whose public star-imports are expanded to a fixpoint, so a facade
+        package (``ISQ`` and friends) exposes what it re-exports and ``ISQ::time``
+        resolves.  Direct members land in ``_symbols``, re-exports in
+        ``_imported_symbols`` with ``public`` visibility, and child packages in
+        ``_children``.
+
+        The earlier per-namespace walk of loaded models is kept as a fallback
+        for a namespace the facts index does not know.
         """
         if not qn_str:
             return None
         cached = cls._namespace_tables.get(qn_str)
         if cached is not None:
             return cached
+        # A loaded model gives real elements and nested scopes, which is what
+        # callers descending into a namespace need; the facts index is
+        # name-only.  So the model path stays primary, and facts answer when no
+        # model exists (the `.kerml` half, and any namespace the public loader
+        # cannot open).
+        table = cls._model_namespace_table(qn_str, lib_roots)
+        if table is not None:
+            cls._namespace_tables[qn_str] = table
+            return table
+        table = cls._facts_table(qn_str, lib_roots)
+        if table is not None:
+            cls._namespace_tables[qn_str] = table
+            return table
+        cls._namespace_tables[qn_str] = None
+        return None
+
+    @classmethod
+    def _facts_table(
+        cls,
+        qn_str: str,
+        lib_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> "Any | None":
+        """SymbolTable for *qn_str* from the library-wide facts index."""
+        try:
+            from sysmlpy import library_facts
+            facts = library_facts.get(lib_roots)
+        except Exception:
+            return None
+        namespace = facts.namespace(qn_str)
+        if namespace is None:
+            return None
+
+        def build(qn: str) -> Optional[SymbolTable]:
+            record = facts.namespace(qn)
+            if record is None:
+                return None
+            table = SymbolTable()
+            for name, kind in record["members"].items():
+                table._symbols[name] = _LibrarySymbol(name, kind)
+            # a declared SHORT name is a name: `SI::kg` is `SI::kilogram`
+            for short, member in record.get("shortnames", {}).items():
+                if member in table._symbols:
+                    table._symbols[short] = table._symbols[member]
+                else:
+                    table._symbols[short] = _LibrarySymbol(short, "ShortName")
+            for name, kind in record["reexports"].items():
+                if name in table._symbols:
+                    continue
+                table._imported_symbols[name] = _LibrarySymbol(name, kind)
+                table._import_visibility[name] = "public"
+            for child in record["children"]:
+                child_table = build(f"{qn}::{child}")
+                if child_table is not None:
+                    child_table._parent = table
+                    table._children[child] = child_table
+            return table
+
+        table = build(qn_str)
+        if table is None:
+            return None
+        # nested members resolve under their own scope, which the facts index
+        # records as a `qn::member` namespace — give those a table too
+        for name in list(table._symbols):
+            nested = facts.namespace(f"{qn_str}::{name}")
+            if nested is not None:
+                child_table = build(f"{qn_str}::{name}")
+                if child_table is not None:
+                    child_table._parent = table
+                    table._children[name] = child_table
+        return table
+
+    @classmethod
+    def _model_namespace_table(
+        cls,
+        qn_str: str,
+        lib_roots: Optional[Path | Sequence[Path]] = None,
+    ) -> "Any | None":
+        """Fallback: build the table by loading the defining source (pre-facts)."""
         fp = cls._fingerprint_for(lib_roots)
         first = qn_str.split("::")[0]
         candidates: set[str] = {fp_key for fp_key in fp.get(first, set())
@@ -634,6 +749,15 @@ class LibrarySymbolIndex:
         cached_hit = cls._exists_cache.get(ref_str)
         if cached_hit is not None:
             return cached_hit
+        # Fast path: the library-wide facts index (issue #34) answers simple and
+        # qualified names — short names included — without loading a model.
+        try:
+            from sysmlpy import library_facts
+            if library_facts.get(lib_roots).exists(ref_str):
+                cls._exists_cache[ref_str] = True
+                return True
+        except Exception:
+            pass
         result = False
         # issue #34 step 7: a .kerml source declares the name somewhere in its
         # own table (nested members included) — no model load needed.
@@ -720,6 +844,11 @@ class LibrarySymbolIndex:
         cls._exists_cache = {}
         cls._kerml_tables = {}
         cls._namespace_table_building = set()
+        try:
+            from sysmlpy import library_facts
+            library_facts._CACHE.clear()
+        except Exception:
+            pass
 
     @classmethod
     def _extract_kerml_parsed(cls, filepath: Path, symbols: set[str]) -> None:

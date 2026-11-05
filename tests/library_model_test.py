@@ -75,13 +75,20 @@ def test_issue34_kerml_names_resolve_from_the_loaded_source():
     assert "VectorFunctions::VectorOf" in LibrarySymbolIndex.get_symbols(None)
 
 
-def test_issue34_loaded_models_cached_per_process():
-    LibrarySymbolIndex.exists_in_loaded_model("LengthValue")
-    before = dict(LibrarySymbolIndex._loaded_models)
-    assert before, "candidate model loaded and cached"
-    LibrarySymbolIndex.exists_in_loaded_model("LengthValue")
-    assert LibrarySymbolIndex._loaded_models == before, \
-        "no reload on the warm path"
+def test_issue34_library_lookups_need_no_model_load():
+    """Since 0.103.5 a library lookup answers from the facts index.
+
+    The earlier contract loaded the defining source and cached the model
+    (`_loaded_models`); the facts index makes that unnecessary — and the model
+    load was the dominant cost.  Pin the *behaviour* (answers, and no model is
+    pulled in) rather than which internal cache warmed up.
+    """
+    LibrarySymbolIndex._loaded_models.clear()
+    assert LibrarySymbolIndex.exists_in_loaded_model("LengthValue") is True
+    assert LibrarySymbolIndex.exists_in_loaded_model("ISQ::mass") is True
+    assert LibrarySymbolIndex.exists_in_loaded_model("Nope::nope") is False
+    assert LibrarySymbolIndex._loaded_models == {}, \
+        "facts index answers without loading a library model"
 
 
 def test_issue34_fingerprint_is_lexical_no_index_pass():

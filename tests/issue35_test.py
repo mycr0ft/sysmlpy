@@ -15,6 +15,7 @@ the exit-time re-save that makes a multi-file walk converge, and the
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -96,18 +97,25 @@ def test_exit_resave_persists_a_multi_file_walk(tmp_path):
     """The atexit hook must store states warmed AFTER the first save.
 
     A single parse saves early; the exit hook then supersedes the file with
-    the strictly warmer DFA (that is what makes the library-index walk over
-    ~36 .kerml files converge instead of persisting the first file only).
+    the strictly warmer DFA (that is what makes a walk over ~36 .kerml files
+    converge instead of persisting the first file only).
+
+    Since 0.103.5 the library symbol index answers from the persisted facts
+    index, so it no longer parses KerML at all — this drives the walk directly.
     """
+    lib = Path(__file__).parent.parent / "src" / "sysmlpy" / "library"
     script = f"""
 import json, os, sys
+from pathlib import Path
 sys.path.insert(0, {os.path.abspath('src')!r})
 os.environ["SYSMLPY_DFA_CACHE"] = {str(tmp_path)!r}
 from sysmlpy import dfa_cache
 dfa_cache.reset_for_tests()
-from sysmlpy.semantic import LibrarySymbolIndex
-syms = LibrarySymbolIndex.get_symbols(None)
-print(json.dumps({{"symbols": len(syms)}}))
+from sysmlpy.kerml import kerml
+files = sorted(Path({str(lib)!r}).rglob("*.kerml"))
+for path in files:
+    kerml.parse(path.read_text(encoding="utf-8"))
+print(json.dumps({{"files": len(files)}}))
 """
     proc = subprocess.run([sys.executable, "-c", script],
                           capture_output=True, text=True, timeout=900)
@@ -119,8 +127,8 @@ print(json.dumps({{"symbols": len(syms)}}))
     assert size > 4 * 1024 * 1024, f"cache file only {size} bytes"
 
     # and a second process loads it instead of re-deriving
-    script2 = script.replace('"symbols": len(syms)',
-                             '"symbols": len(syms), "loaded": '
+    script2 = script.replace('"files": len(files)',
+                             '"files": len(files), "loaded": '
                              'dfa_cache.stats("kerml")["loaded"]')
     proc2 = subprocess.run([sys.executable, "-c", script2],
                            capture_output=True, text=True, timeout=900)

@@ -49,6 +49,25 @@ Warm mode reuses the persistent cache and the in-process ATN/DFA state.
 | `library.exists` | `exists_in_loaded_model` on eight qualified/short names |
 | `gate.scan` | full `sysmlpy ci` corpus scan (minutes, opt-in) |
 
+## 0.104.0 delta (issue #34 — library facts index)
+
+Warm, single repeat, same box (n=1: ±15 % noise):
+
+```
+case                        0.103.3      0.104.0     change
+library.index               29.62 s      0.021 s     1400x
+library.exists (8 lookups)  not measured 16 ms       (previously loaded models per miss)
+library.tables              21.8 s       21.8 s      unchanged — still model-backed
+model.library_all           18.31 s      17.66 s     unchanged (parse-bound)
+analyze.fixtures            1.84 s       0.98 s      -47 %
+```
+
+The facts index is the one case that changed character: `get_symbols()` reads a
+persisted record instead of scraping every file, and `exists_in_loaded_model()`
+answers name-level truth without loading a library model.  Cold cost of the
+index itself is 24.6 s on 8 cores (parallel per-file extract) — paid once per
+(library content, build id) pair, then 0.02 s.
+
 ## Baseline — 0.103.3
 
 Linux, Python 3.13.5, one repeat (n=1: treat ±15 % as noise; use `--repeat 5`

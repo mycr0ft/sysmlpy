@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## 0.104.0 (2026-11-04)
+
+**Issue #34 closed: the library answers as a model, not as a scrape.**
+
+- **Library facts index** (`src/sysmlpy/library_facts.py`, `tests/library_facts_test.py`).
+  One library-wide index of namespaces, members, imports and short names, with
+  public star-imports expanded to a **fixpoint** — the shape OpenSysML derives in
+  `ExpandWildcardImports()` and the OMG ships precomputed as
+  `sysml.library.xmi.implied`.  Facade packages now expose what they re-export:
+  `ISQ::mass` (declared in `ISQBase`), `ISQ::speed` (`ISQSpaceTime`),
+  `ISQ::time` (`alias time for duration`), `SI::time` (chained re-export), and
+  short names such as `SI::kg`, `ft`, `Btu_IT` resolve instead of falling back to
+  the scraped index.
+- **Private imports stay private**: `ISQ::Real` and `SI::Real` are False even
+  though both files import `ScalarValues::Real`; only `public import` re-exports.
+- **KerML half indexed too**: names come from the visitor dict with quoting
+  stripped (`VectorFunctions::+`), and imports are read lexically because the
+  KerML dict does not carry them.
+- **Persisted facts cache**, keyed on library content digest + set digest + build
+  id + format version (`SYSMLPY_LIBRARY_CACHE`, `off` disables).  A stale or
+  corrupt record is a miss, never a crash.  Cold build 24.6 s on 8 cores
+  (parallel per-file extract, `SYSMLPY_LIBRARY_WORKERS` overrides); warm load
+  0.02 s.
+- **`get_symbols()` now reads the facts index**: 29.6 s warm / 53.5 s cold →
+  0.02 s cached, and 11,225 symbols including re-exported members and short
+  names.  A file the parser rejects (a `.kerml` carrying SysML notation) still
+  contributes its names through the tolerant lexical harvester, so custom
+  libraries keep resolving.
+- **`exists_in_loaded_model()` answers name-level truth from facts first**; a
+  lookup no longer loads a library model.  `library_namespace_table()` stays
+  **model-backed** (real elements, nested scopes) with facts as the fallback —
+  that split is what keeps feature access like `isq.L` (through a short-named
+  attribute's type) resolving; making the tables facts-only cost 2041 extra
+  `UNRESOLVED_EXPRESSION_IDENTIFIER` findings before the ordering was fixed.
+- **Advisory gate: 2794 findings (1116 errors / 1678 warnings) from 2853
+  (1146/1707)** — every class improved and none moved up:
+  `IMPLICIT_LIBRARY_IMPORT 1343 → 1314`, `UNRESOLVED_EXPRESSION_IDENTIFIER
+  967 → 946`, `UNRESOLVED_IMPORT 17 → 12`, `UNDEFINED_SYMBOL 46 → 42`.
+  0 parse failures, PASS.
+- **Benchmarks** (`benchmarks/bench.py`, `docs/benchmarks.md`, see 0.103.4):
+  `library.index` 29.62 s → 0.021 s; `library.exists` (8 lookups) 16 ms.
+
 ## 0.103.4 (2026-11-04)
 
 - **Benchmark suite** (`benchmarks/bench.py`, `docs/benchmarks.md`). The v0.84.0
