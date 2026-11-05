@@ -625,6 +625,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#01040-delta-issue-34-library-facts-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.104.0 delta (issue #34 — library facts index)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#baseline-01033" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -739,23 +750,37 @@ Warm mode reuses the persistent cache and the in-process ATN/DFA state.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="01040-delta-issue-34-library-facts-index">0.104.0 delta (issue #34 — library facts index)<a class="headerlink" href="#01040-delta-issue-34-library-facts-index" title="Permanent link">&para;</a></h2>
+<p>Warm, single repeat, same box (n=1: ±15 % noise):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>case                        0.103.3      0.104.0     change
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>library.index               29.62 s      0.021 s     1400x
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>library.exists (8 lookups)  not measured 16 ms       (previously loaded models per miss)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>library.tables              21.8 s       21.8 s      unchanged — still model-backed
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>model.library_all           18.31 s      17.66 s     unchanged (parse-bound)
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>analyze.fixtures            1.84 s       0.98 s      -47 %
+</code></pre></div>
+<p>The facts index is the one case that changed character: <code>get_symbols()</code> reads a
+persisted record instead of scraping every file, and <code>exists_in_loaded_model()</code>
+answers name-level truth without loading a library model.  Cold cost of the
+index itself is 24.6 s on 8 cores (parallel per-file extract) — paid once per
+(library content, build id) pair, then 0.02 s.</p>
 <h2 id="baseline-01033">Baseline — 0.103.3<a class="headerlink" href="#baseline-01033" title="Permanent link">&para;</a></h2>
 <p>Linux, Python 3.13.5, one repeat (n=1: treat ±15 % as noise; use <code>--repeat 5</code>
 for anything you publish).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>case                        cold          warm
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>parse.synthetic             910 ms        1.24 s
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>parse.library_all           17.95 s       17.76 s
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>model.library_all           18.09 s       18.31 s
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>analyze.fixtures            -             1.84 s
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>dump.library_all            -             7.23 s
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>interchange.export          -             541 ms
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>interchange.roundtrip       -             656 ms
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>library.index               53.48 s       29.62 s
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>case                        cold          warm
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>parse.synthetic             910 ms        1.24 s
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>parse.library_all           17.95 s       17.76 s
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>model.library_all           18.09 s       18.31 s
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>analyze.fixtures            -             1.84 s
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>dump.library_all            -             7.23 s
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>interchange.export          -             541 ms
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>interchange.roundtrip       -             656 ms
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>library.index               53.48 s       29.62 s
 </code></pre></div>
 <p>Ad-hoc measurements from the same box, for cases the default suite skips:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>58 .sysml files → one Model (load_files)     20.5 s    7,152 elements
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>one SymbolTable.build_from_model over it     34.2 s    58 top-level namespaces
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>whole library including .kerml               fails: the SysML loader rejects KerML syntax
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>58 .sysml files → one Model (load_files)     20.5 s    7,152 elements
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>one SymbolTable.build_from_model over it     34.2 s    58 top-level namespaces
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>whole library including .kerml               fails: the SysML loader rejects KerML syntax
 </code></pre></div>
 <p>Reading of the baseline: <strong>the analyzer's library index is the dominant cost</strong>
 (29.6 s warm / 53.5 s cold), more than parsing the entire library. That is the

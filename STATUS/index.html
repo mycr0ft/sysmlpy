@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01034" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -984,6 +995,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01040" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.0)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01034" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1317,6 +1339,21 @@
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01040">Recent Highlights (0.104.0)<a class="headerlink" href="#recent-highlights-01040" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Issue #34 closed.</strong> A library-wide facts index (<code>library_facts.py</code>) expands
+  public star-imports to a fixpoint, so facade packages resolve their
+  re-exports: <code>ISQ::mass</code>, <code>ISQ::speed</code>, <code>ISQ::time</code>, <code>SI::time</code>, <code>SI::kg</code>, <code>ft</code>,
+  <code>Btu_IT</code>.  Private imports stay private (<code>ISQ::Real</code> is False).  KerML names
+  come from the visitor dict (quoting stripped) plus lexical imports.</li>
+<li>Persisted facts cache (content + set + build + format key) — cold 24.6 s on 8
+  cores, warm 0.02 s.  <code>get_symbols()</code> went from 29.6 s warm / 53.5 s cold to
+  0.02 s cached; <code>exists_in_loaded_model()</code> no longer loads a library model.
+  Namespace tables stay model-backed so feature access through typed attributes
+  still resolves.</li>
+<li>Gate: 2794 findings (1116 errors / 1678 warnings) from 2853 (1146/1707), every
+  class down, 0 parse failures.</li>
+</ul>
 <h2 id="recent-highlights-01034">Recent Highlights (0.103.4)<a class="headerlink" href="#recent-highlights-01034" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Benchmark suite added</strong> (<code>benchmarks/bench.py</code> + <code>docs/benchmarks.md</code>):

@@ -785,10 +785,16 @@ Three false-positive classes ride on that:</p>
 <td>true member visibility for star imports</td>
 </tr>
 <tr>
-<td>6 (follow-up)</td>
-<td>persist built namespace tables keyed by file fingerprint (dfa_cache-style): now a pure cost optimisation (+10 s on a cold analyze of a library-importing model), not a prerequisite for step 5</td>
-<td>8 h</td>
-<td>colder starts stop paying the table builds</td>
+<td>6</td>
+<td><strong>persist built namespace tables keyed by file fingerprint (dfa_cache-style)</strong> — widened into the library-wide facts index (<code>library_facts.py</code>): one index of namespaces/members/imports/short names with public star-imports expanded to a fixpoint, persisted under a content + set + build + format key. Cold 24.6 s (8 cores, parallel per-file extract), warm 0.02 s; <code>get_symbols()</code> 29.6 s → 0.02 s.</td>
+<td>8 h — DONE (0.104.0)</td>
+<td>colder starts stop paying the table builds; facades resolve</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>facade residual</strong> — public star-import re-export fixpoint (ISQ→ISQBase/ISQSpaceTime/…, SI→ISQ→…), aliases as members (<code>ISQ::time</code>), short names re-exported (<code>SI::kg</code>, <code>isq.L</code>), private imports kept private (<code>ISQ::Real</code> False); namespace tables stay model-backed with facts as fallback, <code>exists_in_loaded_model</code> answers from facts first. Gate 2853 → 2794 findings, every class down.</td>
+<td>6 h — DONE (0.104.0)</td>
+<td>#34 closed</td>
 </tr>
 <tr>
 <td>7</td>

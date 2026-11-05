@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01040-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.104.0 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01034-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1072,6 +1083,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01040-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.104.0 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01034-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1510,6 +1532,47 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01040-2026-11-04">0.104.0 (2026-11-04)<a class="headerlink" href="#01040-2026-11-04" title="Permanent link">&para;</a></h2>
+<p><strong>Issue #34 closed: the library answers as a model, not as a scrape.</strong></p>
+<ul>
+<li><strong>Library facts index</strong> (<code>src/sysmlpy/library_facts.py</code>, <code>tests/library_facts_test.py</code>).
+  One library-wide index of namespaces, members, imports and short names, with
+  public star-imports expanded to a <strong>fixpoint</strong> — the shape OpenSysML derives in
+  <code>ExpandWildcardImports()</code> and the OMG ships precomputed as
+  <code>sysml.library.xmi.implied</code>.  Facade packages now expose what they re-export:
+  <code>ISQ::mass</code> (declared in <code>ISQBase</code>), <code>ISQ::speed</code> (<code>ISQSpaceTime</code>),
+  <code>ISQ::time</code> (<code>alias time for duration</code>), <code>SI::time</code> (chained re-export), and
+  short names such as <code>SI::kg</code>, <code>ft</code>, <code>Btu_IT</code> resolve instead of falling back to
+  the scraped index.</li>
+<li><strong>Private imports stay private</strong>: <code>ISQ::Real</code> and <code>SI::Real</code> are False even
+  though both files import <code>ScalarValues::Real</code>; only <code>public import</code> re-exports.</li>
+<li><strong>KerML half indexed too</strong>: names come from the visitor dict with quoting
+  stripped (<code>VectorFunctions::+</code>), and imports are read lexically because the
+  KerML dict does not carry them.</li>
+<li><strong>Persisted facts cache</strong>, keyed on library content digest + set digest + build
+  id + format version (<code>SYSMLPY_LIBRARY_CACHE</code>, <code>off</code> disables).  A stale or
+  corrupt record is a miss, never a crash.  Cold build 24.6 s on 8 cores
+  (parallel per-file extract, <code>SYSMLPY_LIBRARY_WORKERS</code> overrides); warm load
+  0.02 s.</li>
+<li><strong><code>get_symbols()</code> now reads the facts index</strong>: 29.6 s warm / 53.5 s cold →
+  0.02 s cached, and 11,225 symbols including re-exported members and short
+  names.  A file the parser rejects (a <code>.kerml</code> carrying SysML notation) still
+  contributes its names through the tolerant lexical harvester, so custom
+  libraries keep resolving.</li>
+<li><strong><code>exists_in_loaded_model()</code> answers name-level truth from facts first</strong>; a
+  lookup no longer loads a library model.  <code>library_namespace_table()</code> stays
+  <strong>model-backed</strong> (real elements, nested scopes) with facts as the fallback —
+  that split is what keeps feature access like <code>isq.L</code> (through a short-named
+  attribute's type) resolving; making the tables facts-only cost 2041 extra
+  <code>UNRESOLVED_EXPRESSION_IDENTIFIER</code> findings before the ordering was fixed.</li>
+<li><strong>Advisory gate: 2794 findings (1116 errors / 1678 warnings) from 2853
+  (1146/1707)</strong> — every class improved and none moved up:
+  <code>IMPLICIT_LIBRARY_IMPORT 1343 → 1314</code>, <code>UNRESOLVED_EXPRESSION_IDENTIFIER
+  967 → 946</code>, <code>UNRESOLVED_IMPORT 17 → 12</code>, <code>UNDEFINED_SYMBOL 46 → 42</code>.
+  0 parse failures, PASS.</li>
+<li><strong>Benchmarks</strong> (<code>benchmarks/bench.py</code>, <code>docs/benchmarks.md</code>, see 0.103.4):
+  <code>library.index</code> 29.62 s → 0.021 s; <code>library.exists</code> (8 lookups) 16 ms.</li>
+</ul>
 <h2 id="01034-2026-11-04">0.103.4 (2026-11-04)<a class="headerlink" href="#01034-2026-11-04" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Benchmark suite</strong> (<code>benchmarks/bench.py</code>, <code>docs/benchmarks.md</code>). The v0.84.0
