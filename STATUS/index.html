@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01042" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01041" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1006,6 +1017,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01042" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.2)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01041" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1361,6 +1383,13 @@
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01042">Recent Highlights (0.104.2)<a class="headerlink" href="#recent-highlights-01042" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Cold analyze 190 s → 10.9 s</strong> (0.103.3: 43.5 s).  The snapshot now applies
+  whenever its digest matches the roots given, not only when <code>lib_roots</code> is None
+  — <code>analyze(model, library=[bundled])</code> passes explicit roots and was paying a
+  276 s rebuild.  Custom libraries fail the digest check and build as before.</li>
+</ul>
 <h2 id="recent-highlights-01041">Recent Highlights (0.104.1)<a class="headerlink" href="#recent-highlights-01041" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Shipped facts snapshot</strong> (<code>src/sysmlpy/library_facts.json</code>, 564 KiB):

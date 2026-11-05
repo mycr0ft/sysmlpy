@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01042-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.104.2 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01041-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1094,6 +1105,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01042-2026-11-04" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.104.2 (2026-11-04)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01041-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1554,6 +1576,17 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01042-2026-11-04">0.104.2 (2026-11-04)<a class="headerlink" href="#01042-2026-11-04" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Cold analyze: 190 s → 10.9 s</strong> (0.103.3 was 43.5 s).  The snapshot was only
+  consulted when <code>lib_roots</code> was None, but <code>analyze(model, library=[...])</code> —
+  the ordinary path — always passes explicit roots, so a cold analyze rebuilt
+  the whole facts index (276 s with no DFA cache).  The snapshot is now tried
+  for any roots and accepted only when its digest matches theirs: a custom
+  library fails the check and builds; the bundled library answers instantly
+  however the caller spelled it.  Measured on a fresh venv with no DFA and no
+  facts cache: 190.5 s → 10.9 s, warm &lt;0.1 s.</li>
+</ul>
 <h2 id="01041-2026-11-04">0.104.1 (2026-11-04)<a class="headerlink" href="#01041-2026-11-04" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Shipped facts snapshot: first run 276 s → 0.02 s.</strong> The library facts index
