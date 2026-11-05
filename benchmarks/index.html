@@ -761,9 +761,13 @@ Warm mode reuses the persistent cache and the in-process ATN/DFA state.</p>
 </code></pre></div>
 <p>The facts index is the one case that changed character: <code>get_symbols()</code> reads a
 persisted record instead of scraping every file, and <code>exists_in_loaded_model()</code>
-answers name-level truth without loading a library model.  Cold cost of the
-index itself is 24.6 s on 8 cores (parallel per-file extract) — paid once per
-(library content, build id) pair, then 0.02 s.</p>
+answers name-level truth without loading a library model.</p>
+<p><strong>Cold cost depends entirely on the DFA cache.</strong> With a warm persistent DFA
+cache the build is 24.6 s on 8 cores; from a machine that has never parsed the
+library it is <strong>276 s</strong>, because every parse pays DFA construction (measured on
+the 0.104.0 wheel, 8 workers, <code>SYSMLPY_DFA_CACHE=off</code>).  That is why 0.104.1
+ships a prebuilt snapshot: 0.02 s to read, validated against build id + content
+digest, so it is never used when it could be wrong.</p>
 <h2 id="baseline-01033">Baseline — 0.103.3<a class="headerlink" href="#baseline-01033" title="Permanent link">&para;</a></h2>
 <p>Linux, Python 3.13.5, one repeat (n=1: treat ±15 % as noise; use <code>--repeat 5</code>
 for anything you publish).</p>

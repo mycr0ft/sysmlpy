@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01040" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -995,6 +1006,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01041" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.104.1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01040" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1339,6 +1361,15 @@
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01041">Recent Highlights (0.104.1)<a class="headerlink" href="#recent-highlights-01041" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Shipped facts snapshot</strong> (<code>src/sysmlpy/library_facts.json</code>, 564 KiB):
+  first-run library index <strong>276 s → 0.02 s</strong>, validated against build id +
+  library digest (stale ⇒ miss, custom roots ⇒ never used), regenerated with
+  <code>scripts/gen_library_facts.py</code> and guarded by a failing test when it drifts.</li>
+<li>Pool workers keep out of the persistent DFA cache (8 workers re-saving a
+  tens-of-MB pickle was serialising the parallel extract).</li>
+</ul>
 <h2 id="recent-highlights-01040">Recent Highlights (0.104.0)<a class="headerlink" href="#recent-highlights-01040" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #34 closed.</strong> A library-wide facts index (<code>library_facts.py</code>) expands
