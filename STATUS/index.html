@@ -577,6 +577,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01034" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01033" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -973,6 +984,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#recent-highlights-01034" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recent Highlights (0.103.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#recent-highlights-01033" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1295,6 +1317,15 @@
 <hr />
 <h2 id="in-flight-on-main-unreleased">In Flight (on main, unreleased)<a class="headerlink" href="#in-flight-on-main-unreleased" title="Permanent link">&para;</a></h2>
 <p>(Nothing staged.)</p>
+<h2 id="recent-highlights-01034">Recent Highlights (0.103.4)<a class="headerlink" href="#recent-highlights-01034" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Benchmark suite added</strong> (<code>benchmarks/bench.py</code> + <code>docs/benchmarks.md</code>):
+  per-phase timings on real corpora, JSON results per release, and a <code>--cold</code>
+  mode for first-run cost. Baseline on 0.103.3: library parse 17.8 s, element
+  build 18.3 s, dump 7.2 s, analyze 1.8 s, interchange export 0.54 s, and
+  <code>library.index</code> <strong>29.6 s warm / 53.5 s cold</strong> — the library index dominates,
+  not the parser. That is the #34 target.</li>
+</ul>
 <h2 id="recent-highlights-01033">Recent Highlights (0.103.3)<a class="headerlink" href="#recent-highlights-01033" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Issue #41 shipped</strong>: a <code>first a then b;</code> succession is a first-class element
