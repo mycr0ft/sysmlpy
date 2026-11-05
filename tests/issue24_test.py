@@ -87,7 +87,10 @@ def test_issue24_dump_notation_and_round_trip():
                   "metadata m1 : M about X, W; }")
     dump = model.dump()
     # `about` keeps the declared-metadata keyword shape, no double terminator
-    assert "@ m1 : M about X, W;" in dump, dump
+    # issue #42: the `metadata name : Type` keyword form is preserved as
+    # written; the dump used to normalize it to `@ m1 : M …` (and, before
+    # issue #24, to `@ : m1 …`).
+    assert "metadata m1 : M about X, W;" in dump, dump
     # the bare `@M` form keeps no fake colon
     assert "@ M {w=1;}" in dump or "@M {w=1;}" in dump, dump
     again = sysmlpy.loads(dump)

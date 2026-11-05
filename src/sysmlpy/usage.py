@@ -265,6 +265,120 @@ def _interface_end_body_item(name, type_name=None, multiplicity=None,
     }
 
 
+def _metadata_member_dict(md):
+    """One body member carrying a metadata application (issue #42).
+
+    An application is not a member of the annotated element, but it *is* part
+    of that element's body in the notation, so the dump has to place it there.
+    """
+    grammar = getattr(md, "grammar", None)
+    if grammar is None or not hasattr(grammar, "get_definition"):
+        return None
+    return {
+        "name": "NonOccurrenceUsageMember",
+        "prefix": None,
+        "ownedRelatedElement": [{
+            "name": "NonOccurrenceUsageElement",
+            "ownedRelatedElement": grammar.get_definition(),
+        }],
+    }
+
+
+def _inject_annotations(package, annotations):
+    """Put the element's annotations back into its dumped body.
+
+    ``element.annotations`` is where a parsed ``@M { … }`` lives (issue #24),
+    but the dump is generated from the grammar tree, which never carried them.
+    Without this, every annotation with a body vanished from ``dump()`` — the
+    model kept it, the text did not (issue #42).
+    """
+    members = [_metadata_member_dict(md) for md in (annotations or [])
+               if not getattr(md, "is_prefix", False)]
+    members = [m for m in members if m is not None]
+    if not members:
+        return package
+
+    def find_body(node):
+        if isinstance(node, dict):
+            body = node.get("body")
+            if isinstance(body, dict):
+                name = str(body.get("name", ""))
+                if name.endswith("Body"):
+                    return body
+            for value in node.values():
+                found = find_body(value)
+                if found is not None:
+                    return found
+        elif isinstance(node, list):
+            for value in node:
+                found = find_body(value)
+                if found is not None:
+                    return found
+        return None
+
+    body = find_body(package)
+    if body is None:
+        return package
+
+    def signature(node):
+        """Identify an application by what it says, across dict copies."""
+        if isinstance(node, list):
+            for value in node:
+                found = signature(value)
+                if found is not None:
+                    return found
+            return None
+        if not isinstance(node, dict):
+            return None
+        if node.get("name") == "MetadataFeature":
+            typing = node.get("ownedFeatureTyping") or {}
+            names = None
+            cursor = typing
+            while isinstance(cursor, dict) and names is None:
+                names = cursor.get("names")
+                cursor = cursor.get("type")
+            return (
+                node.get("declaredKeyword") or "@",
+                tuple(names or ()),
+                " ".join(str(node.get("body") or "").split()),
+            )
+        for value in node.values():
+            found = signature(value)
+            if found is not None:
+                return found
+        return None
+
+    present = set()
+
+    def harvest(node):
+        if isinstance(node, list):
+            for value in node:
+                harvest(value)
+            return
+        if not isinstance(node, dict):
+            return
+        if node.get("name") == "MetadataFeature":
+            present.add(signature(node))
+            return
+        for value in node.values():
+            harvest(value)
+
+    harvest(body)
+    members = [m for m in members if signature(m) not in present]
+    if not members:
+        return package
+    if "ownedRelatedElement" in body:
+        # DefinitionBody: members are DefinitionBodyItems around a member list
+        for member in members:
+            body["ownedRelatedElement"].append({
+                "name": "DefinitionBodyItem",
+                "ownedRelationship": [member],
+            })
+    else:
+        body.setdefault("ownedRelationship", []).extend(members)
+    return package
+
+
 def _metadata_from_feature(mf):
     """Build a :class:`Metadata` element from a ``MetadataFeature`` grammar
     object (issue #24).
@@ -324,6 +438,11 @@ def _metadata_from_feature(mf):
             val = val[1:].strip()
         md.values[bname] = val
         md.value_text[bname] = raw_val
+        expression = bf.get("valuePart") if isinstance(bf, dict) else None
+        if expression is None and not isinstance(bf, dict):
+            expression = getattr(bf, "valuePart", None)
+        if expression is not None:
+            md.value_expressions[bname] = expression
     return md
 
 
@@ -902,6 +1021,10 @@ class Usage(Searchable):
                 package["ownedRelationship"].insert(
                     0, self.typedby._get_definition(child=child)["ownedRelationship"][0]
                 )
+
+        # Issue #42: metadata applications belong in the annotated element's
+        # body, and the grammar tree does not carry them.
+        package = _inject_annotations(package, getattr(self, "annotations", None))
 
         return package
 
@@ -1515,7 +1638,7 @@ class Usage(Searchable):
         # `.prefixMetadata` as MetadataFeature grammar objects).
         for mf in getattr(grammar, 'prefix', None).prefixMetadata \
                 if getattr(getattr(grammar, 'prefix', None), 'prefixMetadata', None) else []:
-            self._attach_metadata_feature(mf)
+            self._attach_metadata_feature(mf, is_prefix=True)
 
         return self
 
@@ -1752,14 +1875,19 @@ class Usage(Searchable):
                             c.parent = self
                             self.children.append(c)
 
-    def _attach_metadata_feature(self, mf):
+    def _attach_metadata_feature(self, mf, is_prefix=False):
         """Attach a ``MetadataFeature`` as one of this element's annotations.
 
         Issue #24: `@M { w = 1; }` inside this element's body applies `M` to
         this element, so the application lives on ``self.annotations`` — not
         on the enclosing namespace, and not as a child (it is not a member).
+
+        ``is_prefix`` marks the `#M part def Y;` form: the application is stated
+        in the element's *prefix*, so the dump must not also put it in the body
+        (issue #42 — it rendered twice).
         """
         md = _metadata_from_feature(mf)
+        md.is_prefix = is_prefix
         md.parent = self
         if getattr(self, "annotations", None) is None:
             self.annotations = []
@@ -1775,7 +1903,7 @@ class Usage(Searchable):
         than on an occurrence prefix.  Attach them like any application.
         """
         for mf in getattr(grammar, "prefixMetadata", None) or []:
-            self._attach_metadata_feature(mf)
+            self._attach_metadata_feature(mf, is_prefix=True)
 
     def _extract_specialization_info(self, grammar):
         """Capture Typings / Subsettings / Redefinitions / References names
@@ -4186,7 +4314,7 @@ class Requirement(Usage):
         # Issue #24: `#M` prefix metadata (`#M requirement def R;`)
         _pm = getattr(getattr(grammar, "prefix", None), "prefixMetadata", None)
         for mf in _pm or []:
-            self._attach_metadata_feature(mf)
+            self._attach_metadata_feature(mf, is_prefix=True)
 
         return self
 
@@ -5524,6 +5652,10 @@ class Metadata(_NonOccurrenceUsage):
         self.annotated = []
         self.values = {}
         self.value_text = {}
+        #: feature name -> structured value expression (issue #42)
+        self.value_expressions = {}
+        #: True when the application was written as a prefix (`#M part def Y;`)
+        self.is_prefix = False
 
     @property
     def annotated_elements(self):

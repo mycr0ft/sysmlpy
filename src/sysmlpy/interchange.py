@@ -489,6 +489,36 @@ _ELEMENT_EXACT = {"Package"}
 _NON_ELEMENT_EXACT = {"Definition", "Usage"}
 
 
+def _body_feature_node(entry):
+    """Turn a metadata body entry into a node a consumer can read (issue #42).
+
+    The visitor's body entry is ``{name: <feature>, value: "=z", text: "w=z;",
+    valuePart: {...}}`` — the ``name`` here is the *feature* being assigned, not
+    a metaclass, so flattening it verbatim would type the node ``w``.  A metadata
+    body member is a feature usage carrying a value: OpenSysML emits
+    ``sysml:ReferenceUsage`` with ``sysml:value``, which is the shape used here.
+    """
+    if not isinstance(entry, dict) or "text" not in entry:
+        return entry
+    value = entry.get("value") or ""
+    value = value[1:].strip() if value.startswith("=") else value.strip()
+    node = {
+        "name": "ReferenceUsage",
+        "declaredName": entry.get("name"),
+        "value": value,
+    }
+    part = entry.get("valuePart")
+    if isinstance(part, dict):
+        # `valuePart` wraps the FeatureValue that carries the expression; hoist
+        # it so the graph gets `FeatureValue -> OwnedExpression -> ...` rather
+        # than a `ValuePart` grammar wrapper.
+        inner = part.get("ownedRelationship")
+        if isinstance(inner, list):
+            inner = inner[0] if inner else None
+        node["featureValue"] = (inner if isinstance(inner, dict)
+                                else {"name": "FeatureValue"})
+    return node
+
 def _is_element_node_name(name) -> bool:
     if not isinstance(name, str) or not name:
         return False
@@ -528,6 +558,11 @@ def _flatten(node: dict, parent_id: str, key: str, index: int,
     # prefix for `#M part def Y;`); that element is its `annotatedElement`
     # (issue #36 — the shape OpenSysML and sysml-toolkit emit).
     child_anchor = elem_id if _is_element_node_name(node.get("name")) else anchor_id
+
+    if node.get("name") == "MetadataFeature" and node.get("bodyFeatures"):
+        node = dict(node)
+        node["bodyFeatures"] = [_body_feature_node(item)
+                                for item in node["bodyFeatures"]]
 
     elem = {"@id": elem_id, "@type": node.get("name")}
     for k, v in node.items():
@@ -992,6 +1027,23 @@ def _rebuild(ref: dict, by_id: dict, stack: tuple = ()) -> dict:
     if type_name in _IMPORT_TYPE_ALIASES:
         type_name = _IMPORT_TYPE_ALIASES[type_name]
         derived = set(_DERIVED_ON_IMPORT.get(elem.get("@type"), ()))
+    if type_name == "ReferenceUsage" and "declaredName" in elem and "value" in elem:
+        # A metadata body member is exported as a feature usage carrying a value
+        # (issue #42); internally it is the visitor's body-feature entry, which
+        # the loader reads by `name`/`value`/`text`.
+        value = elem.get("value") or ""
+        feature_value = _rebuild_value(elem["featureValue"], by_id,
+                                       stack + (elem_id,)) \
+            if elem.get("featureValue") else None
+        return {
+            "name": elem.get("declaredName") or type_name,
+            "value": ("=" + value) if value else None,
+            "text": f"{elem.get('declaredName')}={value};",
+            "valuePart": ({"name": "ValuePart",
+                           "ownedRelationship": feature_value}
+                          if feature_value is not None else None),
+        }
+
     node = {"name": type_name}
     for k, v in elem.items():
         if k in _REF_KEYS or k in derived:

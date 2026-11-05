@@ -10,6 +10,15 @@ Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 (Nothing staged.)
 
+## Recent Highlights (0.105.0)
+
+- **Issue #42 closed.** Metadata applications with a body survive `dump()` again
+  (they lived only on `element.annotations`), the author's notation is preserved
+  (`@M`, `#M`, `metadata app : M`), and body values are structured: captured
+  through the expression path as `value_expressions` and emitted in the graph as
+  `ReferenceUsage` + `FeatureValue` + expression nodes.  22 pins in
+  `tests/issue42_test.py`.
+
 ## Recent Highlights (0.104.2)
 
 - **Cold analyze 190 s → 10.9 s** (0.103.3: 43.5 s).  The snapshot now applies

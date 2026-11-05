@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## 0.105.0 (2026-11-04)
+
+**Issue #42 closed: metadata bodies survive the dump, and their values are structured.**
+
+- **Applications with a body no longer vanish from `dump()`.** `element.annotations`
+  held them (issue #24) but the dump is generated from the grammar tree, which had
+  no member for them — so `@M { w = z; }` disappeared on a round trip while
+  `@M { w = 1; }` survived.  `_inject_annotations` puts each application back into
+  the annotated element's body, de-duplicated against applications the parsed body
+  already carries, and skips prefix applications (`#M part def Y;` renders once, in
+  the prefix).
+- **The notation the author used is the notation dumped back.** `#M` keeps its
+  sigil, `metadata app : M { … }` keeps its keyword, `@M` binds to its type
+  (`@ M` was the old spacing).  `declaredKeyword` now survives
+  `MetadataFeature.get_definition()`, which it previously dropped.
+- **Values are structured.** Each metadata body member is captured through the
+  same expression path attribute defaults use (`valuePart` → `FeatureValue` →
+  `OwnedExpression` → operator tree), exposed as
+  `Metadata.value_expressions[name]` alongside the author's `values[name]` text.
+  In the interchange graph each body member is a `ReferenceUsage` with
+  `declaredName` + `value` and a `FeatureValue`/expression subtree (the OpenSysML
+  shape), instead of an opaque `"body": "{w=z;}"` string — and import maps those
+  nodes back, so `values` and `value_expressions` survive a graph round trip.
+- Pins: `tests/issue42_test.py` (22) — reference, literal, chain, arithmetic and
+  empty bodies; `#M`, `metadata app : M`, nested usage bodies, `about` clauses;
+  fixed-point round trips; graph structure and graph↔model equality.
+- Two pins updated because the old expectations encoded the defect:
+  `issue24`'s `@ m1 : M …` and `class_test`'s canonical `@ m1 : MD` both assumed
+  the dump normalized a `metadata` declaration to the sigil form.
+- Advisory gate unchanged: 1116 errors / 1678 warnings, PASS, 0 parse failures.
+
 ## 0.104.2 (2026-11-04)
 
 - **Cold analyze: 190 s → 10.9 s** (0.103.3 was 43.5 s).  The snapshot was only

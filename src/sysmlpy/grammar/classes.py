@@ -4925,6 +4925,10 @@ class MetadataFeature:
             for ann in definition.get("ownedRelationship_about", []):
                 self.annotations.append(Annotation(ann))
 
+            # Issue #36/#42: the sigil the author wrote — `@M …` or `#M …`
+            # (`@` for the plain form).  Kept as a string so dump() states it.
+            self.keyword = definition.get("declaredKeyword") or "@"
+
             self.body = definition.get("body", "")
             # Issue #8: structured per-element capture so consumers can
             # read individual key = value features without re-parsing
@@ -4936,7 +4940,9 @@ class MetadataFeature:
         output = []
         for p in self.prefix:
             output.append(p.dump())
-        output.append("@")
+        # the sigil glues to the declaration: `@M`, `#M`, `metadata m : M`
+        sigil = getattr(self, "keyword", None) or "@"
+        output.append(sigil if sigil == "@" else ("#" if sigil == "#" else "metadata"))
         if self.identification is not None:
             output.append(self.identification.dump())
             # the ':' belongs between a declared name and its type: the bare
@@ -4959,10 +4965,20 @@ class MetadataFeature:
             if text and text != ";":
                 output.append(text)
                 braced_body = text.startswith("{")
-        # the ';' terminator glues to the last token (@ : m;)
+        # the sigil binds to what follows it: `@M`, `#M`; the `metadata`
+        # keyword form keeps its space (`metadata m : M;`)
+        joined = []
+        for index, piece in enumerate(output):
+            if not piece.strip():
+                continue
+            if index and joined and joined[-1] in ("@", "#"):
+                joined[-1] = joined[-1] + piece
+            else:
+                joined.append(piece)
+        # the ';' terminator glues to the last token (@m : M;)
         if braced_body:
-            return " ".join(x for x in output if x.strip())
-        return (" ".join(x for x in output if x.strip()) + ";").replace(" ;", ";")
+            return " ".join(joined)
+        return (" ".join(joined) + ";").replace(" ;", ";")
 
     def get_definition(self):
         output = {
@@ -4971,6 +4987,7 @@ class MetadataFeature:
             "identification": self.identification.get_definition() if self.identification else None,
             "ownedFeatureTyping": self.typing.get_definition() if self.typing else None,
             "ownedRelationship_about": [a.get_definition() for a in self.annotations],
+            "declaredKeyword": getattr(self, "keyword", None),
             "body": self.body,
             "bodyFeatures": list(self.bodyFeatures),
         }

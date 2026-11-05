@@ -1042,14 +1042,16 @@ def test_metadata_usage_api_object():
         assert type(el).__name__ == "Metadata"
         assert el.name == "m1"
         assert el.typed_by_name == "MD"
-        # dump preserved (canonical @ form)
-        assert "@ m1 : MD" in m.dump()
+        # the notation the author used is the one dumped back (issue #42:
+        # `metadata m1 : MD;` keeps its keyword; `@m1 : MD;` keeps its sigil)
+        expected = "metadata m1 : MD" if src.startswith("metadata") else "@m1 : MD"
+        assert expected in m.dump()
     # about form annotating a sibling
     text = "package P { part def W; metadata m1 : MD about W; }"
     m = sysmlpy.loads(text)
     el = _find_by_name(m, "m1")
     assert el is not None and el.name == "m1"
-    assert "@ m1 : MD about W" in m.dump()
+    assert "metadata m1 : MD about W" in m.dump()
 
 
 def test_satisfy_usage_api_object():

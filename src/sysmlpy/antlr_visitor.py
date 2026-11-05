@@ -338,8 +338,10 @@ def _visit_metadata_feature_dict(ctx):
     for kid in kids:
         if type(kid).__name__ == "TerminalNodeImpl":
             text = kid.getText().strip()
-            if text in ("@", "metadata"):
-                keyword = "@" if text == "@" else None
+            if text in ("@", "#", "metadata"):
+                # issue #42: `#M` and `metadata m : M` are their own forms —
+                # dump must state the sigil/keyword the author wrote
+                keyword = text
             break
 
     return {
@@ -424,8 +426,17 @@ def _visit_metadata_body_element(elem_ctx):
             # Preserve the operator so downstream tools can decide
             # whether '=' vs ':=' vs 'default =' was used.
             value_text = None
+            value_part = None
             if hasattr(f, 'valuePart') and f.valuePart():
                 value_text = f.valuePart().getText()
+                # Issue #42: capture the value through the expression path the
+                # attribute defaults use, so `w = z;` carries a reference
+                # expression node instead of a bare string.  `value` keeps the
+                # author's text for dump fidelity; `valuePart` is the structure.
+                try:
+                    value_part = _visit_value_part(f.valuePart())
+                except Exception:
+                    value_part = None
             # Optional featureSpecializationPart (e.g. ': Type') and
             # FEATURE keyword (redefinition marker). Capture for
             # downstream consumers that need to distinguish redefines
@@ -442,6 +453,7 @@ def _visit_metadata_body_element(elem_ctx):
             return {
                 "name": name_text,
                 "value": value_text,
+                "valuePart": value_part,
                 "text": text,
                 "featureKeyword": is_feature_keyword,
                 "redefines": is_redefines,
