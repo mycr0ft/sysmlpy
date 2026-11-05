@@ -422,6 +422,12 @@ def expand_reexports(facts: Dict[str, dict]) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _resolved_roots(lib_roots) -> list:
+    """Library roots as a list of paths (default = the bundled library)."""
+    from sysmlpy.semantic import LibrarySymbolIndex
+    return [Path(r) for r in LibrarySymbolIndex._resolve_roots(lib_roots)]
+
+
 def _library_files(lib_roots) -> list:
     from sysmlpy.semantic import LibrarySymbolIndex
     paths = []
@@ -627,10 +633,24 @@ def _load_snapshot(digest: str) -> Optional[Dict[str, dict]]:
 
 
 def load(lib_roots=None, *, force: bool = False) -> Dict[str, dict]:
-    """Facts for the shipped library, from the snapshot or cache when possible."""
+    """Facts for the library, from the snapshot or cache when possible."""
+    roots = _resolved_roots(lib_roots)
+    if not force and len(roots) > 1:
+        # Several roots (bundled library + a project's own library): index each
+        # on its own so the bundled part can ride the snapshot instead of
+        # forcing a full rebuild — `analyze(model, library=[bundled, custom])`
+        # otherwise paid 276 s cold for the whole thing.
+        merged = _merge_fragments(load([root], force=force) for root in roots)
+        expand_reexports(merged)
+        return merged
     paths = _library_files(lib_roots)
     digest = set_digest(paths)
-    if lib_roots is None and not force:
+    # The snapshot is tried for *any* roots: it carries the digest it was built
+    # from, so a custom library simply fails the digest check and builds.  (Only
+    # `force` skips it, for tests and benchmarks that need the build path.)  An
+    # `analyze(library=[bundled_dir])` call passes explicit roots — which is the
+    # common case, and skipping the snapshot there cost a 276 s cold build.
+    if not force:
         snapped = _load_snapshot(digest)
         if snapped is not None:
             return snapped

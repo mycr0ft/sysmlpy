@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 0.104.2 (2026-11-04)
+
+- **Cold analyze: 190 s → 10.9 s** (0.103.3 was 43.5 s).  The snapshot was only
+  consulted when `lib_roots` was None, but `analyze(model, library=[...])` —
+  the ordinary path — always passes explicit roots, so a cold analyze rebuilt
+  the whole facts index (276 s with no DFA cache).  The snapshot is now tried
+  for any roots and accepted only when its digest matches theirs: a custom
+  library fails the check and builds; the bundled library answers instantly
+  however the caller spelled it.  Measured on a fresh venv with no DFA and no
+  facts cache: 190.5 s → 10.9 s, warm <0.1 s.
+
 ## 0.104.1 (2026-11-04)
 
 - **Shipped facts snapshot: first run 276 s → 0.02 s.** The library facts index

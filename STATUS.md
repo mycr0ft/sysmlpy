@@ -10,6 +10,13 @@ Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 (Nothing staged.)
 
+## Recent Highlights (0.104.2)
+
+- **Cold analyze 190 s → 10.9 s** (0.103.3: 43.5 s).  The snapshot now applies
+  whenever its digest matches the roots given, not only when `lib_roots` is None
+  — `analyze(model, library=[bundled])` passes explicit roots and was paying a
+  276 s rebuild.  Custom libraries fail the digest check and build as before.
+
 ## Recent Highlights (0.104.1)
 
 - **Shipped facts snapshot** (`src/sysmlpy/library_facts.json`, 564 KiB):

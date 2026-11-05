@@ -73,6 +73,23 @@ the 0.104.0 wheel, 8 workers, `SYSMLPY_DFA_CACHE=off`).  That is why 0.104.1
 ships a prebuilt snapshot: 0.02 s to read, validated against build id + content
 digest, so it is never used when it could be wrong.
 
+## 0.104.2 — cold analyze, fresh install
+
+The snapshot must be usable when the caller passes explicit roots, because that
+is what `analyze(model, library=[...])` does.  It was not, and a cold analyze
+paid a 276 s rebuild:
+
+```
+fresh venv, no DFA cache, no facts cache     0.103.3      0.104.1      0.104.2
+analyze(model importing ISQ::*)              43.5 s       190.5 s      10.9 s
+warm analyze                                 43.5 s       <0.1 s       <0.1 s
+```
+
+The rule now: the snapshot is tried for **any** roots and accepted only when the
+digest it carries matches the roots' own digest, so a custom library fails the
+check and builds, while the bundled library answers instantly however the caller
+named it.
+
 ## Baseline — 0.103.3
 
 Linux, Python 3.13.5, one repeat (n=1: treat ±15 % as noise; use `--repeat 5`
