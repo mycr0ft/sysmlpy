@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.103.4 (2026-11-04)
+
+- **Benchmark suite** (`benchmarks/bench.py`, `docs/benchmarks.md`). The v0.84.0
+  harness measured only parse cold/cached/warm on a synthetic model; this one
+  measures every phase a caller pays for, on real corpora: parse, element build,
+  `load_files`, `analyze`, `dump`, interchange export/round-trip, the library
+  symbol index, per-namespace tables, qualified-name lookups, and the full gate
+  scan (opt-in). Results are written to `benchmarks/results/<version>-<mode>.json`
+  so releases diff against each other, and `--cold` runs each case in a fresh
+  process with a throwaway DFA cache — the cost a first CLI invocation pays.
+
+  Baseline on 0.103.3 (Python 3.13.5, n=1): `parse.library_all` 17.8 s,
+  `model.library_all` 18.3 s, `dump.library_all` 7.2 s, `analyze.fixtures` 1.8 s,
+  `interchange.export` 0.54 s, and **`library.index` 29.6 s warm / 53.5 s cold**
+  — the analyzer's library index, not the parser, is the dominant cost. That is
+  the component #34 replaces, which is why its cache design matters more than the
+  parser's.
+
 ## 0.103.3 (2026-11-03)
 
 - **Issue #41: a succession vanished when its body had other members.**

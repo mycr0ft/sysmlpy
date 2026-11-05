@@ -10,6 +10,15 @@ Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
 
 (Nothing staged.)
 
+## Recent Highlights (0.103.4)
+
+- **Benchmark suite added** (`benchmarks/bench.py` + `docs/benchmarks.md`):
+  per-phase timings on real corpora, JSON results per release, and a `--cold`
+  mode for first-run cost. Baseline on 0.103.3: library parse 17.8 s, element
+  build 18.3 s, dump 7.2 s, analyze 1.8 s, interchange export 0.54 s, and
+  `library.index` **29.6 s warm / 53.5 s cold** — the library index dominates,
+  not the parser. That is the #34 target.
+
 ## Recent Highlights (0.103.3)
 
 - **Issue #41 shipped**: a `first a then b;` succession is a first-class element
