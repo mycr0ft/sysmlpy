@@ -3750,6 +3750,7 @@ class SemanticAnalyzer:
         issues.extend(self._check_verify_targets(model, symtab, lib_roots))
         issues.extend(self._check_satisfy_parts(model, symtab, lib_roots))
         issues.extend(self._check_allocation_ends(model, symtab, lib_roots))
+        issues.extend(self._check_related_elements(model))
         issues.extend(self._check_connector_directions(model))
 
         # Step 6: Stylistic checks (warnings, not errors)
@@ -4967,6 +4968,163 @@ class SemanticAnalyzer:
                         return True
             el = getattr(el, "parent", None)
         return False
+
+    def _check_related_elements(self, model: Any) -> list[SemanticIssue]:
+        """Concrete interfaces need at least two related elements (#44).
+
+        Mirrors OpenSysML ``internal/core/passes/w10b_related_elements.go``
+        (KerML 1.1 §8.3.3.5 / §8.3.4.7) with the reference's exemptions: an
+        abstract or variation definition supplies its ends through
+        specialization, so only concrete definitions and usages with fewer
+        than two ends are flagged.  An end is any child end feature of the
+        interface (issue #29's InterfaceEnd children) or, for grammar-only
+        shapes, the end/member names readable from the parsed body.  Ends
+        supplied through subsetting/redefinition of what the interface
+        specializes count — a subclass of a two-end interface is fine.
+
+        Message text is OpenSysML's verbatim so cross-tool runs diff
+        cleanly.  Model-only scope: the analyzed model's interfaces, not the
+        bundled library's.
+        """
+        issues: list[SemanticIssue] = []
+        for element, _scope_path in self._walk_usages(model):
+            kind = type(element).__name__
+            if kind != "Interface":
+                continue
+            if self._is_library_element(element, []):
+                continue
+            # The shared load tail sets is_abstract/is_variation from the
+            # grammar prefix, but Interface.load_from_grammar returns early
+            # on the v0.96.1 ends path — read the prefix here as well.
+            if self._interface_is_abstract_or_variation(element):
+                continue
+            if element.ends and len(element.ends) >= 2:
+                continue
+            # ends may also arrive through the interface's supertypes — walk
+            # the subclassification chain the way the analyzer resolves types.
+            end_count = self._inherited_interface_end_count(element)
+            if end_count and end_count >= 2:
+                continue
+            issues.append(SemanticIssue(
+                severity="error",
+                code="RELATED_ELEMENTS",
+                message="Must have at least two related elements",
+                element=element,
+                reference=getattr(element, "name", "") or "",
+            ))
+        return issues
+
+    def _inherited_interface_end_count(self, iface: Any, _seen=None) -> int:
+        """Ends an interface gains through specialization of another
+        interface.  Conservative: only direct ``:>`` targets that are
+        themselves Interfaces contribute their own (possibly inherited)
+        ends."""
+        if _seen is None:
+            _seen = set()
+        if id(iface) in _seen:
+            return 0
+        _seen.add(id(iface))
+        total = 0
+        grammar = getattr(iface, "grammar", None)
+        if grammar is None:
+            return 0
+        try:
+            d = grammar.get_definition() if hasattr(
+                grammar, "get_definition") else None
+        except Exception:
+            d = None
+        if not isinstance(d, dict):
+            return 0
+        # find SubclassificationPart dicts, harvest target names
+        stack = [d]
+        while stack:
+            cur = stack.pop()
+            if isinstance(cur, dict):
+                name = cur.get("name", "")
+                if "Subclassification" in name and name not in (
+                        "SubclassificationTargets"):
+                    for fs in self._subclassification_targets(cur):
+                        if fs:
+                            total += self._interface_end_count_by_name(
+                                fs, iface, _seen)
+                            continue
+                    continue
+                stack.extend(v for v in cur.values()
+                             if isinstance(v, (dict, list)))
+            elif isinstance(cur, list):
+                stack.extend(cur)
+        return total
+
+    @staticmethod
+    def _subclassification_targets(subcls: dict) -> list:
+        """Superinterface names from a Subclassification dict.
+
+        Shapes: ``SubclassificationPart → ownedRelationship
+        [OwnedSubclassification → superclassifier → QualifiedName.names]``;
+        the older ``Subclassification`` dict with the same inner shape.
+        """
+        if subcls.get("name") == "SubclassificationPart":
+            owned = subcls.get("ownedRelationship") or []
+            for orr in owned:
+                super_cls = (orr or {}).get("superclassifier") or {}
+                names = super_cls.get("names")
+                if isinstance(names, list) and names:
+                    return ["::".join(str(n) for n in names)]
+            return []
+        for orr in subcls.get("ownedRelationship") or []:
+            target = (orr or {}).get("subclassifier") or {}
+            names = (target.get("type") or {}).get("names") \
+                if isinstance(target, dict) else None
+            if isinstance(names, list) and names:
+                return ["::".join(str(n) for n in names)]
+            qn = target.get("names") if isinstance(target, dict) else None
+            if isinstance(qn, list) and qn:
+                return ["::".join(str(n) for n in qn)]
+        return []
+
+    def _interface_end_count_by_name(self, super_name: str,
+                                     iface: Any, seen: set) -> int:
+        """Resolve the super-interface *by name in iface's ancestors* and
+        count its ends (recursively, so supers of supers count)."""
+        root = iface
+        while getattr(root, "parent", None) is not None:
+            root = root.parent
+        candidates = [el for el in self._tree_elements(root)
+                      if type(el).__name__ == "Interface"
+                      and getattr(el, "name", None)]
+        last = super_name.split("::")[-1].split(".")[-1]
+        matches = [el for el in candidates
+                   if getattr(el, "name", None) == last]
+        if len(matches) != 1:
+            return 0
+        sup = matches[0]
+        own = len(sup.ends or [])
+        return own or self._inherited_interface_end_count(sup, seen)
+
+    @staticmethod
+    def _interface_is_abstract_or_variation(iface: Any) -> bool:
+        """Abstract/variation marker for an Interface, from the shared flags
+        or (their loader's early return notwithstanding) the grammar prefix
+        chain: ``prefix → BasicDefinitionPrefix.isAbstract/isVariation``."""
+        if getattr(iface, "is_abstract", False) or getattr(
+                iface, "is_variation", False):
+            return True
+        prefix = getattr(iface, "grammar", None)
+        prefix = getattr(prefix, "prefix", None)
+        bp = getattr(prefix, "prefix", None)
+        for holder in (getattr(prefix, "prefix", None), bp):
+            if holder is not None and (
+                    getattr(holder, "isAbstract", None) in ("abstract", True)
+                    or getattr(holder, "isVariation", None)
+                    in ("variation", True)):
+                return True
+        return False
+
+    @staticmethod
+    def _tree_elements(el):
+        yield el
+        for c in getattr(el, "children", None) or []:
+            yield from SemanticAnalyzer._tree_elements(c)
 
     def _check_connector_directions(self, model: Any) -> list[SemanticIssue]:
         """Check connection ends: directions (Goal 9) + types (Goal 10).
