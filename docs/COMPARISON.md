@@ -5,6 +5,24 @@ through sysmlpy (see `tests/runtime_showcase_test.py` and
 `tests/fixtures/runtime_showcase/`). Version references: sysmlpy 0.95.0,
 OpenSysML v0.8.1, gosysml v0.2.0.*
 
+**2026-11-09 update (GTRI bug report):** the tool-versus-tool verdicts are
+now pinned mechanically — `tests/gtri_portability_test.py` runs the four
+GTRI repro files (`tests/fixtures/gtri_2026_11/`) through **both** tools.
+Measured against the pinned OpenSysML reference checkout
+(~/proj/third_party/OpenSysML-reference, 0.12.1-998-gddc4a547fe,
+origin/develop, 2026-11-09): the two tools agree on all four files.  Two behaviors sysmlpy
+does deliberately and OpenSysML does differently are on the record there:
+
+1. **Qualified sibling-package allocation endpoints** — sysmlpy resolves
+   `allocate Architecture::Source to Target;` from the Functions scope (the
+   resolver is shared with typings, where the same spelling is silent);
+   OpenSysML rejects it (`connector-end-referent: Must be a valid feature`)
+   on both ends, and also rejects the star-imported form the GTRI report
+   believed fixed it.  sysmlpy's outward-scope walk is treated as correct.
+2. **One-sided interface definitions** — both tools now report the same
+   error, OpenSysML's message verbatim ("Must have at least two related
+   elements", KerML 1.1 §8.3.3.5/§8.3.4.7), so cross-tool runs diff cleanly.
+
 ---
 
 ## 1. The three projects

@@ -1,5 +1,54 @@
 # CHANGELOG
 
+## 0.106.0 (2026-11-09)
+
+**Issues #43 and #44 closed: allocation endpoints resolve, and concrete
+interfaces need two related elements.**  Repro set and report from Jon Fox
+(GTRI Applied Systems Laboratory), 2026-11-09, against CCMM models on
+sysmlpy 0.105.0 / OpenSysML kernel 0.63.1 / SysON v2026.9.0.
+
+- **Allocation endpoints are diagnosed (issue #43).**  `analyze()` never
+  looked at `allocate` endpoints — they lived as dump text on
+  `grammar.connectorPart` (issue #23) and no pass collected them, so
+  `allocate Nope to Target;` was clean.  Endpoints now resolve through the
+  same machinery ordinary typings use; failure is an
+  `ALLOCATION_ENDPOINT_UNRESOLVED` error, and every form is covered: binary,
+  n-ary (`allocate (a, b, c);` — every end checked), chained (`a.p`),
+  sibling-package qualified (`Architecture::Source`), and star-imported.
+- **Qualified and chained endpoints resolve through the public API.**
+  `_resolve_names_to_elements` used to skip any name containing `::` or `.` —
+  `allocation.source_elements` was `[]` for the qualified repro.  Paths now
+  resolve depth-wise from the root (with the depth-1 retry that mirrors how
+  a bare name resolves from an inner scope), unique match kept, ambiguous
+  still fails closed.
+- **Allocation-definition ends are typed and resolvable.**  The
+  `end :>> source : Architecture::Source;` members of an
+  `allocation def` are grammar-only (they do not load as children — only
+  interface ends do, issue #29), so their typings never reached symbol
+  collection: an unresolved end type now reports
+  `ALLOCATION_END_TYPE_UNRESOLVED`, and a nested
+  `allocate source to target;` resolves `source`/`target` through the end's
+  declared type.  The TypedAllocation repro is fully resolvable.
+- **Concrete interfaces need two related elements (issue #44).**  Mirrors
+  OpenSysML's w10b constraint pass (KerML 1.1 §8.3.3.5 / §8.3.4.7) with the
+  message verbatim (`Must have at least two related elements`, code
+  `RELATED_ELEMENTS`) so cross-tool runs diff cleanly.  Zero- and one-end
+  interface definitions (the GTRI CCMM `EthernetInterface` shape) are
+  errors; abstract and variation declarations are exempt, ends inherited
+  through `:>` count.  One-end connect and one-feature bind are grammar
+  errors upstream — noted in the test module.  Model-only scope: bundled
+  library interfaces are never subjects.
+- **Cross-tool portability pins.**  `tests/gtri_portability_test.py` +
+  `tests/fixtures/gtri_2026_11/` carry the four repro files verbatim;
+  measured against OpenSysML 0.12.1-998-gddc4a547fe (origin/develop):
+  qualified allocation rejected (`connector-end-referent` on both ends —
+  including the imported form, whose "fixes it" claim in the report does
+  not hold on current develop), SingleItemInterface rejected
+  (`related-elements`), TypedAllocation accepted.  sysmlpy and OpenSysML
+  now agree on all four files.
+- 15 pins in `tests/issue43_test.py`, 14 in `tests/issue44_test.py`, 12 in
+  `tests/gtri_portability_test.py` (4 skip without a built OpenSysML).
+
 ## 0.105.0 (2026-11-04)
 
 **Issue #42 closed: metadata bodies survive the dump, and their values are structured.**

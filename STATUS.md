@@ -1,14 +1,28 @@
 # sysmlpy — Project Status
 
-Current version: **v0.103.3** (2026-11-03, tagged)
+Current version: **v0.106.0** (2026-11-09, tagged)
 
-Current released version: **v0.103.3** (2026-11-03, on PyPI; 0.103.2 superseded)
+Current released version: **v0.106.0** (2026-11-09, on PyPI; 0.103.2 superseded)
 
 ---
 
 ## In Flight (on main, unreleased)
 
 (Nothing staged.)
+
+## Recent Highlights (0.106.0)
+
+- **Issues #43 and #44 closed (GTRI bug report, 2026-11-09).**  Allocation
+  endpoints are diagnosed (`ALLOCATION_ENDPOINT_UNRESOLVED` for every form:
+  binary/n-ary/chained/qualified/imported) and resolve through
+  `source_elements`/`target_elements`; allocation-definition ends are typed
+  (`ALLOCATION_END_TYPE_UNRESOLVED`) and a nested `allocate source to
+  target;` resolves through them.  Concrete interfaces with fewer than two
+  related elements are errors, message verbatim from OpenSysML's w10b pass
+  (`Must have at least two related elements`), so cross-tool runs diff
+  cleanly.  Portability pins: `tests/gtri_portability_test.py` runs the four
+  GTRI repro files through both sysmlpy and OpenSysML (develop) when
+  available — the two tools now agree on all four.
 
 ## Recent Highlights (0.105.0)
 
