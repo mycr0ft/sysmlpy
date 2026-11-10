@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01060-2026-11-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.106.0 (2026-11-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01050-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1116,6 +1127,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01060-2026-11-09" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.106.0 (2026-11-09)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01050-2026-11-04" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1598,6 +1620,54 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01060-2026-11-09">0.106.0 (2026-11-09)<a class="headerlink" href="#01060-2026-11-09" title="Permanent link">&para;</a></h2>
+<p><strong>Issues #43 and #44 closed: allocation endpoints resolve, and concrete
+interfaces need two related elements.</strong>  Repro set and report from Jon Fox
+(GTRI Applied Systems Laboratory), 2026-11-09, against CCMM models on
+sysmlpy 0.105.0 / OpenSysML kernel 0.63.1 / SysON v2026.9.0.</p>
+<ul>
+<li><strong>Allocation endpoints are diagnosed (issue #43).</strong>  <code>analyze()</code> never
+  looked at <code>allocate</code> endpoints — they lived as dump text on
+  <code>grammar.connectorPart</code> (issue #23) and no pass collected them, so
+  <code>allocate Nope to Target;</code> was clean.  Endpoints now resolve through the
+  same machinery ordinary typings use; failure is an
+  <code>ALLOCATION_ENDPOINT_UNRESOLVED</code> error, and every form is covered: binary,
+  n-ary (<code>allocate (a, b, c);</code> — every end checked), chained (<code>a.p</code>),
+  sibling-package qualified (<code>Architecture::Source</code>), and star-imported.</li>
+<li><strong>Qualified and chained endpoints resolve through the public API.</strong>
+  <code>_resolve_names_to_elements</code> used to skip any name containing <code>::</code> or <code>.</code> —
+  <code>allocation.source_elements</code> was <code>[]</code> for the qualified repro.  Paths now
+  resolve depth-wise from the root (with the depth-1 retry that mirrors how
+  a bare name resolves from an inner scope), unique match kept, ambiguous
+  still fails closed.</li>
+<li><strong>Allocation-definition ends are typed and resolvable.</strong>  The
+  <code>end :&gt;&gt; source : Architecture::Source;</code> members of an
+  <code>allocation def</code> are grammar-only (they do not load as children — only
+  interface ends do, issue #29), so their typings never reached symbol
+  collection: an unresolved end type now reports
+  <code>ALLOCATION_END_TYPE_UNRESOLVED</code>, and a nested
+  <code>allocate source to target;</code> resolves <code>source</code>/<code>target</code> through the end's
+  declared type.  The TypedAllocation repro is fully resolvable.</li>
+<li><strong>Concrete interfaces need two related elements (issue #44).</strong>  Mirrors
+  OpenSysML's w10b constraint pass (KerML 1.1 §8.3.3.5 / §8.3.4.7) with the
+  message verbatim (<code>Must have at least two related elements</code>, code
+  <code>RELATED_ELEMENTS</code>) so cross-tool runs diff cleanly.  Zero- and one-end
+  interface definitions (the GTRI CCMM <code>EthernetInterface</code> shape) are
+  errors; abstract and variation declarations are exempt, ends inherited
+  through <code>:&gt;</code> count.  One-end connect and one-feature bind are grammar
+  errors upstream — noted in the test module.  Model-only scope: bundled
+  library interfaces are never subjects.</li>
+<li><strong>Cross-tool portability pins.</strong>  <code>tests/gtri_portability_test.py</code> +
+  <code>tests/fixtures/gtri_2026_11/</code> carry the four repro files verbatim;
+  measured against OpenSysML 0.12.1-998-gddc4a547fe (origin/develop):
+  qualified allocation rejected (<code>connector-end-referent</code> on both ends —
+  including the imported form, whose "fixes it" claim in the report does
+  not hold on current develop), SingleItemInterface rejected
+  (<code>related-elements</code>), TypedAllocation accepted.  sysmlpy and OpenSysML
+  now agree on all four files.</li>
+<li>15 pins in <code>tests/issue43_test.py</code>, 14 in <code>tests/issue44_test.py</code>, 12 in
+  <code>tests/gtri_portability_test.py</code> (4 skip without a built OpenSysML).</li>
+</ul>
 <h2 id="01050-2026-11-04">0.105.0 (2026-11-04)<a class="headerlink" href="#01050-2026-11-04" title="Permanent link">&para;</a></h2>
 <p><strong>Issue #42 closed: metadata bodies survive the dump, and their values are structured.</strong></p>
 <ul>
@@ -3021,7 +3091,7 @@ verification case demonstrates it.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.expand", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.c21346df.min.js"></script>
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
