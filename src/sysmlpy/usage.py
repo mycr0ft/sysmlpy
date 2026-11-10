@@ -62,6 +62,17 @@ def _resolve_names_to_elements(obj, names):
     it, so an ambiguous reference (or a reference into the standard library)
     stays unresolved instead of guessing.  Used by the ``*_elements``
     endpoint properties; resolution is never implied by ``load``.
+
+    Issue #43: qualified names — namespace paths (``A::B``) and feature
+    chains (``a.p``) — used to be skipped outright (the source_elements of
+    ``allocate Architecture::Source to Target;`` came back ``[]``).  A dotted
+    or ``::``-separated name is now resolved as a path anchored exactly like
+    ``SymbolTable.lookup`` would anchor it from the reference site: segments
+    descend through named children starting at the model root; a leading
+    unnamed root is a pseudo-scope whose first hop lands in the top-level
+    namespaces.  Every candidate anchor must yield exactly one endpoint;
+    ambiguity or a missing segment leaves the name unresolved (fail-closed,
+    same contract as before).
     """
     if not names:
         return []
@@ -79,15 +90,183 @@ def _resolve_names_to_elements(obj, names):
         for child in getattr(el, "children", None) or []:
             yield from _walk(child)
 
+    def _try_path(segments):
+        """Descend *segments* through named children from *anchor* elements.
+
+        Anchors: every child of the root (the root itself is anonymous). A
+        multi-segment path may also skip naming the top-level package the
+        author's scope already sits inside, so a path that fails everywhere
+        anchored at depth 0 is retried anchored at depth 1 — mirroring how a
+        bare ``a`` resolves from a scope where ``P`` is visible without
+        naming it.  Returns the unique endpoint set or [] when ambiguous.
+        """
+        for anchor_depth in (0, 1):
+            cur = list(_walk_children_at_depth(root, anchor_depth))
+            ok = True
+            for seg in segments:
+                nxt = [c for e in cur
+                       for c in getattr(e, "children", None) or []
+                       if getattr(c, "name", None) == seg]
+                if not nxt:
+                    ok = False
+                    break
+                cur = nxt
+            if ok and cur:
+                return cur
+        return []
+
+    def _walk_children_at_depth(root_el, depth):
+        """Children of *root_el* that sit *depth* namespaces down."""
+        cur = [root_el]
+        for _ in range(depth):
+            cur = [c for e in cur
+                   for c in getattr(e, "children", None) or []]
+        return cur
+
     out = []
     for name in names:
-        if not name or "::" in name or "." in name:
-            continue  # qualified references are not lazy-resolved by name
+        if not name:
+            continue
+        if "::" in name or "." in name:
+            segments = [seg for part in name.split("::")
+                        for seg in part.split(".")
+                        if seg]
+            candidates = _try_path(segments)
+            if len(candidates) == 1:
+                out.append(candidates[0])
+            continue
         matches = [el for el in _walk(root)
                    if getattr(el, "name", None) == name]
         if len(matches) == 1:
             out.append(matches[0])
+            continue
+        # Issue #43 (TypedAllocation repro): a nested `allocate source to
+        # target;` inside an allocation definition names the definition's
+        # own ends — grammar-only (EndFeatureUsage) data.  Resolve such a
+        # name to the element the END is TYPED by, so
+        # `inner.source_elements` yields the Architecture::Source part.
+        end_match = _definition_end_element(root, name)
+        if end_match is not None:
+            out.append(end_match)
     return out
+
+
+def _allocation_definition_end_types(root):
+    """(definition, end_name, end_type) triples for every allocation
+    definition under *root* — read from the parsed grammar body, since the
+    ends do not load as child elements (see _allocation_definition_ends in
+    semantic.py; duplicated here because usage.py cannot import semantic)."""
+    from typing import Any  # local: module keeps a light import surface
+
+    def _end_type(spec: Any):
+        if not isinstance(spec, dict):
+            return None
+        for fs in spec.get("specialization") or []:
+            typedby = (fs.get("ownedRelationship") or {}).get("typedby") or {}
+            for tr in typedby.get("ownedRelationship") or []:
+                ftype = ((tr.get("ownedRelationship") or {}).get("type") or {})
+                names = (ftype.get("type") or {}).get("names")
+                if isinstance(names, list) and names:
+                    return "::".join(str(n) for n in names)
+        return None
+
+    def _end_name(spec: Any):
+        if not isinstance(spec, dict):
+            return None
+        for fs in spec.get("specialization") or []:
+            red = fs.get("ownedRelationship") or {}
+            owned = red.get("ownedRelationship")
+            if not isinstance(owned, list):
+                continue
+            for orr in owned:
+                names = ((orr or {}).get("redefinedFeature") or {}).get("names")
+                if isinstance(names, list) and names:
+                    return str(names[0])
+        return None
+
+    triples = []
+
+    def _visit(node: Any) -> None:
+        if node is None:
+            return
+        if type(node).__name__ == "Allocation" and getattr(
+                node, "is_definition", False):
+            grammar = getattr(node, "grammar", None)
+            definition = getattr(grammar, "definition", None)
+            if definition is not None:
+                try:
+                    d = definition.get_definition()
+                except Exception:
+                    d = None
+                stack = [d]
+                while stack and isinstance(stack[0], (dict, list)):
+                    cur = stack.pop(0)
+                    if isinstance(cur, dict):
+                        if cur.get("name") == "EndFeatureUsage":
+                            decl_decl = ((((cur.get("usage") or {})
+                                           .get("declaration") or {})
+                                          .get("declaration") or {}))
+                            spec = decl_decl.get("specialization")
+                            end_name = (((decl_decl.get("identification")
+                                          or {}).get("declaredName"))
+                                        or _end_name(spec))
+                            end_type = _end_type(spec)
+                            if end_name and end_type:
+                                triples.append((node, end_name, end_type))
+                            continue
+                        stack.extend(v for v in cur.values()
+                                     if isinstance(v, (dict, list)))
+                    elif isinstance(cur, list):
+                        stack.extend(cur)
+        for child in getattr(node, "children", None) or []:
+            _visit(child)
+
+    _visit(root)
+    return triples
+
+
+def _definition_end_element(root, name):
+    """The element typed by definition end *name*, when exactly one
+    allocation definition under *root* declares it and exactly one element
+    carries the end's type name."""
+    triples = [t for t in _allocation_definition_end_types(root)
+               if t[1] == name]
+    if len(triples) != 1:
+        return None
+    _, _, end_type = triples[0]
+    if "::" in end_type or "." in end_type:
+        segments = [seg for part in end_type.split("::")
+                    for seg in part.split(".")
+                    if seg]
+        # Mirror _try_path: the author's scope already sits inside the
+        # top-level package, so the type may omit it — try anchored at
+        # depth 1 before failing over to the fully-qualified form.
+        for anchor_depth in (1, 0):
+            cur = [root]
+            for _ in range(anchor_depth):
+                cur = [c for e in cur
+                       for c in getattr(e, "children", None) or []]
+            ok = True
+            for seg in segments:
+                cur = [c for e in cur
+                       for c in getattr(e, "children", None) or []
+                       if getattr(c, "name", None) == seg]
+                if not cur:
+                    ok = False
+                    break
+            if ok and len(cur) == 1:
+                return cur[0]
+        return None
+    matches = [el for el in
+               (e for e in _tree_walk(root)
+                if getattr(e, "name", None) == end_type)]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _tree_walk(el):
+    yield el
+    for c in getattr(el, "children", None) or []:
+        yield from _tree_walk(c)
 
 
 def _multiplicity_dict(text):

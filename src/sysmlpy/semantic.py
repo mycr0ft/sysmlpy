@@ -2141,6 +2141,96 @@ def _find_named_dicts(node: Any, name: str) -> list:
     return out
 
 
+def _allocation_definition_ends(allocation: Any) -> list[tuple]:
+    """``(end_name, end_type)`` pairs from an allocation definition's body.
+
+    The definition's ``end :>> name : Type;`` members parse as
+    EndFeatureUsage grammar objects inside the definition body but do not
+    load as child elements (only interface ends do, issue #29).  Their
+    typings therefore never reach symbol collection; the checker reads them
+    straight from the parsed grammar so `end :>> source : Nope;` is still
+    diagnosed.  Typed text is the raw ``: Type`` specialization dump.
+    """
+    grammar = getattr(allocation, "grammar", None)
+    definition = getattr(grammar, "definition", None)
+    if definition is None:
+        return []
+    try:
+        d = definition.get_definition()
+    except Exception:
+        return []
+    out: list[tuple] = []
+
+    def _find_end_usages(node: Any) -> None:
+        if not isinstance(node, dict):
+            return
+        name = node.get("name")
+        if name == "EndFeatureUsage":
+            usage = node.get("usage") or {}
+            decl = usage.get("declaration") or {}
+            decl_decl = decl.get("declaration") or {}
+            ident = decl_decl.get("identification") or {}
+            end_name = ident.get("declaredName")
+            end_type = None
+            spec = decl_decl.get("specialization")
+            if isinstance(spec, dict):
+                end_type = _end_type_from_spec(spec)
+            # The declared name can sit on the prefix chain's identification
+            # when the end redefines (`end :>> source : T;` keeps 'source'
+            # in the Redefinitions arm, not the identification).
+            if not end_name:
+                end_name = _redefined_name_from_spec(spec)
+            out.append((end_name, end_type))
+            return
+        for key, value in node.items():
+            if key in ("name", "prefix"):
+                continue
+            if isinstance(value, dict):
+                _find_end_usages(value)
+            elif isinstance(value, list):
+                for item in value:
+                    _find_end_usages(item)
+
+    def _end_type_from_spec(spec: dict) -> Any:
+        """The ``: Type`` typing from a FeatureSpecializationPart dict: the
+        Typings arm's QualifiedName ``names`` list."""
+        for fs in spec.get("specialization") or []:
+            rel = (fs.get("ownedRelationship") or {})
+            typedby = rel.get("typedby") or {}
+            for tr in typedby.get("ownedRelationship") or []:
+                ort = tr.get("ownedRelationship") or {}
+                ftype = ort.get("type") or {}
+                inner = ftype.get("type") or {}
+                names = inner.get("names")
+                if isinstance(names, list) and names:
+                    return "::".join(str(n) for n in names)
+        return None
+
+    def _redefined_name_from_spec(spec: Any) -> str:
+        """The ``:>> name`` redefinition target's first segment.
+
+        The dict shape is ``FeatureSpecialization → ownedRelationship
+        (named 'Redefinitions') → ownedRelationship[OwnedRedefinition] →
+        redefinedFeature → QualifiedName.names``.
+        """
+        if not isinstance(spec, dict):
+            return None
+        for fs in spec.get("specialization") or []:
+            red = fs.get("ownedRelationship") or {}
+            owned = red.get("ownedRelationship")
+            if not isinstance(owned, list):
+                continue
+            for orr in owned:
+                rf = (orr or {}).get("redefinedFeature") or {}
+                names = rf.get("names")
+                if isinstance(names, list) and names:
+                    return str(names[0])
+        return None
+
+    _find_end_usages(d)
+    return out
+
+
 def _as_list_dicts(v: Any) -> list:
     """Normalize an optional-dict-or-list relationship field to a list."""
     if isinstance(v, list):
@@ -3659,6 +3749,7 @@ class SemanticAnalyzer:
         issues.extend(self._check_trace_targets(model, symtab, lib_roots))
         issues.extend(self._check_verify_targets(model, symtab, lib_roots))
         issues.extend(self._check_satisfy_parts(model, symtab, lib_roots))
+        issues.extend(self._check_allocation_ends(model, symtab, lib_roots))
         issues.extend(self._check_connector_directions(model))
 
         # Step 6: Stylistic checks (warnings, not errors)
@@ -4773,6 +4864,109 @@ class SemanticAnalyzer:
                     reference=ref,
                 ))
         return issues
+
+    def _check_allocation_ends(
+        self,
+        model: Any,
+        symtab: "SymbolTable",
+        lib_roots: list,
+    ) -> list[SemanticIssue]:
+        """Resolve ``allocate <end> to <end>;`` endpoints (issue #43).
+
+        Allocation endpoints never entered semantic analysis: the endpoints
+        live as dump text on the Allocation's grammar connectorPart
+        (``Allocation.source``/``.target``, issue #23) and no other pass
+        collected them, so ``allocate Nope to T;`` analyzed clean.  Each
+        endpoint name is resolved from the enclosing package's scope with the
+        same machinery ordinary typings use (``_is_resolved``); an endpoint
+        that does not resolve is an ALLOCATION_ENDPOINT_UNRESOLVED error.
+        """
+        issues: list[SemanticIssue] = []
+
+        for element, scope_path in self._walk_usages(model):
+            if type(element).__name__ != "Allocation":
+                continue
+            # Skip the standard-library roots of a library-backed analysis:
+            # library models are truth, not subjects (the model-under-test's
+            # scope paths do not start with a library root).
+            if self._is_library_element(element, lib_roots):
+                continue
+            issues.extend(self._allocation_issues(element, scope_path, symtab,
+                                                  lib_roots))
+        return issues
+
+    def _allocation_issues(
+        self,
+        element: Any,
+        scope_path: list[str],
+        symtab: "SymbolTable",
+        lib_roots: list,
+    ) -> list[SemanticIssue]:
+        issues: list[SemanticIssue] = []
+        ends = list(element.source) + list(element.target)
+        for end in ends:
+            if not end:
+                continue
+            if self._is_resolved(end, symtab, scope_path, lib_roots,
+                                 element):
+                continue
+            issues.append(SemanticIssue(
+                severity="error",
+                code="ALLOCATION_ENDPOINT_UNRESOLVED",
+                message=(
+                    f"Allocation endpoint '{end}' does not resolve "
+                    f"in allocation "
+                    f"'{getattr(element, 'name', '') or '<anonymous>'}'"),
+                element=element,
+                reference=end,
+            ))
+
+        # Definition-form ends (`end :>> name : Type;`) do not load as child
+        # elements today (only interface ends do, issue #29), so their
+        # typings never reach the symbol collection — resolve the declared
+        # type right from the grammar body.  The nested allocate statements
+        # of a definition DO load as child Allocations and were handled
+        # above; this covers the end declarations themselves.
+        if getattr(element, "is_definition", False):
+            seen: set[str] = set()
+            for end_name, end_type in _allocation_definition_ends(element):
+                key = (end_name or "", end_type or "")
+                if key in seen or not end_type:
+                    continue
+                seen.add(key)
+                if self._is_resolved(end_type, symtab, scope_path, lib_roots,
+                                     element):
+                    continue
+                issues.append(SemanticIssue(
+                    severity="error",
+                    code="ALLOCATION_END_TYPE_UNRESOLVED",
+                    message=(
+                        f"Allocation end '{end_name or '<anonymous>'}' is "
+                        f"typed by '{end_type}' which does not resolve"),
+                    element=element,
+                    reference=end_type,
+                ))
+        return issues
+
+    def _is_library_element(self, element: Any, lib_roots: list) -> bool:
+        """True when *element* (or an ancestor) was loaded from a library root.
+
+        Library-backed analyses load the standard libraries as models; their
+        elements must not be diagnosed as subjects.  Detection is structural:
+        a library file's root package carries the loaded file's identity via
+        ``_source_file`` when set by the loader; without that marker fall back
+        to membership in the library root names.
+        """
+        el = element
+        while el is not None:
+            src = getattr(el, "_source_file", None)
+            if src is not None and lib_roots:
+                sp = str(src)
+                for root in lib_roots:
+                    if sp.startswith(str(root)):
+                        return True
+            el = getattr(el, "parent", None)
+        return False
 
     def _check_connector_directions(self, model: Any) -> list[SemanticIssue]:
         """Check connection ends: directions (Goal 9) + types (Goal 10).
