@@ -6,11 +6,31 @@ build-backend = "poetry.core.masonry.api"
 
 [project]
 name = "sysmlpy"
-version = "0.106.0"
-description = ""
+version = "0.106.1"
+description = "SysML v2.1 (Beta 2) toolkit for Python — ANTLR4 parser on OMG release 2026-08, 123/123 XPect, round-trip dump(), semantic analyzer, 17 PlantUML/boxes views, state-machine simulation, graph backends."
+keywords = [
+    "sysml",
+    "sysml-v2",
+    "sysml-v2.1",
+    "kerml",
+    "mbse",
+    "systems-engineering",
+    "model-based-systems-engineering",
+    "antlr4",
+    "parser",
+    "plantuml",
+    "simulation",
+]
 authors = [{ name = "Jon R. Fox (mycr0ft)", email = "jon.fox@drfox.com" }]
 readme = "README.md"
 packages = [{ include = "sysmlpy", from = "src" }]
+
+[project.urls]
+Homepage = "https://github.com/mycr0ft/sysmlpy"
+Repository = "https://github.com/mycr0ft/sysmlpy"
+Documentation = "https://github.com/mycr0ft/sysmlpy#readme"
+Changelog = "https://github.com/mycr0ft/sysmlpy/blob/main/CHANGELOG.md"
+Issues = "https://github.com/mycr0ft/sysmlpy/issues"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -23,7 +43,7 @@ openpyxl = { version = ">=3.1", optional = true }
 reqif = { version = ">=0.1", optional = true }
 arrow = "^1.4.0"
 transitions = {version = "^0.9", optional = true}
-diagramboxes = { version = ">=0.15.1", optional = true }
+diagramboxes = { version = ">=0.15.1", optional = true, python = ">=3.10" }
 requests = { version = ">=2.31", optional = true }
 ipython = { version = ">=8.0", optional = true }
 

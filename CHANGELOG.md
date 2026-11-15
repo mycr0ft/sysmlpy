@@ -1,5 +1,37 @@
 # CHANGELOG
 
+## 0.106.1 (2026-11-14)
+
+**Packaging and presentation only — no library behaviour changed.**
+
+- **PyPI metadata was blank and is now filled.** `pyproject.toml` had
+  `description = ""`, so the PyPI project page showed no summary at all, and it
+  carried no `keywords` and no `project.urls`. It now has a real summary line,
+  11 keywords (sysml, sysml-v2, sysml-v2.1, kerml, mbse, systems-engineering,
+  model-based-systems-engineering, antlr4, parser, plantuml, simulation), and
+  Homepage / Repository / Documentation / Changelog / Issues URLs all pointing at
+  https://github.com/mycr0ft/sysmlpy.
+- **The `boxes` extra is now marked `python = ">=3.10"`.** `diagramboxes` requires
+  Python >=3.10 while this project declares `>=3.9`, so a fresh dependency resolve
+  was unsatisfiable — `poetry lock` could not complete at all. The marker keeps the
+  3.9 floor for the library itself and gates only the extra; the wheel now emits
+  `diagramboxes ; (python_version >= "3.10") and (extra == "boxes")`.
+  `poetry.lock` refreshed with the marker in place: additive only, no pinned
+  version changed.
+- **README states its target honestly.** The description said "consistent with the
+  SysML v2.0 standard"; it now targets SysML v2.1 (Beta 2) / KerML 1.1 on OMG
+  release 2026-08, and the `## Conformance` section became `## Standards status`:
+  the project aims at the specification and publishes test results (123/123 XPect,
+  31 in-house analyzer rules) instead of claiming conformance, because there is no
+  accredited conformance-testing authority for SysML v2 tools — OMG's SysML v2
+  certification program examines practitioners (Model User exam), not
+  implementations.
+- **Repository presentation.** Description and 12 topics set; on 2026-11-14 the
+  repository was extracted from the `Westfall-io/sysml2py` fork network and is now
+  the root of its own network, with its four child forks carried along, and its
+  33 issues, 11 pull requests and 141 releases intact.
+
+
 ## 0.106.0 (2026-11-09)
 
 **Issues #43 and #44 closed: allocation endpoints resolve, and concrete

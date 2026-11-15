@@ -5,7 +5,13 @@
 
 ## Description
 sysmlpy is an open source pure Python library for constructing python-based
-classes consistent with the [SysML v2.0 standard](https://github.com/Systems-Modeling/SysML-v2-Release).
+classes that target the [SysML v2.1 (Beta 2) and KerML 1.1
+specifications](https://github.com/Systems-Modeling/SysML-v2-Release),
+tracking OMG release 2026-08.
+
+It *aims* at those specifications; it does not claim conformance to them. That
+is a deliberate wording choice rather than hedging — see [Standards
+status](#standards-status) for why no tool can honestly claim it yet.
 
 This project began as a fork of the sysml2py project by [Christopher
 Cox](https://github.com/chriscox-westfall). Since April 2026 [Jon Fox](mailto:jon.fox@drfox.com) 
@@ -13,9 +19,10 @@ decided to complete coverage of all SysMLv2 features over two months of weekends
 and dropped the textX parser in favor of [an ANTLR4 parser grammar](https://github.com/daltskin/sysml-v2-grammar) and
 changed our unit library to pint.
 The project had diverged so much from sysml2py that a new name, sysmlpy, was selected.
+In November 2026 it left the sysml2py fork network and became the root of its own.
 
-**What you get**: full SysML v2 parsing (ANTLR4, 123/123 OMG XPect
-conformance), round-trip `dump()`, a semantic analyzer with 31 rule
+**What you get**: full SysML v2 parsing (ANTLR4, 123/123 OMG XPect parse
+tests), round-trip `dump()`, a semantic analyzer with 31 rule
 codes (name resolution, type/unit-checked expressions, OCL
 well-formedness), 17 PlantUML views + Java-free boxes rendering,
 state-machine simulation, Excel export, a `sysmlpy diff` semantic
@@ -1242,9 +1249,26 @@ relations, round-tripped through sysmlpy with exact structural fidelity.
 - **[strictdoc/reqif](https://github.com/strictdoc-project/reqif)** — the
   parser library sysmlpy uses for the ReqIF wire format (Apache-2.0).
 
-## Conformance
+## Standards status
 
-**100% of 123 OMG XPect conformance tests pass** (123/123).
+sysmlpy **aims** to conform to SysML v2.1 (Beta 2) and KerML 1.1. It does not
+claim conformance, and that is deliberate: there is no accredited
+conformance-testing authority for SysML v2 tools. OMG's SysML v2 certification
+program certifies practitioners — it is a Model User exam — not
+implementations, so no body currently issues a conformance certificate a tool
+could carry. A vendor statement that its tool "conforms" is therefore an
+assertion about its own test suite, not a certified result.
+
+What can be measured is published instead:
+
+| Claim | Evidence |
+|---|---|
+| Grammar target | vendored ANTLR4 grammar from OMG release 2026-08 (see [CHANGELOG](CHANGELOG.md)) |
+| Parse coverage | 123/123 OMG XPect tests pass, run unmodified from the pilot suite; a further 3 are skipped when an optional dependency is absent |
+| Semantic validation | 31 in-house rule codes, documented in the analyzer reference — a sysmlpy rule set, not a specification clause-by-clause mapping |
+| Spec edition | SysML v2.1 Beta 2 / KerML 1.1 Beta 2; the normative OMG release is still SysML 2.0, and 2.1 remains in revision task force |
+
+Known gaps are tracked as issues rather than reported as coverage.
 
 ## Companion Projects
 
