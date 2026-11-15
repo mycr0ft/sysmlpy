@@ -593,6 +593,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01061-2026-11-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.106.1 (2026-11-14)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01060-2026-11-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1127,6 +1138,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#01061-2026-11-14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.106.1 (2026-11-14)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#01060-2026-11-09" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1620,6 +1642,36 @@
 
 
 <h1 id="changelog">CHANGELOG<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
+<h2 id="01061-2026-11-14">0.106.1 (2026-11-14)<a class="headerlink" href="#01061-2026-11-14" title="Permanent link">&para;</a></h2>
+<p><strong>Packaging and presentation only — no library behaviour changed.</strong></p>
+<ul>
+<li><strong>PyPI metadata was blank and is now filled.</strong> <code>pyproject.toml</code> had
+  <code>description = ""</code>, so the PyPI project page showed no summary at all, and it
+  carried no <code>keywords</code> and no <code>project.urls</code>. It now has a real summary line,
+  11 keywords (sysml, sysml-v2, sysml-v2.1, kerml, mbse, systems-engineering,
+  model-based-systems-engineering, antlr4, parser, plantuml, simulation), and
+  Homepage / Repository / Documentation / Changelog / Issues URLs all pointing at
+  https://github.com/mycr0ft/sysmlpy.</li>
+<li><strong>The <code>boxes</code> extra is now marked <code>python = "&gt;=3.10"</code>.</strong> <code>diagramboxes</code> requires
+  Python &gt;=3.10 while this project declares <code>&gt;=3.9</code>, so a fresh dependency resolve
+  was unsatisfiable — <code>poetry lock</code> could not complete at all. The marker keeps the
+  3.9 floor for the library itself and gates only the extra; the wheel now emits
+  <code>diagramboxes ; (python_version &gt;= "3.10") and (extra == "boxes")</code>.
+  <code>poetry.lock</code> refreshed with the marker in place: additive only, no pinned
+  version changed.</li>
+<li><strong>README states its target honestly.</strong> The description said "consistent with the
+  SysML v2.0 standard"; it now targets SysML v2.1 (Beta 2) / KerML 1.1 on OMG
+  release 2026-08, and the <code>## Conformance</code> section became <code>## Standards status</code>:
+  the project aims at the specification and publishes test results (123/123 XPect,
+  31 in-house analyzer rules) instead of claiming conformance, because there is no
+  accredited conformance-testing authority for SysML v2 tools — OMG's SysML v2
+  certification program examines practitioners (Model User exam), not
+  implementations.</li>
+<li><strong>Repository presentation.</strong> Description and 12 topics set; on 2026-11-14 the
+  repository was extracted from the <code>Westfall-io/sysml2py</code> fork network and is now
+  the root of its own network, with its four child forks carried along, and its
+  33 issues, 11 pull requests and 141 releases intact.</li>
+</ul>
 <h2 id="01060-2026-11-09">0.106.0 (2026-11-09)<a class="headerlink" href="#01060-2026-11-09" title="Permanent link">&para;</a></h2>
 <p><strong>Issues #43 and #44 closed: allocation endpoints resolve, and concrete
 interfaces need two related elements.</strong>  Repro set and report from Jon Fox
